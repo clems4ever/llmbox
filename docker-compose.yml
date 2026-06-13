@@ -1,26 +1,23 @@
-# Two ways to run, as separate services:
+# The default service is llmbox-mcp: the MCP + auth server. A chatbot calls it
+# to create sandboxed Claude boxes, each authenticated by the end user in a
+# browser. It launches the `claude-remote` *image* for every box, so build that
+# image once first:
 #
-#   llmbox-mcp    The MCP + auth server. A chatbot calls it to create sandboxed
-#                 Claude boxes; each is authenticated by the end user in a
-#                 browser. This is the main product of this repo.
-#                   docker compose up --build llmbox-mcp
+#   docker compose build claude-remote      # build the claude-remote image
+#   docker compose up --build               # build + run llmbox-mcp
 #
-#   claude-remote A single Claude remote-control container that reuses the host's
-#                 already-authenticated credentials (bind-mounted, read-write so
-#                 token refresh persists). Handy for the manual/local flow.
-#                   docker compose up --build claude-remote
-#                   docker compose logs -f claude-remote   # grab the session link
+# `claude-remote` is also kept as an opt-in service (profile "manual") for the
+# old single-box flow: one Claude remote-control container reusing the host's
+# already-authenticated credentials (bind-mounted read-write for token refresh):
 #
-# The llmbox-mcp service launches the claude-remote *image* for each box, so
-# build it first (compose builds both with `up --build`).
+#   docker compose --profile manual up --build claude-remote
+#   docker compose --profile manual logs -f claude-remote   # grab the session link
 services:
   llmbox-mcp:
     build:
       context: .
       dockerfile: Dockerfile.mcp
     image: llmbox-mcp
-    depends_on:
-      - claude-remote
     ports:
       - "8080:8080"
     environment:
@@ -39,6 +36,9 @@ services:
     restart: unless-stopped
 
   claude-remote:
+    # Opt-in: only built/started when you ask for it (or build it by name).
+    # llmbox-mcp uses this image but does not need the service running.
+    profiles: ["manual"]
     build:
       context: .
       dockerfile: Dockerfile.claude

@@ -4,7 +4,7 @@
 //
 // One process serves two things on the same HTTP port:
 //
-//	/mcp           MCP (streamable HTTP) — a chatbot creates/lists/destroys boxes
+//	/              MCP (streamable HTTP) — a chatbot creates/lists/destroys boxes
 //	/auth/{token}  web page where the user pastes their OAuth code
 //
 // Boxes that are never authenticated are destroyed after a TTL.

@@ -1,7 +1,7 @@
 # llmbox-mcp — MCP server + auth web server that manages sandboxed Claude boxes.
 #
 # One process serves two things on the same HTTP port:
-#   /mcp           MCP over streamable HTTP (a chatbot creates/lists/destroys boxes)
+#   /              MCP over streamable HTTP (a chatbot creates/lists/destroys boxes)
 #   /auth/{token}  web page where a user pastes their OAuth code to activate a box
 #
 # It drives the Docker daemon to launch the Claude image, so it must be given
