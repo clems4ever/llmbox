@@ -145,5 +145,8 @@ out-of-band code callback) that the manager captures.
   if your Claude version's prompts differ.
 - Each box consumes a session on the **end user's** Claude subscription. That is
   the intended model; be deliberate about who you let create boxes.
-- Claude's remote-control may show a workspace-trust prompt on first run; if you
-  hit it, adjust `LLMBOX_REMOTE_ARGS` / the wrapper accordingly.
+- The box wrapper pre-accepts the workspace-trust dialog (writes
+  `projects[cwd].hasTrustDialogAccepted` to `~/.claude.json` after login), since
+  `claude remote-control` otherwise aborts with "Workspace not trusted" in a
+  fresh box. If a `SubmitCode` fails, the box's actual message (invalid code,
+  trust, eligibility, …) is surfaced on the auth page instead of a bare EOF.
