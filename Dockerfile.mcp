@@ -1,0 +1,41 @@
+# llmbox-mcp — MCP server that manages Claude remote-control containers.
+#
+# This image contains only the compiled Go MCP server. It speaks MCP over
+# stdio and drives the Docker daemon to list/create/destroy Claude containers,
+# so it must be given access to a Docker socket at runtime.
+#
+# Build:
+#   docker build -f Dockerfile.mcp -t llmbox-mcp .
+#
+# Run (give it the host Docker socket; talks MCP over stdio):
+#   docker run --rm -i \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     llmbox-mcp
+#
+# Configure the default image launched by create_container:
+#   -e LLMBOX_CLAUDE_IMAGE=claude-remote
+
+# ---- build stage ----
+FROM golang:1.26-bookworm AS build
+
+WORKDIR /src
+
+# Cache dependencies first.
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Build a static binary so it runs on a distroless base.
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath -ldflags="-s -w" \
+    -o /out/llmbox-mcp ./cmd/llmbox-mcp
+
+# ---- runtime stage ----
+FROM gcr.io/distroless/static-debian12:nonroot
+
+# Default image launched by the create_container tool.
+ENV LLMBOX_CLAUDE_IMAGE=claude-remote
+
+COPY --from=build /out/llmbox-mcp /usr/local/bin/llmbox-mcp
+
+ENTRYPOINT ["/usr/local/bin/llmbox-mcp"]

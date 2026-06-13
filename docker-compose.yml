@@ -1,0 +1,44 @@
+# Claude Code in Remote Control mode.
+#
+# Reuses the host's already-authenticated credentials by bind-mounting
+# ~/.claude/.credentials.json (read-write, so token refresh persists).
+#
+#   docker compose up --build      # start, stream the session URL/QR in logs
+#   docker compose up -d           # detached
+#   docker compose logs -f         # follow logs to grab the remote session link
+#   docker compose down            # stop
+#
+# Tune the server via CLAUDE_REMOTE_ARGS, e.g.:
+#   CLAUDE_REMOTE_ARGS="--name codespec --spawn worktree --capacity 8" docker compose up
+services:
+  claude-remote:
+    build:
+      context: .
+      dockerfile: Dockerfile.claude
+    image: claude-remote
+    # Keep STDIN/TTY so the foreground remote-control process behaves well.
+    stdin_open: true
+    tty: true
+    environment:
+      # Extra flags for `claude remote-control`. --spawn must be set
+      # explicitly: without it, headless startup blocks on an interactive
+      # spawn-mode prompt. Override to add --name, --capacity, etc.
+      CLAUDE_REMOTE_ARGS: ${CLAUDE_REMOTE_ARGS:---spawn same-dir}
+      # remote-control's interactive UI (which actually registers the
+      # environment) only engages when TERM is set; unset it stays degraded.
+      TERM: xterm-256color
+      # Fine-grained GitHub token (Issues: write) used by the
+      # create-github-issue skill. Put it in a local .env file beside this
+      # compose file: GH_TOKEN=github_pat_xxx  (.env is gitignored).
+      GH_TOKEN: ${GH_TOKEN:-}
+    volumes:
+      # Project files to work on.
+      - .:/workspace
+      # Host credentials -> container, read-write for token auto-refresh.
+      - ${HOME}/.claude/.credentials.json:/home/node/.claude/.credentials.json
+      # Minimal account/org config (oauthAccount) needed for Remote Control
+      # eligibility. A container-local seed file, isolated from the host's
+      # ~/.claude.json so neither clobbers the other. Regenerate with the
+      # snippet in .claude-config.seed.json's header if your account changes.
+      - ./.claude-config.seed.json:/home/node/.claude.json
+    restart: unless-stopped
