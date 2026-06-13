@@ -12,9 +12,10 @@ import (
 func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	mux := http.NewServeMux()
 
+	// MCP is served at the root. The more specific routes below take precedence
+	// over this catch-all (Go's ServeMux matches the most specific pattern).
 	mcpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return mcpServer }, nil)
-	mux.Handle("/mcp", mcpHandler)
-	mux.Handle("/mcp/", mcpHandler)
+	mux.Handle("/", mcpHandler)
 
 	mux.HandleFunc("GET /auth/{token}", s.handleAuthPage)
 	mux.HandleFunc("POST /auth/{token}", s.handleAuthSubmit)

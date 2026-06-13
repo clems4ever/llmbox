@@ -18,7 +18,7 @@ front-ends on the same HTTP port:
 
 | Path            | Audience | Carries |
 |-----------------|----------|---------|
-| `/mcp`          | the chatbot (MCP over streamable HTTP) | box IDs + the **auth page URL** only |
+| `/` (root)      | the chatbot (MCP over streamable HTTP) | box IDs + the **auth page URL** only |
 | `/auth/{token}` | the human, in a browser | the **OAuth code** (browser → this server → container stdin) |
 
 The code travels from the user's browser to the box's `claude auth login`
@@ -88,8 +88,8 @@ clear text.
 
 ### Connecting a chatbot
 
-`create_llmbox` etc. are served at `https://boxes.example.com/mcp` (streamable
-HTTP). Add that as a remote MCP server in your client.
+`create_llmbox` etc. are served at the root, `https://boxes.example.com/`
+(streamable HTTP). Add that as a remote MCP server in your client.
 
 ## Configuration
 
