@@ -60,6 +60,18 @@ const (
 	ttyHeight = 50
 )
 
+// trustAcceptCmd marks the box's working directory as a trusted workspace by
+// merging projects[cwd].hasTrustDialogAccepted=true into ~/.claude.json. Without
+// it, `claude remote-control` aborts with "Workspace not trusted" in a fresh
+// box. Run with the Claude image's bundled node; uses only double quotes inside
+// so it stays safe within the single-quoted `sh -c` entrypoint.
+const trustAcceptCmd = `node -e ` +
+	`'const fs=require("fs"),os=require("os"),p=os.homedir()+"/.claude.json";` +
+	`let c={};try{c=JSON.parse(fs.readFileSync(p,"utf8"))}catch(e){}` +
+	`c.projects=c.projects||{};const d=process.cwd();` +
+	`c.projects[d]=Object.assign({},c.projects[d],{hasTrustDialogAccepted:true});` +
+	`fs.writeFileSync(p,JSON.stringify(c))'`
+
 // dockerAPI is the subset of the Docker client used by Manager. It exists so
 // the Docker layer can be faked in tests; *client.Client satisfies it.
 type dockerAPI interface {
@@ -160,12 +172,17 @@ func (m *Manager) CreateLLMBox(ctx context.Context, image string) (id, authorize
 		image = m.defaultImage
 	}
 
-	// Entrypoint: authenticate, then hand off to remote-control. `script`
-	// allocates a fresh PTY for remote-control's UI, which it needs to reach
-	// the "Ready" state and register the session.
+	// Entrypoint: (1) authenticate, (2) pre-accept the workspace-trust dialog for
+	// the current directory — otherwise `claude remote-control` refuses to start
+	// in a fresh box — then (3) hand off to remote-control. `script` allocates a
+	// fresh PTY for remote-control's UI, which it needs to reach "Ready".
+	//
+	// Trust is recorded as projects[<cwd>].hasTrustDialogAccepted in
+	// ~/.claude.json; we merge it in with node (present in the Claude image) so we
+	// don't clobber what `claude auth login` just wrote.
 	entry := fmt.Sprintf(
-		`claude auth login --claudeai && exec script -qfc "claude remote-control %s" /dev/null`,
-		m.remoteArgs,
+		`claude auth login --claudeai && %s && exec script -qfc "claude remote-control %s" /dev/null`,
+		trustAcceptCmd, m.remoteArgs,
 	)
 
 	resp, err := m.cli.ContainerCreate(ctx,
@@ -221,8 +238,11 @@ func (m *Manager) readAuthorizeURL(ctx context.Context, id string) (string, erro
 	}
 	defer hj.Close()
 
-	url, err := scanFor(hj.Reader, authorizeURLRe, 30*time.Second, func() { hj.Close() })
+	url, tail, err := scanFor(hj.Reader, authorizeURLRe, 30*time.Second, func() { hj.Close() })
 	if err != nil {
+		if tail != "" {
+			return "", fmt.Errorf("waiting for authorize URL; box said: %s", tail)
+		}
 		return "", fmt.Errorf("waiting for authorize URL: %w", err)
 	}
 	return url, nil
@@ -248,8 +268,12 @@ func (m *Manager) SubmitCode(ctx context.Context, id, code string) (sessionURL s
 		return "", fmt.Errorf("submitting code: %w", err)
 	}
 
-	url, err := scanFor(hj.Reader, sessionURLRe, 60*time.Second, func() { hj.Close() })
+	url, tail, err := scanFor(hj.Reader, sessionURLRe, 60*time.Second, func() { hj.Close() })
 	if err != nil {
+		if tail != "" {
+			// Surface the box's real message (e.g. an invalid-code or trust error).
+			return "", fmt.Errorf("login did not complete; box said: %s", tail)
+		}
 		return "", fmt.Errorf("login did not complete (the code may be invalid or expired): %w", err)
 	}
 
@@ -312,10 +336,12 @@ func (m *Manager) findManaged(ctx context.Context, idOrName string) (*Box, error
 
 // scanFor reads from r until re matches the accumulated (ANSI-stripped) output
 // or timeout elapses. onTimeout is called to unblock a pending Read (e.g. by
-// closing the connection) when the deadline passes.
-func scanFor(r *bufio.Reader, re *regexp.Regexp, timeout time.Duration, onTimeout func()) (string, error) {
+// closing the connection) when the deadline passes. On failure it returns the
+// trailing output captured so callers can surface the box's actual message.
+func scanFor(r *bufio.Reader, re *regexp.Regexp, timeout time.Duration, onTimeout func()) (match, tail string, err error) {
 	type result struct {
 		match string
+		tail  string
 		err   error
 	}
 	done := make(chan result, 1)
@@ -324,7 +350,7 @@ func scanFor(r *bufio.Reader, re *regexp.Regexp, timeout time.Duration, onTimeou
 		var acc []byte
 		buf := make([]byte, 4096)
 		for {
-			n, err := r.Read(buf)
+			n, rerr := r.Read(buf)
 			if n > 0 {
 				acc = append(acc, buf[:n]...)
 				clean := stripANSI(acc)
@@ -337,8 +363,8 @@ func scanFor(r *bufio.Reader, re *regexp.Regexp, timeout time.Duration, onTimeou
 					acc = acc[len(acc)-(1<<19):]
 				}
 			}
-			if err != nil {
-				done <- result{err: err}
+			if rerr != nil {
+				done <- result{tail: lastLines(stripANSI(acc), 600), err: rerr}
 				return
 			}
 		}
@@ -347,13 +373,23 @@ func scanFor(r *bufio.Reader, re *regexp.Regexp, timeout time.Duration, onTimeou
 	select {
 	case res := <-done:
 		if res.match != "" {
-			return res.match, nil
+			return res.match, "", nil
 		}
-		return "", fmt.Errorf("stream ended before match: %v", res.err)
+		return "", res.tail, fmt.Errorf("stream ended before match: %v", res.err)
 	case <-time.After(timeout):
 		onTimeout()
-		return "", fmt.Errorf("timed out after %s", timeout)
+		res := <-done // closing the conn unblocks the reader, yielding its tail
+		return "", res.tail, fmt.Errorf("timed out after %s", timeout)
 	}
+}
+
+// lastLines returns up to the last n bytes of b, trimmed, as a single-spaced
+// string (newlines collapsed) suitable for an error message.
+func lastLines(b []byte, n int) string {
+	if len(b) > n {
+		b = b[len(b)-n:]
+	}
+	return strings.TrimSpace(strings.Join(strings.Fields(string(b)), " "))
 }
 
 var ansiRe = regexp.MustCompile(`\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07|\x1b[()][AB0]|[\r]`)
