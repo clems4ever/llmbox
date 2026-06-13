@@ -1,131 +1,101 @@
-// Command llmbox-mcp is an MCP server that manages the lifecycle of Docker
-// containers running Claude Code in remote-control mode.
+// Command llmbox-mcp runs a server that manages sandboxed Claude containers
+// ("llmboxes") and lets an end user authenticate each one via OAuth in their
+// browser — never routing the OAuth secret through the chatbot.
 //
-// It exposes three tools over stdio:
+// One process serves two things on the same HTTP port:
 //
-//	list_containers    - list the Claude containers this server created
-//	create_container   - launch a new Claude remote-control container
-//	destroy_container  - stop and remove a managed container
+//	/mcp           MCP (streamable HTTP) — a chatbot creates/lists/destroys boxes
+//	/auth/{token}  web page where the user pastes their OAuth code
 //
-// The server talks to the Docker daemon via the standard Docker environment
-// variables (DOCKER_HOST, etc.), so it can run on the host or inside a
-// container with /var/run/docker.sock mounted in.
+// Boxes that are never authenticated are destroyed after a TTL.
 //
 // Configuration (environment variables):
 //
-//	LLMBOX_CLAUDE_IMAGE  default image launched by create_container
-//	                     (defaults to "claude-remote")
+//	LLMBOX_HTTP_ADDR          listen address (default ":8080")
+//	LLMBOX_PUBLIC_URL         external base URL for auth links (default "http://localhost:8080")
+//	LLMBOX_CLAUDE_IMAGE       image launched for each box (default "claude-remote")
+//	LLMBOX_REMOTE_ARGS        args passed to `claude remote-control` (default "--spawn same-dir")
+//	LLMBOX_AUTH_TTL_SECONDS   how long a box may stay un-authenticated (default 300)
 package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log"
+	"net/http"
 	"os"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/clems4ever/llmbox-mcp/internal/docker"
+	"github.com/clems4ever/llmbox-mcp/internal/server"
 )
 
-const version = "v0.1.0"
+const (
+	name    = "llmbox-mcp"
+	version = "v0.1.0"
+)
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalf("llmbox-mcp: %v", err)
+		log.Fatalf("%s: %v", name, err)
 	}
 }
 
 func run() error {
-	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"))
+	addr := envOr("LLMBOX_HTTP_ADDR", ":8080")
+	publicURL := envOr("LLMBOX_PUBLIC_URL", "http://localhost:8080")
+	authTTL := time.Duration(envInt("LLMBOX_AUTH_TTL_SECONDS", 300)) * time.Second
+
+	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"))
 	if err != nil {
 		return err
 	}
 	defer mgr.Close()
 
-	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "llmbox-mcp",
-		Version: version,
-	}, nil)
+	srv := server.New(mgr, publicURL, authTTL)
+	httpSrv := &http.Server{
+		Addr:    addr,
+		Handler: srv.Handler(srv.MCPServer(name, version)),
+		// SubmitCode blocks while the box logs in, so allow long requests.
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      90 * time.Second,
+	}
 
-	registerTools(server, mgr)
+	// Cancel background work on signal.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	// Run until the client disconnects.
-	return server.Run(context.Background(), &mcp.StdioTransport{})
+	go srv.ReapLoop(ctx, 30*time.Second, func(msg string) { log.Print(msg) })
+
+	go func() {
+		<-ctx.Done()
+		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = httpSrv.Shutdown(shutCtx)
+	}()
+
+	log.Printf("%s %s listening on %s (public URL %s, auth TTL %s)", name, version, addr, publicURL, authTTL)
+	if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }
 
-// ---- Tool input/output schemas ----
-
-type listInput struct{}
-
-type listOutput struct {
-	Containers []docker.Container `json:"containers" jsonschema:"the Claude containers managed by this server"`
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
-type createInput struct {
-	Image string   `json:"image,omitempty" jsonschema:"image to launch; defaults to the configured Claude image"`
-	Name  string   `json:"name,omitempty" jsonschema:"optional name for the new container"`
-	Env   []string `json:"env,omitempty" jsonschema:"extra environment variables in KEY=VALUE form, e.g. CLAUDE_CODE_OAUTH_TOKEN=... or CLAUDE_REMOTE_ARGS=..."`
-}
-
-type createOutput struct {
-	ID string `json:"id" jsonschema:"the ID of the newly created container"`
-}
-
-type destroyInput struct {
-	Container string `json:"container" jsonschema:"the ID or name of the managed container to destroy"`
-}
-
-type destroyOutput struct {
-	Destroyed string `json:"destroyed" jsonschema:"the ID or name of the container that was destroyed"`
-}
-
-// containerManager is the behaviour registerTools depends on. *docker.Manager
-// implements it; tests supply a fake.
-type containerManager interface {
-	List(ctx context.Context) ([]docker.Container, error)
-	Create(ctx context.Context, opts docker.CreateOptions) (string, error)
-	Destroy(ctx context.Context, idOrName string) error
-}
-
-// registerTools wires the Docker manager into MCP tools.
-func registerTools(server *mcp.Server, mgr containerManager) {
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "list_containers",
-		Description: "List the Claude remote-control containers created by this server.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ listInput) (*mcp.CallToolResult, listOutput, error) {
-		cs, err := mgr.List(ctx)
-		if err != nil {
-			return nil, listOutput{}, err
+func envInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
 		}
-		return nil, listOutput{Containers: cs}, nil
-	})
-
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "create_container",
-		Description: "Create and start a new Claude remote-control container from the Claude image.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in createInput) (*mcp.CallToolResult, createOutput, error) {
-		id, err := mgr.Create(ctx, docker.CreateOptions{
-			Image: in.Image,
-			Name:  in.Name,
-			Env:   in.Env,
-		})
-		if err != nil {
-			return nil, createOutput{}, err
-		}
-		return nil, createOutput{ID: id}, nil
-	})
-
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "destroy_container",
-		Description: "Stop and remove a managed Claude container by ID or name.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in destroyInput) (*mcp.CallToolResult, destroyOutput, error) {
-		if in.Container == "" {
-			return nil, destroyOutput{}, fmt.Errorf("container ID or name is required")
-		}
-		if err := mgr.Destroy(ctx, in.Container); err != nil {
-			return nil, destroyOutput{}, err
-		}
-		return nil, destroyOutput{Destroyed: in.Container}, nil
-	})
+	}
+	return def
 }

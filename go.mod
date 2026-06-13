@@ -5,6 +5,7 @@ go 1.26.2
 require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/modelcontextprotocol/go-sdk v1.6.1
+	github.com/opencontainers/image-spec v1.1.1
 )
 
 require (
@@ -25,7 +26,6 @@ require (
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
