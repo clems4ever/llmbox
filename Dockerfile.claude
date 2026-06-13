@@ -1,0 +1,66 @@
+# Claude Code in Remote Control mode.
+#
+# Runs `claude remote-control` (server mode) so you can drive this local
+# session from claude.ai/code or the Claude mobile app. The process stays
+# in the foreground waiting for remote connections; only outbound HTTPS
+# (port 443) is used — no inbound ports are opened.
+#
+# Auth: Remote Control requires a claude.ai subscription and a full-scope
+# OAuth token. API keys (ANTHROPIC_API_KEY) are NOT supported.
+#
+# This image reuses the credentials from an already-authenticated host
+# install by bind-mounting ~/.claude/.credentials.json into the container.
+# The container's `node` user is UID 1000 (matching a typical Linux host
+# user), so the mount stays writable and Claude can persist refreshed
+# tokens back to the host file.
+#
+# Build:
+#   docker build -t claude-remote .
+#
+# Run (mount your project + host credentials, read-write):
+#   docker run --rm -it \
+#     -v "$HOME/.claude/.credentials.json":/home/node/.claude/.credentials.json \
+#     -v "$PWD":/workspace \
+#     claude-remote
+#
+# Alternative — pass a token explicitly instead of mounting credentials:
+#   docker run --rm -it -e CLAUDE_CODE_OAUTH_TOKEN="$TOKEN" -v "$PWD":/workspace claude-remote
+
+FROM node:22-bookworm-slim
+
+# git is needed for Claude Code's repo features (and --spawn=worktree).
+# ca-certificates for the outbound HTTPS connection to Anthropic.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Claude Code globally. Pin a version that supports Remote Control
+# (>= 2.1.51); bump as needed.
+RUN npm install -g @anthropic-ai/claude-code@latest \
+    && claude --version
+
+# Run as the unprivileged user shipped with the node image (UID 1000).
+# Pre-create ~/.claude so a single-file credentials bind-mount has a home.
+RUN mkdir -p /home/node/.claude && chown -R node:node /home/node/.claude
+USER node
+WORKDIR /workspace
+
+# Optional: full-scope claude.ai OAuth token (not an API key). Leave empty
+# when bind-mounting ~/.claude/.credentials.json instead.
+ENV CLAUDE_CODE_OAUTH_TOKEN=""
+
+# Server mode: stays running, accepts remote sessions, prints a session
+# URL/QR code in the logs. Tune via CLAUDE_REMOTE_ARGS, e.g.
+#   -e CLAUDE_REMOTE_ARGS="--name codespec --spawn worktree --capacity 8"
+ENV CLAUDE_REMOTE_ARGS=""
+
+# `claude remote-control` only fully connects (and registers the environment
+# with the backend) when stdout is an interactive TTY. Under `docker compose
+# up -d` there is no attached terminal, so we wrap it in `script` to allocate
+# a real PTY inside the container — otherwise it takes a degraded path, never
+# reaches "Ready", and the session never shows up in claude.ai/code.
+# Output (including the Environment ID + session URL) is streamed to the
+# container logs.
+ENTRYPOINT ["/bin/sh", "-c", "exec script -qfc \"claude remote-control $CLAUDE_REMOTE_ARGS\" /dev/null"]

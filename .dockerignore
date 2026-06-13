@@ -1,0 +1,9 @@
+# Keep the build context small and avoid leaking local secrets into images.
+.git
+.github
+*.md
+Dockerfile.*
+docker-compose.yml
+.env
+.claude-config.seed.json
+/llmbox-mcp
