@@ -144,10 +144,14 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	if !strings.Contains(ep, "claude auth login") || !strings.Contains(ep, "remote-control") {
 		t.Errorf("entrypoint missing login/remote-control: %q", ep)
 	}
-	// Must pre-accept workspace trust between login and remote-control, else a
-	// fresh box aborts with "Workspace not trusted".
+	// Must pre-answer the two post-login gates between login and remote-control,
+	// else a fresh box aborts on "Workspace not trusted" or blocks on the
+	// "Enable Remote Control? (y/n)" prompt.
 	if !strings.Contains(ep, "hasTrustDialogAccepted") {
 		t.Errorf("entrypoint missing workspace-trust accept: %q", ep)
+	}
+	if !strings.Contains(ep, "remoteDialogSeen") {
+		t.Errorf("entrypoint missing remote-control dialog accept: %q", ep)
 	}
 	if !f.createConfig.Tty || !f.createConfig.OpenStdin {
 		t.Error("box needs Tty and OpenStdin")

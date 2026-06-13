@@ -60,16 +60,23 @@ const (
 	ttyHeight = 50
 )
 
-// trustAcceptCmd marks the box's working directory as a trusted workspace by
-// merging projects[cwd].hasTrustDialogAccepted=true into ~/.claude.json. Without
-// it, `claude remote-control` aborts with "Workspace not trusted" in a fresh
-// box. Run with the Claude image's bundled node; uses only double quotes inside
-// so it stays safe within the single-quoted `sh -c` entrypoint.
-const trustAcceptCmd = `node -e ` +
+// prepConfigCmd pre-answers the two interactive gates a fresh box hits after
+// login, by writing ~/.claude.json before `claude remote-control` runs:
+//
+//   - projects[cwd].hasTrustDialogAccepted=true — else remote-control aborts
+//     with "Workspace not trusted".
+//   - remoteDialogSeen=true (top-level) — else remote-control blocks on an
+//     "Enable Remote Control? (y/n)" prompt; setting it takes the enabled path
+//     without asking, exactly as answering "y" would.
+//
+// Run with the Claude image's bundled node; uses only double quotes inside so it
+// stays safe within the single-quoted `sh -c` entrypoint.
+const prepConfigCmd = `node -e ` +
 	`'const fs=require("fs"),os=require("os"),p=os.homedir()+"/.claude.json";` +
 	`let c={};try{c=JSON.parse(fs.readFileSync(p,"utf8"))}catch(e){}` +
 	`c.projects=c.projects||{};const d=process.cwd();` +
 	`c.projects[d]=Object.assign({},c.projects[d],{hasTrustDialogAccepted:true});` +
+	`c.remoteDialogSeen=true;` +
 	`fs.writeFileSync(p,JSON.stringify(c))'`
 
 // dockerAPI is the subset of the Docker client used by Manager. It exists so
@@ -172,17 +179,14 @@ func (m *Manager) CreateLLMBox(ctx context.Context, image string) (id, authorize
 		image = m.defaultImage
 	}
 
-	// Entrypoint: (1) authenticate, (2) pre-accept the workspace-trust dialog for
-	// the current directory — otherwise `claude remote-control` refuses to start
-	// in a fresh box — then (3) hand off to remote-control. `script` allocates a
-	// fresh PTY for remote-control's UI, which it needs to reach "Ready".
-	//
-	// Trust is recorded as projects[<cwd>].hasTrustDialogAccepted in
-	// ~/.claude.json; we merge it in with node (present in the Claude image) so we
-	// don't clobber what `claude auth login` just wrote.
+	// Entrypoint: (1) authenticate, (2) pre-answer the workspace-trust and
+	// "Enable Remote Control?" prompts a fresh box would otherwise block on, then
+	// (3) hand off to remote-control. `script` allocates a fresh PTY for
+	// remote-control's UI, which it needs to reach "Ready". The node step merges
+	// into ~/.claude.json so it doesn't clobber what `claude auth login` wrote.
 	entry := fmt.Sprintf(
 		`claude auth login --claudeai && %s && exec script -qfc "claude remote-control %s" /dev/null`,
-		trustAcceptCmd, m.remoteArgs,
+		prepConfigCmd, m.remoteArgs,
 	)
 
 	resp, err := m.cli.ContainerCreate(ctx,
