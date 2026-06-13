@@ -1,16 +1,43 @@
-# Claude Code in Remote Control mode.
+# Two ways to run, as separate services:
 #
-# Reuses the host's already-authenticated credentials by bind-mounting
-# ~/.claude/.credentials.json (read-write, so token refresh persists).
+#   llmbox-mcp    The MCP + auth server. A chatbot calls it to create sandboxed
+#                 Claude boxes; each is authenticated by the end user in a
+#                 browser. This is the main product of this repo.
+#                   docker compose up --build llmbox-mcp
 #
-#   docker compose up --build      # start, stream the session URL/QR in logs
-#   docker compose up -d           # detached
-#   docker compose logs -f         # follow logs to grab the remote session link
-#   docker compose down            # stop
+#   claude-remote A single Claude remote-control container that reuses the host's
+#                 already-authenticated credentials (bind-mounted, read-write so
+#                 token refresh persists). Handy for the manual/local flow.
+#                   docker compose up --build claude-remote
+#                   docker compose logs -f claude-remote   # grab the session link
 #
-# Tune the server via CLAUDE_REMOTE_ARGS, e.g.:
-#   CLAUDE_REMOTE_ARGS="--name codespec --spawn worktree --capacity 8" docker compose up
+# The llmbox-mcp service launches the claude-remote *image* for each box, so
+# build it first (compose builds both with `up --build`).
 services:
+  llmbox-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    image: llmbox-mcp
+    depends_on:
+      - claude-remote
+    ports:
+      - "8080:8080"
+    environment:
+      # MUST be the URL the user's browser can reach this server at.
+      LLMBOX_PUBLIC_URL: ${LLMBOX_PUBLIC_URL:-http://localhost:8080}
+      LLMBOX_CLAUDE_IMAGE: claude-remote
+      LLMBOX_AUTH_TTL_SECONDS: ${LLMBOX_AUTH_TTL_SECONDS:-300}
+    volumes:
+      # Needed to create/destroy boxes.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # The image runs as non-root; grant it the docker socket's group so it can
+    # use the socket. Put the gid in a local .env file:
+    #   DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
+    group_add:
+      - ${DOCKER_GID:-999}
+    restart: unless-stopped
+
   claude-remote:
     build:
       context: .

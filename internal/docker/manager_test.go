@@ -3,43 +3,47 @@ package docker
 import (
 	"context"
 	"errors"
+	"net"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// fakeDocker is an in-memory stand-in for the Docker client. Each field lets a
-// test stub a method's behaviour; every call is recorded for assertions.
+// realAuthorizeURL is a representative URL as printed by `claude auth login`.
+const realAuthorizeURL = "https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile&code_challenge=AQik-DVceTlD_9L9AsSLxtyWlxB3uP_0Hm58tFJQnBI&code_challenge_method=S256&state=IygRnzxDK7vb0gQg86PUBoEeEzZyxLY5XK1IUXb_Lnw"
+
+// fakeDocker is an in-memory stand-in for the Docker client.
 type fakeDocker struct {
-	// stubbed returns
 	listResult []container.Summary
 	listErr    error
 	createResp container.CreateResponse
 	createErr  error
 	startErr   error
-	removeErr  error
+	renameErr  error
+	attachErr  error
 
-	// recorded calls
-	listOpts     []container.ListOptions
+	// attachConn is the manager-side end of a net.Pipe handed to the manager on
+	// ContainerAttach; the test drives the other end.
+	attachConn net.Conn
+
 	createConfig *container.Config
-	createHost   *container.HostConfig
-	createName   string
 	started      []string
+	renames      [][2]string // {id, newName}
+	resizes      []string
 	removed      []string
-	removeOpts   []container.RemoveOptions
 }
 
-func (f *fakeDocker) ContainerList(_ context.Context, opts container.ListOptions) ([]container.Summary, error) {
-	f.listOpts = append(f.listOpts, opts)
+func (f *fakeDocker) ContainerList(_ context.Context, _ container.ListOptions) ([]container.Summary, error) {
 	return f.listResult, f.listErr
 }
 
-func (f *fakeDocker) ContainerCreate(_ context.Context, config *container.Config, hostConfig *container.HostConfig, _ *network.NetworkingConfig, _ *ocispec.Platform, name string) (container.CreateResponse, error) {
+func (f *fakeDocker) ContainerCreate(_ context.Context, config *container.Config, _ *container.HostConfig, _ *network.NetworkingConfig, _ *ocispec.Platform, _ string) (container.CreateResponse, error) {
 	f.createConfig = config
-	f.createHost = hostConfig
-	f.createName = name
 	return f.createResp, f.createErr
 }
 
@@ -48,209 +52,193 @@ func (f *fakeDocker) ContainerStart(_ context.Context, id string, _ container.St
 	return f.startErr
 }
 
-func (f *fakeDocker) ContainerRemove(_ context.Context, id string, opts container.RemoveOptions) error {
+func (f *fakeDocker) ContainerRename(_ context.Context, id, newName string) error {
+	f.renames = append(f.renames, [2]string{id, newName})
+	return f.renameErr
+}
+
+func (f *fakeDocker) ContainerResize(_ context.Context, id string, _ container.ResizeOptions) error {
+	f.resizes = append(f.resizes, id)
+	return nil
+}
+
+func (f *fakeDocker) ContainerAttach(_ context.Context, _ string, _ container.AttachOptions) (types.HijackedResponse, error) {
+	if f.attachErr != nil {
+		return types.HijackedResponse{}, f.attachErr
+	}
+	return types.NewHijackedResponse(f.attachConn, ""), nil
+}
+
+func (f *fakeDocker) ContainerRemove(_ context.Context, id string, _ container.RemoveOptions) error {
 	f.removed = append(f.removed, id)
-	f.removeOpts = append(f.removeOpts, opts)
-	return f.removeErr
+	return nil
 }
 
 func (f *fakeDocker) Close() error { return nil }
 
-// newTestManager wires a Manager to a fake Docker client.
-func newTestManager(f *fakeDocker, defaultImage string) *Manager {
-	if defaultImage == "" {
-		defaultImage = DefaultImage
-	}
-	return &Manager{cli: f, defaultImage: defaultImage}
+func newTestManager(f *fakeDocker) *Manager {
+	return &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs}
 }
 
-func TestNewManagerDefaultImage(t *testing.T) {
-	// NewManager talks to the daemon lazily, so it succeeds without one.
-	m, err := NewManager("")
-	if err != nil {
-		t.Fatalf("NewManager: %v", err)
-	}
-	defer m.Close()
-	if m.defaultImage != DefaultImage {
-		t.Errorf("defaultImage = %q, want %q", m.defaultImage, DefaultImage)
-	}
-
-	m2, err := NewManager("my/image:tag")
-	if err != nil {
-		t.Fatalf("NewManager: %v", err)
-	}
-	defer m2.Close()
-	if m2.defaultImage != "my/image:tag" {
-		t.Errorf("defaultImage = %q, want override", m2.defaultImage)
-	}
-}
-
-func TestList(t *testing.T) {
-	f := &fakeDocker{
-		listResult: []container.Summary{
-			{
-				ID:      "abcdef0123456789",
-				Names:   []string{"/claude-box-1"},
-				Image:   "claude-remote",
-				State:   "running",
-				Status:  "Up 2 minutes",
-				Created: 1700000000,
-				Ports: []container.Port{
-					{IP: "0.0.0.0", PrivatePort: 8080, PublicPort: 32768, Type: "tcp"},
-					{PrivatePort: 9090, Type: "tcp"}, // not published -> skipped
-				},
-			},
-		},
-	}
-	m := newTestManager(f, "")
-
+func TestListMapsPhaseFromName(t *testing.T) {
+	f := &fakeDocker{listResult: []container.Summary{
+		{ID: "aaaaaaaaaaaa1111", Names: []string{"/llmbox-pending-aaaaaaaaaaaa"}, State: "running", Status: "Up", Created: 1700000000},
+		{ID: "bbbbbbbbbbbb2222", Names: []string{"/llmbox-bbbbbbbbbbbb"}, State: "running", Status: "Up", Created: 1700000001},
+	}}
+	m := newTestManager(f)
 	got, err := m.List(context.Background())
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
-	if len(got) != 1 {
-		t.Fatalf("want 1 container, got %d", len(got))
+	if len(got) != 2 {
+		t.Fatalf("want 2 boxes, got %d", len(got))
 	}
-	c := got[0]
-	if c.ID != "abcdef012345" {
-		t.Errorf("ID = %q, want short 12-char ID", c.ID)
+	if got[0].Phase != "pending" {
+		t.Errorf("box0 phase = %q, want pending", got[0].Phase)
 	}
-	if c.Name != "claude-box-1" {
-		t.Errorf("Name = %q, want leading slash trimmed", c.Name)
+	if got[1].Phase != "ready" {
+		t.Errorf("box1 phase = %q, want ready", got[1].Phase)
 	}
-	if len(c.Ports) != 1 || c.Ports[0] != "0.0.0.0:32768->8080/tcp" {
-		t.Errorf("Ports = %v, want only the published mapping", c.Ports)
-	}
-
-	// List must be scoped to the managed label.
-	if len(f.listOpts) != 1 || !f.listOpts[0].All {
-		t.Fatalf("expected one ListOptions with All=true, got %+v", f.listOpts)
-	}
-	if !f.listOpts[0].Filters.ExactMatch("label", ManagedLabel+"=true") {
-		t.Errorf("List not scoped to managed label; filters = %v", f.listOpts[0].Filters)
+	if got[0].ID != "aaaaaaaaaaaa" {
+		t.Errorf("ID not shortened: %q", got[0].ID)
 	}
 }
 
-func TestListError(t *testing.T) {
-	f := &fakeDocker{listErr: errors.New("daemon down")}
-	m := newTestManager(f, "")
-	if _, err := m.List(context.Background()); err == nil {
-		t.Fatal("expected error when ContainerList fails")
+func TestCreateLLMBoxCapturesURL(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn: managerEnd,
 	}
-}
+	m := newTestManager(f)
 
-func TestCreateDefaults(t *testing.T) {
-	f := &fakeDocker{createResp: container.CreateResponse{ID: "newid000000000000"}}
-	m := newTestManager(f, "custom-image")
+	// Feed TTY output (with ANSI noise and line wrapping) from the box.
+	go func() {
+		_, _ = testEnd.Write([]byte("\x1b[2J\x1b[HOpening browser...\r\n"))
+		_, _ = testEnd.Write([]byte("Browser didn't open? Use the url below (c to copy)\r\n"))
+		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
+	}()
 
-	id, err := m.Create(context.Background(), CreateOptions{Env: []string{"FOO=bar"}})
+	id, url, err := m.CreateLLMBox(context.Background(), "")
 	if err != nil {
-		t.Fatalf("Create: %v", err)
+		t.Fatalf("CreateLLMBox: %v", err)
 	}
-	if id != "newid000000000000" {
-		t.Errorf("returned id = %q", id)
+	if id != "abcdef0123456789ffff" {
+		t.Errorf("id = %q", id)
 	}
-	if f.createConfig.Image != "custom-image" {
-		t.Errorf("Image = %q, want the manager's default image", f.createConfig.Image)
+	if url != realAuthorizeURL {
+		t.Errorf("captured URL mismatch:\n got %q\nwant %q", url, realAuthorizeURL)
 	}
-	if f.createConfig.Labels[ManagedLabel] != "true" {
-		t.Errorf("managed label not set: %v", f.createConfig.Labels)
+	// Named pending, started, resized wide.
+	if len(f.renames) != 1 || f.renames[0][1] != pendingPrefix+"abcdef012345" {
+		t.Errorf("expected rename to pending name, got %v", f.renames)
+	}
+	if len(f.started) != 1 {
+		t.Errorf("box not started: %v", f.started)
+	}
+	if len(f.resizes) != 1 {
+		t.Errorf("tty not resized: %v", f.resizes)
+	}
+	// Entrypoint runs login then remote-control.
+	ep := strings.Join(f.createConfig.Entrypoint, " ")
+	if !strings.Contains(ep, "claude auth login") || !strings.Contains(ep, "remote-control") {
+		t.Errorf("entrypoint missing login/remote-control: %q", ep)
 	}
 	if !f.createConfig.Tty || !f.createConfig.OpenStdin {
-		t.Error("Tty/OpenStdin must be set for remote-control")
-	}
-	if len(f.createConfig.Env) != 1 || f.createConfig.Env[0] != "FOO=bar" {
-		t.Errorf("Env = %v, want passthrough", f.createConfig.Env)
-	}
-	if len(f.started) != 1 || f.started[0] != id {
-		t.Errorf("container not started: %v", f.started)
+		t.Error("box needs Tty and OpenStdin")
 	}
 }
 
-func TestCreateExplicitImage(t *testing.T) {
-	f := &fakeDocker{createResp: container.CreateResponse{ID: "id1234567890abcd"}}
-	m := newTestManager(f, "default-image")
-
-	if _, err := m.Create(context.Background(), CreateOptions{Image: "explicit:tag", Name: "mybox"}); err != nil {
-		t.Fatalf("Create: %v", err)
-	}
-	if f.createConfig.Image != "explicit:tag" {
-		t.Errorf("Image = %q, want explicit override", f.createConfig.Image)
-	}
-	if f.createName != "mybox" {
-		t.Errorf("name = %q, want mybox", f.createName)
-	}
-}
-
-func TestCreateStartFailureCleansUp(t *testing.T) {
+func TestCreateLLMBoxCleansUpOnStartFailure(t *testing.T) {
 	f := &fakeDocker{
 		createResp: container.CreateResponse{ID: "doomed0000000000"},
-		startErr:   errors.New("oom"),
+		startErr:   errors.New("no resources"),
 	}
-	m := newTestManager(f, "")
-
-	if _, err := m.Create(context.Background(), CreateOptions{}); err == nil {
+	m := newTestManager(f)
+	if _, _, err := m.CreateLLMBox(context.Background(), ""); err == nil {
 		t.Fatal("expected error when start fails")
 	}
-	// The created-but-not-started container must be removed.
 	if len(f.removed) != 1 || f.removed[0] != "doomed0000000000" {
-		t.Errorf("expected cleanup removal of created container, removed = %v", f.removed)
+		t.Errorf("expected cleanup removal, got %v", f.removed)
 	}
 }
 
-func TestCreateError(t *testing.T) {
-	f := &fakeDocker{createErr: errors.New("no such image")}
-	m := newTestManager(f, "")
-	if _, err := m.Create(context.Background(), CreateOptions{}); err == nil {
-		t.Fatal("expected error when ContainerCreate fails")
+func TestSubmitCodeReturnsSessionURL(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{attachConn: managerEnd}
+	m := newTestManager(f)
+
+	const sessionURL = "https://claude.ai/code/session/abc123"
+	got := make(chan string, 1)
+	go func() {
+		// Read whatever the manager writes (the code), then emit the session URL.
+		buf := make([]byte, 256)
+		n, _ := testEnd.Read(buf)
+		got <- string(buf[:n])
+		_, _ = testEnd.Write([]byte("Login successful!\r\n✓ Ready\r\n" + sessionURL + "\r\n"))
+	}()
+
+	url, err := m.SubmitCode(context.Background(), "abcdef0123456789", "MYCODE")
+	if err != nil {
+		t.Fatalf("SubmitCode: %v", err)
 	}
-	if len(f.started) != 0 {
-		t.Error("must not start when create fails")
+	if url != sessionURL {
+		t.Errorf("session URL = %q, want %q", url, sessionURL)
+	}
+	if code := <-got; strings.TrimSpace(code) != "MYCODE" {
+		t.Errorf("code written to box = %q, want MYCODE (+CR)", code)
+	}
+	// Renamed pending -> ready.
+	if len(f.renames) != 1 || f.renames[0][1] != readyPrefix+"abcdef012345" {
+		t.Errorf("expected rename to ready, got %v", f.renames)
 	}
 }
 
-func TestDestroyByName(t *testing.T) {
+func TestSubmitCodeAttachError(t *testing.T) {
+	f := &fakeDocker{attachErr: errors.New("no such container")}
+	m := newTestManager(f)
+	if _, err := m.SubmitCode(context.Background(), "id", "code"); err == nil {
+		t.Fatal("expected error when attach fails")
+	}
+}
+
+func TestDestroyForceRemoves(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{
-		{ID: "abcdef0123456789", Names: []string{"/target"}, State: "running"},
+		{ID: "abcdef0123456789", Names: []string{"/llmbox-pending-abcdef012345"}},
 	}}
-	m := newTestManager(f, "")
-
-	if err := m.Destroy(context.Background(), "target"); err != nil {
+	m := newTestManager(f)
+	if err := m.Destroy(context.Background(), "abcdef012345"); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
-	if len(f.removed) != 1 || f.removed[0] != "abcdef012345" {
-		t.Errorf("removed = %v, want the short ID", f.removed)
-	}
-	if !f.removeOpts[0].Force {
-		t.Error("Destroy must force-remove so running containers are stopped")
-	}
-}
-
-func TestDestroyByIDPrefix(t *testing.T) {
-	f := &fakeDocker{listResult: []container.Summary{
-		{ID: "abcdef0123456789", Names: []string{"/box"}},
-	}}
-	m := newTestManager(f, "")
-
-	// Caller passes a longer/full ID; short stored ID is a prefix of it.
-	if err := m.Destroy(context.Background(), "abcdef0123456789"); err != nil {
-		t.Fatalf("Destroy by full ID: %v", err)
-	}
 	if len(f.removed) != 1 {
-		t.Fatalf("expected removal, got %v", f.removed)
+		t.Errorf("expected removal, got %v", f.removed)
 	}
 }
 
-func TestDestroyUnknown(t *testing.T) {
+func TestReapOrphans(t *testing.T) {
+	old := time.Now().Add(-10 * time.Minute).Unix()
+	recent := time.Now().Add(-1 * time.Minute).Unix()
 	f := &fakeDocker{listResult: []container.Summary{
-		{ID: "abcdef0123456789", Names: []string{"/box"}},
+		{ID: "old111111111aaaa", Names: []string{"/llmbox-pending-old111111111"}, Created: old},    // reap
+		{ID: "new222222222bbbb", Names: []string{"/llmbox-pending-new222222222"}, Created: recent}, // too new
+		{ID: "rdy333333333cccc", Names: []string{"/llmbox-rdy333333333"}, Created: old},            // authenticated, keep
 	}}
-	m := newTestManager(f, "")
-
-	if err := m.Destroy(context.Background(), "does-not-exist"); err == nil {
-		t.Fatal("expected error for unknown container")
+	m := newTestManager(f)
+	reaped, err := m.ReapOrphans(context.Background(), 5*time.Minute)
+	if err != nil {
+		t.Fatalf("ReapOrphans: %v", err)
 	}
-	if len(f.removed) != 0 {
-		t.Error("must not remove anything when no managed container matches")
+	if len(reaped) != 1 || reaped[0] != "old111111111" {
+		t.Errorf("reaped = %v, want [old111111111]", reaped)
+	}
+	if len(f.removed) != 1 || f.removed[0] != "old111111111" {
+		t.Errorf("removed = %v, want only the old pending box", f.removed)
+	}
+}
+
+func TestStripANSI(t *testing.T) {
+	in := []byte("\x1b[2J\x1b[1;34mhttps://x\x1b[0m\r\n")
+	if got := string(stripANSI(in)); got != "https://x\n" {
+		t.Errorf("stripANSI = %q", got)
 	}
 }
