@@ -1,9 +1,13 @@
-# Claude Code in Remote Control mode.
+# Claude Code in Remote Control mode, on a general-purpose Debian dev image.
 #
 # Runs `claude remote-control` (server mode) so you can drive this local
 # session from claude.ai/code or the Claude mobile app. The process stays
 # in the foreground waiting for remote connections; only outbound HTTPS
 # (port 443) is used — no inbound ports are opened.
+#
+# The image is a standard Debian (bookworm) with a batteries-included
+# toolchain so the sandboxed Claude can build and run code: git, Python,
+# Node.js, Go, and Rust are all preinstalled and on PATH.
 #
 # Auth: Remote Control requires a claude.ai subscription and a full-scope
 # OAuth token. API keys (ANTHROPIC_API_KEY) are NOT supported.
@@ -15,7 +19,7 @@
 # tokens back to the host file.
 #
 # Build:
-#   docker build -t claude-remote .
+#   docker build -t claude-remote -f Dockerfile.claude .
 #
 # Run (mount your project + host credentials, read-write):
 #   docker run --rm -it \
@@ -26,24 +30,72 @@
 # Alternative — pass a token explicitly instead of mounting credentials:
 #   docker run --rm -it -e CLAUDE_CODE_OAUTH_TOKEN="$TOKEN" -v "$PWD":/workspace claude-remote
 
-FROM node:22-bookworm-slim
+FROM debian:bookworm-slim
 
-# git is needed for Claude Code's repo features (and --spawn=worktree).
-# ca-certificates for the outbound HTTPS connection to Anthropic.
+ARG NODE_MAJOR=22
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Base tooling and the Python toolchain.
+#   git           — Claude Code repo features (and --spawn=worktree)
+#   ca-certificates / curl — outbound HTTPS + toolchain downloads
+#   build-essential — C toolchain that Rust/cgo need to link
+#   python3 + pip + venv, python-is-python3 — `python` resolves to Python 3
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        git \
         ca-certificates \
+        curl \
+        git \
+        build-essential \
+        python3 \
+        python3-pip \
+        python3-venv \
+        python-is-python3 \
     && rm -rf /var/lib/apt/lists/*
+
+# Node.js via NodeSource — Claude Code needs a modern Node runtime, newer
+# than the one in Debian's repositories.
+RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Go — official tarball into /usr/local/go. The version is resolved to the
+# current stable release at build time so the image stays up to date.
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+        amd64) goarch=amd64 ;; \
+        arm64) goarch=arm64 ;; \
+        *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac; \
+    go_version="$(curl -fsSL 'https://go.dev/VERSION?m=text' | head -n1)"; \
+    curl -fsSL "https://go.dev/dl/${go_version}.linux-${goarch}.tar.gz" -o /tmp/go.tgz; \
+    tar -C /usr/local -xzf /tmp/go.tgz; \
+    rm /tmp/go.tgz
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Rust — installed system-wide via rustup so every user can use it. Toolchain
+# lives in /usr/local/{rustup,cargo}; cargo's bin dir is added to PATH.
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH="/usr/local/cargo/bin:/usr/local/go/bin:${PATH}"
+RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal \
+    && chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"
 
 # Install Claude Code globally. Pin a version that supports Remote Control
 # (>= 2.1.51); bump as needed.
 RUN npm install -g @anthropic-ai/claude-code@latest \
     && claude --version
 
-# Run as the unprivileged user shipped with the node image (UID 1000).
-# Pre-create ~/.claude so a single-file credentials bind-mount has a home.
-RUN mkdir -p /home/node/.claude && chown -R node:node /home/node/.claude
+# Sanity-check that every toolchain is on PATH.
+RUN git --version && python --version && node --version \
+    && go version && rustc --version && cargo --version
+
+# Run as an unprivileged user at UID 1000 (matching a typical Linux host
+# user) so a single-file credentials bind-mount stays writable. Pre-create
+# ~/.claude as a home for the mount.
+RUN useradd --create-home --uid 1000 --shell /bin/bash node \
+    && mkdir -p /home/node/.claude \
+    && chown -R node:node /home/node
 USER node
 WORKDIR /workspace
 
