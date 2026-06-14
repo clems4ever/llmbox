@@ -36,7 +36,7 @@ user opens that URL ──▶ "Sign in with Claude" (their account) ──▶ co
                    ──▶ pastes it into the page ──▶ server feeds it to the box
 
 box finishes login ──▶ `claude remote-control` starts ──▶ session URL
-  └─ get_llmbox(auth_token) ──▶ returns the session URL once ready
+  └─ get_llmbox(hostname) ──▶ returns the session URL once ready
 ```
 
 Boxes that are never authenticated are destroyed after `LLMBOX_AUTH_TTL_SECONDS`
@@ -47,15 +47,18 @@ Boxes that are never authenticated are destroyed after `LLMBOX_AUTH_TTL_SECONDS`
 | Tool             | Arguments | Returns |
 |------------------|-----------|---------|
 | `create_llmbox`  | `image?`, `hostname?`, `description?` | `box_id`, `auth_url`, `auth_token`, `status`, `instructions` |
-| `get_llmbox`     | `auth_token` | `status` (pending/ready/error), `hostname`, `description`, `session_url` when ready |
+| `get_llmbox`     | `hostname` | `status` (pending/ready/error), `hostname`, `description`, `session_url` when ready |
 | `list_llmboxes`  | – | the managed boxes (id, name, hostname, description, image, state, phase, created) |
 | `destroy_llmbox` | `box` (ID or name) | the destroyed box |
 
 `hostname` and `description` on `create_llmbox` are optional. When set, `hostname`
 becomes the box's container hostname and **must be unique** across boxes — a
 duplicate is rejected with a clear error so the caller can pick another. Both are
-surfaced again by `get_llmbox` and `list_llmboxes`. Destroying a box stops it
-gracefully (SIGTERM, then SIGKILL after a timeout) before removing it.
+surfaced again by `get_llmbox` and `list_llmboxes`. `get_llmbox` is keyed by
+`hostname` (case-insensitive), so set one at create time if you want to poll a
+box's status; boxes created without a hostname can still be seen via
+`list_llmboxes`. Destroying a box stops it gracefully (SIGTERM, then SIGKILL
+after a timeout) before removing it.
 
 ## Components
 

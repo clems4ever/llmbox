@@ -118,6 +118,12 @@
 			"documentation_hash": "f84ff68d9f29b9ce93b37f5b412babfffc82a3c0f4654e34fe45cad32996201e",
 			"definition_hash": "99e96d0199088c5ad5bb7874b891fe2b34a7922ae80447f71020015d1e840058",
 			"reviewed_at": "2026-06-14T07:46:33.849623515Z"
+		},
+		{
+			"function_name": "TestGetByHostname",
+			"documentation_hash": "e2e8fa1cd6acb151aff63cc81fd38066df823a2755942b9afdee166a33e558f4",
+			"definition_hash": "411af6832c38286652a0f6ffa4e948c125e2ccaf4e5e8c628107c02ba34ffc24",
+			"reviewed_at": "2026-06-14T14:40:15.008712579Z"
 		}
 	]
 }

@@ -29,7 +29,7 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 
 	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "get_llmbox",
-		Description: "Check an llmbox's status using the auth token from its auth URL. Once authenticated, returns the remote-control session URL.",
+		Description: "Check an llmbox's status by its hostname (the one given to create_llmbox). Once authenticated, returns the remote-control session URL.",
 	}, s.toolGet)
 
 	mcp.AddTool(srv, &mcp.Tool{
@@ -54,7 +54,7 @@ type createInput struct {
 type createOutput struct {
 	BoxID        string `json:"box_id" jsonschema:"the ID of the new box"`
 	AuthURL      string `json:"auth_url" jsonschema:"URL the user opens to authenticate the box in their browser"`
-	AuthToken    string `json:"auth_token" jsonschema:"token identifying this box's auth session; pass to get_llmbox to check status"`
+	AuthToken    string `json:"auth_token" jsonschema:"token identifying this box's auth session (already embedded in auth_url); to poll status, call get_llmbox with the box's hostname"`
 	Status       string `json:"status" jsonschema:"current status; starts as 'pending' until the user authenticates"`
 	Instructions string `json:"instructions" jsonschema:"human-readable next steps for the user"`
 }
@@ -90,7 +90,7 @@ func (s *Server) toolCreate(ctx context.Context, _ *mcp.CallToolRequest, in crea
 }
 
 type getInput struct {
-	AuthToken string `json:"auth_token" jsonschema:"the token from the box's auth URL"`
+	Hostname string `json:"hostname" jsonschema:"the hostname of the box (the one passed to create_llmbox)"`
 }
 
 type getOutput struct {
@@ -101,21 +101,24 @@ type getOutput struct {
 	Error       string `json:"error,omitempty" jsonschema:"error detail when status is error"`
 }
 
-// toolGet handles the get_llmbox tool: it looks up a box's session by auth token
+// toolGet handles the get_llmbox tool: it looks up a box's session by hostname
 // and returns its status, hostname, description, and session URL.
 //
 // @arg _ Context (unused).
 // @arg _ The MCP call request (unused).
-// @arg in The get input carrying the auth token.
+// @arg in The get input carrying the box hostname.
 // @return *mcp.CallToolResult Always nil; structured output is returned instead.
 // @return getOutput The box's status, hostname, description, session URL, and any error.
-// @error error if the auth token is unknown.
+// @error error if no hostname is given or no box has that hostname.
 //
-// @testcase TestMCPToolsRegisteredAndCreate exercises the get_llmbox handler wiring.
+// @testcase TestGetByHostname returns a box's status looked up by hostname.
 func (s *Server) toolGet(_ context.Context, _ *mcp.CallToolRequest, in getInput) (*mcp.CallToolResult, getOutput, error) {
-	sess := s.lookup(in.AuthToken)
+	if in.Hostname == "" {
+		return nil, getOutput{}, fmt.Errorf("hostname is required")
+	}
+	sess := s.lookupByHostname(in.Hostname)
 	if sess == nil {
-		return nil, getOutput{}, fmt.Errorf("unknown auth token (the box may have expired)")
+		return nil, getOutput{}, fmt.Errorf("no box found with hostname %q (it may have expired, or was created without a hostname)", in.Hostname)
 	}
 	status, url, errMsg := sess.snapshot()
 	return nil, getOutput{

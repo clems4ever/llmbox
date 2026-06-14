@@ -253,6 +253,42 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+// TestGetByHostname checks get_llmbox resolves a box by hostname (case-insensitive)
+// and errors for an empty or unknown hostname.
+func TestGetByHostname(t *testing.T) {
+	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u", submitURL: "https://claude.ai/code/s/1"}
+	s := newTestServer(f)
+	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "web-box", Description: "d"})
+	if err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+
+	// Found, case-insensitive.
+	_, out, err := s.toolGet(context.Background(), nil, getInput{Hostname: "WEB-BOX"})
+	if err != nil {
+		t.Fatalf("toolGet: %v", err)
+	}
+	if out.Status != "pending" || out.Hostname != "web-box" || out.Description != "d" {
+		t.Errorf("unexpected get output: %+v", out)
+	}
+
+	// Reflects status changes.
+	if err := s.SubmitCode(context.Background(), sess.Token, "CODE"); err != nil {
+		t.Fatalf("SubmitCode: %v", err)
+	}
+	if _, out, _ := s.toolGet(context.Background(), nil, getInput{Hostname: "web-box"}); out.Status != "ready" || out.SessionURL != "https://claude.ai/code/s/1" {
+		t.Errorf("expected ready with session URL, got %+v", out)
+	}
+
+	// Empty and unknown hostnames error.
+	if _, _, err := s.toolGet(context.Background(), nil, getInput{Hostname: ""}); err == nil {
+		t.Error("expected error for empty hostname")
+	}
+	if _, _, err := s.toolGet(context.Background(), nil, getInput{Hostname: "nope"}); err == nil {
+		t.Error("expected error for unknown hostname")
+	}
+}
+
 // --- MCP wiring ---
 
 // TestMCPToolsRegisteredAndCreate checks all tools are registered and create returns a safe auth URL.
