@@ -100,7 +100,34 @@ clear text.
 | `LLMBOX_CLAUDE_IMAGE`     | `claude-remote`           | Image launched per box. |
 | `LLMBOX_REMOTE_ARGS`      | `--spawn same-dir`        | Args passed to `claude remote-control`. |
 | `LLMBOX_AUTH_TTL_SECONDS` | `300`                     | Destroy un-authenticated boxes after this long. |
+| `LLMBOX_STATE_FILE`       | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](#session-persistence)). |
 | `DOCKER_HOST`, etc.       | (Docker default)          | Standard Docker client configuration. |
+
+## Session persistence
+
+The auth-session registry (which token maps to which box, its authorize URL, and
+status) is persisted to a [bbolt](https://github.com/etcd-io/bbolt) file at
+`LLMBOX_STATE_FILE`, so a server restart doesn't invalidate in-flight auth links.
+On startup the server reconciles the saved sessions against Docker and drops any
+whose box no longer exists.
+
+To survive **container recreation**, put that file on a mounted volume:
+
+```yaml
+environment:
+  LLMBOX_STATE_FILE: /var/lib/llmbox/sessions.db
+volumes:
+  - ./data/llmbox:/var/lib/llmbox
+```
+
+> [!IMPORTANT]
+> The `llmbox-mcp` image runs as the distroless **`nonroot`** user
+> (**UID/GID 65532**). The host directory you mount must be writable by that
+> UID, or the server crash-loops with `permission denied` opening the store:
+>
+> ```bash
+> mkdir -p ./data/llmbox && sudo chown -R 65532:65532 ./data/llmbox
+> ```
 
 ## Orphan cleanup
 

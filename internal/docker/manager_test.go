@@ -31,10 +31,13 @@ type fakeDocker struct {
 	// ContainerAttach; the test drives the other end.
 	attachConn net.Conn
 
+	stopErr error
+
 	createConfig *container.Config
 	started      []string
 	renames      [][2]string // {id, newName}
 	resizes      []string
+	stopped      []string
 	removed      []string
 }
 
@@ -73,6 +76,12 @@ func (f *fakeDocker) ContainerAttach(_ context.Context, _ string, _ container.At
 		return types.HijackedResponse{}, f.attachErr
 	}
 	return types.NewHijackedResponse(f.attachConn, ""), nil
+}
+
+// ContainerStop records the stopped ID and returns the canned stop error.
+func (f *fakeDocker) ContainerStop(_ context.Context, id string, _ container.StopOptions) error {
+	f.stopped = append(f.stopped, id)
+	return f.stopErr
 }
 
 // ContainerRemove records the removed ID and always succeeds.
@@ -264,8 +273,9 @@ func TestSubmitCodeAttachError(t *testing.T) {
 	}
 }
 
-// TestDestroyForceRemoves checks Destroy resolves a box and force-removes it.
-func TestDestroyForceRemoves(t *testing.T) {
+// TestDestroyStopsThenRemoves checks Destroy gracefully stops the box before
+// removing it (and removes without forcing).
+func TestDestroyStopsThenRemoves(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{
 		{ID: "abcdef0123456789", Names: []string{"/llmbox-pending-abcdef012345"}},
 	}}
@@ -273,8 +283,27 @@ func TestDestroyForceRemoves(t *testing.T) {
 	if err := m.Destroy(context.Background(), "abcdef012345"); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
-	if len(f.removed) != 1 {
+	if len(f.stopped) != 1 || f.stopped[0] != "abcdef012345" {
+		t.Errorf("expected graceful stop, got %v", f.stopped)
+	}
+	if len(f.removed) != 1 || f.removed[0] != "abcdef012345" {
 		t.Errorf("expected removal, got %v", f.removed)
+	}
+}
+
+// TestDestroyStopErrorAborts checks a failed stop aborts before removal so the
+// box is not torn down abruptly.
+func TestDestroyStopErrorAborts(t *testing.T) {
+	f := &fakeDocker{
+		listResult: []container.Summary{{ID: "abcdef0123456789", Names: []string{"/llmbox-abcdef012345"}}},
+		stopErr:    errors.New("stop failed"),
+	}
+	m := newTestManager(f)
+	if err := m.Destroy(context.Background(), "abcdef012345"); err == nil {
+		t.Fatal("expected error when stop fails")
+	}
+	if len(f.removed) != 0 {
+		t.Errorf("container should not be removed when stop fails, got %v", f.removed)
 	}
 }
 
