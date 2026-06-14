@@ -28,14 +28,21 @@ services:
       # bbolt file persisting the auth-session registry across restarts. Lives on
       # the mounted volume below so sessions survive container recreation.
       LLMBOX_STATE_FILE: /var/lib/llmbox/sessions.db
-      # Per-box network capture (opt-in). This is a HOST path — the daemon
-      # bind-mounts it into each box's tcpdump sidecar — and must exist on the
-      # host. .pcap files land here (root-owned); explore them in Wireshark.
-      # Uncomment to enable:
+      # Per-box network capture (opt-in). LLMBOX_CAPTURE_DIR is an ABSOLUTE host
+      # path used two ways: the daemon bind-mounts it into each tcpdump sidecar,
+      # and this server reads the .pcap files from it for the admin UI — so it
+      # must be mounted at the identical path here (see volumes). Uncomment both
+      # this and the matching volume to enable:
       #   LLMBOX_CAPTURE_DIR: /var/lib/llmbox/captures
+      # Authenticated admin UI at /boxes (box list + per-box traffic metadata).
+      # Set a strong token; leave unset to disable. Put it in .env:
+      #   LLMBOX_ADMIN_TOKEN: ${LLMBOX_ADMIN_TOKEN:-}
     volumes:
       # Needed to create/destroy boxes.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Capture dir, mounted at the SAME absolute path the daemon uses for the
+      # sidecars (uncomment with LLMBOX_CAPTURE_DIR above):
+      #   - /var/lib/llmbox/captures:/var/lib/llmbox/captures
       # Persists the session registry (LLMBOX_STATE_FILE above).
       #
       # IMPORTANT: the image runs as the distroless "nonroot" user (UID/GID

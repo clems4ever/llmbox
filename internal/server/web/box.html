@@ -1,0 +1,53 @@
+{{define "title"}}{{.Box.Hostname}}{{if not .Box.Hostname}}{{.Box.ID}}{{end}} · llmbox admin{{end}}
+{{define "content"}}
+<a class="backlink" href="/boxes">← All boxes</a>
+
+<h1>{{if .Box.Hostname}}<span class="mono">{{.Box.Hostname}}</span>{{else}}<span class="mono">{{.Box.ID}}</span>{{end}}</h1>
+<p class="subtitle">
+  <span class="pill {{.Box.Phase}}">{{.Box.Phase}}</span>
+  <span class="mono muted">{{.Box.ID}}</span>
+  {{if .Box.Description}} · {{.Box.Description}}{{end}}
+</p>
+
+<h2>Traffic metadata</h2>
+
+{{if not .CaptureOn}}
+  <div class="notice">Traffic capture is disabled. Set <span class="mono">LLMBOX_CAPTURE_DIR</span> to record per-box traffic.</div>
+{{else if not .HasCapture}}
+  <div class="notice">No capture file for this box yet.</div>
+{{else}}
+  <div class="stats">
+    <div class="stat"><div class="label">Packets</div><div class="value">{{.Summary.Packets}}</div></div>
+    <div class="stat"><div class="label">Volume</div><div class="value">{{.Bytes}}</div></div>
+    <div class="stat"><div class="label">Span</div><div class="value">{{.Span}}</div></div>
+    <div class="stat"><div class="label">Destinations</div><div class="value">{{len .Summary.Destinations}}</div></div>
+  </div>
+  {{if .Summary.Truncated}}<p class="muted">Capture is large; only the first portion was analyzed.</p>{{end}}
+
+  {{if .Summary.Domains}}
+  <h2>Domains contacted <span class="muted">({{len .Summary.Domains}})</span></h2>
+  <div class="chips">
+    {{range .Summary.Domains}}<span class="chip mono">{{.}}</span>{{end}}
+  </div>
+  {{end}}
+
+  <h2>Destinations</h2>
+  <table>
+    <thead>
+      <tr><th>Host</th><th>Address</th><th>Port</th><th>Proto</th><th class="num">Packets</th><th class="num">Bytes</th></tr>
+    </thead>
+    <tbody>
+    {{range .Destinations}}
+      <tr>
+        <td>{{if .Hostname}}<span class="mono">{{.Hostname}}</span>{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="mono">{{.IP}}</td>
+        <td class="mono">{{.Port}}</td>
+        <td><span class="tag">{{.Proto}}</span></td>
+        <td class="num">{{.Packets}}</td>
+        <td class="num">{{.Bytes}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+{{end}}
+{{end}}

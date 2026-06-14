@@ -117,6 +117,7 @@ clear text.
 | `LLMBOX_STATE_FILE`       | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](#session-persistence)). |
 | `LLMBOX_CAPTURE_DIR`      | (unset → disabled)        | **Host** directory for per-box network captures; when set, each box gets a tcpdump sidecar (see [Traffic capture](#traffic-capture)). |
 | `LLMBOX_CAPTURE_IMAGE`    | `nicolaka/netshoot`       | Image used for the capture sidecar (any image with `tcpdump`). |
+| `LLMBOX_ADMIN_TOKEN`      | (unset → disabled)        | Basic Auth password for the `/boxes` admin UI; unset disables it (see [Admin UI](#admin-ui)). |
 | `DOCKER_HOST`, etc.       | (Docker default)          | Standard Docker client configuration. |
 
 If `LLMBOX_CLAUDE_IMAGE` isn't present on the daemon, the server pulls it on the
@@ -161,19 +162,47 @@ with it — it runs in a separate container with only `NET_RAW`.
 
 ```yaml
 environment:
-  LLMBOX_CAPTURE_DIR: /var/lib/llmbox/captures   # a path on the Docker host
+  LLMBOX_CAPTURE_DIR: /var/lib/llmbox/captures   # an ABSOLUTE path on the host
   # LLMBOX_CAPTURE_IMAGE: nicolaka/netshoot       # optional override
 volumes:
-  - ./data/captures:/var/lib/llmbox/captures
+  # Mount the same host path at the same path so the admin UI can read the pcaps
+  # the sibling sidecars write (see the note below).
+  - /var/lib/llmbox/captures:/var/lib/llmbox/captures
 ```
 
-Open the `.pcap` files in Wireshark/`tshark` to explore them.
+Open the `.pcap` files in Wireshark/`tshark`, or browse the metadata in the
+[Admin UI](#admin-ui).
+
+> [!IMPORTANT]
+> `LLMBOX_CAPTURE_DIR` is used **two ways**: the Docker daemon bind-mounts it
+> (as a **host** path) into each capture sidecar, *and* the `llmbox-mcp` process
+> reads the `.pcap` files from it for the admin UI. So it must be an **absolute
+> host path mounted at the identical path** inside the `llmbox-mcp` container —
+> bind sources for sibling containers resolve on the host, not in this
+> container. The directory must exist on the host; pcaps are root-owned (the
+> sidecar runs `tcpdump` as root).
 
 > [!NOTE]
-> `LLMBOX_CAPTURE_DIR` is a **host** path (it's bind-mounted into the sidecar by
-> the Docker daemon), not a path inside the `llmbox-mcp` container. It must exist
-> on the host. The sidecar runs `tcpdump` as root, so the `.pcap` files are
-> root-owned.
+> Box traffic is almost entirely TLS, so the capture shows **metadata** —
+> destination IPs, TLS SNI hostnames, timing, and byte volumes — **not**
+> decrypted request/response bodies. Seeing payloads would require terminating
+> TLS through an MITM proxy with its CA trusted inside the box.
+
+## Admin UI
+
+Set `LLMBOX_ADMIN_TOKEN` and an authenticated dashboard is served at **`/boxes`**
+(HTML templates + CSS embedded in the binary):
+
+- **Box list** — every managed box with hostname, status, image, age, and whether
+  a capture is available.
+- **Per-box traffic** (`/boxes/{id}`) — the captured [metadata](#traffic-capture):
+  total packets/bytes, time span, the **domains** contacted (TLS SNI + DNS), and a
+  **destinations** table (host, IP, port, proto, packets, bytes).
+
+Auth is HTTP Basic — any username, password = `LLMBOX_ADMIN_TOKEN`. The traffic
+view reads the capture files directly, so `LLMBOX_CAPTURE_DIR` must be mounted
+into the `llmbox-mcp` container (see the capture note above). Serve it behind TLS
+in production.
 
 > [!IMPORTANT]
 > Box traffic is almost entirely TLS, so the capture shows **metadata** —

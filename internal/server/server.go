@@ -120,6 +120,12 @@ type Server struct {
 	authTTL   time.Duration
 	store     Store // persists the registry across restarts
 
+	// captureDir and adminToken power the authenticated admin pages. captureDir
+	// is where per-box pcaps live (read for the traffic view); adminToken gates
+	// the pages (empty disables them).
+	captureDir string
+	adminToken string
+
 	mu      sync.Mutex
 	byToken map[string]*session
 }
@@ -144,6 +150,20 @@ func New(mgr boxManager, publicURL string, authTTL time.Duration, store Store) *
 		store:     store,
 		byToken:   make(map[string]*session),
 	}
+}
+
+// EnableAdmin configures the authenticated admin pages: a box list and a
+// per-box traffic view. captureDir is the directory holding per-box pcaps (must
+// be readable by this process); adminToken is the Basic Auth password — when
+// empty, the admin pages are disabled (404).
+//
+// @arg captureDir The directory where per-box capture files live.
+// @arg adminToken The Basic Auth password gating the admin pages; empty disables them.
+//
+// @testcase TestAdminAuth checks the pages are disabled without a token.
+func (s *Server) EnableAdmin(captureDir, adminToken string) {
+	s.captureDir = captureDir
+	s.adminToken = adminToken
 }
 
 // Restore loads persisted sessions into the registry and reconciles them with

@@ -1,0 +1,19 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{block "title" .}}llmbox admin{{end}}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> llmbox <span class="muted">admin</span></div>
+  <nav class="crumbs"><a href="/boxes">Boxes</a></nav>
+</header>
+<main class="container">
+{{block "content" .}}{{end}}
+</main>
+<footer class="footer">llmbox-mcp · network traffic metadata</footer>
+</body>
+</html>{{end}}

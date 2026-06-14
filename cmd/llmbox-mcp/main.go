@@ -19,6 +19,7 @@
 //	LLMBOX_STATE_FILE         bbolt file persisting the session registry (default "llmbox-sessions.db")
 //	LLMBOX_CAPTURE_DIR        host dir for per-box network pcaps; empty disables capture
 //	LLMBOX_CAPTURE_IMAGE      tcpdump sidecar image (default "nicolaka/netshoot")
+//	LLMBOX_ADMIN_TOKEN        Basic Auth password for the /boxes admin UI; empty disables it
 package main
 
 import (
@@ -87,6 +88,9 @@ func run() error {
 	defer func() { _ = store.Close() }()
 
 	srv := server.New(mgr, publicURL, authTTL, store)
+	// Authenticated admin UI (box list + per-box traffic). Reads pcaps from the
+	// same capture dir (mount it into this container too); disabled without a token.
+	srv.EnableAdmin(os.Getenv("LLMBOX_CAPTURE_DIR"), os.Getenv("LLMBOX_ADMIN_TOKEN"))
 	httpSrv := &http.Server{
 		Addr:    addr,
 		Handler: srv.Handler(srv.MCPServer(name, version)),

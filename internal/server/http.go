@@ -7,8 +7,14 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Handler builds the HTTP handler serving both the MCP endpoint (at /mcp) and
-// the auth web pages (at /auth/{token}). mcpServer is reused across sessions.
+// Handler builds the HTTP handler serving the MCP endpoint (root), the auth web
+// pages (/auth/{token}), and the authenticated admin UI (/boxes). mcpServer is
+// reused across sessions.
+//
+// @arg mcpServer The MCP server reused for every request.
+// @return http.Handler The mux routing MCP, auth, admin, and health endpoints.
+//
+// @testcase TestAuthPageRendersAndSubmits exercises the routed handler.
 func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	mux := http.NewServeMux()
 
@@ -19,6 +25,12 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 
 	mux.HandleFunc("GET /auth/{token}", s.handleAuthPage)
 	mux.HandleFunc("POST /auth/{token}", s.handleAuthSubmit)
+
+	// Authenticated admin UI: box list + per-box traffic metadata.
+	mux.HandleFunc("GET /boxes", s.requireAdmin(s.handleBoxList))
+	mux.HandleFunc("GET /boxes/{id}", s.requireAdmin(s.handleBoxDetail))
+	mux.HandleFunc("GET /static/style.css", s.serveStyle)
+
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
@@ -28,6 +40,11 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 }
 
 // handleAuthPage renders the current state of an auth session.
+//
+// @arg w The response writer.
+// @arg r The request (with the session token path value).
+//
+// @testcase TestAuthPageRendersAndSubmits renders the auth page.
 func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 	sess := s.lookup(r.PathValue("token"))
 	if sess == nil {
@@ -45,6 +62,11 @@ func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleAuthSubmit feeds the pasted code to the box, then re-renders the page.
+//
+// @arg w The response writer.
+// @arg r The request carrying the pasted OAuth code.
+//
+// @testcase TestAuthPageRendersAndSubmits submits a code and re-renders.
 func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	sess := s.lookup(token)
@@ -78,6 +100,12 @@ type authPageData struct {
 	Error        string
 }
 
+// render writes the auth page template with the given data.
+//
+// @arg w The response writer.
+// @arg data The auth page template data.
+//
+// @testcase TestAuthPageRendersAndSubmits renders the auth page via render.
 func render(w http.ResponseWriter, data authPageData) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Don't let intermediaries cache an auth page (it contains live state).

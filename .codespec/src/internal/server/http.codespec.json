@@ -1,0 +1,31 @@
+{
+	"functions": [
+		{
+			"function_name": "Handler",
+			"receiver": "Server",
+			"documentation_hash": "788bbabf934fa8a3440f37c2964e0a699c398bb7ec53d9f5dce18d200a595df4",
+			"definition_hash": "17e2acb71365abbb79d82eff8c1604918c51ea9db0686f1a508faecf2d38dd9f",
+			"reviewed_at": "2026-06-14T15:11:16.260157429Z"
+		},
+		{
+			"function_name": "handleAuthPage",
+			"receiver": "Server",
+			"documentation_hash": "bbf12ce06f9fd2b22d7ea21ede77bc3b00efabd3d2ac4104d5dd821e4ff6072d",
+			"definition_hash": "357c83a911a6c63452abaf85b183552bcd9357bacf82ebf9d3aee54916f8c8d6",
+			"reviewed_at": "2026-06-14T15:11:16.262313687Z"
+		},
+		{
+			"function_name": "handleAuthSubmit",
+			"receiver": "Server",
+			"documentation_hash": "ceca8617750f8d4cd937eeb1900635aa5b7b8071583324859107961c1c08d254",
+			"definition_hash": "1e3f7cbc969ac2a7b8749e3a917b25ad2179b02135e498f821f3b4c878554167",
+			"reviewed_at": "2026-06-14T15:11:16.26584647Z"
+		},
+		{
+			"function_name": "render",
+			"documentation_hash": "4ea642122651332294a10d1cbdaf9c24243d9609210318ed6a3e2d3a7907ec65",
+			"definition_hash": "86a19fb3a6fc9a71660555e53e03fa94e0494d91d9902eccb7bfb5398d78b491",
+			"reviewed_at": "2026-06-14T15:11:16.270700532Z"
+		}
+	]
+}

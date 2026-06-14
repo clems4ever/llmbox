@@ -1,0 +1,99 @@
+{
+	"functions": [
+		{
+			"function_name": "Available",
+			"documentation_hash": "d10c62596eaaa99b488f47d59f110b1737146ddfefac41c95742d5fd94e49be3",
+			"definition_hash": "23f9954bc3fa5626c95405d0e2bcc1272741e333f33fec3418fd8e6bd53622d8",
+			"reviewed_at": "2026-06-14T15:10:25.019948364Z"
+		},
+		{
+			"function_name": "Summarize",
+			"documentation_hash": "564e07f259e62e5dc76aecec066b25d3531ace844113aabba8dbc0176f2bcb8f",
+			"definition_hash": "98fbddf895511cea1113b1fd3bf01bd4622e4665d9de4fe172aba73858f56bb4",
+			"reviewed_at": "2026-06-14T15:10:25.02965492Z"
+		},
+		{
+			"function_name": "newAggregator",
+			"documentation_hash": "8bd66318e8e23615e183c3788f2ceb54cf9eed6f6aea0d57a44755ce2a5e9146",
+			"definition_hash": "8cc86057e433b3494bd8f25f38c4db386385bb81d92ad26e75b5ada69f4e5347",
+			"reviewed_at": "2026-06-14T15:10:25.038843054Z"
+		},
+		{
+			"function_name": "remoteEndpoint",
+			"documentation_hash": "bb9f00282a4cb5f9aae7aedf79f25c13101c105499fccb06afd732ccf6ff87d9",
+			"definition_hash": "4d9464a14196a5dae52dc5522db87c27609a65dc2d1f7fb017dbb99efa94442c",
+			"reviewed_at": "2026-06-14T15:10:25.044514578Z"
+		},
+		{
+			"function_name": "isServerPort",
+			"documentation_hash": "ae552f9d562e4eac5bc497aafb2a3507083566b5e136542b6f5e9f5f0cc9b892",
+			"definition_hash": "790c95c4fe2823db526b0deca1af8b22921d125d984ab1d9cc60929c518b7236",
+			"reviewed_at": "2026-06-14T15:10:25.054239003Z"
+		},
+		{
+			"function_name": "isPrivate",
+			"documentation_hash": "c4d902eb1c2247c51a5a6ee1d5b4e22ed7da39d720d80f8739a421e83f00504b",
+			"definition_hash": "0d185727134a3677693bb946d7ed2c6b52cab1263b254ba296b7d7bf1fea9347",
+			"reviewed_at": "2026-06-14T15:10:25.067065375Z"
+		},
+		{
+			"function_name": "itoa",
+			"documentation_hash": "20c2cd7d371f02cd5f06df68046f004a205a89481b1acc13a0990f10e43274a9",
+			"definition_hash": "e95da048edc64a6eeb1c0ccb444dd550b038d60466e80cc7f7eb24154ec6bb3e",
+			"reviewed_at": "2026-06-14T15:10:25.073931844Z"
+		},
+		{
+			"function_name": "sniFromClientHello",
+			"documentation_hash": "574bc161725966e416220760cb82438df09e85334e90239528c0c0302ab7492a",
+			"definition_hash": "090a05728f3ff35dd47037106f308db295625050e7e7998bf14d985461e8849b",
+			"reviewed_at": "2026-06-14T15:10:25.078719454Z"
+		},
+		{
+			"function_name": "sniFromExtensions",
+			"documentation_hash": "3425e6ce6bb7a11fac80c56a272b1948f8112d819d5cdbda23a747e7163c8d55",
+			"definition_hash": "54c40b2723c90b003e9e12c22b93b3fe5f7118c9e9156fefb8c29cde51a32100",
+			"reviewed_at": "2026-06-14T15:10:25.08738652Z"
+		},
+		{
+			"function_name": "sniFromServerNameExt",
+			"documentation_hash": "d1cc25c0b7d4788163e9f3c47e06f13997a4b8cbc8637785606562a7bd890ecc",
+			"definition_hash": "6d0f09eff43a54f5258da1fb7cbe34aa37c60326856ad17b9f15d1f6a3d8a5d2",
+			"reviewed_at": "2026-06-14T15:10:25.100148237Z"
+		},
+		{
+			"function_name": "readFile",
+			"receiver": "aggregator",
+			"documentation_hash": "2d7610f2db62fd6f52243ec64aad9de43ef9b03f72236b992d957dfd928d3a69",
+			"definition_hash": "56fc10b2fa3bc549b96a432cbcfd68503f3b7a997c2f5f72520288660e161f86",
+			"reviewed_at": "2026-06-14T15:10:25.10679395Z"
+		},
+		{
+			"function_name": "consume",
+			"receiver": "aggregator",
+			"documentation_hash": "95ba1da4cd3b64581cda351eb7903f50929ec2dcf0a43d35e0ef476ea13fc16d",
+			"definition_hash": "f33bc4f2fc5a145d27c3d77bc5abbedb0e71295e440eb094747bce0afd349600",
+			"reviewed_at": "2026-06-14T15:10:25.114870074Z"
+		},
+		{
+			"function_name": "consumeDNS",
+			"receiver": "aggregator",
+			"documentation_hash": "81c53875e140f1acd2a697d11bb0a42f6655981c3ee91c6d78e3a9c267318d23",
+			"definition_hash": "8934abcc34607afa0ab54767277c250fac37a355697e66eab9051944111b6171",
+			"reviewed_at": "2026-06-14T15:10:25.125428905Z"
+		},
+		{
+			"function_name": "note",
+			"receiver": "aggregator",
+			"documentation_hash": "beda81a14a17a447fc5578cd26aed4735158172da67035610a575696417bacc9",
+			"definition_hash": "56eaabd49104c0ce2c0e56d484ebffdfce8b4df9756b2dc3c60d1b87628575bf",
+			"reviewed_at": "2026-06-14T15:10:25.136050623Z"
+		},
+		{
+			"function_name": "summary",
+			"receiver": "aggregator",
+			"documentation_hash": "23a1804393d03654f8e8e6298d10275496cb3bee50116944fdd15c7764dc7594",
+			"definition_hash": "008544bd0f378973eae830c129c2f68d72f6b6175ab10bb63a574086bf676b9d",
+			"reviewed_at": "2026-06-14T15:10:25.146858407Z"
+		}
+	]
+}

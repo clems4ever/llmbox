@@ -108,6 +108,13 @@
 			"documentation_hash": "0caa40e6627122e9124c7947c493b665dee4072ee0bceede6c5aa460b1b7c535",
 			"definition_hash": "2ca131a2c075218d782acadc65fc03ede56c95f5ab4777508858f759389e6827",
 			"reviewed_at": "2026-06-14T14:40:15.002348335Z"
+		},
+		{
+			"function_name": "EnableAdmin",
+			"receiver": "Server",
+			"documentation_hash": "074fc28d266d3c614a4fafde4684f9aecc3329544919106cbe81a80c39cd40fe",
+			"definition_hash": "5a2771eacaf4958d6d79834f680af4c6bdab9f0122ac3c9cb0f587e87b918db4",
+			"reviewed_at": "2026-06-14T15:10:25.3367446Z"
 		}
 	]
 }

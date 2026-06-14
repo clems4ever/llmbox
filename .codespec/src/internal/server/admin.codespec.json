@@ -1,0 +1,56 @@
+{
+	"functions": [
+		{
+			"function_name": "requireAdmin",
+			"receiver": "Server",
+			"documentation_hash": "60fb0b3673af68dec5671045998c2fcf2a0f96617ae2e7871f9c352803c36c50",
+			"definition_hash": "c52e97c6e5f342fd368f69006cdb6ed4031f6d1107fc31fb908b60837d5f9576",
+			"reviewed_at": "2026-06-14T15:10:25.262740323Z"
+		},
+		{
+			"function_name": "handleBoxList",
+			"receiver": "Server",
+			"documentation_hash": "5509f82cb6c2f5a48e722347afdbf4ee4777b8662b614cad0e393ca4f69e5e23",
+			"definition_hash": "1cd374fabdf421c04fea628b40d95c73ef7d01ce8b0b7f32decbbd0206e82f76",
+			"reviewed_at": "2026-06-14T15:10:25.271068681Z"
+		},
+		{
+			"function_name": "handleBoxDetail",
+			"receiver": "Server",
+			"documentation_hash": "5bfb32ff6be6568410f4d300e3879e6eac81a732b3b21acd39e0fd832a96f2a1",
+			"definition_hash": "6ac5d35e81a2f5e9fb0a1ff379a6f4732a2d23b2929131dcaa8b7686b039a257",
+			"reviewed_at": "2026-06-14T15:10:25.279005125Z"
+		},
+		{
+			"function_name": "serveStyle",
+			"receiver": "Server",
+			"documentation_hash": "aafb13a78e1b015d180d3f1df62b8c956c49167ad9f09e7139e08ee063c0e76f",
+			"definition_hash": "ddd203d430082a465bece132969ef2b6f9aafd2936172bc5023536b677c3eaf8",
+			"reviewed_at": "2026-06-14T15:10:25.290284102Z"
+		},
+		{
+			"function_name": "renderPage",
+			"documentation_hash": "6ebab724bdfce917b5c0133326400b68b33fb79b8d3c03cfbc02ce173d2499bf",
+			"definition_hash": "ee050642323522f6d00863f5402ab2c972a7eb751035cc481d5618965235faeb",
+			"reviewed_at": "2026-06-14T15:10:25.298415055Z"
+		},
+		{
+			"function_name": "humanBytes",
+			"documentation_hash": "b36ec8e52dd6f867db99f404fe97adc6319224bfc421188a66acfa75509c9e28",
+			"definition_hash": "9e682c86b3d179571cba2a98ff065a4c1313242028a7a9a90f3060b28c4feeb9",
+			"reviewed_at": "2026-06-14T15:10:25.309755282Z"
+		},
+		{
+			"function_name": "humanSpan",
+			"documentation_hash": "2e481e0d8c6f4a4b14dc8f06b899a73c7d9edc2d552257408483365361920d1f",
+			"definition_hash": "a22da094323633dc52898f02a010a27f4f241f5df27597e41f425daf235e3df3",
+			"reviewed_at": "2026-06-14T15:10:25.319625005Z"
+		},
+		{
+			"function_name": "relativeUnix",
+			"documentation_hash": "2fe0d272e190b8525234d5e2ee58e9287426670e4e6b1d3780fe90b5a68d0da9",
+			"definition_hash": "00625bd4fa68158188fa1e04d2b6d474bc3315dd5d0bcd56641e9db6be13c012",
+			"reviewed_at": "2026-06-14T15:10:25.324538333Z"
+		}
+	]
+}

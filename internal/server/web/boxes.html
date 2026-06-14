@@ -1,0 +1,40 @@
+{{define "title"}}Boxes · llmbox admin{{end}}
+{{define "content"}}
+<h1>Boxes</h1>
+<p class="subtitle">{{len .Boxes}} managed box{{if ne (len .Boxes) 1}}es{{end}}{{if not .CaptureOn}} · traffic capture is disabled{{end}}</p>
+
+{{if .Boxes}}
+<table>
+  <thead>
+    <tr>
+      <th>Hostname</th>
+      <th>Description</th>
+      <th>Status</th>
+      <th>Image</th>
+      <th>Created</th>
+      <th>Traffic</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Boxes}}
+    <tr>
+      <td>
+        {{if .Hostname}}<span class="mono">{{.Hostname}}</span>{{else}}<span class="muted mono">{{.ID}}</span>{{end}}
+      </td>
+      <td>{{if .Description}}{{.Description}}{{else}}<span class="muted">—</span>{{end}}</td>
+      <td><span class="pill {{.Phase}}">{{.Phase}}</span> <span class="muted">{{.State}}</span></td>
+      <td><span class="muted mono">{{.Image}}</span></td>
+      <td class="muted">{{.Created}}</td>
+      <td>
+        {{if .HasCapture}}<a href="/boxes/{{.ID}}">View traffic →</a>
+        {{else if $.CaptureOn}}<span class="muted">no capture yet</span>
+        {{else}}<a href="/boxes/{{.ID}}">Details →</a>{{end}}
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<div class="empty">No boxes are running.</div>
+{{end}}
+{{end}}
