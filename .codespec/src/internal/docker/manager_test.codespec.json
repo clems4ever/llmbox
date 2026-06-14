@@ -11,8 +11,8 @@
 			"function_name": "ContainerCreate",
 			"receiver": "fakeDocker",
 			"documentation_hash": "0a99f096a6b2482af124ef30b25f82fee6acf11a743b0d345b697b160895958c",
-			"definition_hash": "46f086e7a60235df262f5b36ccfae2bfe832796240945de7b4617f12bffa93eb",
-			"reviewed_at": "2026-06-14T13:17:52.175451988Z"
+			"definition_hash": "67a01e4325fea7a3c474f779ab37b52f1207b7a3c4c41ff64e154fa50784b5c8",
+			"reviewed_at": "2026-06-14T14:54:49.570565184Z"
 		},
 		{
 			"function_name": "ContainerStart",
@@ -147,6 +147,18 @@
 			"documentation_hash": "d2e7464535cabb9d14ca9e615937ce26c21678d08c95b1a0abb1823164a5654e",
 			"definition_hash": "4e9a29d1e659af19d6433dde7003c6ea9c4134d4f08883069a26afdadc7dc2c1",
 			"reviewed_at": "2026-06-14T13:17:52.192837599Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxStartsCapture",
+			"documentation_hash": "91897842247bca6793f968348b3c56b5d793f05a8df76c99e99ead08abb21ba0",
+			"definition_hash": "5468a26918afd02715eb0ed6f6db901264594568fdaaf6e9f947b44300a7f039",
+			"reviewed_at": "2026-06-14T14:54:49.584848317Z"
+		},
+		{
+			"function_name": "TestDestroyRemovesCapture",
+			"documentation_hash": "88c2776a581d3afc036af1089bac278396fce21ac06db9c9910f87113735d52a",
+			"definition_hash": "ecf466521d606d8f06fb32503b79bc86d3925f7777045373626b1e803c59dd4b",
+			"reviewed_at": "2026-06-14T14:54:49.595290239Z"
 		}
 	]
 }

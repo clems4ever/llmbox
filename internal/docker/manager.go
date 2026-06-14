@@ -52,14 +52,31 @@ const (
 	HostnameLabel    = "com.llmbox.hostname"
 	DescriptionLabel = "com.llmbox.description"
 
+	// CaptureForLabel links a capture sidecar to the box (short ID) it records.
+	CaptureForLabel = "com.llmbox.capture-for"
+
 	// DefaultImage is launched when the caller does not specify one.
 	DefaultImage = "claude-remote"
+
+	// DefaultCaptureImage is the tcpdump-carrying image used for capture
+	// sidecars when LLMBOX_CAPTURE_IMAGE is not set. Any image with tcpdump on
+	// PATH works.
+	DefaultCaptureImage = "nicolaka/netshoot"
 
 	// pendingPrefix / readyPrefix encode a box's auth phase in its name, so the
 	// phase survives a restart of this server (Docker persists names, but not
 	// our in-memory state). Reaping targets pendingPrefix only.
 	pendingPrefix = "llmbox-pending-"
 	readyPrefix   = "llmbox-"
+
+	// capturePrefix names the per-box capture sidecar deterministically so it
+	// can be torn down by name.
+	capturePrefix = "llmbox-capture-"
+
+	// Capture pcap rotation: keep captureRotateCount files of captureRotateMB
+	// (millions of bytes) each, bounding disk use per box.
+	captureRotateMB    = "50"
+	captureRotateCount = "10"
 
 	// Default remote-control flags; --spawn must be explicit for headless start.
 	defaultRemoteArgs = "--spawn same-dir"
@@ -115,6 +132,11 @@ type Manager struct {
 	defaultImage string
 	remoteArgs   string
 
+	// captureDir, when non-empty, enables a per-box tcpdump sidecar that writes
+	// a pcap into this host directory. captureImage is the sidecar image.
+	captureDir   string
+	captureImage string
+
 	// createMu serializes the hostname-uniqueness check and container creation
 	// so two concurrent creates can't both pass the check with the same hostname.
 	createMu sync.Mutex
@@ -146,15 +168,19 @@ type CreateOptions struct {
 }
 
 // NewManager creates a Manager using Docker configuration from the environment.
-// defaultImage and remoteArgs fall back to sensible defaults when empty.
+// defaultImage and remoteArgs fall back to sensible defaults when empty. When
+// captureDir is non-empty, each box gets a tcpdump sidecar writing a pcap into
+// that host directory; captureImage falls back to DefaultCaptureImage.
 //
 // @arg defaultImage The image launched when a caller does not specify one; empty falls back to DefaultImage.
 // @arg remoteArgs The remote-control flags; empty falls back to the default flags.
+// @arg captureDir Host directory for per-box pcaps; empty disables traffic capture.
+// @arg captureImage The tcpdump sidecar image; empty falls back to DefaultCaptureImage when capture is on.
 // @return *Manager A Manager wired to a Docker client built from the environment.
 // @error error if the Docker client cannot be created.
 //
 // @testcase TestListMapsPhaseFromName covers Manager behaviour via a constructed Manager.
-func NewManager(defaultImage, remoteArgs string) (*Manager, error) {
+func NewManager(defaultImage, remoteArgs, captureDir, captureImage string) (*Manager, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("creating docker client: %w", err)
@@ -165,7 +191,16 @@ func NewManager(defaultImage, remoteArgs string) (*Manager, error) {
 	if remoteArgs == "" {
 		remoteArgs = defaultRemoteArgs
 	}
-	return &Manager{cli: cli, defaultImage: defaultImage, remoteArgs: remoteArgs}, nil
+	if captureDir != "" && captureImage == "" {
+		captureImage = DefaultCaptureImage
+	}
+	return &Manager{
+		cli:          cli,
+		defaultImage: defaultImage,
+		remoteArgs:   remoteArgs,
+		captureDir:   captureDir,
+		captureImage: captureImage,
+	}, nil
 }
 
 // Close releases the underlying Docker client.
@@ -311,20 +346,11 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyDisabled},
 	}
 
-	resp, err := m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
-	if err != nil && client.IsErrNotFound(err) {
-		// The image isn't present locally; pull it and try once more.
-		if perr := m.pullImage(ctx, image); perr != nil {
-			m.createMu.Unlock()
-			return "", "", fmt.Errorf("pulling image %q: %w", image, perr)
-		}
-		resp, err = m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
-	}
+	id, err = m.createContainer(ctx, cfg, hostCfg, "")
 	if err != nil {
 		m.createMu.Unlock()
 		return "", "", fmt.Errorf("creating box from image %q: %w", image, err)
 	}
-	id = resp.ID
 	m.createMu.Unlock()
 
 	// From here on, clean up the container on any failure.
@@ -341,12 +367,107 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 	// Belt-and-suspenders: ensure a wide TTY even if ConsoleSize was ignored.
 	_ = m.cli.ContainerResize(ctx, id, container.ResizeOptions{Height: ttyHeight, Width: ttyWidth})
 
+	// Start traffic capture before reading the login output so the box's first
+	// connections (including the OAuth flow) are recorded too.
+	if m.captureDir != "" {
+		if err := m.startCapture(ctx, id); err != nil {
+			cleanup()
+			return "", "", fmt.Errorf("starting traffic capture: %w", err)
+		}
+	}
+
 	url, err := m.readAuthorizeURL(ctx, id)
 	if err != nil {
 		cleanup()
 		return "", "", err
 	}
 	return id, url, nil
+}
+
+// createContainer creates a container and, if the image is missing locally,
+// pulls it and retries once. It returns the new container ID.
+//
+// @arg ctx Context for the create and any pull.
+// @arg cfg The container configuration.
+// @arg hostCfg The host configuration.
+// @arg name The container name, or "" to let Docker assign one.
+// @return string The created container ID.
+// @error error if the create fails (after a pull attempt on not-found).
+//
+// @testcase TestCreateLLMBoxPullsMissingImage pulls then retries when the image is absent.
+func (m *Manager) createContainer(ctx context.Context, cfg *container.Config, hostCfg *container.HostConfig, name string) (string, error) {
+	resp, err := m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, name)
+	if err != nil && client.IsErrNotFound(err) {
+		if perr := m.pullImage(ctx, cfg.Image); perr != nil {
+			return "", fmt.Errorf("pulling image %q: %w", cfg.Image, perr)
+		}
+		resp, err = m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, name)
+	}
+	if err != nil {
+		return "", err
+	}
+	return resp.ID, nil
+}
+
+// captureName is the deterministic name of the capture sidecar for a box (short
+// 12-char ID), so it can be torn down by name.
+//
+// @arg boxID12 The box's short (12-char) ID.
+// @return string The capture sidecar's container name.
+//
+// @testcase TestCreateLLMBoxStartsCapture names and starts the capture sidecar.
+func captureName(boxID12 string) string { return capturePrefix + boxID12 }
+
+// startCapture launches a tcpdump sidecar sharing the box's network namespace,
+// writing a rotating pcap into the host capture directory. The sidecar runs with
+// NET_RAW and is labelled so it can be found and removed with the box.
+//
+// @arg ctx Context for the create/start calls.
+// @arg boxID The full ID of the box to capture.
+// @error error if the sidecar cannot be created or started.
+//
+// @testcase TestCreateLLMBoxStartsCapture checks the sidecar's netns, mount, and command.
+func (m *Manager) startCapture(ctx context.Context, boxID string) error {
+	short := boxID[:12]
+	cfg := &container.Config{
+		Image: m.captureImage,
+		// -i any: all interfaces in the box's netns. -U: flush each packet so the
+		// pcap is usable even if the sidecar is killed. Rotation bounds disk use.
+		Entrypoint: []string{
+			"tcpdump", "-i", "any", "-U",
+			"-w", "/capture/" + short + ".pcap",
+			"-C", captureRotateMB, "-W", captureRotateCount,
+		},
+		Labels: map[string]string{ManagedLabel: "true", CaptureForLabel: short},
+	}
+	hostCfg := &container.HostConfig{
+		NetworkMode:   container.NetworkMode("container:" + boxID),
+		Binds:         []string{m.captureDir + ":/capture"},
+		CapAdd:        []string{"NET_RAW"},
+		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyDisabled},
+	}
+	id, err := m.createContainer(ctx, cfg, hostCfg, captureName(short))
+	if err != nil {
+		return err
+	}
+	if err := m.cli.ContainerStart(ctx, id, container.StartOptions{}); err != nil {
+		return fmt.Errorf("starting capture sidecar: %w", err)
+	}
+	return nil
+}
+
+// removeCapture force-removes a box's capture sidecar if capture is enabled.
+// It is best-effort: a missing sidecar is not an error.
+//
+// @arg ctx Context for the remove call.
+// @arg boxID12 The box's short (12-char) ID.
+//
+// @testcase TestDestroyRemovesCapture removes the capture sidecar with the box.
+func (m *Manager) removeCapture(ctx context.Context, boxID12 string) {
+	if m.captureDir == "" {
+		return
+	}
+	_ = m.cli.ContainerRemove(ctx, captureName(boxID12), container.RemoveOptions{Force: true})
 }
 
 // pullImage pulls ref from its registry. It drains the progress stream, since
@@ -460,11 +581,14 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 		return err
 	}
 	// Graceful stop: SIGTERM, then SIGKILL after the timeout. Returns once the
-	// box has actually terminated.
+	// box has actually terminated (its shutdown traffic is still captured).
 	timeout := int(stopTimeout.Seconds())
 	if err := m.cli.ContainerStop(ctx, b.ID, container.StopOptions{Timeout: &timeout}); err != nil {
 		return fmt.Errorf("stopping box %s: %w", idOrName, err)
 	}
+	// Remove the capture sidecar before the box: it shares the box's network
+	// namespace, so the box can't be removed while it's still attached.
+	m.removeCapture(ctx, b.ID)
 	if err := m.cli.ContainerRemove(ctx, b.ID, container.RemoveOptions{RemoveVolumes: true}); err != nil {
 		return fmt.Errorf("removing box %s: %w", idOrName, err)
 	}
@@ -489,6 +613,9 @@ func (m *Manager) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string,
 	var reaped []string
 	for _, b := range boxes {
 		if b.Phase == "pending" && b.Created < cutoff {
+			// Drop the capture sidecar first; it shares the box's netns and would
+			// otherwise block removal.
+			m.removeCapture(ctx, b.ID)
 			if err := m.cli.ContainerRemove(ctx, b.ID, container.RemoveOptions{Force: true, RemoveVolumes: true}); err == nil {
 				reaped = append(reaped, b.ID)
 			}

@@ -17,6 +17,8 @@
 //	LLMBOX_REMOTE_ARGS        args passed to `claude remote-control` (default "--spawn same-dir")
 //	LLMBOX_AUTH_TTL_SECONDS   how long a box may stay un-authenticated (default 300)
 //	LLMBOX_STATE_FILE         bbolt file persisting the session registry (default "llmbox-sessions.db")
+//	LLMBOX_CAPTURE_DIR        host dir for per-box network pcaps; empty disables capture
+//	LLMBOX_CAPTURE_IMAGE      tcpdump sidecar image (default "nicolaka/netshoot")
 package main
 
 import (
@@ -61,7 +63,12 @@ func run() error {
 	authTTL := time.Duration(envInt("LLMBOX_AUTH_TTL_SECONDS", 300)) * time.Second
 	stateFile := envOr("LLMBOX_STATE_FILE", "llmbox-sessions.db")
 
-	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"))
+	mgr, err := docker.NewManager(
+		os.Getenv("LLMBOX_CLAUDE_IMAGE"),
+		os.Getenv("LLMBOX_REMOTE_ARGS"),
+		os.Getenv("LLMBOX_CAPTURE_DIR"),
+		os.Getenv("LLMBOX_CAPTURE_IMAGE"),
+	)
 	if err != nil {
 		return err
 	}

@@ -42,9 +42,12 @@ type fakeDocker struct {
 	// error until ImagePull has been called, simulating a missing local image.
 	createNotFoundUntilPull bool
 
-	createConfig *container.Config
-	createCalls  int
-	started      []string
+	createConfig      *container.Config
+	createCalls       int
+	createConfigs     []*container.Config
+	createHostConfigs []*container.HostConfig
+	createNames       []string
+	started           []string
 	renames      [][2]string // {id, newName}
 	resizes      []string
 	stopped      []string
@@ -59,8 +62,11 @@ func (f *fakeDocker) ContainerList(_ context.Context, _ container.ListOptions) (
 
 // ContainerCreate records the requested config and returns the canned response,
 // or an image-not-found error until ImagePull is called when so configured.
-func (f *fakeDocker) ContainerCreate(_ context.Context, config *container.Config, _ *container.HostConfig, _ *network.NetworkingConfig, _ *ocispec.Platform, _ string) (container.CreateResponse, error) {
+func (f *fakeDocker) ContainerCreate(_ context.Context, config *container.Config, hostCfg *container.HostConfig, _ *network.NetworkingConfig, _ *ocispec.Platform, name string) (container.CreateResponse, error) {
 	f.createConfig = config
+	f.createConfigs = append(f.createConfigs, config)
+	f.createHostConfigs = append(f.createHostConfigs, hostCfg)
+	f.createNames = append(f.createNames, name)
 	f.createCalls++
 	if f.createNotFoundUntilPull && len(f.pulled) == 0 {
 		return container.CreateResponse{}, fmt.Errorf("no such image: %w", cerrdefs.ErrNotFound)
@@ -299,6 +305,76 @@ func TestCreateLLMBoxPullFailure(t *testing.T) {
 	}
 	if len(f.started) != 0 {
 		t.Errorf("no box should be started when the pull fails, got %v", f.started)
+	}
+}
+
+// TestCreateLLMBoxStartsCapture checks that, when capture is enabled, a tcpdump
+// sidecar is created sharing the box's netns, mounting the host dir, and started.
+func TestCreateLLMBoxStartsCapture(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn: managerEnd,
+	}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, captureDir: "/caps", captureImage: "cap-img"}
+
+	go func() { _, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\n>")) }()
+
+	id, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
+	if err != nil {
+		t.Fatalf("CreateLLMBox: %v", err)
+	}
+	short := id[:12]
+
+	var capCfg *container.Config
+	var capHost *container.HostConfig
+	var capName string
+	for i, c := range f.createConfigs {
+		if c.Labels[CaptureForLabel] != "" {
+			capCfg, capHost, capName = c, f.createHostConfigs[i], f.createNames[i]
+		}
+	}
+	if capCfg == nil {
+		t.Fatal("no capture sidecar was created")
+	}
+	if capCfg.Image != "cap-img" {
+		t.Errorf("capture image = %q, want cap-img", capCfg.Image)
+	}
+	if capName != captureName(short) {
+		t.Errorf("capture name = %q, want %q", capName, captureName(short))
+	}
+	if ep := strings.Join(capCfg.Entrypoint, " "); !strings.Contains(ep, "tcpdump") || !strings.Contains(ep, "/capture/"+short+".pcap") {
+		t.Errorf("capture entrypoint = %q", ep)
+	}
+	if string(capHost.NetworkMode) != "container:"+id {
+		t.Errorf("capture netns = %q, want container:%s", capHost.NetworkMode, id)
+	}
+	if len(capHost.Binds) != 1 || capHost.Binds[0] != "/caps:/capture" {
+		t.Errorf("capture binds = %v, want [/caps:/capture]", capHost.Binds)
+	}
+	if len(capHost.CapAdd) == 0 || capHost.CapAdd[0] != "NET_RAW" {
+		t.Errorf("capture caps = %v, want NET_RAW", capHost.CapAdd)
+	}
+}
+
+// TestDestroyRemovesCapture checks the capture sidecar is removed when its box is.
+func TestDestroyRemovesCapture(t *testing.T) {
+	f := &fakeDocker{listResult: []container.Summary{
+		{ID: "abcdef0123456789", Names: []string{"/llmbox-abcdef012345"}},
+	}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, captureDir: "/caps", captureImage: "cap-img"}
+
+	if err := m.Destroy(context.Background(), "abcdef012345"); err != nil {
+		t.Fatalf("Destroy: %v", err)
+	}
+	foundCap := false
+	for _, r := range f.removed {
+		if r == captureName("abcdef012345") {
+			foundCap = true
+		}
+	}
+	if !foundCap {
+		t.Errorf("capture sidecar not removed: %v", f.removed)
 	}
 }
 

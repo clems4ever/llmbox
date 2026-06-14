@@ -115,6 +115,8 @@ clear text.
 | `LLMBOX_REMOTE_ARGS`      | `--spawn same-dir`        | Args passed to `claude remote-control`. |
 | `LLMBOX_AUTH_TTL_SECONDS` | `300`                     | Destroy un-authenticated boxes after this long. |
 | `LLMBOX_STATE_FILE`       | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](#session-persistence)). |
+| `LLMBOX_CAPTURE_DIR`      | (unset → disabled)        | **Host** directory for per-box network captures; when set, each box gets a tcpdump sidecar (see [Traffic capture](#traffic-capture)). |
+| `LLMBOX_CAPTURE_IMAGE`    | `nicolaka/netshoot`       | Image used for the capture sidecar (any image with `tcpdump`). |
 | `DOCKER_HOST`, etc.       | (Docker default)          | Standard Docker client configuration. |
 
 If `LLMBOX_CLAUDE_IMAGE` isn't present on the daemon, the server pulls it on the
@@ -147,6 +149,37 @@ volumes:
 > ```bash
 > mkdir -p ./data/llmbox && sudo chown -R 65532:65532 ./data/llmbox
 > ```
+
+## Traffic capture
+
+Set `LLMBOX_CAPTURE_DIR` to a **host** directory and every box gets a `tcpdump`
+**sidecar** that shares the box's network namespace and writes a rotating
+`.pcap` (named `<box-id>.pcap`, ~500 MB max per box) into that directory. The
+sidecar starts before the box's first connection (so the OAuth login is captured
+too) and is removed when the box is destroyed or reaped. The box can't tamper
+with it — it runs in a separate container with only `NET_RAW`.
+
+```yaml
+environment:
+  LLMBOX_CAPTURE_DIR: /var/lib/llmbox/captures   # a path on the Docker host
+  # LLMBOX_CAPTURE_IMAGE: nicolaka/netshoot       # optional override
+volumes:
+  - ./data/captures:/var/lib/llmbox/captures
+```
+
+Open the `.pcap` files in Wireshark/`tshark` to explore them.
+
+> [!NOTE]
+> `LLMBOX_CAPTURE_DIR` is a **host** path (it's bind-mounted into the sidecar by
+> the Docker daemon), not a path inside the `llmbox-mcp` container. It must exist
+> on the host. The sidecar runs `tcpdump` as root, so the `.pcap` files are
+> root-owned.
+
+> [!IMPORTANT]
+> Box traffic is almost entirely TLS, so the capture shows **metadata** —
+> destination IPs, TLS SNI hostnames, timing, and byte volumes — **not**
+> decrypted request/response bodies. Seeing payloads would require terminating
+> TLS through an MITM proxy with its CA trusted inside the box.
 
 ## Orphan cleanup
 

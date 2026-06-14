@@ -19,7 +19,7 @@ import (
 func TestCreateLLMBoxIntegration(t *testing.T) {
 	image := "claude-remote:test"
 
-	m, err := NewManager(image, "")
+	m, err := NewManager(image, "", "", "")
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}

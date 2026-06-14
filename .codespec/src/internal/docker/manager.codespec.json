@@ -4,8 +4,8 @@
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
 			"documentation_hash": "5cff43d4ce8c98c9bd8d6698033e203fb844f316dc672e860bda8c6eac97ad31",
-			"definition_hash": "322f94f347cbd512332b7876c28402148969f2d0f712bcead3ae506964050526",
-			"reviewed_at": "2026-06-14T13:17:52.154813929Z"
+			"definition_hash": "898ea30dae0f19521749956c63f4ba68a6982b72c52f523fe47793a792de9757",
+			"reviewed_at": "2026-06-14T14:54:49.517843243Z"
 		},
 		{
 			"function_name": "List",
@@ -28,9 +28,9 @@
 		},
 		{
 			"function_name": "NewManager",
-			"documentation_hash": "68147f4b299590615765720e18a38c520697ad6e935f0c61fb77d56057950bb4",
-			"definition_hash": "097ccdf4453a0f91fced1983f5f4d0366747a6adbfb49f2f96c1d7197d4e2507",
-			"reviewed_at": "2026-06-14T07:38:19.945406787Z"
+			"documentation_hash": "65ba147ae46d6d366a1fc7d3f26d95e02f0adc29edf061a7f9474826d89b9934",
+			"definition_hash": "37de273f6b1416fac511b43a664cd2b55da4464dbbe567de07c0d23205db1918",
+			"reviewed_at": "2026-06-14T14:55:05.28913267Z"
 		},
 		{
 			"function_name": "Close",
@@ -57,15 +57,15 @@
 			"function_name": "Destroy",
 			"receiver": "Manager",
 			"documentation_hash": "85cdd0eb6918823e77cfa5948957fe45d9581df1f812aa20e491b752a9bf5405",
-			"definition_hash": "37c899a626ba726b89a0820e64c4a8ce15c0a0a4ff755dcbabfc595effef0b06",
-			"reviewed_at": "2026-06-14T13:04:11.966726372Z"
+			"definition_hash": "8e2e6e7758611240c02a21ae0fc786b2a96bca7bbc62903459730ce87a564a6d",
+			"reviewed_at": "2026-06-14T14:54:49.539013961Z"
 		},
 		{
 			"function_name": "ReapOrphans",
 			"receiver": "Manager",
 			"documentation_hash": "d8f8b6b0264c1b00cf39f2e4ba29ec74b601c52e4f6322eae29938e56ca807ed",
-			"definition_hash": "6c9dfa1f3b96cb21e2aa93b5a33fbdb57bcd14e2fca21e167deb46e96a56163b",
-			"reviewed_at": "2026-06-14T07:37:44.052868348Z"
+			"definition_hash": "8e443acc350d021d80a128f143d726f1015937ad85c7f85d2a6be632a6fc3228",
+			"reviewed_at": "2026-06-14T14:54:49.553075965Z"
 		},
 		{
 			"function_name": "findManaged",
@@ -98,6 +98,33 @@
 			"documentation_hash": "45e13900a25eb7c26ab5070f488785a54b9488afc594c7dda9ccd69018fc49c7",
 			"definition_hash": "7535c8eaa0c9a8597047483255fde7834b720b7ab6a84fbcd1ea2ac5302a25ea",
 			"reviewed_at": "2026-06-14T13:17:52.165874891Z"
+		},
+		{
+			"function_name": "createContainer",
+			"receiver": "Manager",
+			"documentation_hash": "40f851b866d185bb655988974ba660cd4bfe6662cb8918aa0873a22dffaeda95",
+			"definition_hash": "7060d796b143bffebf7f36382f437cdba36e55adcafdf285028a49abfdb4b088",
+			"reviewed_at": "2026-06-14T14:54:49.52310442Z"
+		},
+		{
+			"function_name": "startCapture",
+			"receiver": "Manager",
+			"documentation_hash": "e419020c6351c5a833a09b008ef09095d5200316bee3c534ee7976678b4056f9",
+			"definition_hash": "1cb29ab17e089c8b8d0e4f7fb267706aebb39ad4bbcbda2153a89aed38ff76d4",
+			"reviewed_at": "2026-06-14T14:54:49.526060126Z"
+		},
+		{
+			"function_name": "removeCapture",
+			"receiver": "Manager",
+			"documentation_hash": "edcc662bc267d1caeef0d9e058706f5e65863262c15af387f0f05aaf9ee9ae26",
+			"definition_hash": "9b45e27aa27cc5da67ba358af8d1a1249df401bd23b1914cc54c90c7f8a7afd9",
+			"reviewed_at": "2026-06-14T14:54:49.53133306Z"
+		},
+		{
+			"function_name": "captureName",
+			"documentation_hash": "9d44ddb5c9c4c2cf69b50015d8526f08211fbb7404402a9bb21564c4fa46b6fe",
+			"definition_hash": "6cd349c5ba82ce03a23d7fa74b0605556100c520af70fe15e5829604a2ab8fae",
+			"reviewed_at": "2026-06-14T14:54:49.563553821Z"
 		}
 	]
 }
