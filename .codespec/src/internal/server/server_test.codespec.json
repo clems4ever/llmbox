@@ -37,9 +37,9 @@
 		},
 		{
 			"function_name": "newTestServer",
-			"documentation_hash": "59c88e2915a867a8fa48b3b7c10099ed75d3ab34355ac4011a1866d9fd691dad",
-			"definition_hash": "15772dddd596e7bf8005e3f5b9a4f6c78a4fcd02cc56f64500eead7f84f68b50",
-			"reviewed_at": "2026-06-14T07:46:33.720099981Z"
+			"documentation_hash": "74baab6bfb21f4cbcb76aa8a640c7620bd987b015c8f4df80cc3521c53706697",
+			"definition_hash": "5472df16eef2ee9665645de7f88375db02120176b352f28232f1c593af0b5aad",
+			"reviewed_at": "2026-06-14T09:15:15.496069779Z"
 		},
 		{
 			"function_name": "connectMCP",

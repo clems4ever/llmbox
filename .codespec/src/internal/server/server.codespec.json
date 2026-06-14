@@ -4,8 +4,8 @@
 			"function_name": "CreateBox",
 			"receiver": "Server",
 			"documentation_hash": "e9f10d622140b5ac07b731074927177ee34e029b8bc1bc0627be974091643722",
-			"definition_hash": "3aa7f318ac5bc120db2c3fdf73270f43187ec5affa8ac87e4d7827b45614685f",
-			"reviewed_at": "2026-06-14T07:44:19.403004393Z"
+			"definition_hash": "d25bd991096c78370471a56d514cc65cbfca175c21eac9322af51b6f7780c178",
+			"reviewed_at": "2026-06-14T09:14:56.18832956Z"
 		},
 		{
 			"function_name": "snapshot",
@@ -16,9 +16,9 @@
 		},
 		{
 			"function_name": "New",
-			"documentation_hash": "def248dd9f994048dcb954e1dc1a1b8eea91470018c66e70c088cb4661c7bcf0",
-			"definition_hash": "6deee67fe89401a8268e8183a0f9defdd8ba4f08eb253db22d5bb81c7f3bdbd4",
-			"reviewed_at": "2026-06-14T07:44:19.383505817Z"
+			"documentation_hash": "67d5299b774b338116545eb75cb632381b00a380bd01c02323e888c105984477",
+			"definition_hash": "c68bd00243dbb4985281679b46eee3dd5935dda2f6cb6ab0589e73c6782c4479",
+			"reviewed_at": "2026-06-14T09:15:04.18161579Z"
 		},
 		{
 			"function_name": "newToken",
@@ -44,8 +44,8 @@
 			"function_name": "SubmitCode",
 			"receiver": "Server",
 			"documentation_hash": "e7dbe80942ce53122333f2ce3846f4296801d413999daa4d93301a14d859658a",
-			"definition_hash": "cfcc2ce9a5aba99508a8b87d7374371d2d768c32c72d86a55b8a2c8cca6953e9",
-			"reviewed_at": "2026-06-14T07:44:19.43226108Z"
+			"definition_hash": "ee22d77b692442deb7b961cf88620243869f06d88a32a12d1d52139d7adfdcd0",
+			"reviewed_at": "2026-06-14T09:14:56.191912189Z"
 		},
 		{
 			"function_name": "ListBoxes",
@@ -58,8 +58,8 @@
 			"function_name": "DestroyBox",
 			"receiver": "Server",
 			"documentation_hash": "1095f0f61dc4d640917944e05386f63c2ea9348c77accc35fd81d329f8278401",
-			"definition_hash": "68203ff34eb9cfcec01fb0e830de7e149921ba1574f536f1201b522fad060012",
-			"reviewed_at": "2026-06-14T07:44:19.450516461Z"
+			"definition_hash": "90cc2a78463966644e44ce6f3952e08b226f1db48c65bfec9f057ba6a18ab0c8",
+			"reviewed_at": "2026-06-14T09:14:56.198735431Z"
 		},
 		{
 			"function_name": "ReapLoop",
@@ -72,8 +72,35 @@
 			"function_name": "pruneSessions",
 			"receiver": "Server",
 			"documentation_hash": "23c55ae6234174ed2f0a7add4898f8701b93ed7fc53618e18d1deb48ecdf3dd4",
-			"definition_hash": "5e51d04d10538df07ef421bd57066f0ef8a2a3b34eeeda458bba9209cfcac7a9",
-			"reviewed_at": "2026-06-14T07:44:19.463132519Z"
+			"definition_hash": "1d38bf831976e05e3d65962da9ec24f04f02e6aef4c74a973e0770e9b48dca66",
+			"reviewed_at": "2026-06-14T09:14:56.210031533Z"
+		},
+		{
+			"function_name": "Restore",
+			"receiver": "Server",
+			"documentation_hash": "bee46986bbab7401fdd2dfae4187707e6fce075e2ada0c20303815beaf407b06",
+			"definition_hash": "b84d19507c844ac9d9f0f629ef233d86aa5c65891b9e27bf335532f4b4daede6",
+			"reviewed_at": "2026-06-14T09:14:56.221142174Z"
+		},
+		{
+			"function_name": "persistLocked",
+			"receiver": "session",
+			"documentation_hash": "72fbe470c5d53f3c68de98479499ab305305d768c3cff0fee62e903fced44eb5",
+			"definition_hash": "2e4b9fe490eb3c18fd958cfc9f9375ef71af4d4b24cee0d133707941bec2d669",
+			"reviewed_at": "2026-06-14T09:14:56.229711694Z"
+		},
+		{
+			"function_name": "persist",
+			"receiver": "session",
+			"documentation_hash": "d1d271f823c3d771c64c7f5b3abab6ffa6a5971357a705036725d46d54e30bb9",
+			"definition_hash": "ff1acd831bdc550c0da3785e482099b2cc15ee9dd4ba679a1269e001808d6a85",
+			"reviewed_at": "2026-06-14T09:14:56.241585949Z"
+		},
+		{
+			"function_name": "sessionFromPersisted",
+			"documentation_hash": "4fe8ff6888faa54c159f06f87cd22fc13415c250fe06e9ef133b74736ba52f63",
+			"definition_hash": "48390e396c6ba579fe20b2509ed9738256c53d62ae5036e1803e1aee662f0847",
+			"reviewed_at": "2026-06-14T09:14:56.250925091Z"
 		}
 	]
 }

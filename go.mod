@@ -6,6 +6,7 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/opencontainers/image-spec v1.1.1
+	go.etcd.io/bbolt v1.4.3
 )
 
 require (
