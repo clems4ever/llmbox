@@ -3,9 +3,9 @@
 		{
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
-			"documentation_hash": "dfa2135e20809a0cbb1fe3cee4ea072c957418c3c6a602d4a87c7a9506defe8b",
-			"definition_hash": "799b60e0881894fa4c3104fcd4555c3dfd5b01218dec1ecaaca3c765df538653",
-			"reviewed_at": "2026-06-14T09:35:12.323782509Z"
+			"documentation_hash": "5cff43d4ce8c98c9bd8d6698033e203fb844f316dc672e860bda8c6eac97ad31",
+			"definition_hash": "322f94f347cbd512332b7876c28402148969f2d0f712bcead3ae506964050526",
+			"reviewed_at": "2026-06-14T13:17:52.154813929Z"
 		},
 		{
 			"function_name": "List",
@@ -91,6 +91,13 @@
 			"documentation_hash": "2e9bbd64368a02839d3c2d89645aa63691330a32c54e8ee5d9b6e19b9376d027",
 			"definition_hash": "1b1685277e533ad562417dc7817dc24e48ffd7907af7eb52c03eff948aef3feb",
 			"reviewed_at": "2026-06-14T07:37:44.087089476Z"
+		},
+		{
+			"function_name": "pullImage",
+			"receiver": "Manager",
+			"documentation_hash": "45e13900a25eb7c26ab5070f488785a54b9488afc594c7dda9ccd69018fc49c7",
+			"definition_hash": "7535c8eaa0c9a8597047483255fde7834b720b7ab6a84fbcd1ea2ac5302a25ea",
+			"reviewed_at": "2026-06-14T13:17:52.165874891Z"
 		}
 	]
 }

@@ -10,9 +10,9 @@
 		{
 			"function_name": "ContainerCreate",
 			"receiver": "fakeDocker",
-			"documentation_hash": "f149486fce66eb558105b761bf0eeb732fb4b07f5d3db7928f14e6bc4c83cb94",
-			"definition_hash": "d44ea5eaf2b623e26f86e28d0b9f8543a80302eb75e8f114f04c935513e47917",
-			"reviewed_at": "2026-06-14T07:40:39.408340519Z"
+			"documentation_hash": "0a99f096a6b2482af124ef30b25f82fee6acf11a743b0d345b697b160895958c",
+			"definition_hash": "46f086e7a60235df262f5b36ccfae2bfe832796240945de7b4617f12bffa93eb",
+			"reviewed_at": "2026-06-14T13:17:52.175451988Z"
 		},
 		{
 			"function_name": "ContainerStart",
@@ -128,6 +128,25 @@
 			"documentation_hash": "032651c69baf94eddb672cadd3e026e782aa5d5c62ce549833672b901343bb9c",
 			"definition_hash": "55c183c0876bf0b572bc4fb74a1051454ea1fa8f5925d0c62b0576f1eded84f9",
 			"reviewed_at": "2026-06-14T13:04:12.000778168Z"
+		},
+		{
+			"function_name": "ImagePull",
+			"receiver": "fakeDocker",
+			"documentation_hash": "774eba853b5ab9f82bf50a2471ef6d05ba72b258e53619a044773a04e640c9b0",
+			"definition_hash": "dfd250f60720988154c6d82cd290a3dd02c7cc34ec244dfcc11c64ad6d508a6c",
+			"reviewed_at": "2026-06-14T13:17:52.183232776Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxPullsMissingImage",
+			"documentation_hash": "b24fa55cb8141914910462449a7c40b3dbd92b65268f042206d823096aa5a103",
+			"definition_hash": "e803e72d0aa1dd9a1225b20f4cf157cebd9d90df749b2f8c98cc495ae6f95c1b",
+			"reviewed_at": "2026-06-14T13:17:52.189010297Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxPullFailure",
+			"documentation_hash": "d2e7464535cabb9d14ca9e615937ce26c21678d08c95b1a0abb1823164a5654e",
+			"definition_hash": "4e9a29d1e659af19d6433dde7003c6ea9c4134d4f08883069a26afdadc7dc2c1",
+			"reviewed_at": "2026-06-14T13:17:52.192837599Z"
 		}
 	]
 }
