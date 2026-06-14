@@ -109,6 +109,12 @@
 			"documentation_hash": "2b98e2e941a15673d086cc273257e6f7f8cf6bbd8feff78840dca3bf0fc3cfdf",
 			"definition_hash": "0e23e07372dda160882142fb3064f56a99d9f7082456cc73d8caf956ee469efd",
 			"reviewed_at": "2026-06-14T07:40:39.54252118Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxRejectsDuplicateHostname",
+			"documentation_hash": "3d09277c9d7ebf098937a0e318dfa494de0e329968e6110ebd97609356bddf3a",
+			"definition_hash": "aa21a6feb6cea73aeb72c1803e0769a94a6c2434e9cd31584bc609efb34f2287",
+			"reviewed_at": "2026-06-14T09:35:12.336906237Z"
 		}
 	]
 }
