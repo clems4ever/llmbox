@@ -3,9 +3,9 @@
 		{
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
-			"documentation_hash": "9b4fdd9570ec85bdc0e10c0f2f6cfd3e45dbaad240db3cba97219e867e2a313d",
-			"definition_hash": "d5a262b8f90329ec730a3088081adff1222ec9da77ce59313d9ebf527d1d9352",
-			"reviewed_at": "2026-06-14T07:37:44.022190568Z"
+			"documentation_hash": "dfa2135e20809a0cbb1fe3cee4ea072c957418c3c6a602d4a87c7a9506defe8b",
+			"definition_hash": "799b60e0881894fa4c3104fcd4555c3dfd5b01218dec1ecaaca3c765df538653",
+			"reviewed_at": "2026-06-14T09:35:12.323782509Z"
 		},
 		{
 			"function_name": "List",

@@ -202,6 +202,27 @@ func TestCreateLLMBoxCleansUpOnStartFailure(t *testing.T) {
 	}
 }
 
+// TestCreateLLMBoxRejectsDuplicateHostname checks a create is refused (and no
+// container made) when another box already uses the requested hostname.
+func TestCreateLLMBoxRejectsDuplicateHostname(t *testing.T) {
+	f := &fakeDocker{listResult: []container.Summary{
+		{ID: "existing0000aaaa", Names: []string{"/llmbox-existing0000"}, Labels: map[string]string{HostnameLabel: "dup-host"}},
+	}}
+	m := newTestManager(f)
+
+	// Case-insensitive: "DUP-HOST" must still collide with "dup-host".
+	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{Hostname: "DUP-HOST"})
+	if err == nil {
+		t.Fatal("expected error for duplicate hostname")
+	}
+	if !strings.Contains(err.Error(), "dup-host") && !strings.Contains(err.Error(), "DUP-HOST") {
+		t.Errorf("error should name the conflicting hostname: %v", err)
+	}
+	if f.createConfig != nil {
+		t.Error("no container should be created when the hostname conflicts")
+	}
+}
+
 // TestSubmitCodeReturnsSessionURL checks the code is written and the session URL returned.
 func TestSubmitCodeReturnsSessionURL(t *testing.T) {
 	managerEnd, testEnd := net.Pipe()

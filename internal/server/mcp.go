@@ -47,7 +47,7 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 
 type createInput struct {
 	Image       string `json:"image,omitempty" jsonschema:"optional image to launch; defaults to the configured Claude image"`
-	Hostname    string `json:"hostname,omitempty" jsonschema:"optional hostname to set on the box; must be a valid hostname"`
+	Hostname    string `json:"hostname,omitempty" jsonschema:"optional hostname to set on the box; must be a valid hostname and unique across boxes (creation fails if another box already uses it)"`
 	Description string `json:"description,omitempty" jsonschema:"optional human-readable description shown in list and get to tell boxes apart"`
 }
 

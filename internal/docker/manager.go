@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -104,6 +105,10 @@ type Manager struct {
 	cli          dockerAPI
 	defaultImage string
 	remoteArgs   string
+
+	// createMu serializes the hostname-uniqueness check and container creation
+	// so two concurrent creates can't both pass the check with the same hostname.
+	createMu sync.Mutex
 }
 
 // Box is a view of a managed container returned to callers.
@@ -226,16 +231,18 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // login process prints, and returns the box ID plus that URL. The box is left
 // running, parked at the "paste code" prompt, ready for SubmitCode. opts.Hostname
 // sets the container hostname, and opts.Hostname/opts.Description are persisted
-// as labels so List can report them.
+// as labels so List can report them. A non-empty opts.Hostname must be unique
+// across managed boxes; the create is rejected otherwise.
 //
 // @arg ctx Context for the Docker create/start/attach calls.
 // @arg opts The caller-controlled image, hostname, and description for the box.
 // @return id The full container ID of the created box.
 // @return authorizeURL The OAuth authorize URL captured from the box's login output.
-// @error error if the box cannot be created, started, or its authorize URL captured.
+// @error error if opts.Hostname is already in use, or the box cannot be created, started, or its authorize URL captured.
 //
 // @testcase TestCreateLLMBoxCapturesURL captures the authorize URL and sets hostname/description labels.
 // @testcase TestCreateLLMBoxCleansUpOnStartFailure removes the container when start fails.
+// @testcase TestCreateLLMBoxRejectsDuplicateHostname rejects a hostname already in use.
 func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, authorizeURL string, err error) {
 	image := opts.Image
 	if image == "" {
@@ -260,6 +267,25 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		prepConfigCmd, m.remoteArgs,
 	)
 
+	// Reserve the hostname atomically: under one lock, reject the create if an
+	// existing box already uses it, then create the container (which carries the
+	// hostname label, so a concurrent create will see it). The slow login / URL
+	// capture below runs unlocked.
+	m.createMu.Lock()
+	if opts.Hostname != "" {
+		boxes, lerr := m.List(ctx)
+		if lerr != nil {
+			m.createMu.Unlock()
+			return "", "", fmt.Errorf("checking hostname uniqueness: %w", lerr)
+		}
+		for _, b := range boxes {
+			if strings.EqualFold(b.Hostname, opts.Hostname) {
+				m.createMu.Unlock()
+				return "", "", fmt.Errorf("hostname %q is already used by box %s; choose a different hostname", opts.Hostname, b.ID)
+			}
+		}
+	}
+
 	resp, err := m.cli.ContainerCreate(ctx,
 		&container.Config{
 			Image:      image,
@@ -277,9 +303,11 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		nil, nil, "",
 	)
 	if err != nil {
+		m.createMu.Unlock()
 		return "", "", fmt.Errorf("creating box from image %q: %w", image, err)
 	}
 	id = resp.ID
+	m.createMu.Unlock()
 
 	// From here on, clean up the container on any failure.
 	cleanup := func() { _ = m.cli.ContainerRemove(context.Background(), id, container.RemoveOptions{Force: true}) }
