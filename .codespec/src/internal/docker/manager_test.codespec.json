@@ -1,0 +1,114 @@
+{
+	"functions": [
+		{
+			"function_name": "ContainerList",
+			"receiver": "fakeDocker",
+			"documentation_hash": "f3494448d894c9c5d13470f3597ae89cbcca339fa22003bd9c8f9f7755ce412c",
+			"definition_hash": "744979081d377f90a223b0c9224385974d94dbc9ca5b4946ad7630785c51f8c3",
+			"reviewed_at": "2026-06-14T07:40:39.397485482Z"
+		},
+		{
+			"function_name": "ContainerCreate",
+			"receiver": "fakeDocker",
+			"documentation_hash": "f149486fce66eb558105b761bf0eeb732fb4b07f5d3db7928f14e6bc4c83cb94",
+			"definition_hash": "d44ea5eaf2b623e26f86e28d0b9f8543a80302eb75e8f114f04c935513e47917",
+			"reviewed_at": "2026-06-14T07:40:39.408340519Z"
+		},
+		{
+			"function_name": "ContainerStart",
+			"receiver": "fakeDocker",
+			"documentation_hash": "68b301614856ec882d916a44983f6c02a6c693b388146920b3b9d1a62fd66d29",
+			"definition_hash": "c0dbbad908d614ffae148186a8046d6cbc1f828aaf5593e2a327374b862d0167",
+			"reviewed_at": "2026-06-14T07:40:39.417714353Z"
+		},
+		{
+			"function_name": "ContainerRename",
+			"receiver": "fakeDocker",
+			"documentation_hash": "7b977f8fc02d1e0c54e1d02e21046edae8b7794d073783e63a9a35c8c021b060",
+			"definition_hash": "a17d261f17ad42f3b603bc6cfeec06f3e46266b937ffd9a402ef26d43aaf2117",
+			"reviewed_at": "2026-06-14T07:40:39.42604482Z"
+		},
+		{
+			"function_name": "ContainerResize",
+			"receiver": "fakeDocker",
+			"documentation_hash": "ef6f6fca0da325ff3a6c86ede1ddc2bfe1f1c4af49a37e52b38a59644ac7012c",
+			"definition_hash": "1c6297f65dc911cbcf4d871e25b3c4e0c5b8c007839444b14da6477a6b794f18",
+			"reviewed_at": "2026-06-14T07:40:39.428692535Z"
+		},
+		{
+			"function_name": "ContainerAttach",
+			"receiver": "fakeDocker",
+			"documentation_hash": "d0a80fe5e53117cb63b140afa38fc75e04fd197b7da5bdb17678a08224153b09",
+			"definition_hash": "8790fff40b99967085ccbc7f525af265dd27d80cbfe7a9087da580dbb16f7d18",
+			"reviewed_at": "2026-06-14T07:40:39.435515084Z"
+		},
+		{
+			"function_name": "ContainerRemove",
+			"receiver": "fakeDocker",
+			"documentation_hash": "6c8c8e795c7d692ee117e2913357a4036eaf95e9662199154c7037d28ba5e44b",
+			"definition_hash": "294a767b6413c840eea159a4984e2d326bc3906096d89f9359887e341a2f4c14",
+			"reviewed_at": "2026-06-14T07:40:39.446403325Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "fakeDocker",
+			"documentation_hash": "35d5ed42bfe74e7c5f782e5db6cc4ad63786c274ea121d657f3fb9d23a0ab1b5",
+			"definition_hash": "11c60367caf3c4ed5ad4885cd109e8d658c6b80ffa66bcc70880e4686a1bf34e",
+			"reviewed_at": "2026-06-14T07:40:39.458719714Z"
+		},
+		{
+			"function_name": "newTestManager",
+			"documentation_hash": "a4d6a38c3561efc6ecdc0e025e39b7a7c8e8216ba21f673a27dfb5437bbf5e26",
+			"definition_hash": "0b077f30bd9a1ec7932676ffc88c9906c92b1c9e9f606125387aa66cfdc87d2f",
+			"reviewed_at": "2026-06-14T07:40:39.468236644Z"
+		},
+		{
+			"function_name": "TestListMapsPhaseFromName",
+			"documentation_hash": "f0f27f7d88556198f126ceada2f7e12d33447b2795ace3720567fba53bacc25d",
+			"definition_hash": "e7a0fe36175d8fc71a856a239baae067bc639f6a1ce59784337c8d2fba3f2c7d",
+			"reviewed_at": "2026-06-14T07:40:39.47877072Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxCapturesURL",
+			"documentation_hash": "66623673f19e5424e15d1a3962738549df2a483c6b2d385b3a0fc025b8610105",
+			"definition_hash": "a2eab70753a5b77c2f0bb12bc22588fe737148a25b81c6b3379e97a8cc3bd875",
+			"reviewed_at": "2026-06-14T07:40:39.490300605Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxCleansUpOnStartFailure",
+			"documentation_hash": "490c6d9c249102acba45d58a9b90f78fde90039ccc3214a3e056702f7adcc28e",
+			"definition_hash": "1654a5b584506c93668019dd4603289554ec734ed1cd6b57783dd7ca0977394d",
+			"reviewed_at": "2026-06-14T07:40:39.499760181Z"
+		},
+		{
+			"function_name": "TestSubmitCodeReturnsSessionURL",
+			"documentation_hash": "81eacec0398c0a141694cc897ce01201bbd4b139f8f5f5b7c96ae41ef5bca77b",
+			"definition_hash": "3fb4906b9227d938684b4860e24bc4b4c400fec186d755eb65856cc0370b644a",
+			"reviewed_at": "2026-06-14T07:40:39.510144908Z"
+		},
+		{
+			"function_name": "TestSubmitCodeAttachError",
+			"documentation_hash": "9ca12fefd0f755a87c4f1a5e4ab9be9c33cefce7ac116b53e59dd942d312e1d2",
+			"definition_hash": "623044217f380fc491eb272788ce1b639917742cc4f5408c530eb3b8eac4f830",
+			"reviewed_at": "2026-06-14T07:40:39.521556538Z"
+		},
+		{
+			"function_name": "TestDestroyForceRemoves",
+			"documentation_hash": "6097b45586cd0dce1029a55eadffdfe054ce1f8d7463dffba8cd32f334e6ca8c",
+			"definition_hash": "2db90c96be798120b2257bdbb913b3edde09c42112c4112e26b828d1b6bde55a",
+			"reviewed_at": "2026-06-14T07:40:39.530224168Z"
+		},
+		{
+			"function_name": "TestReapOrphans",
+			"documentation_hash": "5863a085ac2b5ecc06cc6fe870f606f7362a95898146e516fbecdc553785bd75",
+			"definition_hash": "0c96b6aca2d45b20f75e302a4f32664203ee1b5ce6ab2ba973fbee8fde47edb2",
+			"reviewed_at": "2026-06-14T07:40:39.535317435Z"
+		},
+		{
+			"function_name": "TestStripANSI",
+			"documentation_hash": "2b98e2e941a15673d086cc273257e6f7f8cf6bbd8feff78840dca3bf0fc3cfdf",
+			"definition_hash": "0e23e07372dda160882142fb3064f56a99d9f7082456cc73d8caf956ee469efd",
+			"reviewed_at": "2026-06-14T07:40:39.54252118Z"
+		}
+	]
+}

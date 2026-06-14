@@ -11,6 +11,12 @@ import (
 
 // MCPServer builds an MCP server exposing the box tools. The OAuth secret is
 // never an input or output of any tool: create returns only an auth page URL.
+//
+// @arg name The MCP server implementation name.
+// @arg version The MCP server implementation version.
+// @return *mcp.Server An MCP server with the create/get/list/destroy tools registered.
+//
+// @testcase TestMCPToolsRegisteredAndCreate checks all tools are registered and create works.
 func (s *Server) MCPServer(name, version string) *mcp.Server {
 	srv := mcp.NewServer(&mcp.Implementation{Name: name, Version: version}, nil)
 
@@ -40,7 +46,9 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 }
 
 type createInput struct {
-	Image string `json:"image,omitempty" jsonschema:"optional image to launch; defaults to the configured Claude image"`
+	Image       string `json:"image,omitempty" jsonschema:"optional image to launch; defaults to the configured Claude image"`
+	Hostname    string `json:"hostname,omitempty" jsonschema:"optional hostname to set on the box; must be a valid hostname"`
+	Description string `json:"description,omitempty" jsonschema:"optional human-readable description shown in list and get to tell boxes apart"`
 }
 
 type createOutput struct {
@@ -51,8 +59,23 @@ type createOutput struct {
 	Instructions string `json:"instructions" jsonschema:"human-readable next steps for the user"`
 }
 
+// toolCreate handles the create_llmbox tool: it launches a box with the given
+// image, hostname, and description, and returns the auth page URL and token.
+//
+// @arg ctx Context for the box creation.
+// @arg _ The MCP call request (unused).
+// @arg in The create input carrying optional image, hostname, and description.
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return createOutput The box ID, auth URL, token, status, and instructions.
+// @error error if the box cannot be created.
+//
+// @testcase TestMCPToolsRegisteredAndCreate calls create_llmbox and checks the auth URL.
 func (s *Server) toolCreate(ctx context.Context, _ *mcp.CallToolRequest, in createInput) (*mcp.CallToolResult, createOutput, error) {
-	sess, err := s.CreateBox(ctx, in.Image)
+	sess, err := s.CreateBox(ctx, docker.CreateOptions{
+		Image:       in.Image,
+		Hostname:    in.Hostname,
+		Description: in.Description,
+	})
 	if err != nil {
 		return nil, createOutput{}, err
 	}
@@ -71,24 +94,53 @@ type getInput struct {
 }
 
 type getOutput struct {
-	Status     string `json:"status" jsonschema:"pending, ready, or error"`
-	SessionURL string `json:"session_url,omitempty" jsonschema:"remote-control session URL, present once ready"`
-	Error      string `json:"error,omitempty" jsonschema:"error detail when status is error"`
+	Status      string `json:"status" jsonschema:"pending, ready, or error"`
+	Hostname    string `json:"hostname,omitempty" jsonschema:"the hostname set on the box, if any"`
+	Description string `json:"description,omitempty" jsonschema:"the description supplied when the box was created, if any"`
+	SessionURL  string `json:"session_url,omitempty" jsonschema:"remote-control session URL, present once ready"`
+	Error       string `json:"error,omitempty" jsonschema:"error detail when status is error"`
 }
 
+// toolGet handles the get_llmbox tool: it looks up a box's session by auth token
+// and returns its status, hostname, description, and session URL.
+//
+// @arg _ Context (unused).
+// @arg _ The MCP call request (unused).
+// @arg in The get input carrying the auth token.
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return getOutput The box's status, hostname, description, session URL, and any error.
+// @error error if the auth token is unknown.
+//
+// @testcase TestMCPToolsRegisteredAndCreate exercises the get_llmbox handler wiring.
 func (s *Server) toolGet(_ context.Context, _ *mcp.CallToolRequest, in getInput) (*mcp.CallToolResult, getOutput, error) {
 	sess := s.lookup(in.AuthToken)
 	if sess == nil {
 		return nil, getOutput{}, fmt.Errorf("unknown auth token (the box may have expired)")
 	}
 	status, url, errMsg := sess.snapshot()
-	return nil, getOutput{Status: status, SessionURL: url, Error: errMsg}, nil
+	return nil, getOutput{
+		Status:      status,
+		Hostname:    sess.Hostname,
+		Description: sess.Description,
+		SessionURL:  url,
+		Error:       errMsg,
+	}, nil
 }
 
 type listOutput struct {
 	Boxes []docker.Box `json:"boxes" jsonschema:"the boxes managed by this server"`
 }
 
+// toolList handles the list_llmboxes tool: it returns all managed boxes.
+//
+// @arg ctx Context for the list request.
+// @arg _ The MCP call request (unused).
+// @arg _ The empty tool input (unused).
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return listOutput The managed boxes.
+// @error error if listing boxes fails.
+//
+// @testcase TestMCPToolsRegisteredAndCreate checks the list_llmboxes tool is registered.
 func (s *Server) toolList(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, listOutput, error) {
 	boxes, err := s.ListBoxes(ctx)
 	if err != nil {
@@ -105,6 +157,17 @@ type destroyOutput struct {
 	Destroyed string `json:"destroyed" jsonschema:"the box that was destroyed"`
 }
 
+// toolDestroy handles the destroy_llmbox tool: it stops and removes a box by ID
+// or name.
+//
+// @arg ctx Context for the destroy request.
+// @arg _ The MCP call request (unused).
+// @arg in The destroy input carrying the box ID or name.
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return destroyOutput The box that was destroyed.
+// @error error if no box is given or the box cannot be destroyed.
+//
+// @testcase TestMCPToolsRegisteredAndCreate checks the destroy_llmbox tool is registered.
 func (s *Server) toolDestroy(ctx context.Context, _ *mcp.CallToolRequest, in destroyInput) (*mcp.CallToolResult, destroyOutput, error) {
 	if in.Box == "" {
 		return nil, destroyOutput{}, fmt.Errorf("box ID or name is required")

@@ -42,6 +42,13 @@ const (
 	// ManagedLabel marks every container created by this server.
 	ManagedLabel = "com.llmbox.managed"
 
+	// HostnameLabel and DescriptionLabel persist the caller-supplied hostname
+	// and description so List can report them straight from a container list
+	// (ContainerList summaries carry labels but neither the hostname nor the
+	// rest of the container config).
+	HostnameLabel    = "com.llmbox.hostname"
+	DescriptionLabel = "com.llmbox.description"
+
 	// DefaultImage is launched when the caller does not specify one.
 	DefaultImage = "claude-remote"
 
@@ -101,17 +108,38 @@ type Manager struct {
 
 // Box is a view of a managed container returned to callers.
 type Box struct {
-	ID      string `json:"id" jsonschema:"the short box ID"`
-	Name    string `json:"name" jsonschema:"the container name"`
-	Image   string `json:"image" jsonschema:"the image the box runs"`
-	State   string `json:"state" jsonschema:"the container state, e.g. running or exited"`
-	Status  string `json:"status" jsonschema:"a human readable status string"`
-	Phase   string `json:"phase" jsonschema:"auth phase: pending (awaiting login) or ready (authenticated)"`
-	Created int64  `json:"created" jsonschema:"creation time as a unix timestamp"`
+	ID          string `json:"id" jsonschema:"the short box ID"`
+	Name        string `json:"name" jsonschema:"the container name"`
+	Hostname    string `json:"hostname,omitempty" jsonschema:"the hostname set on the box, if the caller supplied one"`
+	Description string `json:"description,omitempty" jsonschema:"the caller-supplied description label, if any"`
+	Image       string `json:"image" jsonschema:"the image the box runs"`
+	State       string `json:"state" jsonschema:"the container state, e.g. running or exited"`
+	Status      string `json:"status" jsonschema:"a human readable status string"`
+	Phase       string `json:"phase" jsonschema:"auth phase: pending (awaiting login) or ready (authenticated)"`
+	Created     int64  `json:"created" jsonschema:"creation time as a unix timestamp"`
+}
+
+// CreateOptions holds the caller-controlled inputs for a new box.
+type CreateOptions struct {
+	// Image is the container image to launch; empty means the Manager default.
+	Image string
+	// Hostname, when set, becomes the box's container hostname (what `hostname`
+	// reports inside it). Must be a valid hostname or Docker rejects creation.
+	Hostname string
+	// Description is a free-form label shown by list/get to help the caller tell
+	// boxes apart. It has no effect on the box itself.
+	Description string
 }
 
 // NewManager creates a Manager using Docker configuration from the environment.
 // defaultImage and remoteArgs fall back to sensible defaults when empty.
+//
+// @arg defaultImage The image launched when a caller does not specify one; empty falls back to DefaultImage.
+// @arg remoteArgs The remote-control flags; empty falls back to the default flags.
+// @return *Manager A Manager wired to a Docker client built from the environment.
+// @error error if the Docker client cannot be created.
+//
+// @testcase TestListMapsPhaseFromName covers Manager behaviour via a constructed Manager.
 func NewManager(defaultImage, remoteArgs string) (*Manager, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -127,13 +155,28 @@ func NewManager(defaultImage, remoteArgs string) (*Manager, error) {
 }
 
 // Close releases the underlying Docker client.
+//
+// @error error if the underlying Docker client fails to close.
+//
+// @testcase TestListMapsPhaseFromName uses a Manager whose lifecycle includes Close.
 func (m *Manager) Close() error { return m.cli.Close() }
 
+// managedFilter builds the Docker list filter that scopes operations to
+// containers created by this server.
+//
+// @return filters.Args A filter matching only containers carrying ManagedLabel.
+//
+// @testcase TestListMapsPhaseFromName exercises managedFilter via List.
 func managedFilter() filters.Args {
 	return filters.NewArgs(filters.Arg("label", ManagedLabel+"=true"))
 }
 
 // phaseOf reports a box's auth phase from its container name.
+//
+// @arg name The container name to inspect.
+// @return string "pending" if the name has the pending prefix, else "ready".
+//
+// @testcase TestListMapsPhaseFromName checks the phase derived from names.
 func phaseOf(name string) string {
 	if strings.HasPrefix(name, pendingPrefix) {
 		return "pending"
@@ -142,6 +185,12 @@ func phaseOf(name string) string {
 }
 
 // List returns all boxes created by this server, running or not.
+//
+// @arg ctx Context for the Docker list request.
+// @return []Box One Box per managed container, with phase, hostname, and description filled in.
+// @error error if listing containers from Docker fails.
+//
+// @testcase TestListMapsPhaseFromName checks phase, ID, hostname, and description mapping.
 func (m *Manager) List(ctx context.Context) ([]Box, error) {
 	cs, err := m.cli.ContainerList(ctx, container.ListOptions{All: true, Filters: managedFilter()})
 	if err != nil {
@@ -154,13 +203,15 @@ func (m *Manager) List(ctx context.Context) ([]Box, error) {
 			name = strings.TrimPrefix(c.Names[0], "/")
 		}
 		out = append(out, Box{
-			ID:      c.ID[:12],
-			Name:    name,
-			Image:   c.Image,
-			State:   c.State,
-			Status:  c.Status,
-			Phase:   phaseOf(name),
-			Created: c.Created,
+			ID:          c.ID[:12],
+			Name:        name,
+			Hostname:    c.Labels[HostnameLabel],
+			Description: c.Labels[DescriptionLabel],
+			Image:       c.Image,
+			State:       c.State,
+			Status:      c.Status,
+			Phase:       phaseOf(name),
+			Created:     c.Created,
 		})
 	}
 	return out, nil
@@ -173,10 +224,30 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 
 // CreateLLMBox creates and starts a box, captures the OAuth authorize URL its
 // login process prints, and returns the box ID plus that URL. The box is left
-// running, parked at the "paste code" prompt, ready for SubmitCode.
-func (m *Manager) CreateLLMBox(ctx context.Context, image string) (id, authorizeURL string, err error) {
+// running, parked at the "paste code" prompt, ready for SubmitCode. opts.Hostname
+// sets the container hostname, and opts.Hostname/opts.Description are persisted
+// as labels so List can report them.
+//
+// @arg ctx Context for the Docker create/start/attach calls.
+// @arg opts The caller-controlled image, hostname, and description for the box.
+// @return id The full container ID of the created box.
+// @return authorizeURL The OAuth authorize URL captured from the box's login output.
+// @error error if the box cannot be created, started, or its authorize URL captured.
+//
+// @testcase TestCreateLLMBoxCapturesURL captures the authorize URL and sets hostname/description labels.
+// @testcase TestCreateLLMBoxCleansUpOnStartFailure removes the container when start fails.
+func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, authorizeURL string, err error) {
+	image := opts.Image
 	if image == "" {
 		image = m.defaultImage
+	}
+
+	labels := map[string]string{ManagedLabel: "true"}
+	if opts.Hostname != "" {
+		labels[HostnameLabel] = opts.Hostname
+	}
+	if opts.Description != "" {
+		labels[DescriptionLabel] = opts.Description
 	}
 
 	// Entrypoint: (1) authenticate, (2) pre-answer the workspace-trust and
@@ -192,10 +263,11 @@ func (m *Manager) CreateLLMBox(ctx context.Context, image string) (id, authorize
 	resp, err := m.cli.ContainerCreate(ctx,
 		&container.Config{
 			Image:      image,
+			Hostname:   opts.Hostname,
 			Entrypoint: []string{"/bin/sh", "-c", entry},
 			Tty:        true,
 			OpenStdin:  true,
-			Labels:     map[string]string{ManagedLabel: "true"},
+			Labels:     labels,
 		},
 		&container.HostConfig{
 			// Start the PTY wide so the authorize URL prints unwrapped.
@@ -233,6 +305,13 @@ func (m *Manager) CreateLLMBox(ctx context.Context, image string) (id, authorize
 
 // readAuthorizeURL attaches to a box and reads its output until the OAuth
 // authorize URL appears (or the timeout elapses).
+//
+// @arg ctx Context for the Docker attach call.
+// @arg id The container ID to attach to.
+// @return string The OAuth authorize URL read from the box's output.
+// @error error if attaching fails or the URL does not appear before the timeout.
+//
+// @testcase TestCreateLLMBoxCapturesURL drives readAuthorizeURL via CreateLLMBox.
 func (m *Manager) readAuthorizeURL(ctx context.Context, id string) (string, error) {
 	hj, err := m.cli.ContainerAttach(ctx, id, container.AttachOptions{
 		Stream: true, Stdout: true, Stderr: true,
@@ -259,6 +338,15 @@ var sessionURLRe = regexp.MustCompile(`https://claude\.(?:ai|com)/[A-Za-z0-9/_?=
 // the login to complete and remote-control to print a session URL, then renames
 // the box to mark it authenticated. It returns the session URL (and any tail of
 // output captured, for diagnostics).
+//
+// @arg ctx Context for the Docker attach call.
+// @arg id The container ID of the pending box.
+// @arg code The OAuth code to write to the box's login prompt.
+// @return sessionURL The remote-control session URL printed once login completes.
+// @error error if attaching fails, the login does not complete, or the box cannot be renamed to ready.
+//
+// @testcase TestSubmitCodeReturnsSessionURL writes the code and returns the session URL.
+// @testcase TestSubmitCodeAttachError fails when attaching to the box fails.
 func (m *Manager) SubmitCode(ctx context.Context, id, code string) (sessionURL string, err error) {
 	hj, err := m.cli.ContainerAttach(ctx, id, container.AttachOptions{
 		Stream: true, Stdin: true, Stdout: true, Stderr: true,
@@ -290,6 +378,12 @@ func (m *Manager) SubmitCode(ctx context.Context, id, code string) (sessionURL s
 }
 
 // Destroy stops and removes a managed box identified by ID or name.
+//
+// @arg ctx Context for the Docker remove call.
+// @arg idOrName The ID or name identifying the box to remove.
+// @error error if no managed box matches or the container cannot be removed.
+//
+// @testcase TestDestroyForceRemoves force-removes the matched container.
 func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 	b, err := m.findManaged(ctx, idOrName)
 	if err != nil {
@@ -303,6 +397,13 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 
 // ReapOrphans destroys pending (never-authenticated) boxes older than ttl.
 // Authenticated ("ready") boxes are never reaped. It returns the IDs reaped.
+//
+// @arg ctx Context for the underlying list and remove calls.
+// @arg ttl The maximum age a pending box may reach before it is reaped.
+// @return []string The short IDs of the boxes that were reaped.
+// @error error if listing boxes fails.
+//
+// @testcase TestReapOrphans reaps only old pending boxes, sparing new and ready ones.
 func (m *Manager) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error) {
 	boxes, err := m.List(ctx)
 	if err != nil {
@@ -320,6 +421,15 @@ func (m *Manager) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string,
 	return reaped, nil
 }
 
+// findManaged resolves an ID or name (with or without the phase prefix) to the
+// single managed box it matches.
+//
+// @arg ctx Context for the underlying list call.
+// @arg idOrName The ID or name to resolve, with or without a phase prefix.
+// @return *Box The matched box.
+// @error error if listing fails or no managed box matches.
+//
+// @testcase TestDestroyForceRemoves resolves a box by short ID via findManaged.
 func (m *Manager) findManaged(ctx context.Context, idOrName string) (*Box, error) {
 	bs, err := m.List(ctx)
 	if err != nil {
@@ -342,6 +452,16 @@ func (m *Manager) findManaged(ctx context.Context, idOrName string) (*Box, error
 // or timeout elapses. onTimeout is called to unblock a pending Read (e.g. by
 // closing the connection) when the deadline passes. On failure it returns the
 // trailing output captured so callers can surface the box's actual message.
+//
+// @arg r The reader to consume the box's output from.
+// @arg re The regexp whose first match terminates the scan.
+// @arg timeout How long to wait for a match before giving up.
+// @arg onTimeout Called when the deadline passes to unblock a pending Read.
+// @return match The matched text, or empty if none was found.
+// @return tail The trailing output captured when no match was found, for diagnostics.
+// @error error if the stream ends or the timeout elapses before a match.
+//
+// @testcase TestCreateLLMBoxCapturesURL relies on scanFor to find the authorize URL.
 func scanFor(r *bufio.Reader, re *regexp.Regexp, timeout time.Duration, onTimeout func()) (match, tail string, err error) {
 	type result struct {
 		match string
@@ -389,6 +509,12 @@ func scanFor(r *bufio.Reader, re *regexp.Regexp, timeout time.Duration, onTimeou
 
 // lastLines returns up to the last n bytes of b, trimmed, as a single-spaced
 // string (newlines collapsed) suitable for an error message.
+//
+// @arg b The bytes to take the tail of.
+// @arg n The maximum number of trailing bytes to keep.
+// @return string The trimmed, single-spaced tail of b.
+//
+// @testcase TestSubmitCodeReturnsSessionURL exercises lastLines via scanFor diagnostics.
 func lastLines(b []byte, n int) string {
 	if len(b) > n {
 		b = b[len(b)-n:]
@@ -400,6 +526,11 @@ var ansiRe = regexp.MustCompile(`\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07|\x
 
 // stripANSI removes ANSI escape sequences and carriage returns so regexes can
 // match text the TUI rendered.
+//
+// @arg b The raw TUI output bytes.
+// @return []byte The input with ANSI escape sequences and carriage returns removed.
+//
+// @testcase TestStripANSI checks ANSI and carriage-return removal.
 func stripANSI(b []byte) []byte {
 	return ansiRe.ReplaceAll(b, nil)
 }

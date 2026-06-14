@@ -1,0 +1,39 @@
+{
+	"functions": [
+		{
+			"function_name": "toolCreate",
+			"receiver": "Server",
+			"documentation_hash": "db760b46287b8d9d9d98b0f71f99cdc0e4d8a0d2d205f6be29479de5b2483e57",
+			"definition_hash": "bafafbd1a31b2583d6be652927d2f4d3c9959ee895944a37efedaa711b3393cf",
+			"reviewed_at": "2026-06-14T07:42:29.439137977Z"
+		},
+		{
+			"function_name": "toolGet",
+			"receiver": "Server",
+			"documentation_hash": "54ea69495623efa16f6a90f2475e43500405113d41ad0edfa9dfd097d0ebb492",
+			"definition_hash": "558431c0e4f9a8c5695637d9d46b73101f84415ecf64fbce8a9c2ac93ad59c05",
+			"reviewed_at": "2026-06-14T07:42:29.44134002Z"
+		},
+		{
+			"function_name": "MCPServer",
+			"receiver": "Server",
+			"documentation_hash": "9ebd5d97060918c977bfe5191b0e6aa383f8b8a0a9f87a053ae5abbea3636934",
+			"definition_hash": "10f8942a1749cf858b66649b018cdf0f41f3e4750c843aa256f8c09e778ae3ff",
+			"reviewed_at": "2026-06-14T07:41:52.023403077Z"
+		},
+		{
+			"function_name": "toolList",
+			"receiver": "Server",
+			"documentation_hash": "8e86e7eeeb9e26088ec7496497899f380a2ec7bbbbb267ededede12fed0e7b01",
+			"definition_hash": "6e56b163fef2697708eee6579ac75495daf139f6de5773326b610385bab1e5bb",
+			"reviewed_at": "2026-06-14T07:42:29.443486846Z"
+		},
+		{
+			"function_name": "toolDestroy",
+			"receiver": "Server",
+			"documentation_hash": "f6de473f949df801412e50a19a4bd257890490987f2f23e368ccdcde88337161",
+			"definition_hash": "dc2ca45fc259aaa34f6154dbcb32a1c21ada6b59c30bd5bf347989e029a0cc5c",
+			"reviewed_at": "2026-06-14T07:42:29.445673445Z"
+		}
+	]
+}
