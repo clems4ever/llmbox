@@ -46,18 +46,24 @@ Boxes that are never authenticated are destroyed after `LLMBOX_AUTH_TTL_SECONDS`
 
 | Tool             | Arguments | Returns |
 |------------------|-----------|---------|
-| `create_llmbox`  | `image?` | `box_id`, `auth_url`, `auth_token`, `status` |
-| `get_llmbox`     | `auth_token` | `status` (pending/ready/error), `session_url` when ready |
-| `list_llmboxes`  | – | the managed boxes and their phase (pending/ready) |
+| `create_llmbox`  | `image?`, `hostname?`, `description?` | `box_id`, `auth_url`, `auth_token`, `status`, `instructions` |
+| `get_llmbox`     | `auth_token` | `status` (pending/ready/error), `hostname`, `description`, `session_url` when ready |
+| `list_llmboxes`  | – | the managed boxes (id, name, hostname, description, image, state, phase, created) |
 | `destroy_llmbox` | `box` (ID or name) | the destroyed box |
+
+`hostname` and `description` on `create_llmbox` are optional. When set, `hostname`
+becomes the box's container hostname and **must be unique** across boxes — a
+duplicate is rejected with a clear error so the caller can pick another. Both are
+surfaced again by `get_llmbox` and `list_llmboxes`. Destroying a box stops it
+gracefully (SIGTERM, then SIGKILL after a timeout) before removing it.
 
 ## Components
 
 | Path                 | What it is |
 |----------------------|------------|
-| `cmd/llmbox-mcp`     | Entry point: runs the HTTP server (MCP + auth pages) and the reaper. |
-| `internal/docker`    | Box lifecycle over the Docker Engine API (create/login-capture/code-submit/reap). |
-| `internal/server`    | Session registry, MCP tools, auth web pages, reaper loop. |
+| `cmd/llmbox-mcp`     | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
+| `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + hostname uniqueness, login-capture, code-submit, graceful destroy, reap). |
+| `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile.claude`  | Image for **Claude Code remote-control** (`claude-remote`). |
 | `Dockerfile.mcp`     | Image for **this server** (`llmbox-mcp`). |
 
@@ -82,6 +88,11 @@ docker run -d --name llmbox-mcp \
   llmbox-mcp
 ```
 
+Or use [`docker-compose.yml`](docker-compose.yml) (`docker compose up --build`),
+which wires up the Docker socket, the docker group, and a persisted session
+volume — see [Session persistence](#session-persistence) for the one-time
+`chown` the mounted volume needs.
+
 Put it behind TLS in production: the auth page receives the OAuth code, and the
 auth URL — though it carries a 256-bit unguessable token — should not travel in
 clear text.
@@ -102,6 +113,11 @@ clear text.
 | `LLMBOX_AUTH_TTL_SECONDS` | `300`                     | Destroy un-authenticated boxes after this long. |
 | `LLMBOX_STATE_FILE`       | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](#session-persistence)). |
 | `DOCKER_HOST`, etc.       | (Docker default)          | Standard Docker client configuration. |
+
+If `LLMBOX_CLAUDE_IMAGE` isn't present on the daemon, the server pulls it on the
+first box creation and retries. Pulls use the daemon's existing credentials, so
+for a **private** registry make sure the daemon is logged in (e.g. `docker
+login`) or the image is pre-pulled.
 
 ## Session persistence
 
