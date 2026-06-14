@@ -26,6 +26,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"sync"
@@ -34,6 +35,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -98,6 +100,7 @@ type dockerAPI interface {
 	ContainerList(ctx context.Context, opts container.ListOptions) ([]container.Summary, error)
 	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *ocispec.Platform, containerName string) (container.CreateResponse, error)
 	ContainerStart(ctx context.Context, containerID string, opts container.StartOptions) error
+	ImagePull(ctx context.Context, refStr string, opts image.PullOptions) (io.ReadCloser, error)
 	ContainerStop(ctx context.Context, containerID string, opts container.StopOptions) error
 	ContainerRemove(ctx context.Context, containerID string, opts container.RemoveOptions) error
 	ContainerRename(ctx context.Context, containerID, newName string) error
@@ -238,17 +241,19 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // running, parked at the "paste code" prompt, ready for SubmitCode. opts.Hostname
 // sets the container hostname, and opts.Hostname/opts.Description are persisted
 // as labels so List can report them. A non-empty opts.Hostname must be unique
-// across managed boxes; the create is rejected otherwise.
+// across managed boxes; the create is rejected otherwise. If the image is not
+// present locally, it is pulled and the create is retried once.
 //
 // @arg ctx Context for the Docker create/start/attach calls.
 // @arg opts The caller-controlled image, hostname, and description for the box.
 // @return id The full container ID of the created box.
 // @return authorizeURL The OAuth authorize URL captured from the box's login output.
-// @error error if opts.Hostname is already in use, or the box cannot be created, started, or its authorize URL captured.
+// @error error if opts.Hostname is already in use, the image cannot be pulled, or the box cannot be created, started, or its authorize URL captured.
 //
 // @testcase TestCreateLLMBoxCapturesURL captures the authorize URL and sets hostname/description labels.
 // @testcase TestCreateLLMBoxCleansUpOnStartFailure removes the container when start fails.
 // @testcase TestCreateLLMBoxRejectsDuplicateHostname rejects a hostname already in use.
+// @testcase TestCreateLLMBoxPullsMissingImage pulls the image then retries when it is absent.
 func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, authorizeURL string, err error) {
 	image := opts.Image
 	if image == "" {
@@ -292,22 +297,29 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		}
 	}
 
-	resp, err := m.cli.ContainerCreate(ctx,
-		&container.Config{
-			Image:      image,
-			Hostname:   opts.Hostname,
-			Entrypoint: []string{"/bin/sh", "-c", entry},
-			Tty:        true,
-			OpenStdin:  true,
-			Labels:     labels,
-		},
-		&container.HostConfig{
-			// Start the PTY wide so the authorize URL prints unwrapped.
-			ConsoleSize:   [2]uint{ttyHeight, ttyWidth},
-			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyDisabled},
-		},
-		nil, nil, "",
-	)
+	cfg := &container.Config{
+		Image:      image,
+		Hostname:   opts.Hostname,
+		Entrypoint: []string{"/bin/sh", "-c", entry},
+		Tty:        true,
+		OpenStdin:  true,
+		Labels:     labels,
+	}
+	hostCfg := &container.HostConfig{
+		// Start the PTY wide so the authorize URL prints unwrapped.
+		ConsoleSize:   [2]uint{ttyHeight, ttyWidth},
+		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyDisabled},
+	}
+
+	resp, err := m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
+	if err != nil && client.IsErrNotFound(err) {
+		// The image isn't present locally; pull it and try once more.
+		if perr := m.pullImage(ctx, image); perr != nil {
+			m.createMu.Unlock()
+			return "", "", fmt.Errorf("pulling image %q: %w", image, perr)
+		}
+		resp, err = m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
+	}
 	if err != nil {
 		m.createMu.Unlock()
 		return "", "", fmt.Errorf("creating box from image %q: %w", image, err)
@@ -335,6 +347,27 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		return "", "", err
 	}
 	return id, url, nil
+}
+
+// pullImage pulls ref from its registry. It drains the progress stream, since
+// the pull is only complete once the response body has been fully read.
+//
+// @arg ctx Context for the pull request.
+// @arg ref The image reference to pull.
+// @error error if the pull cannot start or its progress stream fails.
+//
+// @testcase TestCreateLLMBoxPullsMissingImage pulls then retries when the image is absent.
+// @testcase TestCreateLLMBoxPullFailure surfaces an error when the pull fails.
+func (m *Manager) pullImage(ctx context.Context, ref string) error {
+	rc, err := m.cli.ImagePull(ctx, ref, image.PullOptions{})
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+	if _, err := io.Copy(io.Discard, rc); err != nil {
+		return fmt.Errorf("reading pull progress: %w", err)
+	}
+	return nil
 }
 
 // readAuthorizeURL attaches to a box and reads its output until the OAuth

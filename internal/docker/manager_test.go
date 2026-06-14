@@ -3,13 +3,17 @@ package docker
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"net"
 	"strings"
 	"testing"
 	"time"
 
+	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -32,13 +36,20 @@ type fakeDocker struct {
 	attachConn net.Conn
 
 	stopErr error
+	pullErr error
+
+	// createNotFoundUntilPull makes ContainerCreate return an image-not-found
+	// error until ImagePull has been called, simulating a missing local image.
+	createNotFoundUntilPull bool
 
 	createConfig *container.Config
+	createCalls  int
 	started      []string
 	renames      [][2]string // {id, newName}
 	resizes      []string
 	stopped      []string
 	removed      []string
+	pulled       []string
 }
 
 // ContainerList returns the canned summaries (or error) configured on the fake.
@@ -46,10 +57,24 @@ func (f *fakeDocker) ContainerList(_ context.Context, _ container.ListOptions) (
 	return f.listResult, f.listErr
 }
 
-// ContainerCreate records the requested config and returns the canned response.
+// ContainerCreate records the requested config and returns the canned response,
+// or an image-not-found error until ImagePull is called when so configured.
 func (f *fakeDocker) ContainerCreate(_ context.Context, config *container.Config, _ *container.HostConfig, _ *network.NetworkingConfig, _ *ocispec.Platform, _ string) (container.CreateResponse, error) {
 	f.createConfig = config
+	f.createCalls++
+	if f.createNotFoundUntilPull && len(f.pulled) == 0 {
+		return container.CreateResponse{}, fmt.Errorf("no such image: %w", cerrdefs.ErrNotFound)
+	}
 	return f.createResp, f.createErr
+}
+
+// ImagePull records the pulled reference and returns a short progress stream.
+func (f *fakeDocker) ImagePull(_ context.Context, ref string, _ image.PullOptions) (io.ReadCloser, error) {
+	if f.pullErr != nil {
+		return nil, f.pullErr
+	}
+	f.pulled = append(f.pulled, ref)
+	return io.NopCloser(strings.NewReader("pulling " + ref + "\n")), nil
 }
 
 // ContainerStart records the started ID and returns the canned start error.
@@ -229,6 +254,51 @@ func TestCreateLLMBoxRejectsDuplicateHostname(t *testing.T) {
 	}
 	if f.createConfig != nil {
 		t.Error("no container should be created when the hostname conflicts")
+	}
+}
+
+// TestCreateLLMBoxPullsMissingImage checks that when the image is absent the
+// manager pulls it and retries the create, succeeding on the second attempt.
+func TestCreateLLMBoxPullsMissingImage(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp:              container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn:              managerEnd,
+		createNotFoundUntilPull: true,
+	}
+	m := newTestManager(f)
+
+	go func() {
+		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
+	}()
+
+	id, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
+	if err != nil {
+		t.Fatalf("CreateLLMBox: %v", err)
+	}
+	if id != "abcdef0123456789ffff" {
+		t.Errorf("id = %q", id)
+	}
+	if len(f.pulled) != 1 || f.pulled[0] != DefaultImage {
+		t.Errorf("expected one pull of %q, got %v", DefaultImage, f.pulled)
+	}
+	if f.createCalls != 2 {
+		t.Errorf("expected create retried after pull (2 calls), got %d", f.createCalls)
+	}
+}
+
+// TestCreateLLMBoxPullFailure checks a failed pull surfaces an error and no box.
+func TestCreateLLMBoxPullFailure(t *testing.T) {
+	f := &fakeDocker{
+		createNotFoundUntilPull: true,
+		pullErr:                 errors.New("registry unreachable"),
+	}
+	m := newTestManager(f)
+	if _, _, err := m.CreateLLMBox(context.Background(), CreateOptions{}); err == nil {
+		t.Fatal("expected error when the pull fails")
+	}
+	if len(f.started) != 0 {
+		t.Errorf("no box should be started when the pull fails, got %v", f.started)
 	}
 }
 
