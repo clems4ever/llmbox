@@ -1,0 +1,96 @@
+{
+	"functions": [
+		{
+			"function_name": "CreateLLMBox",
+			"receiver": "Manager",
+			"documentation_hash": "9b4fdd9570ec85bdc0e10c0f2f6cfd3e45dbaad240db3cba97219e867e2a313d",
+			"definition_hash": "d5a262b8f90329ec730a3088081adff1222ec9da77ce59313d9ebf527d1d9352",
+			"reviewed_at": "2026-06-14T07:37:44.022190568Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "Manager",
+			"documentation_hash": "70c9af14d1e72f997cdac3bfd5fa4191ffa08f8af2cc693d2243a42fdc089d7b",
+			"definition_hash": "91a3780fd63a56b0d2351cd8a20673e66fb2960ac6c7dd12e9240ee13b2b38c8",
+			"reviewed_at": "2026-06-14T07:37:44.009189368Z"
+		},
+		{
+			"function_name": "managedFilter",
+			"documentation_hash": "d92b92963e104f460745196fe66c9cb2192ecccea24f9552a2fc7c47d98010bf",
+			"definition_hash": "e8753d6713886e54093eff0b9e15d172cac988b2c1d10ce8ee5d73d9e9c85a06",
+			"reviewed_at": "2026-06-14T07:37:44.096323427Z"
+		},
+		{
+			"function_name": "phaseOf",
+			"documentation_hash": "eaacfaef1fb0b29d4aac75fdea4916b19241afaf6d415075ac523d2db44925de",
+			"definition_hash": "014b6324e33328153513d7f613dc451253b2e97818cfe993c9ccbf25fe1351b2",
+			"reviewed_at": "2026-06-14T07:37:43.989928427Z"
+		},
+		{
+			"function_name": "NewManager",
+			"documentation_hash": "68147f4b299590615765720e18a38c520697ad6e935f0c61fb77d56057950bb4",
+			"definition_hash": "097ccdf4453a0f91fced1983f5f4d0366747a6adbfb49f2f96c1d7197d4e2507",
+			"reviewed_at": "2026-06-14T07:38:19.945406787Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "Manager",
+			"documentation_hash": "a836c30d6122ffd85e24e3bf9dbab84249fdfa3370978ad1f9afbc0d634ade95",
+			"definition_hash": "4a29274f58bdcfb4529b9eb67a42c15d57f8b92c9647871c64a74d0020d18570",
+			"reviewed_at": "2026-06-14T07:38:19.955189202Z"
+		},
+		{
+			"function_name": "readAuthorizeURL",
+			"receiver": "Manager",
+			"documentation_hash": "72a9df45909f81f11d213b7472a4909fb25816a34163e341f65d707a5f35199a",
+			"definition_hash": "dcef2237eebaf393ce9b5a9224b55e41fea46e1dd94097c15acc0a192b8a2451",
+			"reviewed_at": "2026-06-14T07:37:44.031759563Z"
+		},
+		{
+			"function_name": "SubmitCode",
+			"receiver": "Manager",
+			"documentation_hash": "535f111454bcb6e419477e161d7bd1a2d2a3f3891195f78166b084121babc9c2",
+			"definition_hash": "f7b24fbc895b0edc28d144b2c4e500ebd7db6f9f3b1af1218fc6e1787917df6a",
+			"reviewed_at": "2026-06-14T07:37:44.037004205Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "Manager",
+			"documentation_hash": "e343f6fa8cae9753986660d04a7ed1be8c96f4eab14ab96cd32551697375e028",
+			"definition_hash": "402b377c5ff31344e062aa494cbc6777789b663a2bd4138b67c09def9459acfa",
+			"reviewed_at": "2026-06-14T07:37:44.044636356Z"
+		},
+		{
+			"function_name": "ReapOrphans",
+			"receiver": "Manager",
+			"documentation_hash": "d8f8b6b0264c1b00cf39f2e4ba29ec74b601c52e4f6322eae29938e56ca807ed",
+			"definition_hash": "6c9dfa1f3b96cb21e2aa93b5a33fbdb57bcd14e2fca21e167deb46e96a56163b",
+			"reviewed_at": "2026-06-14T07:37:44.052868348Z"
+		},
+		{
+			"function_name": "findManaged",
+			"receiver": "Manager",
+			"documentation_hash": "eb6ba86869d6a808a6db024130bba2acf459c4375e4fa40fedb3efde01f82b98",
+			"definition_hash": "e5e8f0f3b3c93d92a5a87f758d26475bdd0d6fc1fb6c224acb9228048492dcaf",
+			"reviewed_at": "2026-06-14T07:37:44.058947871Z"
+		},
+		{
+			"function_name": "scanFor",
+			"documentation_hash": "24102b3d88d12cf6705de7e73f8e8a6fafe88f760e289d0a239f89f6334395e3",
+			"definition_hash": "7de38ac8d2b9e916a3e8904d81ae7fd9c59d8a255ac63bbbe6fb0c626e199e35",
+			"reviewed_at": "2026-06-14T07:37:44.066339382Z"
+		},
+		{
+			"function_name": "lastLines",
+			"documentation_hash": "0f2d652e1ac6a6a7e7bef96ed0821261e9896bc092520bc6f42296e51f9ba94f",
+			"definition_hash": "e026ccbb1131a399165d2536fb329593c0452717ed2dfc72a9402287abb1c2ee",
+			"reviewed_at": "2026-06-14T07:37:44.077289287Z"
+		},
+		{
+			"function_name": "stripANSI",
+			"documentation_hash": "2e9bbd64368a02839d3c2d89645aa63691330a32c54e8ee5d9b6e19b9376d027",
+			"definition_hash": "1b1685277e533ad562417dc7817dc24e48ffd7907af7eb52c03eff948aef3feb",
+			"reviewed_at": "2026-06-14T07:37:44.087089476Z"
+		}
+	]
+}

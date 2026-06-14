@@ -28,7 +28,7 @@ func TestCreateLLMBoxIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	id, url, err := m.CreateLLMBox(ctx, "")
+	id, url, err := m.CreateLLMBox(ctx, CreateOptions{})
 	if id != "" {
 		// Always clean up the container we started.
 		defer func() {

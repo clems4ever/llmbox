@@ -31,42 +31,65 @@ type fakeMgr struct {
 	listResult []docker.Box
 	destroyed  []string
 	reaped     []string
+
+	gotOpts docker.CreateOptions
 }
 
-func (f *fakeMgr) CreateLLMBox(_ context.Context, _ string) (string, string, error) {
+// CreateLLMBox records the requested options and returns the canned ID/URL/error.
+func (f *fakeMgr) CreateLLMBox(_ context.Context, opts docker.CreateOptions) (string, string, error) {
+	f.mu.Lock()
+	f.gotOpts = opts
+	f.mu.Unlock()
 	return f.createID, f.createURL, f.createErr
 }
+
+// SubmitCode records the submitted code and returns the canned URL/error.
 func (f *fakeMgr) SubmitCode(_ context.Context, _, code string) (string, error) {
 	f.mu.Lock()
 	f.gotCode = code
 	f.mu.Unlock()
 	return f.submitURL, f.submitErr
 }
+
+// List returns the canned boxes.
 func (f *fakeMgr) List(context.Context) ([]docker.Box, error) { return f.listResult, nil }
+
+// Destroy records the destroyed ID and always succeeds.
 func (f *fakeMgr) Destroy(_ context.Context, id string) error {
 	f.destroyed = append(f.destroyed, id)
 	return nil
 }
+
+// ReapOrphans returns the canned reaped IDs.
 func (f *fakeMgr) ReapOrphans(context.Context, time.Duration) ([]string, error) {
 	return f.reaped, nil
 }
 
+// newTestServer builds a Server backed by the given fake manager.
 func newTestServer(f *fakeMgr) *Server {
 	return New(f, "https://boxes.example.com", 5*time.Minute)
 }
 
 // --- core flow ---
 
+// TestCreateBoxRegistersSession checks the session, token, URL, and opts pass-through.
 func TestCreateBoxRegistersSession(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?x=1"}
 	s := newTestServer(f)
 
-	sess, err := s.CreateBox(context.Background(), "")
+	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "my-box", Description: "scratch"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 	if sess.BoxID != "abcdef0123456789" || sess.Status != "pending" {
 		t.Errorf("unexpected session %+v", sess)
+	}
+	// Hostname/description are recorded on the session and forwarded to the manager.
+	if sess.Hostname != "my-box" || sess.Description != "scratch" {
+		t.Errorf("session hostname/description = %q/%q, want my-box/scratch", sess.Hostname, sess.Description)
+	}
+	if f.gotOpts.Hostname != "my-box" || f.gotOpts.Description != "scratch" {
+		t.Errorf("manager got opts %+v, want hostname/description my-box/scratch", f.gotOpts)
 	}
 	if len(sess.Token) != 64 {
 		t.Errorf("token not 32 random bytes hex: len %d", len(sess.Token))
@@ -79,19 +102,21 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	}
 }
 
+// TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
 func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 	// Hard to force token failure; instead verify create error propagates.
 	f := &fakeMgr{createErr: errors.New("no image")}
 	s := newTestServer(f)
-	if _, err := s.CreateBox(context.Background(), ""); err == nil {
+	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{}); err == nil {
 		t.Fatal("expected error")
 	}
 }
 
+// TestSubmitCodeSuccess checks the code is forwarded and the session becomes ready.
 func TestSubmitCodeSuccess(t *testing.T) {
 	f := &fakeMgr{createID: "id1", createURL: "u", submitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
-	sess, _ := s.CreateBox(context.Background(), "")
+	sess, _ := s.CreateBox(context.Background(), docker.CreateOptions{})
 
 	if err := s.SubmitCode(context.Background(), sess.Token, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
@@ -105,10 +130,11 @@ func TestSubmitCodeSuccess(t *testing.T) {
 	}
 }
 
+// TestSubmitCodeFailureRecorded checks a submit failure is recorded on the session.
 func TestSubmitCodeFailureRecorded(t *testing.T) {
 	f := &fakeMgr{createID: "id1", createURL: "u", submitErr: errors.New("invalid code")}
 	s := newTestServer(f)
-	sess, _ := s.CreateBox(context.Background(), "")
+	sess, _ := s.CreateBox(context.Background(), docker.CreateOptions{})
 
 	if err := s.SubmitCode(context.Background(), sess.Token, "BAD"); err == nil {
 		t.Fatal("expected error")
@@ -119,6 +145,7 @@ func TestSubmitCodeFailureRecorded(t *testing.T) {
 	}
 }
 
+// TestSubmitCodeUnknownToken checks SubmitCode errors for an unknown token.
 func TestSubmitCodeUnknownToken(t *testing.T) {
 	s := newTestServer(&fakeMgr{})
 	if err := s.SubmitCode(context.Background(), "nope", "code"); err == nil {
@@ -126,19 +153,21 @@ func TestSubmitCodeUnknownToken(t *testing.T) {
 	}
 }
 
+// TestSubmitCodeEmpty checks SubmitCode errors for an empty code.
 func TestSubmitCodeEmpty(t *testing.T) {
 	f := &fakeMgr{createID: "id1", createURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.CreateBox(context.Background(), "")
+	sess, _ := s.CreateBox(context.Background(), docker.CreateOptions{})
 	if err := s.SubmitCode(context.Background(), sess.Token, "   "); err == nil {
 		t.Fatal("expected error for empty code")
 	}
 }
 
+// TestDestroyForgetsSession checks the session is forgotten after a destroy.
 func TestDestroyForgetsSession(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.CreateBox(context.Background(), "")
+	sess, _ := s.CreateBox(context.Background(), docker.CreateOptions{})
 
 	if err := s.DestroyBox(context.Background(), "abcdef0123456789"); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
@@ -148,10 +177,11 @@ func TestDestroyForgetsSession(t *testing.T) {
 	}
 }
 
+// TestPruneSessionsAfterReap checks a reaped box's session is pruned.
 func TestPruneSessionsAfterReap(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.CreateBox(context.Background(), "")
+	sess, _ := s.CreateBox(context.Background(), docker.CreateOptions{})
 	s.pruneSessions([]string{"abcdef012345"}) // short ID prefix, as the reaper returns
 	if s.lookup(sess.Token) != nil {
 		t.Error("session for reaped box should be pruned")
@@ -160,10 +190,11 @@ func TestPruneSessionsAfterReap(t *testing.T) {
 
 // --- web handlers ---
 
+// TestAuthPageRendersAndSubmits checks the auth page renders and the code submits.
 func TestAuthPageRendersAndSubmits(t *testing.T) {
 	f := &fakeMgr{createID: "id1", createURL: "https://claude.com/cai/oauth/authorize?a=b", submitURL: "https://claude.ai/code/s/9"}
 	s := newTestServer(f)
-	sess, _ := s.CreateBox(context.Background(), "")
+	sess, _ := s.CreateBox(context.Background(), docker.CreateOptions{})
 	h := s.Handler(s.MCPServer("test", "v0"))
 
 	// GET the page: shows the authorize link and a paste form.
@@ -198,6 +229,7 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 	}
 }
 
+// TestAuthPageUnknownToken checks the auth page 404s for an unknown token.
 func TestAuthPageUnknownToken(t *testing.T) {
 	s := newTestServer(&fakeMgr{})
 	h := s.Handler(s.MCPServer("test", "v0"))
@@ -209,6 +241,7 @@ func TestAuthPageUnknownToken(t *testing.T) {
 	}
 }
 
+// TestHealthz checks the health endpoint returns ok.
 func TestHealthz(t *testing.T) {
 	s := newTestServer(&fakeMgr{})
 	h := s.Handler(s.MCPServer("test", "v0"))
@@ -222,6 +255,7 @@ func TestHealthz(t *testing.T) {
 
 // --- MCP wiring ---
 
+// TestMCPToolsRegisteredAndCreate checks all tools are registered and create returns a safe auth URL.
 func TestMCPToolsRegisteredAndCreate(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?z=1"}
 	s := newTestServer(f)
@@ -259,6 +293,7 @@ func TestMCPToolsRegisteredAndCreate(t *testing.T) {
 	}
 }
 
+// connectMCP wires an in-memory MCP client to the server and returns the session.
 func connectMCP(t *testing.T, s *Server) *mcp.ClientSession {
 	t.Helper()
 	srv := s.MCPServer("test", "v0")
