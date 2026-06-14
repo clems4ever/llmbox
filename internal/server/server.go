@@ -249,6 +249,24 @@ func (s *Server) lookup(tok string) *session {
 	return s.byToken[tok]
 }
 
+// lookupByHostname returns the session for a box's hostname (case-insensitive),
+// or nil. Hostnames are unique across boxes, so at most one matches.
+//
+// @arg hostname The box hostname to look up.
+// @return *session The matching session, or nil if none has that hostname.
+//
+// @testcase TestGetByHostname looks a box up by its hostname.
+func (s *Server) lookupByHostname(hostname string) *session {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, sess := range s.byToken {
+		if sess.Hostname != "" && strings.EqualFold(sess.Hostname, hostname) {
+			return sess
+		}
+	}
+	return nil
+}
+
 // SubmitCode feeds the user's OAuth code to the box's login process and waits
 // for the box to become ready. It is called by the web handler, never by MCP.
 //

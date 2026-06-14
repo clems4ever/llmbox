@@ -101,6 +101,13 @@
 			"documentation_hash": "4fe8ff6888faa54c159f06f87cd22fc13415c250fe06e9ef133b74736ba52f63",
 			"definition_hash": "48390e396c6ba579fe20b2509ed9738256c53d62ae5036e1803e1aee662f0847",
 			"reviewed_at": "2026-06-14T09:14:56.250925091Z"
+		},
+		{
+			"function_name": "lookupByHostname",
+			"receiver": "Server",
+			"documentation_hash": "0caa40e6627122e9124c7947c493b665dee4072ee0bceede6c5aa460b1b7c535",
+			"definition_hash": "2ca131a2c075218d782acadc65fc03ede56c95f5ab4777508858f759389e6827",
+			"reviewed_at": "2026-06-14T14:40:15.002348335Z"
 		}
 	]
 }
