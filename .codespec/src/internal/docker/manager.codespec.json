@@ -56,9 +56,9 @@
 		{
 			"function_name": "Destroy",
 			"receiver": "Manager",
-			"documentation_hash": "e343f6fa8cae9753986660d04a7ed1be8c96f4eab14ab96cd32551697375e028",
-			"definition_hash": "402b377c5ff31344e062aa494cbc6777789b663a2bd4138b67c09def9459acfa",
-			"reviewed_at": "2026-06-14T07:37:44.044636356Z"
+			"documentation_hash": "85cdd0eb6918823e77cfa5948957fe45d9581df1f812aa20e491b752a9bf5405",
+			"definition_hash": "37c899a626ba726b89a0820e64c4a8ce15c0a0a4ff755dcbabfc595effef0b06",
+			"reviewed_at": "2026-06-14T13:04:11.966726372Z"
 		},
 		{
 			"function_name": "ReapOrphans",
@@ -70,9 +70,9 @@
 		{
 			"function_name": "findManaged",
 			"receiver": "Manager",
-			"documentation_hash": "eb6ba86869d6a808a6db024130bba2acf459c4375e4fa40fedb3efde01f82b98",
+			"documentation_hash": "9f80e1649517a015e9a29763ea3ade2ed22549008f4ec4f3d44e61c990c28fd0",
 			"definition_hash": "e5e8f0f3b3c93d92a5a87f758d26475bdd0d6fc1fb6c224acb9228048492dcaf",
-			"reviewed_at": "2026-06-14T07:37:44.058947871Z"
+			"reviewed_at": "2026-06-14T13:04:11.974482297Z"
 		},
 		{
 			"function_name": "scanFor",

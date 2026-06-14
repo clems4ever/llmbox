@@ -25,9 +25,19 @@ services:
       LLMBOX_PUBLIC_URL: ${LLMBOX_PUBLIC_URL:-http://localhost:8080}
       LLMBOX_CLAUDE_IMAGE: claude-remote
       LLMBOX_AUTH_TTL_SECONDS: ${LLMBOX_AUTH_TTL_SECONDS:-300}
+      # bbolt file persisting the auth-session registry across restarts. Lives on
+      # the mounted volume below so sessions survive container recreation.
+      LLMBOX_STATE_FILE: /var/lib/llmbox/sessions.db
     volumes:
       # Needed to create/destroy boxes.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Persists the session registry (LLMBOX_STATE_FILE above).
+      #
+      # IMPORTANT: the image runs as the distroless "nonroot" user (UID/GID
+      # 65532), so this host directory must be writable by that UID or the
+      # server crash-loops with "permission denied" opening the store:
+      #   mkdir -p ./data/llmbox && sudo chown -R 65532:65532 ./data/llmbox
+      - ./data/llmbox:/var/lib/llmbox
     # The image runs as non-root; grant it the docker socket's group so it can
     # use the socket. Put the gid in a local .env file:
     #   DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)

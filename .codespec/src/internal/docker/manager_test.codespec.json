@@ -93,12 +93,6 @@
 			"reviewed_at": "2026-06-14T07:40:39.521556538Z"
 		},
 		{
-			"function_name": "TestDestroyForceRemoves",
-			"documentation_hash": "6097b45586cd0dce1029a55eadffdfe054ce1f8d7463dffba8cd32f334e6ca8c",
-			"definition_hash": "2db90c96be798120b2257bdbb913b3edde09c42112c4112e26b828d1b6bde55a",
-			"reviewed_at": "2026-06-14T07:40:39.530224168Z"
-		},
-		{
 			"function_name": "TestReapOrphans",
 			"documentation_hash": "5863a085ac2b5ecc06cc6fe870f606f7362a95898146e516fbecdc553785bd75",
 			"definition_hash": "0c96b6aca2d45b20f75e302a4f32664203ee1b5ce6ab2ba973fbee8fde47edb2",
@@ -115,6 +109,25 @@
 			"documentation_hash": "3d09277c9d7ebf098937a0e318dfa494de0e329968e6110ebd97609356bddf3a",
 			"definition_hash": "aa21a6feb6cea73aeb72c1803e0769a94a6c2434e9cd31584bc609efb34f2287",
 			"reviewed_at": "2026-06-14T09:35:12.336906237Z"
+		},
+		{
+			"function_name": "ContainerStop",
+			"receiver": "fakeDocker",
+			"documentation_hash": "983462cb47d9ef6836ae26c453922a21bbebf7ca8056f2eb071347cedf4198e5",
+			"definition_hash": "e17c91040d54128a6e6afe2c11f00a0703228e2385bfdb67d595a942b788b0bd",
+			"reviewed_at": "2026-06-14T13:04:11.98784164Z"
+		},
+		{
+			"function_name": "TestDestroyStopsThenRemoves",
+			"documentation_hash": "be8ed4f3d68b94b95ef38a829470c19d862cb175ff1af8862993fb024160104d",
+			"definition_hash": "0a99dd3905205c28727e6bb859c7f0338901c72cee651d7d731152f2aa7e7ee1",
+			"reviewed_at": "2026-06-14T13:04:11.997912994Z"
+		},
+		{
+			"function_name": "TestDestroyStopErrorAborts",
+			"documentation_hash": "032651c69baf94eddb672cadd3e026e782aa5d5c62ce549833672b901343bb9c",
+			"definition_hash": "55c183c0876bf0b572bc4fb74a1051454ea1fa8f5925d0c62b0576f1eded84f9",
+			"reviewed_at": "2026-06-14T13:04:12.000778168Z"
 		}
 	]
 }

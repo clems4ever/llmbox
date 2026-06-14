@@ -66,6 +66,11 @@ const (
 	// instead of being wrapped by the TTY (which would break URL extraction).
 	ttyWidth  = 1000
 	ttyHeight = 50
+
+	// stopTimeout is how long Docker waits after sending SIGTERM before it
+	// escalates to SIGKILL when stopping a box, giving Claude a chance to shut
+	// down cleanly (e.g. deregister its remote-control session).
+	stopTimeout = 10 * time.Second
 )
 
 // prepConfigCmd pre-answers the two interactive gates a fresh box hits after
@@ -93,6 +98,7 @@ type dockerAPI interface {
 	ContainerList(ctx context.Context, opts container.ListOptions) ([]container.Summary, error)
 	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *ocispec.Platform, containerName string) (container.CreateResponse, error)
 	ContainerStart(ctx context.Context, containerID string, opts container.StartOptions) error
+	ContainerStop(ctx context.Context, containerID string, opts container.StopOptions) error
 	ContainerRemove(ctx context.Context, containerID string, opts container.RemoveOptions) error
 	ContainerRename(ctx context.Context, containerID, newName string) error
 	ContainerResize(ctx context.Context, containerID string, opts container.ResizeOptions) error
@@ -405,19 +411,28 @@ func (m *Manager) SubmitCode(ctx context.Context, id, code string) (sessionURL s
 	return url, nil
 }
 
-// Destroy stops and removes a managed box identified by ID or name.
+// Destroy gracefully stops and removes a managed box identified by ID or name.
+// It asks the box to stop (SIGTERM to its main process, so Claude can shut down
+// cleanly), waiting up to stopTimeout before Docker escalates to SIGKILL; the
+// stop blocks until the box has terminated. Only then is the container removed.
 //
-// @arg ctx Context for the Docker remove call.
+// @arg ctx Context for the Docker stop and remove calls.
 // @arg idOrName The ID or name identifying the box to remove.
-// @error error if no managed box matches or the container cannot be removed.
+// @error error if no managed box matches, or the container cannot be stopped or removed.
 //
-// @testcase TestDestroyForceRemoves force-removes the matched container.
+// @testcase TestDestroyStopsThenRemoves stops the box before removing it.
 func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 	b, err := m.findManaged(ctx, idOrName)
 	if err != nil {
 		return err
 	}
-	if err := m.cli.ContainerRemove(ctx, b.ID, container.RemoveOptions{Force: true, RemoveVolumes: true}); err != nil {
+	// Graceful stop: SIGTERM, then SIGKILL after the timeout. Returns once the
+	// box has actually terminated.
+	timeout := int(stopTimeout.Seconds())
+	if err := m.cli.ContainerStop(ctx, b.ID, container.StopOptions{Timeout: &timeout}); err != nil {
+		return fmt.Errorf("stopping box %s: %w", idOrName, err)
+	}
+	if err := m.cli.ContainerRemove(ctx, b.ID, container.RemoveOptions{RemoveVolumes: true}); err != nil {
 		return fmt.Errorf("removing box %s: %w", idOrName, err)
 	}
 	return nil
@@ -457,7 +472,7 @@ func (m *Manager) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string,
 // @return *Box The matched box.
 // @error error if listing fails or no managed box matches.
 //
-// @testcase TestDestroyForceRemoves resolves a box by short ID via findManaged.
+// @testcase TestDestroyStopsThenRemoves resolves a box by short ID via findManaged.
 func (m *Manager) findManaged(ctx context.Context, idOrName string) (*Box, error) {
 	bs, err := m.List(ctx)
 	if err != nil {
