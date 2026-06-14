@@ -16,6 +16,7 @@
 //	LLMBOX_CLAUDE_IMAGE       image launched for each box (default "claude-remote")
 //	LLMBOX_REMOTE_ARGS        args passed to `claude remote-control` (default "--spawn same-dir")
 //	LLMBOX_AUTH_TTL_SECONDS   how long a box may stay un-authenticated (default 300)
+//	LLMBOX_STATE_FILE         bbolt file persisting the session registry (default "llmbox-sessions.db")
 package main
 
 import (
@@ -25,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
@@ -38,16 +40,26 @@ const (
 	version = "v0.1.0"
 )
 
+// main runs the server and exits non-zero on a fatal error.
+//
+// @testcase TestEnvHelpers covers the configuration helpers main relies on.
 func main() {
 	if err := run(); err != nil {
 		log.Fatalf("%s: %v", name, err)
 	}
 }
 
+// run wires up the Docker manager, session store, and HTTP server, then serves
+// until interrupted.
+//
+// @error error if configuration, the store, or the HTTP server fails.
+//
+// @testcase TestEnvHelpers covers the configuration helpers run relies on.
 func run() error {
 	addr := envOr("LLMBOX_HTTP_ADDR", ":8080")
 	publicURL := envOr("LLMBOX_PUBLIC_URL", "http://localhost:8080")
 	authTTL := time.Duration(envInt("LLMBOX_AUTH_TTL_SECONDS", 300)) * time.Second
+	stateFile := envOr("LLMBOX_STATE_FILE", "llmbox-sessions.db")
 
 	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"))
 	if err != nil {
@@ -55,7 +67,19 @@ func run() error {
 	}
 	defer mgr.Close()
 
-	srv := server.New(mgr, publicURL, authTTL)
+	// Persist the session registry so auth links survive a server restart.
+	if dir := filepath.Dir(stateFile); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
+	store, err := server.OpenStore(stateFile)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = store.Close() }()
+
+	srv := server.New(mgr, publicURL, authTTL, store)
 	httpSrv := &http.Server{
 		Addr:    addr,
 		Handler: srv.Handler(srv.MCPServer(name, version)),
@@ -67,6 +91,13 @@ func run() error {
 	// Cancel background work on signal.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Reload sessions saved before a restart, dropping any whose box is gone.
+	if n, err := srv.Restore(ctx); err != nil {
+		log.Printf("restore: %v", err)
+	} else if n > 0 {
+		log.Printf("restored %d session(s) from %s", n, stateFile)
+	}
 
 	go srv.ReapLoop(ctx, 30*time.Second, func(msg string) { log.Print(msg) })
 
@@ -84,6 +115,13 @@ func run() error {
 	return nil
 }
 
+// envOr returns the environment variable key, or def when it is unset or empty.
+//
+// @arg key The environment variable name.
+// @arg def The fallback value when key is unset or empty.
+// @return string The variable's value, or def.
+//
+// @testcase TestEnvHelpers checks the set and fallback paths.
 func envOr(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -91,6 +129,14 @@ func envOr(key, def string) string {
 	return def
 }
 
+// envInt returns the environment variable key parsed as an int, or def when it
+// is unset, empty, or not a valid integer.
+//
+// @arg key The environment variable name.
+// @arg def The fallback value when key is unset, empty, or unparseable.
+// @return int The parsed value, or def.
+//
+// @testcase TestEnvHelpers checks the set, invalid, and fallback paths.
 func envInt(key string, def int) int {
 	if v := os.Getenv(key); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {

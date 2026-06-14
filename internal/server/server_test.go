@@ -65,9 +65,9 @@ func (f *fakeMgr) ReapOrphans(context.Context, time.Duration) ([]string, error) 
 	return f.reaped, nil
 }
 
-// newTestServer builds a Server backed by the given fake manager.
+// newTestServer builds a Server backed by the given fake manager and no-op store.
 func newTestServer(f *fakeMgr) *Server {
-	return New(f, "https://boxes.example.com", 5*time.Minute)
+	return New(f, "https://boxes.example.com", 5*time.Minute, noopStore{})
 }
 
 // --- core flow ---

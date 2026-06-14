@@ -4,3 +4,6 @@
 
 # Built binary
 /llmbox-mcp
+
+# bbolt session store (default LLMBOX_STATE_FILE)
+/llmbox-sessions.db

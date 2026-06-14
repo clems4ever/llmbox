@@ -62,11 +62,63 @@ func (s *session) snapshot() (status, sessionURL, errMsg string) {
 	return s.Status, s.SessionURL, s.Err
 }
 
+// persistLocked builds the on-disk form of the session. The caller must hold
+// s.mu, as it reads the mutable status fields.
+//
+// @return persistedSession A snapshot of the session's durable fields.
+//
+// @testcase TestCreateBoxPersistsSession persists a session built via persistLocked.
+func (s *session) persistLocked() persistedSession {
+	return persistedSession{
+		Token:        s.Token,
+		BoxID:        s.BoxID,
+		AuthorizeURL: s.AuthorizeURL,
+		CreatedAt:    s.CreatedAt,
+		Hostname:     s.Hostname,
+		Description:  s.Description,
+		Status:       s.Status,
+		SessionURL:   s.SessionURL,
+		Err:          s.Err,
+	}
+}
+
+// persist builds the on-disk form of the session, taking the lock itself.
+//
+// @return persistedSession A snapshot of the session's durable fields.
+//
+// @testcase TestCreateBoxPersistsSession persists a freshly created session.
+func (s *session) persist() persistedSession {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.persistLocked()
+}
+
+// sessionFromPersisted reconstructs a live session from its on-disk form.
+//
+// @arg ps The persisted session to rehydrate.
+// @return *session A live session carrying the persisted fields.
+//
+// @testcase TestRestoreLoadsAndReconciles rehydrates sessions from the store.
+func sessionFromPersisted(ps persistedSession) *session {
+	return &session{
+		Token:        ps.Token,
+		BoxID:        ps.BoxID,
+		AuthorizeURL: ps.AuthorizeURL,
+		CreatedAt:    ps.CreatedAt,
+		Hostname:     ps.Hostname,
+		Description:  ps.Description,
+		Status:       ps.Status,
+		SessionURL:   ps.SessionURL,
+		Err:          ps.Err,
+	}
+}
+
 // Server orchestrates boxes and owns the session registry.
 type Server struct {
 	mgr       boxManager
 	publicURL string // external base URL, e.g. https://boxes.example.com
 	authTTL   time.Duration
+	store     Store // persists the registry across restarts
 
 	mu      sync.Mutex
 	byToken map[string]*session
@@ -74,21 +126,66 @@ type Server struct {
 
 // New builds a Server. publicURL is the externally reachable base URL used to
 // construct auth page links; authTTL is how long a box may stay un-authenticated
-// before the reaper destroys it.
+// before the reaper destroys it. store persists the session registry; pass
+// noopStore{} to disable persistence. Call Restore to load any saved sessions.
 //
 // @arg mgr The box manager the server delegates Docker operations to.
 // @arg publicURL The externally reachable base URL for auth page links.
 // @arg authTTL How long a box may stay un-authenticated before being reaped.
-// @return *Server A ready-to-use Server with an empty session registry.
+// @arg store The session store used to persist the registry; noopStore{} disables it.
+// @return *Server A ready-to-use Server with an empty in-memory session registry.
 //
 // @testcase TestCreateBoxRegistersSession builds a Server via New.
-func New(mgr boxManager, publicURL string, authTTL time.Duration) *Server {
+func New(mgr boxManager, publicURL string, authTTL time.Duration, store Store) *Server {
 	return &Server{
 		mgr:       mgr,
 		publicURL: strings.TrimRight(publicURL, "/"),
 		authTTL:   authTTL,
+		store:     store,
 		byToken:   make(map[string]*session),
 	}
+}
+
+// Restore loads persisted sessions into the registry and reconciles them with
+// Docker: sessions whose box no longer exists are dropped (and deleted from the
+// store) so a stale token can't linger. It returns the number of sessions
+// restored. Call it once at startup, before serving.
+//
+// @arg ctx Context for the Docker list used to reconcile.
+// @return int The number of sessions restored into the registry.
+// @error error if the store cannot be read or boxes cannot be listed.
+//
+// @testcase TestRestoreLoadsAndReconciles restores live sessions and drops dead ones.
+func (s *Server) Restore(ctx context.Context) (int, error) {
+	saved, err := s.store.LoadAll()
+	if err != nil {
+		return 0, fmt.Errorf("loading sessions: %w", err)
+	}
+	boxes, err := s.mgr.List(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("listing boxes to reconcile sessions: %w", err)
+	}
+	// List returns short (12-char) IDs; a session stores the full box ID.
+	isAlive := func(boxID string) bool {
+		for _, b := range boxes {
+			if strings.HasPrefix(boxID, b.ID) {
+				return true
+			}
+		}
+		return false
+	}
+
+	s.mu.Lock()
+	for _, ps := range saved {
+		if !isAlive(ps.BoxID) {
+			_ = s.store.Delete(ps.Token)
+			continue
+		}
+		s.byToken[ps.Token] = sessionFromPersisted(ps)
+	}
+	n := len(s.byToken)
+	s.mu.Unlock()
+	return n, nil
 }
 
 // CreateBox launches a new box and registers an auth session for it. It returns
@@ -125,6 +222,8 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 	s.mu.Lock()
 	s.byToken[tok] = sess
 	s.mu.Unlock()
+	// Best-effort persist: a disk hiccup shouldn't fail an otherwise-good box.
+	_ = s.store.Save(sess.persist())
 	return sess, nil
 }
 
@@ -173,16 +272,19 @@ func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
 
 	url, err := s.mgr.SubmitCode(ctx, sess.BoxID, code)
 	sess.mu.Lock()
-	defer sess.mu.Unlock()
 	if err != nil {
 		sess.Status = "error"
 		sess.Err = err.Error()
-		return err
+	} else {
+		sess.Status = "ready"
+		sess.SessionURL = url
+		sess.Err = ""
 	}
-	sess.Status = "ready"
-	sess.SessionURL = url
-	sess.Err = ""
-	return nil
+	ps := sess.persistLocked()
+	sess.mu.Unlock()
+	// Persist the new status so a restart sees the box as ready (or errored).
+	_ = s.store.Save(ps)
+	return err
 }
 
 // ListBoxes returns all managed boxes.
@@ -208,12 +310,17 @@ func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
 		return err
 	}
 	s.mu.Lock()
+	var dropped []string
 	for tok, sess := range s.byToken {
 		if strings.HasPrefix(sess.BoxID, idOrName) || strings.HasPrefix(idOrName, sess.BoxID) {
 			delete(s.byToken, tok)
+			dropped = append(dropped, tok)
 		}
 	}
 	s.mu.Unlock()
+	for _, tok := range dropped {
+		_ = s.store.Delete(tok)
+	}
 	return nil
 }
 
@@ -261,16 +368,21 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 		reaped[id] = true
 	}
 	s.mu.Lock()
+	var dropped []string
 	for tok, sess := range s.byToken {
 		// reaped IDs are short (12 char); BoxID is the full ID.
 		for id := range reaped {
 			if strings.HasPrefix(sess.BoxID, id) {
 				delete(s.byToken, tok)
+				dropped = append(dropped, tok)
 				break
 			}
 		}
 	}
 	s.mu.Unlock()
+	for _, tok := range dropped {
+		_ = s.store.Delete(tok)
+	}
 }
 
 // newToken returns a 256-bit unguessable hex token for an auth page URL.

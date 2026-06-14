@@ -45,6 +45,7 @@ RUN apt-get update \
         ca-certificates \
         curl \
         git \
+        sudo \
         build-essential \
         python3 \
         python3-pip \
@@ -93,9 +94,15 @@ RUN git --version && python --version && node --version \
 # Run as an unprivileged user at UID 1000 (matching a typical Linux host
 # user) so a single-file credentials bind-mount stays writable. Pre-create
 # ~/.claude as a home for the mount.
+#
+# The user gets passwordless sudo so the box can run apt-get and other root
+# tasks on demand, while normal files (and the bind-mounted credentials)
+# stay owned by UID 1000 rather than root.
 RUN useradd --create-home --uid 1000 --shell /bin/bash node \
     && mkdir -p /home/node/.claude \
-    && chown -R node:node /home/node
+    && chown -R node:node /home/node \
+    && echo 'node ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/node \
+    && chmod 0440 /etc/sudoers.d/node
 USER node
 WORKDIR /workspace
 
