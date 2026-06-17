@@ -14,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/clems4ever/llmbox-mcp/internal/docker"
+	"github.com/clems4ever/llmbox-mcp/internal/granular"
 )
 
 // fakeMgr is a stand-in for *docker.Manager.
@@ -73,11 +74,12 @@ func newTestServer(f *fakeMgr) *Server {
 
 // fakeMinter is a stand-in for *granular.Minter that records mint/revoke calls.
 type fakeMinter struct {
-	mintToken string
-	mintErr   error
-	minted    int
-	revoked   []string
-	path      string
+	mintToken   string
+	mintErr     error
+	minted      int
+	revoked     []string
+	path        string
+	configFiles []granular.ConfigFile
 }
 
 // Mint returns the canned token/error and counts the call.
@@ -99,6 +101,9 @@ func (f *fakeMinter) SubjectPath() string {
 	}
 	return f.path
 }
+
+// ConfigFiles returns the canned per-RS config files.
+func (f *fakeMinter) ConfigFiles() []granular.ConfigFile { return f.configFiles }
 
 // --- core flow ---
 
@@ -143,10 +148,14 @@ func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 }
 
 // TestCreateBoxMintsAndInjectsSubject checks a configured minter mints a subject,
-// the token is injected into the box and persisted on the session.
+// the token and the per-RS config files are injected into the box, and the token
+// is persisted on the session.
 func TestCreateBoxMintsAndInjectsSubject(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
-	mnt := &fakeMinter{mintToken: "subj-xyz"}
+	mnt := &fakeMinter{
+		mintToken:   "subj-xyz",
+		configFiles: []granular.ConfigFile{{Path: "/home/node/.granular/github.yaml", Content: []byte("base_url: \"http://gh\"\n")}},
+	}
 	s := New(f, mnt, "https://boxes.example.com", time.Minute, noopStore{})
 
 	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
@@ -159,18 +168,24 @@ func TestCreateBoxMintsAndInjectsSubject(t *testing.T) {
 	if sess.SubjectToken != "subj-xyz" {
 		t.Errorf("session subject token = %q, want subj-xyz", sess.SubjectToken)
 	}
-	// The token is injected as a file at the minter's subject path.
-	var found *docker.InjectFile
-	for i := range f.gotOpts.Files {
-		if f.gotOpts.Files[i].Path == mnt.SubjectPath() {
-			found = &f.gotOpts.Files[i]
-		}
+	// Index the injected files by path.
+	byPath := map[string]docker.InjectFile{}
+	for _, fl := range f.gotOpts.Files {
+		byPath[fl.Path] = fl
 	}
-	if found == nil {
+	tok, ok := byPath[mnt.SubjectPath()]
+	if !ok {
 		t.Fatalf("subject token not injected: %+v", f.gotOpts.Files)
 	}
-	if string(found.Content) != "subj-xyz" || found.UID != 1000 {
-		t.Errorf("injected file = %q uid %d, want subj-xyz uid 1000", found.Content, found.UID)
+	if string(tok.Content) != "subj-xyz" || tok.UID != 1000 {
+		t.Errorf("injected token = %q uid %d, want subj-xyz uid 1000", tok.Content, tok.UID)
+	}
+	cfg, ok := byPath["/home/node/.granular/github.yaml"]
+	if !ok {
+		t.Fatalf("RS config not injected: %+v", f.gotOpts.Files)
+	}
+	if !strings.Contains(string(cfg.Content), "http://gh") || cfg.UID != 1000 {
+		t.Errorf("injected config = %q uid %d, want base_url http://gh uid 1000", cfg.Content, cfg.UID)
 	}
 }
 

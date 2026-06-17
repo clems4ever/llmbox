@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox-mcp/internal/docker"
+	"github.com/clems4ever/llmbox-mcp/internal/granular"
 )
 
 // boxManager is the behaviour Server needs from the Docker layer (real impl is
@@ -40,6 +41,8 @@ type subjectMinter interface {
 	Revoke(ctx context.Context, token string) error
 	// SubjectPath is the in-box path the minted token is written to.
 	SubjectPath() string
+	// ConfigFiles are the per-resource-server CLI config files to inject.
+	ConfigFiles() []granular.ConfigFile
 }
 
 // boxUserUID and boxUserGID own files injected into a box. The claude image runs
@@ -221,10 +224,11 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 }
 
 // CreateBox launches a new box and registers an auth session for it. When a
-// granular minter is configured, it first mints a subject token and injects it
-// into the box so the in-box agent can request grants; the subject is revoked if
-// box creation later fails. It returns the session so callers can build the auth
-// page URL. opts carries the optional image, hostname, and description.
+// granular minter is configured, it first mints a subject token and injects it,
+// along with the per-resource-server CLI config files, into the box so the in-box
+// agent can request grants and reach the resource servers; the subject is revoked
+// if box creation later fails. It returns the session so callers can build the
+// auth page URL. opts carries the optional image, hostname, and description.
 //
 // @arg ctx Context for the box creation.
 // @arg opts The optional image, hostname, and description for the box.
@@ -248,6 +252,17 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 				Path:    s.minter.SubjectPath(),
 				Content: []byte(subjectToken),
 				Mode:    0o600,
+				UID:     boxUserUID,
+				GID:     boxUserGID,
+			})
+		}
+		// Inject the per-resource-server CLI configs (just the RS base URL) so an
+		// in-box agent need not pass the URL on every call.
+		for _, cf := range s.minter.ConfigFiles() {
+			opts.Files = append(opts.Files, docker.InjectFile{
+				Path:    cf.Path,
+				Content: cf.Content,
+				Mode:    0o644,
 				UID:     boxUserUID,
 				GID:     boxUserGID,
 			})

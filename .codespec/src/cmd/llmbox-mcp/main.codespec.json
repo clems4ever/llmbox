@@ -27,8 +27,14 @@
 		{
 			"function_name": "granularMinter",
 			"documentation_hash": "24c0a73190cbb5e633e3e6be01035844a0c3f16f20517cfc10b01ba7b6ba2db4",
-			"definition_hash": "93010eae377a7e018644286bfaddcb72c95b8260bf64f8dee52c56eff5bb023d",
-			"reviewed_at": "2026-06-17T18:01:55.564865568Z"
+			"definition_hash": "927bd2ff1d3a123ed11f80eb56e040741fbf832c18eb70e820a01c8a1e8a1cd1",
+			"reviewed_at": "2026-06-17T20:04:57.099572645Z"
+		},
+		{
+			"function_name": "parseResourceServers",
+			"documentation_hash": "61b436e553d46daa3cb23b0989c4c4118f88adcb5c2db6effe62973c6cea3418",
+			"definition_hash": "12db757a82b3bdfbe37a1b5de535a54ad44f689614412f64d2171e30754713cb",
+			"reviewed_at": "2026-06-17T20:04:57.109854599Z"
 		}
 	]
 }

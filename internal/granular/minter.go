@@ -7,6 +7,7 @@ package granular
 import (
 	"context"
 	"fmt"
+	"path"
 
 	"github.com/clems4ever/granular/client"
 )
@@ -16,9 +17,26 @@ import (
 // which the granular CLI reads as its token_file.
 const DefaultSubjectPath = "/home/node/.granular/subject_token"
 
+// ResourceServer is a granular resource server an in-box agent can reach: a
+// stable id (e.g. "github") and the base URL it is served at.
+type ResourceServer struct {
+	// ID is the resource server id, matching the per-RS CLI (e.g. "github").
+	ID string
+	// BaseURL is the resource server's HTTP base URL, reachable from the box.
+	BaseURL string
+}
+
+// ConfigFile is one file to write into a box: an absolute path and its bytes.
+type ConfigFile struct {
+	Path    string
+	Content []byte
+}
+
 // Config configures a Minter. ASURL and AdminToken are required; an empty
 // AdminToken means granular integration is disabled and New returns nil.
-// SubjectPath defaults to DefaultSubjectPath when empty.
+// SubjectPath defaults to DefaultSubjectPath when empty. ResourceServers, when
+// set, are written into each box as per-RS CLI config files so an agent need not
+// pass the resource server URL on every call.
 type Config struct {
 	// ASURL is the base URL of the granular authorization server.
 	ASURL string
@@ -26,12 +44,15 @@ type Config struct {
 	AdminToken string
 	// SubjectPath is the in-box path the minted token is written to.
 	SubjectPath string
+	// ResourceServers are the resource servers an in-box agent can reach.
+	ResourceServers []ResourceServer
 }
 
 // Minter mints and revokes granular subject tokens using an admin credential.
 type Minter struct {
-	client      *client.Client
-	subjectPath string
+	client          *client.Client
+	subjectPath     string
+	resourceServers []ResourceServer
 }
 
 // New builds a Minter from cfg, or returns nil when granular is not configured
@@ -47,14 +68,39 @@ func New(cfg Config) *Minter {
 	if cfg.ASURL == "" || cfg.AdminToken == "" {
 		return nil
 	}
-	path := cfg.SubjectPath
-	if path == "" {
-		path = DefaultSubjectPath
+	subjectPath := cfg.SubjectPath
+	if subjectPath == "" {
+		subjectPath = DefaultSubjectPath
 	}
 	return &Minter{
-		client:      client.New(client.Config{ASURL: cfg.ASURL, Token: cfg.AdminToken}),
-		subjectPath: path,
+		client:          client.New(client.Config{ASURL: cfg.ASURL, Token: cfg.AdminToken}),
+		subjectPath:     subjectPath,
+		resourceServers: cfg.ResourceServers,
 	}
+}
+
+// ConfigFiles returns the per-resource-server CLI config files to inject into a
+// box: one `<id>.yaml` (holding only `base_url`) per configured resource server,
+// written next to the subject token (so ~/.granular/<id>.yaml resolves for the
+// box user). It is safe to call on a nil Minter, returning no files.
+//
+// @return []ConfigFile One config file per configured resource server.
+//
+// @testcase TestConfigFilesRenderBaseURL renders one base_url file per resource server.
+// @testcase TestConfigFilesNilIsEmpty returns no files for a nil Minter.
+func (m *Minter) ConfigFiles() []ConfigFile {
+	if m == nil || len(m.resourceServers) == 0 {
+		return nil
+	}
+	dir := path.Dir(m.subjectPath)
+	files := make([]ConfigFile, 0, len(m.resourceServers))
+	for _, rs := range m.resourceServers {
+		files = append(files, ConfigFile{
+			Path:    path.Join(dir, rs.ID+".yaml"),
+			Content: []byte(fmt.Sprintf("base_url: %q\n", rs.BaseURL)),
+		})
+	}
+	return files
 }
 
 // SubjectPath returns the in-box path the minted token is written to. It is safe

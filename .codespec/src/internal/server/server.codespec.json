@@ -3,9 +3,9 @@
 		{
 			"function_name": "CreateBox",
 			"receiver": "Server",
-			"documentation_hash": "8404899285c1f5b51106de126376a3e45b24f961cc9d9202a215d4da1cf69cdf",
-			"definition_hash": "6ccfb32f8674baf80c940ce345a420f9201f008b6358602b4e99721c803f9526",
-			"reviewed_at": "2026-06-17T18:02:06.733951126Z"
+			"documentation_hash": "d9c49ef2fa7e7f122b5e1e4b36a88160fa66a5b5ff08c67961db834398a932b7",
+			"definition_hash": "4ab10b481f43ae605939ded391f042d6ef7f15b5770a12fe2b9266126c2f026a",
+			"reviewed_at": "2026-06-17T20:05:16.831281217Z"
 		},
 		{
 			"function_name": "snapshot",
