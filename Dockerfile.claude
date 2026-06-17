@@ -19,7 +19,7 @@
 # tokens back to the host file.
 #
 # Build (fetch the granular CLIs into ./dist first — they are COPYd in below):
-#   GH_TOKEN=... ./scripts/fetch-granular-cli.sh granular
+#   GH_TOKEN=... ./scripts/fetch-granular-cli.sh granular-client
 #   GH_TOKEN=... ./scripts/fetch-granular-cli.sh granular-github
 #   docker build -t claude-remote -f Dockerfile.claude .
 #
@@ -94,10 +94,11 @@ RUN git --version && python --version && node --version \
     && go version && rustc --version && cargo --version
 
 # granular CLIs: `granular-github` is the per-RS client (catalog/sign/request/run
-# GitHub operations); `granular` is the cross-RS client (bundle and propose grants
-# for approval). Both are fetched out-of-band (no token in this build) by
-# scripts/fetch-granular-cli.sh into ./dist before building this image.
-COPY dist/granular /usr/local/bin/granular
+# GitHub operations); the cross-RS client (bundle and propose grants for approval)
+# is released as `granular-client` but its command is `granular`, so it is
+# installed under that name. Both are fetched out-of-band (no token in this build)
+# by scripts/fetch-granular-cli.sh into ./dist before building this image.
+COPY dist/granular-client /usr/local/bin/granular
 COPY dist/granular-github /usr/local/bin/granular-github
 RUN granular --help >/dev/null && granular-github --help >/dev/null
 

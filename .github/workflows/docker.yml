@@ -59,7 +59,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GRANULAR_RELEASE_TOKEN }}
         run: |
-          ./scripts/fetch-granular-cli.sh granular
+          ./scripts/fetch-granular-cli.sh granular-client
           ./scripts/fetch-granular-cli.sh granular-github
 
       - name: Set up Docker Buildx
