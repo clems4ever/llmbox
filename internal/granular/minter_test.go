@@ -9,10 +9,9 @@ import (
 	"testing"
 )
 
-// TestConfigFilesRenderBaseURL checks one base_url file per resource server is
-// rendered next to the subject token.
-func TestConfigFilesRenderBaseURL(t *testing.T) {
-	m := New(Config{
+// testMinter builds a Minter with two resource servers for config-file tests.
+func testMinter() *Minter {
+	return New(Config{
 		ASURL:       "http://as",
 		AdminToken:  "admin",
 		SubjectPath: "/home/node/.granular/subject_token",
@@ -21,15 +20,39 @@ func TestConfigFilesRenderBaseURL(t *testing.T) {
 			{ID: "gitlab", BaseURL: "http://gl:9092"},
 		},
 	})
-	files := m.ConfigFiles()
-	if len(files) != 2 {
-		t.Fatalf("want 2 config files, got %d", len(files))
+}
+
+// TestConfigFilesRenderBaseURL checks each resource server yields a <id>.yaml
+// with its base_url and the shared as_url, next to the subject token.
+func TestConfigFilesRenderBaseURL(t *testing.T) {
+	files := testMinter().ConfigFiles()
+	// Two per-RS files + the client.yaml.
+	if len(files) != 3 {
+		t.Fatalf("want 3 config files, got %d", len(files))
 	}
 	if files[0].Path != "/home/node/.granular/github.yaml" {
 		t.Errorf("path = %q, want .../github.yaml", files[0].Path)
 	}
-	if string(files[0].Content) != "base_url: \"http://gh:9091\"\n" {
+	if string(files[0].Content) != "base_url: \"http://gh:9091\"\nas_url: \"http://as\"\n" {
 		t.Errorf("content = %q", files[0].Content)
+	}
+}
+
+// TestConfigFilesRenderClientConfig checks the granular-client config (client.yaml)
+// carries the AS URL, token file, and resource servers.
+func TestConfigFilesRenderClientConfig(t *testing.T) {
+	files := testMinter().ConfigFiles()
+	client := files[len(files)-1]
+	if client.Path != "/home/node/.granular/client.yaml" {
+		t.Fatalf("path = %q, want .../client.yaml", client.Path)
+	}
+	want := "as_url: \"http://as\"\n" +
+		"token_file: \"/home/node/.granular/subject_token\"\n" +
+		"resource_servers:\n" +
+		"  - id: \"github\"\n    base_url: \"http://gh:9091\"\n" +
+		"  - id: \"gitlab\"\n    base_url: \"http://gl:9092\"\n"
+	if string(client.Content) != want {
+		t.Errorf("client config =\n%q\nwant\n%q", client.Content, want)
 	}
 }
 

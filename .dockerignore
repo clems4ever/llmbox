@@ -7,3 +7,6 @@ docker-compose.yml
 .env
 .claude-config.seed.json
 /llmbox-mcp
+
+# ...but the box skills (SKILL.md files) must reach the claude-remote build.
+!box-skills

@@ -137,12 +137,21 @@ that file to request grants and run authorized operations. The subject is
 **revoked** when its box is destroyed or reaped, so a torn-down agent's grants
 die with it.
 
-llmbox also writes a small **per-resource-server config** into each box —
-`~/.granular/<id>.yaml` holding the RS's `base_url` — so a per-RS CLI (e.g.
-`granular-github`) needs no `--base-url` and the agent never has to know the URL.
+llmbox also writes the granular config into each box so the agent never has to
+know any URLs:
 
-The integration is **opt-in**: it activates only when both the AS URL and an
-admin token are configured.
+- `~/.granular/<id>.yaml` (per resource server) — the RS `base_url` plus the
+  shared `as_url`, read by the per-RS CLI (e.g. `granular-github`). This lets it
+  run operations **and** `granular-github request` (sign + submit a grant for
+  approval in one step) with no flags.
+- `~/.granular/client.yaml` — a granular-client config (`as_url`, `token_file`,
+  `resource_servers`) for the `granular` CLI, so the agent can bundle several
+  grant requests into one proposal (`granular --config ~/.granular/client.yaml
+  propose ...`).
+
+The claude-remote image ships both CLIs (`granular-github` and `granular`) and a
+skill teaching the agent how to use them. The integration is **opt-in**: it
+activates only when both the AS URL and an admin token are configured.
 
 | Env var                              | Default                              | Purpose |
 |--------------------------------------|--------------------------------------|---------|
@@ -155,11 +164,11 @@ How a box is provisioned on create:
 
 1. llmbox calls the AS (`PUT /api/subject`, admin-bearer auth) to mint a subject
    token.
-2. The token — and one `<id>.yaml` per configured resource server — is streamed
-   into the **created-but-not-yet-started** container via the Docker copy API,
-   owned by the box's `node` user (UID 1000); the token is mode `0600`, the
-   config files `0644`. The token is never put in an env var or a label, so
-   `docker inspect` doesn't expose it.
+2. The token — and the config files (one `<id>.yaml` per resource server plus
+   `client.yaml`) — are streamed into the **created-but-not-yet-started**
+   container via the Docker copy API, owned by the box's `node` user (UID 1000);
+   the token is mode `0600`, the config files `0644`. The token is never put in
+   an env var or a label, so `docker inspect` doesn't expose it.
 3. The subject token is persisted alongside the session (so it survives a server
    restart) and revoked (`DELETE /api/subject/{token}`) when the box goes away.
 

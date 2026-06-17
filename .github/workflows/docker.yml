@@ -51,14 +51,16 @@ jobs:
           GIT_SSH_COMMAND="ssh -i ~/.ssh/granular -o IdentitiesOnly=yes" \
             git submodule update --init --recursive
 
-      # The claude-remote image COPYs in the granular-github CLI, fetched here
-      # (outside the build, so no token reaches the Docker build) from the private
-      # granular releases. Needs a token with contents:read on that repo.
-      - name: Fetch granular-github CLI
+      # The claude-remote image COPYs in the granular CLIs, fetched here (outside
+      # the build, so no token reaches the Docker build) from the private granular
+      # releases. Needs a token with contents:read on that repo.
+      - name: Fetch granular CLIs
         if: matrix.name == 'claude-remote'
         env:
           GH_TOKEN: ${{ secrets.GRANULAR_RELEASE_TOKEN }}
-        run: ./scripts/fetch-granular-github.sh
+        run: |
+          ./scripts/fetch-granular-cli.sh granular
+          ./scripts/fetch-granular-cli.sh granular-github
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
