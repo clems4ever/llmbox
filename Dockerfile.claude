@@ -18,7 +18,8 @@
 # user), so the mount stays writable and Claude can persist refreshed
 # tokens back to the host file.
 #
-# Build:
+# Build (fetch the granular-github CLI into ./dist first — it is COPYd in below):
+#   GH_TOKEN=... ./scripts/fetch-granular-github.sh
 #   docker build -t claude-remote -f Dockerfile.claude .
 #
 # Run (mount your project + host credentials, read-write):
@@ -90,6 +91,12 @@ RUN npm install -g @anthropic-ai/claude-code@latest \
 # Sanity-check that every toolchain is on PATH.
 RUN git --version && python --version && node --version \
     && go version && rustc --version && cargo --version
+
+# granular-github CLI: the per-RS client an in-box agent uses to catalog, sign,
+# and run GitHub operations. It is fetched out-of-band (no token in this build)
+# by scripts/fetch-granular-github.sh into ./dist before building this image.
+COPY dist/granular-github /usr/local/bin/granular-github
+RUN granular-github --help >/dev/null
 
 # Run as an unprivileged user at UID 1000 (matching a typical Linux host
 # user) so a single-file credentials bind-mount stays writable. Pre-create

@@ -5,5 +5,10 @@
 # Built binary
 /llmbox-mcp
 
+# Fetched release artifact COPYd into the claude-remote image
+# (scripts/fetch-granular-github.sh). Intentionally NOT in .dockerignore —
+# the Dockerfile.claude build needs it in the context.
+/dist/
+
 # bbolt session store (default LLMBOX_STATE_FILE)
 /llmbox-sessions.db
