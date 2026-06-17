@@ -39,7 +39,7 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 
 	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "destroy_llmbox",
-		Description: "Stop and remove an llmbox by ID or name.",
+		Description: "Stop and remove an llmbox by its hostname (the one given to create_llmbox).",
 	}, s.toolDestroy)
 
 	return srv
@@ -153,30 +153,34 @@ func (s *Server) toolList(ctx context.Context, _ *mcp.CallToolRequest, _ struct{
 }
 
 type destroyInput struct {
-	Box string `json:"box" jsonschema:"the ID or name of the box to destroy"`
+	Hostname string `json:"hostname" jsonschema:"the hostname of the box to destroy (the one passed to create_llmbox)"`
 }
 
 type destroyOutput struct {
-	Destroyed string `json:"destroyed" jsonschema:"the box that was destroyed"`
+	Destroyed string `json:"destroyed" jsonschema:"the hostname of the box that was destroyed"`
 }
 
-// toolDestroy handles the destroy_llmbox tool: it stops and removes a box by ID
-// or name.
+// toolDestroy handles the destroy_llmbox tool: it looks up a box's session by
+// hostname and stops and removes that box.
 //
 // @arg ctx Context for the destroy request.
 // @arg _ The MCP call request (unused).
-// @arg in The destroy input carrying the box ID or name.
+// @arg in The destroy input carrying the box hostname.
 // @return *mcp.CallToolResult Always nil; structured output is returned instead.
-// @return destroyOutput The box that was destroyed.
-// @error error if no box is given or the box cannot be destroyed.
+// @return destroyOutput The hostname of the box that was destroyed.
+// @error error if no hostname is given, no box has that hostname, or the box cannot be destroyed.
 //
 // @testcase TestMCPToolsRegisteredAndCreate checks the destroy_llmbox tool is registered.
 func (s *Server) toolDestroy(ctx context.Context, _ *mcp.CallToolRequest, in destroyInput) (*mcp.CallToolResult, destroyOutput, error) {
-	if in.Box == "" {
-		return nil, destroyOutput{}, fmt.Errorf("box ID or name is required")
+	if in.Hostname == "" {
+		return nil, destroyOutput{}, fmt.Errorf("hostname is required")
 	}
-	if err := s.DestroyBox(ctx, in.Box); err != nil {
+	sess := s.lookupByHostname(in.Hostname)
+	if sess == nil {
+		return nil, destroyOutput{}, fmt.Errorf("no box found with hostname %q (it may have expired, or was created without a hostname)", in.Hostname)
+	}
+	if err := s.DestroyBox(ctx, sess.BoxID); err != nil {
 		return nil, destroyOutput{}, err
 	}
-	return nil, destroyOutput{Destroyed: in.Box}, nil
+	return nil, destroyOutput{Destroyed: in.Hostname}, nil
 }
