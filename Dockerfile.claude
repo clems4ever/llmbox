@@ -18,8 +18,9 @@
 # user), so the mount stays writable and Claude can persist refreshed
 # tokens back to the host file.
 #
-# Build (fetch the granular-github CLI into ./dist first — it is COPYd in below):
-#   GH_TOKEN=... ./scripts/fetch-granular-github.sh
+# Build (fetch the granular CLIs into ./dist first — they are COPYd in below):
+#   GH_TOKEN=... ./scripts/fetch-granular-cli.sh granular
+#   GH_TOKEN=... ./scripts/fetch-granular-cli.sh granular-github
 #   docker build -t claude-remote -f Dockerfile.claude .
 #
 # Run (mount your project + host credentials, read-write):
@@ -92,11 +93,13 @@ RUN npm install -g @anthropic-ai/claude-code@latest \
 RUN git --version && python --version && node --version \
     && go version && rustc --version && cargo --version
 
-# granular-github CLI: the per-RS client an in-box agent uses to catalog, sign,
-# and run GitHub operations. It is fetched out-of-band (no token in this build)
-# by scripts/fetch-granular-github.sh into ./dist before building this image.
+# granular CLIs: `granular-github` is the per-RS client (catalog/sign/request/run
+# GitHub operations); `granular` is the cross-RS client (bundle and propose grants
+# for approval). Both are fetched out-of-band (no token in this build) by
+# scripts/fetch-granular-cli.sh into ./dist before building this image.
+COPY dist/granular /usr/local/bin/granular
 COPY dist/granular-github /usr/local/bin/granular-github
-RUN granular-github --help >/dev/null
+RUN granular --help >/dev/null && granular-github --help >/dev/null
 
 # Run as an unprivileged user at UID 1000 (matching a typical Linux host
 # user) so a single-file credentials bind-mount stays writable. Pre-create
@@ -110,6 +113,11 @@ RUN useradd --create-home --uid 1000 --shell /bin/bash node \
     && chown -R node:node /home/node \
     && echo 'node ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/node \
     && chmod 0440 /etc/sudoers.d/node
+
+# Personal skill teaching the in-box agent how to use granular-github. Loaded
+# automatically from ~/.claude/skills for every session in the box.
+COPY --chown=node:node box-skills/ /home/node/.claude/skills/
+
 USER node
 WORKDIR /workspace
 

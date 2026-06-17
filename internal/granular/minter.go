@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/clems4ever/granular/client"
 )
@@ -51,6 +52,7 @@ type Config struct {
 // Minter mints and revokes granular subject tokens using an admin credential.
 type Minter struct {
 	client          *client.Client
+	asURL           string
 	subjectPath     string
 	resourceServers []ResourceServer
 }
@@ -74,33 +76,62 @@ func New(cfg Config) *Minter {
 	}
 	return &Minter{
 		client:          client.New(client.Config{ASURL: cfg.ASURL, Token: cfg.AdminToken}),
+		asURL:           cfg.ASURL,
 		subjectPath:     subjectPath,
 		resourceServers: cfg.ResourceServers,
 	}
 }
 
-// ConfigFiles returns the per-resource-server CLI config files to inject into a
-// box: one `<id>.yaml` (holding only `base_url`) per configured resource server,
-// written next to the subject token (so ~/.granular/<id>.yaml resolves for the
-// box user). It is safe to call on a nil Minter, returning no files.
+// ConfigFiles returns the granular config files to inject into a box, written
+// next to the subject token (so ~/.granular/... resolves for the box user):
 //
-// @return []ConfigFile One config file per configured resource server.
+//   - one `<id>.yaml` per resource server, holding its `base_url` and the shared
+//     `as_url`, read by the per-RS CLI (e.g. granular-github) — including for its
+//     `request` command, which submits to the AS.
+//   - one `client.yaml` in the granular-client format (`as_url`, `token_file`,
+//     `resource_servers`), so the `granular` CLI can bundle and propose grants
+//     across resource servers.
 //
-// @testcase TestConfigFilesRenderBaseURL renders one base_url file per resource server.
+// It is safe to call on a nil Minter, returning no files.
+//
+// @return []ConfigFile The per-RS config files plus the granular-client config.
+//
+// @testcase TestConfigFilesRenderBaseURL renders a base_url+as_url file per resource server.
+// @testcase TestConfigFilesRenderClientConfig renders the granular-client config.
 // @testcase TestConfigFilesNilIsEmpty returns no files for a nil Minter.
 func (m *Minter) ConfigFiles() []ConfigFile {
 	if m == nil || len(m.resourceServers) == 0 {
 		return nil
 	}
 	dir := path.Dir(m.subjectPath)
-	files := make([]ConfigFile, 0, len(m.resourceServers))
+	files := make([]ConfigFile, 0, len(m.resourceServers)+1)
 	for _, rs := range m.resourceServers {
 		files = append(files, ConfigFile{
 			Path:    path.Join(dir, rs.ID+".yaml"),
-			Content: []byte(fmt.Sprintf("base_url: %q\n", rs.BaseURL)),
+			Content: []byte(fmt.Sprintf("base_url: %q\nas_url: %q\n", rs.BaseURL, m.asURL)),
 		})
 	}
-	return files
+	return append(files, ConfigFile{
+		Path:    path.Join(dir, "client.yaml"),
+		Content: m.clientConfig(),
+	})
+}
+
+// clientConfig renders the granular-client config (the format the `granular` CLI
+// reads): the AS URL, the subject token file, and the known resource servers.
+//
+// @return []byte The YAML granular-client config.
+//
+// @testcase TestConfigFilesRenderClientConfig checks the rendered client config.
+func (m *Minter) clientConfig() []byte {
+	var b strings.Builder
+	fmt.Fprintf(&b, "as_url: %q\n", m.asURL)
+	fmt.Fprintf(&b, "token_file: %q\n", m.subjectPath)
+	b.WriteString("resource_servers:\n")
+	for _, rs := range m.resourceServers {
+		fmt.Fprintf(&b, "  - id: %q\n    base_url: %q\n", rs.ID, rs.BaseURL)
+	}
+	return []byte(b.String())
 }
 
 // SubjectPath returns the in-box path the minted token is written to. It is safe

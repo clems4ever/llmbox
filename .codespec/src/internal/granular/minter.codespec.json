@@ -3,15 +3,15 @@
 		{
 			"function_name": "New",
 			"documentation_hash": "832b679bb85409d787d6bc3db0fe6279ef780fbfef6efc0e268617615268963e",
-			"definition_hash": "fdcbab155e034f3d35d52d40ff286e782731dfcc95337562f7204518631b0aea",
-			"reviewed_at": "2026-06-17T20:05:16.826548754Z"
+			"definition_hash": "c1b5d406cd03c5d6586e1609eba7781251afc0652bdb456139161b76bf4170c7",
+			"reviewed_at": "2026-06-17T20:39:51.84183789Z"
 		},
 		{
 			"function_name": "ConfigFiles",
 			"receiver": "Minter",
-			"documentation_hash": "4191d3424170698cd2a0faacde740c59f732e207b7924dea6caa380c1a8acd4b",
-			"definition_hash": "85c83365bd5dccc1684d2a0f420398c42f4cacf612560f26ec7e82e618f0ca67",
-			"reviewed_at": "2026-06-17T20:05:16.827578082Z"
+			"documentation_hash": "b69f60fb246d3a2c450447865087f2faa9e355a877abba1fbc8763775a9680ed",
+			"definition_hash": "a515c2f7e606e50edc2c7dc37046758e9d637e17c56aba3978140a0190609af0",
+			"reviewed_at": "2026-06-17T20:39:51.842600215Z"
 		},
 		{
 			"function_name": "SubjectPath",
@@ -33,6 +33,13 @@
 			"documentation_hash": "517e6718e387d9918ea78b4e1b730ca97141c11257ec8517e090de23ac49b516",
 			"definition_hash": "cfb401c7b0f2ec4c995ac63472bdc743dd8c53b1aabd9d052a0fc9c53fb9106a",
 			"reviewed_at": "2026-06-17T20:05:16.829773206Z"
+		},
+		{
+			"function_name": "clientConfig",
+			"receiver": "Minter",
+			"documentation_hash": "b7ea3d1456f251f5247e94a2ee607b2b0d16e283af6a7b18e4a66cb381b80747",
+			"definition_hash": "8d210722aff9f20c754e65a471245516e7468ff151236bed9c9207268479c401",
+			"reviewed_at": "2026-06-17T20:39:51.843203219Z"
 		}
 	]
 }

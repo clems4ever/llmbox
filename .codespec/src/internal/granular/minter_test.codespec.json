@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "TestConfigFilesRenderBaseURL",
-			"documentation_hash": "e84fac8f0643cafb2d1bc0a14c9dd3ed5ec06dae78fd92824a8febcffc2f2e91",
-			"definition_hash": "68a5c58895cfbb44516e9ecf6d5d4eaf9fb5fe2efb66ef13d0f1e796c0baa8ae",
-			"reviewed_at": "2026-06-17T20:05:26.826893973Z"
+			"documentation_hash": "b12feb3763d0d09f00c1ed828a5cc0c3d8f966e770610999c0fe7f69d8e70164",
+			"definition_hash": "70b8bb1c803cf5dbaee81253c65ed77f52756fcfaf8e7f1f46ccabe44b6b5741",
+			"reviewed_at": "2026-06-17T20:39:51.844910048Z"
 		},
 		{
 			"function_name": "TestConfigFilesNilIsEmpty",
@@ -47,6 +47,18 @@
 			"documentation_hash": "9a0fca30cb28d1928764d1cb7af3884dad978e7972e5a10e11c9acfe82c25445",
 			"definition_hash": "36d70ea87aef7f7869749921198d7a401cc8202acca7aa95084389aa72413907",
 			"reviewed_at": "2026-06-17T20:05:26.831632814Z"
+		},
+		{
+			"function_name": "testMinter",
+			"documentation_hash": "b0f272409ba02bed9bfc5f3c9e0fe2ac07bf2c6a3088091208cdc64ab04b38d9",
+			"definition_hash": "190476886449c5d489fe2ee0f1da5e48522889049461a09969e6824202ab88f3",
+			"reviewed_at": "2026-06-17T20:39:51.843884923Z"
+		},
+		{
+			"function_name": "TestConfigFilesRenderClientConfig",
+			"documentation_hash": "d04ce1930455974174df82c66872f317726123436da6c5fc8210894144c13703",
+			"definition_hash": "b5b9f4fffa1d9df1ce652e721d03e27ba16712e19c6df035d19e69f069568db9",
+			"reviewed_at": "2026-06-17T20:39:51.845782871Z"
 		}
 	]
 }
