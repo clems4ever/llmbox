@@ -24,3 +24,21 @@ func TestEnvHelpers(t *testing.T) {
 		t.Errorf("envInt missing = %d, want default 7", got)
 	}
 }
+
+// TestParseResourceServers checks "id=url" pairs are parsed and malformed or
+// empty entries are skipped.
+func TestParseResourceServers(t *testing.T) {
+	got := parseResourceServers("github=http://gh:9091, gitlab=http://gl:9092 ,,bad,=nope,empty=")
+	if len(got) != 2 {
+		t.Fatalf("want 2 resource servers, got %d: %+v", len(got), got)
+	}
+	if got[0].ID != "github" || got[0].BaseURL != "http://gh:9091" {
+		t.Errorf("rs[0] = %+v", got[0])
+	}
+	if got[1].ID != "gitlab" || got[1].BaseURL != "http://gl:9092" {
+		t.Errorf("rs[1] = %+v", got[1])
+	}
+	if parseResourceServers("") != nil {
+		t.Error("empty spec should yield nil")
+	}
+}

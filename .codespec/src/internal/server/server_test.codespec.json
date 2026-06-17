@@ -148,9 +148,9 @@
 		},
 		{
 			"function_name": "TestCreateBoxMintsAndInjectsSubject",
-			"documentation_hash": "d6f136d1f267c254f53abf57c1dde1b0f692732ece1af40da26eaa316415ad75",
-			"definition_hash": "0055f775478dab870fa04ff15d9093bf2cfc6d2e6125c964be42eefb0b8c5df3",
-			"reviewed_at": "2026-06-17T18:02:06.749731663Z"
+			"documentation_hash": "353aa25c4687023be5c8a545d205cf5d7b01b892748d87daf66c3f3377222483",
+			"definition_hash": "df023e0a57d7001ca824d81570ea1975b098c6fa67a217f0de97c08b52c8c527",
+			"reviewed_at": "2026-06-17T20:05:16.838943793Z"
 		},
 		{
 			"function_name": "TestCreateBoxRevokesSubjectOnCreateFailure",
@@ -163,6 +163,13 @@
 			"documentation_hash": "3265b982cf2cea1ea2496993ed13908b361b4778e47f321d4cf2548105a73604",
 			"definition_hash": "4845d7872b0453a841ef38436845ff08d7c0f399b1742d1385414116ebba4e8d",
 			"reviewed_at": "2026-06-17T18:02:06.752032972Z"
+		},
+		{
+			"function_name": "ConfigFiles",
+			"receiver": "fakeMinter",
+			"documentation_hash": "6ee475b8d8090cbae1e4c27a9db09f8b282e787df9b120dec48d76d1d5d9a4ac",
+			"definition_hash": "5db34255f1cebb447a9474aef6d265caedd32c4c42830ae839f826f45809936a",
+			"reviewed_at": "2026-06-17T20:05:16.836086036Z"
 		}
 	]
 }

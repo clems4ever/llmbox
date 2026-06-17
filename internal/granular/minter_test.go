@@ -9,6 +9,43 @@ import (
 	"testing"
 )
 
+// TestConfigFilesRenderBaseURL checks one base_url file per resource server is
+// rendered next to the subject token.
+func TestConfigFilesRenderBaseURL(t *testing.T) {
+	m := New(Config{
+		ASURL:       "http://as",
+		AdminToken:  "admin",
+		SubjectPath: "/home/node/.granular/subject_token",
+		ResourceServers: []ResourceServer{
+			{ID: "github", BaseURL: "http://gh:9091"},
+			{ID: "gitlab", BaseURL: "http://gl:9092"},
+		},
+	})
+	files := m.ConfigFiles()
+	if len(files) != 2 {
+		t.Fatalf("want 2 config files, got %d", len(files))
+	}
+	if files[0].Path != "/home/node/.granular/github.yaml" {
+		t.Errorf("path = %q, want .../github.yaml", files[0].Path)
+	}
+	if string(files[0].Content) != "base_url: \"http://gh:9091\"\n" {
+		t.Errorf("content = %q", files[0].Content)
+	}
+}
+
+// TestConfigFilesNilIsEmpty checks a nil Minter (or no resource servers) yields
+// no config files.
+func TestConfigFilesNilIsEmpty(t *testing.T) {
+	var nilMinter *Minter
+	if files := nilMinter.ConfigFiles(); files != nil {
+		t.Errorf("nil ConfigFiles = %v, want nil", files)
+	}
+	m := New(Config{ASURL: "http://as", AdminToken: "admin"})
+	if files := m.ConfigFiles(); files != nil {
+		t.Errorf("no-RS ConfigFiles = %v, want nil", files)
+	}
+}
+
 // TestNewDisabledWithoutConfig checks New returns nil when the AS URL or admin
 // token is missing, leaving the integration disabled.
 func TestNewDisabledWithoutConfig(t *testing.T) {

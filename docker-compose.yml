@@ -36,6 +36,10 @@ services:
       LLMBOX_GRANULAR_AS_URL: ${LLMBOX_GRANULAR_AS_URL:-}
       LLMBOX_GRANULAR_ADMIN_TOKEN_FILE: /run/secrets/granular_admin_token
       LLMBOX_GRANULAR_SUBJECT_PATH: ${LLMBOX_GRANULAR_SUBJECT_PATH:-/home/node/.granular/subject_token}
+      # Resource servers an in-box agent can reach, as "id=base_url" pairs. Each
+      # becomes a ~/.granular/<id>.yaml config in every box, so the per-RS CLI
+      # (e.g. granular-github) needs no --base-url. e.g. "github=http://granular-github:9091".
+      LLMBOX_GRANULAR_RESOURCE_SERVERS: ${LLMBOX_GRANULAR_RESOURCE_SERVERS:-}
     volumes:
       # Needed to create/destroy boxes.
       - /var/run/docker.sock:/var/run/docker.sock

@@ -182,8 +182,34 @@ func granularMinter() (*granular.Minter, error) {
 		return nil, err
 	}
 	return granular.New(granular.Config{
-		ASURL:       asURL,
-		AdminToken:  strings.TrimSpace(string(raw)),
-		SubjectPath: os.Getenv("LLMBOX_GRANULAR_SUBJECT_PATH"),
+		ASURL:           asURL,
+		AdminToken:      strings.TrimSpace(string(raw)),
+		SubjectPath:     os.Getenv("LLMBOX_GRANULAR_SUBJECT_PATH"),
+		ResourceServers: parseResourceServers(os.Getenv("LLMBOX_GRANULAR_RESOURCE_SERVERS")),
 	}), nil
+}
+
+// parseResourceServers parses a "id=url,id=url" list into resource servers,
+// skipping malformed or empty entries. Each becomes a per-RS CLI config injected
+// into every box.
+//
+// @arg spec The comma-separated "id=base_url" pairs (may be empty).
+// @return []granular.ResourceServer The parsed resource servers.
+//
+// @testcase TestParseResourceServers parses pairs and skips malformed entries.
+func parseResourceServers(spec string) []granular.ResourceServer {
+	var out []granular.ResourceServer
+	for _, pair := range strings.Split(spec, ",") {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+		id, url, ok := strings.Cut(pair, "=")
+		id, url = strings.TrimSpace(id), strings.TrimSpace(url)
+		if !ok || id == "" || url == "" {
+			continue
+		}
+		out = append(out, granular.ResourceServer{ID: id, BaseURL: url})
+	}
+	return out
 }
