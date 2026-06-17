@@ -148,6 +148,20 @@ volumes:
 > mkdir -p ./data/llmbox && sudo chown -R 65532:65532 ./data/llmbox
 > ```
 
+### Box credentials across a restart
+
+Once a box is authenticated, Claude writes its OAuth token to
+`~/.claude/.credentials.json` **inside** the box. A `docker restart` preserves
+the container's writable layer, so that token survives. The box entrypoint runs
+on every start, but `claude auth login` is guarded: it only runs when no
+credentials (and no `CLAUDE_CODE_OAUTH_TOKEN`) are present, so a restart skips
+straight to remote-control without asking the user to authenticate again.
+
+> [!NOTE]
+> This covers `docker restart` only. **Recreating** a box (`docker rm` + a new
+> `create_llmbox`) starts from a fresh filesystem and requires re-authenticating,
+> since boxes do not bind-mount a host credentials file.
+
 ## Orphan cleanup
 
 A box's auth phase is encoded in its container name — `llmbox-pending-<id>`

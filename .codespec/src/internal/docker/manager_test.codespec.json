@@ -71,8 +71,8 @@
 		{
 			"function_name": "TestCreateLLMBoxCapturesURL",
 			"documentation_hash": "66623673f19e5424e15d1a3962738549df2a483c6b2d385b3a0fc025b8610105",
-			"definition_hash": "a2eab70753a5b77c2f0bb12bc22588fe737148a25b81c6b3379e97a8cc3bd875",
-			"reviewed_at": "2026-06-14T07:40:39.490300605Z"
+			"definition_hash": "e61b6de40f3392e8526c94c74466769b741b72bd082f4c892884be4733c645c7",
+			"reviewed_at": "2026-06-17T15:45:01.438696506Z"
 		},
 		{
 			"function_name": "TestCreateLLMBoxCleansUpOnStartFailure",
