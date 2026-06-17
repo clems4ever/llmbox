@@ -39,13 +39,18 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Base tooling and the Python toolchain.
 #   git           — Claude Code repo features (and --spawn=worktree)
-#   ca-certificates / curl — outbound HTTPS + toolchain downloads
+#   ca-certificates / curl / wget — outbound HTTPS + toolchain downloads
+#   iputils-ping / netcat-openbsd — network reachability debugging (e.g. to the
+#                   granular resource servers on the box's network)
 #   build-essential — C toolchain that Rust/cgo need to link
 #   python3 + pip + venv, python-is-python3 — `python` resolves to Python 3
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
+        wget \
+        iputils-ping \
+        netcat-openbsd \
         git \
         sudo \
         build-essential \
