@@ -9,8 +9,8 @@
 		{
 			"function_name": "run",
 			"documentation_hash": "8633c854acf0f6980658599af17d96f524a1feeaa03b8b2e0a5e3da19e1f3a5f",
-			"definition_hash": "2e9bd4c7476631d7f316c6686aa3acf02fd835676b1356fad37936d2f3f7f3f8",
-			"reviewed_at": "2026-06-17T18:01:55.561779134Z"
+			"definition_hash": "6e219a3546678d5c666391d6ef3dcbd09b651a7fad3d13211c9f9bc0b81da423",
+			"reviewed_at": "2026-06-17T21:25:30.820602253Z"
 		},
 		{
 			"function_name": "envOr",
@@ -35,6 +35,12 @@
 			"documentation_hash": "61b436e553d46daa3cb23b0989c4c4118f88adcb5c2db6effe62973c6cea3418",
 			"definition_hash": "12db757a82b3bdfbe37a1b5de535a54ad44f689614412f64d2171e30754713cb",
 			"reviewed_at": "2026-06-17T20:04:57.109854599Z"
+		},
+		{
+			"function_name": "resourceServerHosts",
+			"documentation_hash": "06d6c71690a73b20bc1b471b0e363f7fac5ac449e141068d03c23602169c83db",
+			"definition_hash": "6ffac5c3c6ba7b8c6ea91f5de4a66d12a0ae27c21bd00903fcc8016bb515d6d6",
+			"reviewed_at": "2026-06-17T21:25:30.826043189Z"
 		}
 	]
 }

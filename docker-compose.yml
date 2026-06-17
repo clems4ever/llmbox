@@ -39,6 +39,12 @@ services:
       # Resource servers an in-box agent can reach, as "id=base_url" pairs. Each
       # becomes a ~/.granular/<id>.yaml config in every box, so the per-RS CLI
       # (e.g. granular-github) needs no --base-url. e.g. "github=http://granular-github:9091".
+      #
+      # Networking: every box gets its OWN Docker network (boxes are isolated from
+      # one another), and llmbox connects each resource server's container into it
+      # so the box can reach it. The hostname in each base_url MUST equal that
+      # resource server's container name (set `container_name:` in the granular
+      # compose), since that is the name llmbox connects and the box resolves.
       LLMBOX_GRANULAR_RESOURCE_SERVERS: ${LLMBOX_GRANULAR_RESOURCE_SERVERS:-}
     volumes:
       # Needed to create/destroy boxes.

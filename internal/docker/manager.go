@@ -110,6 +110,10 @@ type dockerAPI interface {
 	ContainerResize(ctx context.Context, containerID string, opts container.ResizeOptions) error
 	CopyToContainer(ctx context.Context, containerID, dstPath string, content io.Reader, opts container.CopyToContainerOptions) error
 	ContainerAttach(ctx context.Context, containerID string, opts container.AttachOptions) (types.HijackedResponse, error)
+	NetworkCreate(ctx context.Context, name string, options network.CreateOptions) (network.CreateResponse, error)
+	NetworkConnect(ctx context.Context, networkID, containerID string, config *network.EndpointSettings) error
+	NetworkDisconnect(ctx context.Context, networkID, containerID string, force bool) error
+	NetworkRemove(ctx context.Context, networkID string) error
 	Close() error
 }
 
@@ -118,6 +122,11 @@ type Manager struct {
 	cli          dockerAPI
 	defaultImage string
 	remoteArgs   string
+	// peers are container names (the resource servers) connected into every
+	// box's own dedicated network so boxes can reach them. Each box gets its
+	// own network and is attached to nothing else, so boxes are isolated from
+	// one another while still reaching these shared peers.
+	peers []string
 
 	// createMu serializes the hostname-uniqueness check and container creation
 	// so two concurrent creates can't both pass the check with the same hostname.
@@ -171,11 +180,12 @@ type InjectFile struct {
 //
 // @arg defaultImage The image launched when a caller does not specify one; empty falls back to DefaultImage.
 // @arg remoteArgs The remote-control flags; empty falls back to the default flags.
+// @arg peers Container names (resource servers) connected into every box's own network; empty isolates boxes with no shared peers.
 // @return *Manager A Manager wired to a Docker client built from the environment.
 // @error error if the Docker client cannot be created.
 //
 // @testcase TestListMapsPhaseFromName covers Manager behaviour via a constructed Manager.
-func NewManager(defaultImage, remoteArgs string) (*Manager, error) {
+func NewManager(defaultImage, remoteArgs string, peers []string) (*Manager, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("creating docker client: %w", err)
@@ -186,7 +196,7 @@ func NewManager(defaultImage, remoteArgs string) (*Manager, error) {
 	if remoteArgs == "" {
 		remoteArgs = defaultRemoteArgs
 	}
-	return &Manager{cli: cli, defaultImage: defaultImage, remoteArgs: remoteArgs}, nil
+	return &Manager{cli: cli, defaultImage: defaultImage, remoteArgs: remoteArgs, peers: peers}, nil
 }
 
 // Close releases the underlying Docker client.
@@ -341,6 +351,10 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		// Start the PTY wide so the authorize URL prints unwrapped.
 		ConsoleSize:   [2]uint{ttyHeight, ttyWidth},
 		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyDisabled},
+		// Create the box on no network. It is connected only to its own
+		// dedicated per-box network below, so boxes never share a network and
+		// cannot reach one another.
+		NetworkMode: "none",
 	}
 
 	resp, err := m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
@@ -359,8 +373,18 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 	id = resp.ID
 	m.createMu.Unlock()
 
-	// From here on, clean up the container on any failure.
-	cleanup := func() { _ = m.cli.ContainerRemove(context.Background(), id, container.RemoveOptions{Force: true}) }
+	// From here on, clean up the container (and its network) on any failure.
+	cleanup := func() {
+		_ = m.cli.ContainerRemove(context.Background(), id, container.RemoveOptions{Force: true})
+		m.removeBoxNetwork(context.Background(), id)
+	}
+
+	// Give the box its own network and wire the resource-server peers into it,
+	// so it can reach them by name while staying isolated from other boxes.
+	if err := m.setupBoxNetwork(ctx, id); err != nil {
+		cleanup()
+		return "", "", err
+	}
 
 	if err := m.cli.ContainerRename(ctx, id, pendingPrefix+id[:12]); err != nil {
 		cleanup()
@@ -562,6 +586,59 @@ func (m *Manager) SubmitCode(ctx context.Context, id, code string) (sessionURL s
 	return url, nil
 }
 
+// boxNetworkName is the deterministic name of a box's dedicated network, derived
+// from its container ID so it can be found again at destroy time.
+//
+// @arg id The box's container ID.
+// @return string The per-box network name.
+//
+// @testcase TestSetupBoxNetworkConnectsPeers checks the box network is named after the box.
+func boxNetworkName(id string) string { return "llmboxnet-" + id[:12] }
+
+// setupBoxNetwork creates the box's own bridge network and connects the box and
+// every configured resource-server peer to it, so the box reaches the peers by
+// name while remaining isolated from other boxes (which live on other networks).
+//
+// @arg ctx Context for the network create/connect calls.
+// @arg id The box's container ID.
+// @error error if the network cannot be created or the box cannot be connected to it.
+//
+// @testcase TestSetupBoxNetworkConnectsPeers creates the network and connects box and peers.
+func (m *Manager) setupBoxNetwork(ctx context.Context, id string) error {
+	name := boxNetworkName(id)
+	if _, err := m.cli.NetworkCreate(ctx, name, network.CreateOptions{
+		Driver: "bridge",
+		Labels: map[string]string{ManagedLabel: "true"},
+	}); err != nil {
+		return fmt.Errorf("creating box network: %w", err)
+	}
+	if err := m.cli.NetworkConnect(ctx, name, id, nil); err != nil {
+		return fmt.Errorf("connecting box to its network: %w", err)
+	}
+	// Connect each resource-server peer. A peer that is missing or already
+	// connected is non-fatal — the box still works for the others.
+	for _, peer := range m.peers {
+		_ = m.cli.NetworkConnect(ctx, name, peer, nil)
+	}
+	return nil
+}
+
+// removeBoxNetwork tears down a box's dedicated network, first disconnecting the
+// resource-server peers (whose live endpoints would otherwise block removal). It
+// is best-effort: errors are ignored so destroy/reap always proceeds.
+//
+// @arg ctx Context for the disconnect/remove calls.
+// @arg id The box's container ID.
+//
+// @testcase TestDestroyRemovesBoxNetwork checks the box network is removed on destroy.
+func (m *Manager) removeBoxNetwork(ctx context.Context, id string) {
+	name := boxNetworkName(id)
+	for _, peer := range m.peers {
+		_ = m.cli.NetworkDisconnect(ctx, name, peer, true)
+	}
+	_ = m.cli.NetworkRemove(ctx, name)
+}
+
 // Destroy gracefully stops and removes a managed box identified by ID or name.
 // It asks the box to stop (SIGTERM to its main process, so Claude can shut down
 // cleanly), waiting up to stopTimeout before Docker escalates to SIGKILL; the
@@ -586,6 +663,7 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 	if err := m.cli.ContainerRemove(ctx, b.ID, container.RemoveOptions{RemoveVolumes: true}); err != nil {
 		return fmt.Errorf("removing box %s: %w", idOrName, err)
 	}
+	m.removeBoxNetwork(ctx, b.ID)
 	return nil
 }
 
@@ -608,6 +686,7 @@ func (m *Manager) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string,
 	for _, b := range boxes {
 		if b.Phase == "pending" && b.Created < cutoff {
 			if err := m.cli.ContainerRemove(ctx, b.ID, container.RemoveOptions{Force: true, RemoveVolumes: true}); err == nil {
+				m.removeBoxNetwork(ctx, b.ID)
 				reaped = append(reaped, b.ID)
 			}
 		}

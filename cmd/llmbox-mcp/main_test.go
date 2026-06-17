@@ -42,3 +42,15 @@ func TestParseResourceServers(t *testing.T) {
 		t.Error("empty spec should yield nil")
 	}
 }
+
+// TestResourceServerHosts checks the hostnames are extracted from the base URLs,
+// deduped, and that unparseable entries are skipped.
+func TestResourceServerHosts(t *testing.T) {
+	got := resourceServerHosts("github=http://granular-github:9091, gitlab=http://granular-github:9092 , bad=:// ")
+	if len(got) != 1 || got[0] != "granular-github" {
+		t.Errorf("hosts = %v, want [granular-github]", got)
+	}
+	if resourceServerHosts("") != nil {
+		t.Error("empty spec should yield nil hosts")
+	}
+}

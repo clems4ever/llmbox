@@ -11,6 +11,12 @@
 			"documentation_hash": "ee0a91bfd1b4cb13010bb5ed53241a0daca93f855ecaa36d3b64cb69dfc94fae",
 			"definition_hash": "24fea99b56c4c6a0239f82b93e9d46e32c328a9c454369372b14bd9f05a98d2e",
 			"reviewed_at": "2026-06-17T20:05:03.194032612Z"
+		},
+		{
+			"function_name": "TestResourceServerHosts",
+			"documentation_hash": "fe65fd1fb460fa456dc9662540f01e53b6a38412337e96913e88936358a1df29",
+			"definition_hash": "5130e9e6072dbfe0037009e084c1e6e7ffd9984c8bcf1592850566f0c0180963",
+			"reviewed_at": "2026-06-17T21:25:43.256559156Z"
 		}
 	]
 }
