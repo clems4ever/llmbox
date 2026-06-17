@@ -196,6 +196,11 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	if !strings.Contains(ep, "claude auth login") || !strings.Contains(ep, "remote-control") {
 		t.Errorf("entrypoint missing login/remote-control: %q", ep)
 	}
+	// Login is guarded so a restart with credentials already on disk skips
+	// re-authentication instead of prompting the user again.
+	if !strings.Contains(ep, ".claude/.credentials.json") {
+		t.Errorf("entrypoint missing credentials guard for restart: %q", ep)
+	}
 	// Must pre-answer the two post-login gates between login and remote-control,
 	// else a fresh box aborts on "Workspace not trusted" or blocks on the
 	// "Enable Remote Control? (y/n)" prompt.

@@ -268,13 +268,22 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		labels[DescriptionLabel] = opts.Description
 	}
 
-	// Entrypoint: (1) authenticate, (2) pre-answer the workspace-trust and
-	// "Enable Remote Control?" prompts a fresh box would otherwise block on, then
-	// (3) hand off to remote-control. `script` allocates a fresh PTY for
-	// remote-control's UI, which it needs to reach "Ready". The node step merges
-	// into ~/.claude.json so it doesn't clobber what `claude auth login` wrote.
+	// Entrypoint: (1) authenticate only if needed, (2) pre-answer the
+	// workspace-trust and "Enable Remote Control?" prompts a fresh box would
+	// otherwise block on, then (3) hand off to remote-control. `script` allocates
+	// a fresh PTY for remote-control's UI, which it needs to reach "Ready". The
+	// node step merges into ~/.claude.json so it doesn't clobber what
+	// `claude auth login` wrote.
+	//
+	// This entrypoint re-runs on every container start, including `docker restart`.
+	// `claude auth login` is therefore guarded: the OAuth flow only runs when the
+	// box has no credentials yet. A restart finds the token already on disk at
+	// ~/.claude/.credentials.json (preserved in the container's writable layer)
+	// and skips straight to remote-control, so the user is not asked to
+	// authenticate again. The guard also honours CLAUDE_CODE_OAUTH_TOKEN, the
+	// token-via-env alternative.
 	entry := fmt.Sprintf(
-		`claude auth login --claudeai && %s && exec script -qfc "claude remote-control %s" /dev/null`,
+		`{ [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || [ -s "$HOME/.claude/.credentials.json" ] || claude auth login --claudeai; } && %s && exec script -qfc "claude remote-control %s" /dev/null`,
 		prepConfigCmd, m.remoteArgs,
 	)
 
