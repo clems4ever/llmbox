@@ -42,7 +42,7 @@ box finishes login ──▶ `claude remote-control` starts ──▶ session UR
 ```
 
 Boxes that are never authenticated are destroyed after `LLMBOX_AUTH_TTL_SECONDS`
-(default 5 min) — see [Orphan cleanup](#orphan-cleanup).
+(default 5 minutes) — see [Orphan cleanup](#orphan-cleanup).
 
 ## MCP tools
 
