@@ -79,6 +79,10 @@ The server drives the Docker daemon, so it needs the Docker socket. The image
 runs as a non-root user, which must be allowed to use the socket via
 `--group-add` (the socket's group, e.g. `docker`):
 
+> [!NOTE]
+> The build vendors the [granular](https://github.com/clems4ever/granular)
+> submodule, so initialize it after cloning: `git submodule update --init`.
+
 ```bash
 docker build -f Dockerfile.claude -t claude-remote .
 docker build -f Dockerfile.mcp    -t llmbox-mcp .
@@ -121,6 +125,40 @@ If `LLMBOX_CLAUDE_IMAGE` isn't present on the daemon, the server pulls it on the
 first box creation and retries. Pulls use the daemon's existing credentials, so
 for a **private** registry make sure the daemon is logged in (e.g. `docker
 login`) or the image is pre-pulled.
+
+## Granular authorization (optional)
+
+llmbox can integrate with a [granular](https://github.com/clems4ever/granular)
+authorization server (vendored as a submodule under `./granular`) to give each
+box its own scoped identity for acting on the user's behalf. When enabled, every
+new box gets a **freshly minted granular subject token**, injected into the
+container at `~/.granular/subject_token`. The granular CLI inside the box reads
+that file (as its `token_file`) to request grants and run authorized operations.
+The subject is **revoked** when its box is destroyed or reaped, so a torn-down
+agent's grants die with it.
+
+The integration is **opt-in**: it activates only when both the AS URL and an
+admin token are configured.
+
+| Env var                              | Default                              | Purpose |
+|--------------------------------------|--------------------------------------|---------|
+| `LLMBOX_GRANULAR_AS_URL`             | (unset — disabled)                   | granular authorization server base URL. |
+| `LLMBOX_GRANULAR_ADMIN_TOKEN_FILE`   | (unset — disabled)                   | File holding the admin token llmbox uses to mint/revoke subjects. |
+| `LLMBOX_GRANULAR_SUBJECT_PATH`       | `/home/node/.granular/subject_token` | In-box path the minted subject token is written to. |
+
+How a token reaches a box:
+
+1. On create, llmbox calls the AS (`PUT /api/subject`, admin-bearer auth) to mint
+   a subject token.
+2. The token is streamed into the **created-but-not-yet-started** container via
+   the Docker copy API, written at `LLMBOX_GRANULAR_SUBJECT_PATH` owned by the
+   box's `node` user (UID 1000), mode `0600`. It is never put in an env var or a
+   label, so `docker inspect` doesn't expose it.
+3. The subject token is persisted alongside the session (so it survives a server
+   restart) and revoked (`DELETE /api/subject/{token}`) when the box goes away.
+
+The injected file is a raw token string (granular's CLI trims whitespace), not
+JSON or a JWT.
 
 ## Session persistence
 

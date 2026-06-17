@@ -20,6 +20,7 @@ type persistedSession struct {
 	BoxID        string    `json:"box_id"`
 	AuthorizeURL string    `json:"authorize_url"`
 	CreatedAt    time.Time `json:"created_at"`
+	SubjectToken string    `json:"subject_token,omitempty"`
 	Hostname     string    `json:"hostname,omitempty"`
 	Description  string    `json:"description,omitempty"`
 	Status       string    `json:"status"`

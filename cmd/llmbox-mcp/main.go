@@ -17,6 +17,14 @@
 //	LLMBOX_REMOTE_ARGS        args passed to `claude remote-control` (default "--spawn same-dir")
 //	LLMBOX_AUTH_TTL_SECONDS   how long a box may stay un-authenticated (default 300)
 //	LLMBOX_STATE_FILE         bbolt file persisting the session registry (default "llmbox-sessions.db")
+//
+// Granular authorization (optional; enabled only when both AS URL and admin
+// token are set). When enabled, each box gets a freshly minted granular subject
+// token injected at GRANULAR_SUBJECT_PATH for the in-box agent to request grants:
+//
+//	LLMBOX_GRANULAR_AS_URL            granular authorization server base URL
+//	LLMBOX_GRANULAR_ADMIN_TOKEN_FILE  file holding the admin token used to mint/revoke subjects
+//	LLMBOX_GRANULAR_SUBJECT_PATH      in-box path for the subject token (default "/home/node/.granular/subject_token")
 package main
 
 import (
@@ -28,10 +36,12 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/clems4ever/llmbox-mcp/internal/docker"
+	"github.com/clems4ever/llmbox-mcp/internal/granular"
 	"github.com/clems4ever/llmbox-mcp/internal/server"
 )
 
@@ -67,6 +77,13 @@ func run() error {
 	}
 	defer mgr.Close()
 
+	// Optional granular integration: mint a subject per box. New returns nil
+	// (integration disabled) unless both the AS URL and admin token are set.
+	minter, err := granularMinter()
+	if err != nil {
+		return err
+	}
+
 	// Persist the session registry so auth links survive a server restart.
 	if dir := filepath.Dir(stateFile); dir != "" && dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -79,7 +96,7 @@ func run() error {
 	}
 	defer func() { _ = store.Close() }()
 
-	srv := server.New(mgr, publicURL, authTTL, store)
+	srv := server.New(mgr, minter, publicURL, authTTL, store)
 	httpSrv := &http.Server{
 		Addr:    addr,
 		Handler: srv.Handler(srv.MCPServer(name, version)),
@@ -144,4 +161,29 @@ func envInt(key string, def int) int {
 		}
 	}
 	return def
+}
+
+// granularMinter builds the granular subject minter from the environment. It
+// returns nil (integration disabled) unless both LLMBOX_GRANULAR_AS_URL and a
+// readable LLMBOX_GRANULAR_ADMIN_TOKEN_FILE are set.
+//
+// @return *granular.Minter The configured minter, or nil when granular is not configured.
+// @error error if the admin token file is set but cannot be read.
+//
+// @testcase TestEnvHelpers covers the configuration helpers run relies on.
+func granularMinter() (*granular.Minter, error) {
+	asURL := os.Getenv("LLMBOX_GRANULAR_AS_URL")
+	tokenFile := os.Getenv("LLMBOX_GRANULAR_ADMIN_TOKEN_FILE")
+	if asURL == "" || tokenFile == "" {
+		return nil, nil
+	}
+	raw, err := os.ReadFile(tokenFile)
+	if err != nil {
+		return nil, err
+	}
+	return granular.New(granular.Config{
+		ASURL:       asURL,
+		AdminToken:  strings.TrimSpace(string(raw)),
+		SubjectPath: os.Getenv("LLMBOX_GRANULAR_SUBJECT_PATH"),
+	}), nil
 }

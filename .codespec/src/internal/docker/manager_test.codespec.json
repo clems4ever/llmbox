@@ -147,6 +147,31 @@
 			"documentation_hash": "d2e7464535cabb9d14ca9e615937ce26c21678d08c95b1a0abb1823164a5654e",
 			"definition_hash": "4e9a29d1e659af19d6433dde7003c6ea9c4134d4f08883069a26afdadc7dc2c1",
 			"reviewed_at": "2026-06-14T13:17:52.192837599Z"
+		},
+		{
+			"function_name": "CopyToContainer",
+			"receiver": "fakeDocker",
+			"documentation_hash": "4bf406249ea29bc19dbb110738c05d9686611ab0b6834d60ea8d44b313300141",
+			"definition_hash": "17c8cbdca06fbe118efca3ae019ad7048b484c5c55c677776c341229714dba59",
+			"reviewed_at": "2026-06-17T18:02:06.716551483Z"
+		},
+		{
+			"function_name": "tarEntries",
+			"documentation_hash": "9df79eaebfd4ade5870cba90914b120436857a0148a45256a2b25b0591bb85c6",
+			"definition_hash": "fbe1d890aae9fe57cb9b99d819999e0abdf483fbc52d2559a9277971c33cb5f9",
+			"reviewed_at": "2026-06-17T18:02:06.720749197Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxInjectsFiles",
+			"documentation_hash": "c1a8c7e5f0a3d83b1ac110ef3cb896f6410258beeccf841bbddefdf302aa7376",
+			"definition_hash": "27d56396767413a8a04e52c81ba7c454777f60c0e355c3280e62ab012d462c10",
+			"reviewed_at": "2026-06-17T18:02:06.723516258Z"
+		},
+		{
+			"function_name": "TestTarFilesCreatesParentDirs",
+			"documentation_hash": "10ea61a06166bbe3a94299609e1166f234d2b076550789367c9e72e3e23b5312",
+			"definition_hash": "59143ef46a629dcaa9147170f0beedfa6fe60a581b9df8c7bb1c64faa6312268",
+			"reviewed_at": "2026-06-17T18:02:06.726104318Z"
 		}
 	]
 }

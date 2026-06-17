@@ -3,9 +3,9 @@
 		{
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
-			"documentation_hash": "5cff43d4ce8c98c9bd8d6698033e203fb844f316dc672e860bda8c6eac97ad31",
-			"definition_hash": "5e9e0484f35be3bced29ea5145f4aecae0ca3a7d26f93a5d66456881a6f944eb",
-			"reviewed_at": "2026-06-17T15:44:51.095823675Z"
+			"documentation_hash": "3ebc1468de6c7e3572169ff2fc564f1939924fdb5bbddfcbeebac5b9c6d658b7",
+			"definition_hash": "cf62ea907b39f3ecd6227a6620e9f35474ccc8635c6b684b5bd0b06396df52ef",
+			"reviewed_at": "2026-06-17T18:02:06.708558683Z"
 		},
 		{
 			"function_name": "List",
@@ -98,6 +98,19 @@
 			"documentation_hash": "45e13900a25eb7c26ab5070f488785a54b9488afc594c7dda9ccd69018fc49c7",
 			"definition_hash": "7535c8eaa0c9a8597047483255fde7834b720b7ab6a84fbcd1ea2ac5302a25ea",
 			"reviewed_at": "2026-06-14T13:17:52.165874891Z"
+		},
+		{
+			"function_name": "injectFiles",
+			"receiver": "Manager",
+			"documentation_hash": "a84a3e3dfff0b524fc7f5115744fb4607512976bb65572a3c64dfa51e662b444",
+			"definition_hash": "18d4fe121ba8aa1897c6fdaf1fe524c5b2b0b484efb50c2eb7878f01389461f4",
+			"reviewed_at": "2026-06-17T18:02:06.712574098Z"
+		},
+		{
+			"function_name": "tarFiles",
+			"documentation_hash": "75a9545dbbcf3e3035616a9a51d795323b06746a3ba526d3f5221cd39eacb72a",
+			"definition_hash": "ff495aa30f5cf8ca981451e323e7d94d9af0326b7fa918a7652acc60f7010959",
+			"reviewed_at": "2026-06-17T18:02:06.713899209Z"
 		}
 	]
 }

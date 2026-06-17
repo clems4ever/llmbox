@@ -23,10 +23,13 @@
 package docker
 
 import (
+	"archive/tar"
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"path"
 	"regexp"
 	"strings"
 	"sync"
@@ -105,6 +108,7 @@ type dockerAPI interface {
 	ContainerRemove(ctx context.Context, containerID string, opts container.RemoveOptions) error
 	ContainerRename(ctx context.Context, containerID, newName string) error
 	ContainerResize(ctx context.Context, containerID string, opts container.ResizeOptions) error
+	CopyToContainer(ctx context.Context, containerID, dstPath string, content io.Reader, opts container.CopyToContainerOptions) error
 	ContainerAttach(ctx context.Context, containerID string, opts container.AttachOptions) (types.HijackedResponse, error)
 	Close() error
 }
@@ -143,6 +147,23 @@ type CreateOptions struct {
 	// Description is a free-form label shown by list/get to help the caller tell
 	// boxes apart. It has no effect on the box itself.
 	Description string
+	// Files are written into the box's filesystem after it is created but before
+	// it starts, so they are present when the entrypoint runs. Used to inject
+	// per-box secrets (e.g. a granular subject token) without baking them into
+	// the image, an env var, or a label where `docker inspect` would expose them.
+	Files []InjectFile
+}
+
+// InjectFile is one file to write into a new box. Path is absolute inside the
+// container; Content is its bytes; Mode/UID/GID set its permissions and owner
+// (UID/GID matter so a file landing in a non-root user's home stays readable by
+// that user).
+type InjectFile struct {
+	Path    string
+	Content []byte
+	Mode    int64
+	UID     int
+	GID     int
 }
 
 // NewManager creates a Manager using Docker configuration from the environment.
@@ -242,18 +263,20 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // sets the container hostname, and opts.Hostname/opts.Description are persisted
 // as labels so List can report them. A non-empty opts.Hostname must be unique
 // across managed boxes; the create is rejected otherwise. If the image is not
-// present locally, it is pulled and the create is retried once.
+// present locally, it is pulled and the create is retried once. Any opts.Files
+// are written into the box after creation but before it starts.
 //
 // @arg ctx Context for the Docker create/start/attach calls.
-// @arg opts The caller-controlled image, hostname, and description for the box.
+// @arg opts The caller-controlled image, hostname, description, and files for the box.
 // @return id The full container ID of the created box.
 // @return authorizeURL The OAuth authorize URL captured from the box's login output.
-// @error error if opts.Hostname is already in use, the image cannot be pulled, or the box cannot be created, started, or its authorize URL captured.
+// @error error if opts.Hostname is already in use, the image cannot be pulled, or the box cannot be created, files injected, started, or its authorize URL captured.
 //
 // @testcase TestCreateLLMBoxCapturesURL captures the authorize URL and sets hostname/description labels.
 // @testcase TestCreateLLMBoxCleansUpOnStartFailure removes the container when start fails.
 // @testcase TestCreateLLMBoxRejectsDuplicateHostname rejects a hostname already in use.
 // @testcase TestCreateLLMBoxPullsMissingImage pulls the image then retries when it is absent.
+// @testcase TestCreateLLMBoxInjectsFiles copies injected files into the box before start.
 func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, authorizeURL string, err error) {
 	image := opts.Image
 	if image == "" {
@@ -343,6 +366,13 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		cleanup()
 		return "", "", fmt.Errorf("naming box: %w", err)
 	}
+	// Inject per-box files before start so they exist when the entrypoint runs.
+	if len(opts.Files) > 0 {
+		if err := m.injectFiles(ctx, id, opts.Files); err != nil {
+			cleanup()
+			return "", "", err
+		}
+	}
 	if err := m.cli.ContainerStart(ctx, id, container.StartOptions{}); err != nil {
 		cleanup()
 		return "", "", fmt.Errorf("starting box: %w", err)
@@ -356,6 +386,85 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		return "", "", err
 	}
 	return id, url, nil
+}
+
+// injectFiles writes files into a created (not yet started) container by
+// streaming a tar archive to the Docker copy API. Each file's parent directories
+// are created in the archive with the file's UID/GID, so a secret landing in a
+// non-root user's home is owned by that user.
+//
+// @arg ctx Context for the copy request.
+// @arg id The target container ID.
+// @arg files The files to write into the container.
+// @error error if the archive cannot be built or the copy fails.
+//
+// @testcase TestCreateLLMBoxInjectsFiles copies injected files into the box before start.
+func (m *Manager) injectFiles(ctx context.Context, id string, files []InjectFile) error {
+	archive, err := tarFiles(files)
+	if err != nil {
+		return fmt.Errorf("building file archive for box: %w", err)
+	}
+	// Paths in the archive are absolute (leading "/" stripped by tarFiles), so
+	// the copy destination is the container root.
+	if err := m.cli.CopyToContainer(ctx, id, "/", archive, container.CopyToContainerOptions{}); err != nil {
+		return fmt.Errorf("injecting files into box: %w", err)
+	}
+	return nil
+}
+
+// tarFiles builds an in-memory tar archive containing files plus a directory
+// entry for each file's parent, all owned by the file's UID/GID. Absolute paths
+// are made archive-relative (a tar stream extracted at "/" must hold relative
+// names) and a default mode of 0600 is used when Mode is zero.
+//
+// @arg files The files to pack.
+// @return io.Reader A reader over the built tar archive.
+// @error error if writing an entry to the archive fails.
+//
+// @testcase TestTarFilesCreatesParentDirs packs files with owned parent directories.
+func tarFiles(files []InjectFile) (io.Reader, error) {
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	seenDirs := map[string]bool{}
+	for _, f := range files {
+		clean := strings.TrimPrefix(path.Clean(f.Path), "/")
+		// Emit a directory entry for each ancestor, owned by the file's UID/GID
+		// so the secret stays readable by the box's user.
+		dir := path.Dir(clean)
+		if dir != "." && dir != "/" && !seenDirs[dir] {
+			if err := tw.WriteHeader(&tar.Header{
+				Typeflag: tar.TypeDir,
+				Name:     dir + "/",
+				Mode:     0o700,
+				Uid:      f.UID,
+				Gid:      f.GID,
+			}); err != nil {
+				return nil, err
+			}
+			seenDirs[dir] = true
+		}
+		mode := f.Mode
+		if mode == 0 {
+			mode = 0o600
+		}
+		if err := tw.WriteHeader(&tar.Header{
+			Typeflag: tar.TypeReg,
+			Name:     clean,
+			Mode:     mode,
+			Uid:      f.UID,
+			Gid:      f.GID,
+			Size:     int64(len(f.Content)),
+		}); err != nil {
+			return nil, err
+		}
+		if _, err := tw.Write(f.Content); err != nil {
+			return nil, err
+		}
+	}
+	if err := tw.Close(); err != nil {
+		return nil, err
+	}
+	return &buf, nil
 }
 
 // pullImage pulls ref from its registry. It drains the progress stream, since

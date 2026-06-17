@@ -31,12 +31,36 @@ type boxManager interface {
 	ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error)
 }
 
+// subjectMinter is the behaviour Server needs from the granular layer (real impl
+// is *granular.Minter; tests fake it). A nil minter disables the integration.
+type subjectMinter interface {
+	// Mint creates a granular subject and returns its token.
+	Mint(ctx context.Context) (string, error)
+	// Revoke destroys the granular subject named by token.
+	Revoke(ctx context.Context, token string) error
+	// SubjectPath is the in-box path the minted token is written to.
+	SubjectPath() string
+}
+
+// boxUserUID and boxUserGID own files injected into a box. The claude image runs
+// as its `node` user at UID/GID 1000, so an injected secret in that user's home
+// must be owned by 1000 to stay readable by the agent.
+const (
+	boxUserUID = 1000
+	boxUserGID = 1000
+)
+
 // session tracks one box through the auth handshake.
 type session struct {
 	Token        string
 	BoxID        string
 	AuthorizeURL string
 	CreatedAt    time.Time
+
+	// SubjectToken is the granular subject minted for this box (empty when
+	// granular integration is disabled). It is revoked when the box is destroyed
+	// or reaped. Set at creation and immutable, so it needs no locking.
+	SubjectToken string
 
 	// Hostname and Description are caller-supplied at creation and immutable,
 	// so they need no locking.
@@ -74,6 +98,7 @@ func (s *session) persistLocked() persistedSession {
 		BoxID:        s.BoxID,
 		AuthorizeURL: s.AuthorizeURL,
 		CreatedAt:    s.CreatedAt,
+		SubjectToken: s.SubjectToken,
 		Hostname:     s.Hostname,
 		Description:  s.Description,
 		Status:       s.Status,
@@ -105,6 +130,7 @@ func sessionFromPersisted(ps persistedSession) *session {
 		BoxID:        ps.BoxID,
 		AuthorizeURL: ps.AuthorizeURL,
 		CreatedAt:    ps.CreatedAt,
+		SubjectToken: ps.SubjectToken,
 		Hostname:     ps.Hostname,
 		Description:  ps.Description,
 		Status:       ps.Status,
@@ -116,7 +142,8 @@ func sessionFromPersisted(ps persistedSession) *session {
 // Server orchestrates boxes and owns the session registry.
 type Server struct {
 	mgr       boxManager
-	publicURL string // external base URL, e.g. https://boxes.example.com
+	minter    subjectMinter // mints/revokes granular subjects; nil when disabled
+	publicURL string        // external base URL, e.g. https://boxes.example.com
 	authTTL   time.Duration
 	store     Store // persists the registry across restarts
 
@@ -127,18 +154,23 @@ type Server struct {
 // New builds a Server. publicURL is the externally reachable base URL used to
 // construct auth page links; authTTL is how long a box may stay un-authenticated
 // before the reaper destroys it. store persists the session registry; pass
-// noopStore{} to disable persistence. Call Restore to load any saved sessions.
+// noopStore{} to disable persistence. minter mints/revokes a granular subject
+// per box; pass nil to disable the granular integration. Call Restore to load
+// any saved sessions.
 //
 // @arg mgr The box manager the server delegates Docker operations to.
+// @arg minter The granular subject minter; nil disables the integration.
 // @arg publicURL The externally reachable base URL for auth page links.
 // @arg authTTL How long a box may stay un-authenticated before being reaped.
 // @arg store The session store used to persist the registry; noopStore{} disables it.
 // @return *Server A ready-to-use Server with an empty in-memory session registry.
 //
 // @testcase TestCreateBoxRegistersSession builds a Server via New.
-func New(mgr boxManager, publicURL string, authTTL time.Duration, store Store) *Server {
+// @testcase TestCreateBoxMintsAndInjectsSubject builds a Server with a minter.
+func New(mgr boxManager, minter subjectMinter, publicURL string, authTTL time.Duration, store Store) *Server {
 	return &Server{
 		mgr:       mgr,
+		minter:    minter,
 		publicURL: strings.TrimRight(publicURL, "/"),
 		authTTL:   authTTL,
 		store:     store,
@@ -188,26 +220,50 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 	return n, nil
 }
 
-// CreateBox launches a new box and registers an auth session for it. It returns
-// the session so callers can build the auth page URL. opts carries the optional
-// image, hostname, and description for the box.
+// CreateBox launches a new box and registers an auth session for it. When a
+// granular minter is configured, it first mints a subject token and injects it
+// into the box so the in-box agent can request grants; the subject is revoked if
+// box creation later fails. It returns the session so callers can build the auth
+// page URL. opts carries the optional image, hostname, and description.
 //
 // @arg ctx Context for the box creation.
 // @arg opts The optional image, hostname, and description for the box.
 // @return *session The registered auth session for the new box.
-// @error error if the box cannot be created or a session token cannot be generated.
+// @error error if a granular subject cannot be minted, the box cannot be created, or a session token cannot be generated.
 //
 // @testcase TestCreateBoxRegistersSession checks the session is registered with hostname/description.
 // @testcase TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
+// @testcase TestCreateBoxMintsAndInjectsSubject mints a subject, injects it, and persists the token.
+// @testcase TestCreateBoxRevokesSubjectOnCreateFailure revokes the subject when box creation fails.
 func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
+	var subjectToken string
+	if s.minter != nil {
+		var err error
+		subjectToken, err = s.minter.Mint(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if subjectToken != "" {
+			opts.Files = append(opts.Files, docker.InjectFile{
+				Path:    s.minter.SubjectPath(),
+				Content: []byte(subjectToken),
+				Mode:    0o600,
+				UID:     boxUserUID,
+				GID:     boxUserGID,
+			})
+		}
+	}
+
 	id, authorizeURL, err := s.mgr.CreateLLMBox(ctx, opts)
 	if err != nil {
+		s.revokeSubject(subjectToken)
 		return nil, err
 	}
 	tok, err := newToken()
 	if err != nil {
-		// Best effort: don't leave the box dangling if we can't track it.
+		// Best effort: don't leave the box or subject dangling if we can't track it.
 		_ = s.mgr.Destroy(context.Background(), id)
+		s.revokeSubject(subjectToken)
 		return nil, fmt.Errorf("generating session token: %w", err)
 	}
 	sess := &session{
@@ -215,6 +271,7 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 		BoxID:        id,
 		AuthorizeURL: authorizeURL,
 		CreatedAt:    time.Now(),
+		SubjectToken: subjectToken,
 		Status:       "pending",
 		Hostname:     opts.Hostname,
 		Description:  opts.Description,
@@ -225,6 +282,21 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 	// Best-effort persist: a disk hiccup shouldn't fail an otherwise-good box.
 	_ = s.store.Save(sess.persist())
 	return sess, nil
+}
+
+// revokeSubject best-effort revokes a granular subject, ignoring errors and
+// no-op when no minter is configured or the token is empty. It uses a background
+// context so cleanup runs even when the caller's context is already cancelled.
+//
+// @arg token The subject token to revoke; "" is a no-op.
+//
+// @testcase TestCreateBoxRevokesSubjectOnCreateFailure revokes via this helper on failure.
+// @testcase TestDestroyRevokesSubject revokes a destroyed box's subject via this helper.
+func (s *Server) revokeSubject(token string) {
+	if s.minter == nil || token == "" {
+		return
+	}
+	_ = s.minter.Revoke(context.Background(), token)
 }
 
 // AuthPageURL is the URL the user opens to finish authentication.
@@ -323,21 +395,26 @@ func (s *Server) ListBoxes(ctx context.Context) ([]docker.Box, error) {
 // @error error if the box cannot be destroyed.
 //
 // @testcase TestDestroyForgetsSession checks the session is forgotten after destroy.
+// @testcase TestDestroyRevokesSubject checks the box's granular subject is revoked.
 func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
 	if err := s.mgr.Destroy(ctx, idOrName); err != nil {
 		return err
 	}
 	s.mu.Lock()
-	var dropped []string
+	var dropped, subjects []string
 	for tok, sess := range s.byToken {
 		if strings.HasPrefix(sess.BoxID, idOrName) || strings.HasPrefix(idOrName, sess.BoxID) {
 			delete(s.byToken, tok)
 			dropped = append(dropped, tok)
+			subjects = append(subjects, sess.SubjectToken)
 		}
 	}
 	s.mu.Unlock()
 	for _, tok := range dropped {
 		_ = s.store.Delete(tok)
+	}
+	for _, subj := range subjects {
+		s.revokeSubject(subj)
 	}
 	return nil
 }
@@ -386,13 +463,14 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 		reaped[id] = true
 	}
 	s.mu.Lock()
-	var dropped []string
+	var dropped, subjects []string
 	for tok, sess := range s.byToken {
 		// reaped IDs are short (12 char); BoxID is the full ID.
 		for id := range reaped {
 			if strings.HasPrefix(sess.BoxID, id) {
 				delete(s.byToken, tok)
 				dropped = append(dropped, tok)
+				subjects = append(subjects, sess.SubjectToken)
 				break
 			}
 		}
@@ -400,6 +478,9 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 	s.mu.Unlock()
 	for _, tok := range dropped {
 		_ = s.store.Delete(tok)
+	}
+	for _, subj := range subjects {
+		s.revokeSubject(subj)
 	}
 }
 
