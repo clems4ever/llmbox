@@ -1,5 +1,7 @@
 # llmbox-mcp
 
+[![Build and push images](https://github.com/clems4ever/llmbox-mcp/actions/workflows/docker.yml/badge.svg)](https://github.com/clems4ever/llmbox-mcp/actions/workflows/docker.yml)
+
 An [MCP](https://modelcontextprotocol.io) server for spinning up **sandboxed
 Claude instances** ("llmboxes") on demand. From a chatbot you say *"create an
 llmbox"*; you get back a URL; you open it, sign in with **your own** Claude
