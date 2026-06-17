@@ -487,6 +487,12 @@ func TestSetupBoxNetworkConnectsPeers(t *testing.T) {
 	if !reflect.DeepEqual(f.netConnects, wantConnects) {
 		t.Errorf("netConnects = %v, want %v", f.netConnects, wantConnects)
 	}
+	// The box is detached from the default bridge it was created on, so it lives
+	// only on its own network (rather than being created in "none" mode, which
+	// Docker forbids connecting to any other network).
+	if len(f.netDisconnects) != 1 || f.netDisconnects[0] != [2]string{defaultBridgeNetwork, id} {
+		t.Errorf("netDisconnects = %v, want [{%s %s}]", f.netDisconnects, defaultBridgeNetwork, id)
+	}
 }
 
 // TestDestroyRemovesBoxNetwork checks destroy disconnects the peers and removes

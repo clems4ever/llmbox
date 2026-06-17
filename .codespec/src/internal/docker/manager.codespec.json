@@ -4,8 +4,8 @@
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
 			"documentation_hash": "3ebc1468de6c7e3572169ff2fc564f1939924fdb5bbddfcbeebac5b9c6d658b7",
-			"definition_hash": "63b9476bae55d066ef5579ab3d3928588f99ba63823a44bc1796ba612ef7874e",
-			"reviewed_at": "2026-06-17T21:26:04.609564731Z"
+			"definition_hash": "6cd873acfe7888cc32130bc897b4da6391f20fc260183bb64af0a485e3fa38f5",
+			"reviewed_at": "2026-06-17T21:34:09.147836814Z"
 		},
 		{
 			"function_name": "List",
@@ -121,9 +121,9 @@
 		{
 			"function_name": "setupBoxNetwork",
 			"receiver": "Manager",
-			"documentation_hash": "ef0a524afaf2e1ebcde8d1e4a1f0ea4bc54ecf7f5997827c9c73f634a41c69aa",
-			"definition_hash": "c070fd8e7894967f39c7968af46bafd2928214cde9bc3bfbea47796a2e831d32",
-			"reviewed_at": "2026-06-17T21:26:04.613562305Z"
+			"documentation_hash": "a640ca96f4785a32e8c1cd8b03664c4dcb86f1ee4ede30542f127cdc281b09e2",
+			"definition_hash": "d0f9b0f7f6102feed1aafddd5217f1394a11d1512a4769b5521c7a11fc2e3aad",
+			"reviewed_at": "2026-06-17T21:34:09.149286067Z"
 		},
 		{
 			"function_name": "removeBoxNetwork",

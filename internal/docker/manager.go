@@ -67,6 +67,11 @@ const (
 	// Default remote-control flags; --spawn must be explicit for headless start.
 	defaultRemoteArgs = "--spawn same-dir"
 
+	// defaultBridgeNetwork is Docker's default bridge network. A box is created
+	// on it, then detached (once on its own per-box network) so boxes don't all
+	// share it and become mutually reachable.
+	defaultBridgeNetwork = "bridge"
+
 	// ttyWidth is wide enough that the authorize URL prints on a single line
 	// instead of being wrapped by the TTY (which would break URL extraction).
 	ttyWidth  = 1000
@@ -351,10 +356,6 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		// Start the PTY wide so the authorize URL prints unwrapped.
 		ConsoleSize:   [2]uint{ttyHeight, ttyWidth},
 		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyDisabled},
-		// Create the box on no network. It is connected only to its own
-		// dedicated per-box network below, so boxes never share a network and
-		// cannot reach one another.
-		NetworkMode: "none",
 	}
 
 	resp, err := m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
@@ -598,12 +599,16 @@ func boxNetworkName(id string) string { return "llmboxnet-" + id[:12] }
 // setupBoxNetwork creates the box's own bridge network and connects the box and
 // every configured resource-server peer to it, so the box reaches the peers by
 // name while remaining isolated from other boxes (which live on other networks).
+// The box is then detached from the default bridge it was created on, otherwise
+// every box would share that bridge and could reach one another. (The box can't
+// be created on no network and connected afterwards: Docker rejects mixing the
+// "none" mode with any other network.)
 //
 // @arg ctx Context for the network create/connect calls.
 // @arg id The box's container ID.
 // @error error if the network cannot be created or the box cannot be connected to it.
 //
-// @testcase TestSetupBoxNetworkConnectsPeers creates the network and connects box and peers.
+// @testcase TestSetupBoxNetworkConnectsPeers creates the network, connects box and peers, and detaches the bridge.
 func (m *Manager) setupBoxNetwork(ctx context.Context, id string) error {
 	name := boxNetworkName(id)
 	if _, err := m.cli.NetworkCreate(ctx, name, network.CreateOptions{
@@ -619,6 +624,10 @@ func (m *Manager) setupBoxNetwork(ctx context.Context, id string) error {
 	// connected is non-fatal — the box still works for the others.
 	for _, peer := range m.peers {
 		_ = m.cli.NetworkConnect(ctx, name, peer, nil)
+	}
+	// Detach from the default bridge so the box lives only on its own network.
+	if err := m.cli.NetworkDisconnect(ctx, defaultBridgeNetwork, id, true); err != nil {
+		return fmt.Errorf("detaching box from the default bridge: %w", err)
 	}
 	return nil
 }

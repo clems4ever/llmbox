@@ -204,8 +204,8 @@
 		{
 			"function_name": "TestSetupBoxNetworkConnectsPeers",
 			"documentation_hash": "eb2991a05e25756ab3d21af3bc1126c8c96fbc7da8dc187174c5dc9e3c06ec4f",
-			"definition_hash": "0989638c5e57c902b2913cee5e609ab07ede59df1fe65dfd50a30f83535c4f67",
-			"reviewed_at": "2026-06-17T21:26:04.635706409Z"
+			"definition_hash": "2bc734d0eb22b5d9c51dda4d4537767f6f5b98306db34909a71d8f3ecbe0d929",
+			"reviewed_at": "2026-06-17T21:34:09.15077398Z"
 		},
 		{
 			"function_name": "TestDestroyRemovesBoxNetwork",
