@@ -4,8 +4,8 @@
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
 			"documentation_hash": "3ebc1468de6c7e3572169ff2fc564f1939924fdb5bbddfcbeebac5b9c6d658b7",
-			"definition_hash": "cf62ea907b39f3ecd6227a6620e9f35474ccc8635c6b684b5bd0b06396df52ef",
-			"reviewed_at": "2026-06-17T18:02:06.708558683Z"
+			"definition_hash": "63b9476bae55d066ef5579ab3d3928588f99ba63823a44bc1796ba612ef7874e",
+			"reviewed_at": "2026-06-17T21:26:04.609564731Z"
 		},
 		{
 			"function_name": "List",
@@ -28,9 +28,9 @@
 		},
 		{
 			"function_name": "NewManager",
-			"documentation_hash": "68147f4b299590615765720e18a38c520697ad6e935f0c61fb77d56057950bb4",
-			"definition_hash": "097ccdf4453a0f91fced1983f5f4d0366747a6adbfb49f2f96c1d7197d4e2507",
-			"reviewed_at": "2026-06-14T07:38:19.945406787Z"
+			"documentation_hash": "eb219e663b4a9015c8592dedc2979061de0c73d7e0fe6bf35371a942386ee803",
+			"definition_hash": "a28ee8b1c0de9f1deda1cdf6ade3c50ab2f87c2b1a9043ac628f332032bf4594",
+			"reviewed_at": "2026-06-17T21:26:04.608108497Z"
 		},
 		{
 			"function_name": "Close",
@@ -57,15 +57,15 @@
 			"function_name": "Destroy",
 			"receiver": "Manager",
 			"documentation_hash": "85cdd0eb6918823e77cfa5948957fe45d9581df1f812aa20e491b752a9bf5405",
-			"definition_hash": "37c899a626ba726b89a0820e64c4a8ce15c0a0a4ff755dcbabfc595effef0b06",
-			"reviewed_at": "2026-06-14T13:04:11.966726372Z"
+			"definition_hash": "586501f545e1ea20fa010b650417f607f55f6011c989c04e3d0af3748f0b2d67",
+			"reviewed_at": "2026-06-17T21:26:04.617509661Z"
 		},
 		{
 			"function_name": "ReapOrphans",
 			"receiver": "Manager",
 			"documentation_hash": "d8f8b6b0264c1b00cf39f2e4ba29ec74b601c52e4f6322eae29938e56ca807ed",
-			"definition_hash": "6c9dfa1f3b96cb21e2aa93b5a33fbdb57bcd14e2fca21e167deb46e96a56163b",
-			"reviewed_at": "2026-06-14T07:37:44.052868348Z"
+			"definition_hash": "412fab576ef2e0510b1b061a1b4008a117266e663c04e047f73ea0c84bf9bc2a",
+			"reviewed_at": "2026-06-17T21:26:04.62015966Z"
 		},
 		{
 			"function_name": "findManaged",
@@ -111,6 +111,26 @@
 			"documentation_hash": "75a9545dbbcf3e3035616a9a51d795323b06746a3ba526d3f5221cd39eacb72a",
 			"definition_hash": "ff495aa30f5cf8ca981451e323e7d94d9af0326b7fa918a7652acc60f7010959",
 			"reviewed_at": "2026-06-17T18:02:06.713899209Z"
+		},
+		{
+			"function_name": "boxNetworkName",
+			"documentation_hash": "b9651c47f15937b20d01330cae48eeea9546127840a7e3b58bf23f565990c1dc",
+			"definition_hash": "85b0424b05382023b765783df613bb336025b75828e71f11d0b6261b6f419e37",
+			"reviewed_at": "2026-06-17T21:26:04.611925618Z"
+		},
+		{
+			"function_name": "setupBoxNetwork",
+			"receiver": "Manager",
+			"documentation_hash": "ef0a524afaf2e1ebcde8d1e4a1f0ea4bc54ecf7f5997827c9c73f634a41c69aa",
+			"definition_hash": "c070fd8e7894967f39c7968af46bafd2928214cde9bc3bfbea47796a2e831d32",
+			"reviewed_at": "2026-06-17T21:26:04.613562305Z"
+		},
+		{
+			"function_name": "removeBoxNetwork",
+			"receiver": "Manager",
+			"documentation_hash": "77b91fe7089c83b3ce30e997a3e37dcaecb9825986df7d68d494b832e4892653",
+			"definition_hash": "06cf8c1a7ba49caa300ff692eeb8e3bf66d36fc30e8860636cf4217367fb00d5",
+			"reviewed_at": "2026-06-17T21:26:04.615768067Z"
 		}
 	]
 }

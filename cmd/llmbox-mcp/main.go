@@ -32,6 +32,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -71,7 +72,8 @@ func run() error {
 	authTTL := time.Duration(envInt("LLMBOX_AUTH_TTL_SECONDS", 300)) * time.Second
 	stateFile := envOr("LLMBOX_STATE_FILE", "llmbox-sessions.db")
 
-	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"))
+	peers := resourceServerHosts(os.Getenv("LLMBOX_GRANULAR_RESOURCE_SERVERS"))
+	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"), peers)
 	if err != nil {
 		return err
 	}
@@ -212,4 +214,29 @@ func parseResourceServers(spec string) []granular.ResourceServer {
 		out = append(out, granular.ResourceServer{ID: id, BaseURL: url})
 	}
 	return out
+}
+
+// resourceServerHosts extracts the hostname of each resource server's base URL.
+// These are the container names llmbox connects into every box's network so the
+// box can reach the resource servers; the hostname in each URL must therefore
+// match the resource server's container name.
+//
+// @arg spec The comma-separated "id=base_url" pairs (may be empty).
+// @return []string The distinct resource-server hostnames, in declaration order.
+//
+// @testcase TestResourceServerHosts extracts hostnames and skips unparseable URLs.
+func resourceServerHosts(spec string) []string {
+	var hosts []string
+	seen := map[string]bool{}
+	for _, rs := range parseResourceServers(spec) {
+		u, err := url.Parse(rs.BaseURL)
+		if err != nil || u.Hostname() == "" {
+			continue
+		}
+		if h := u.Hostname(); !seen[h] {
+			seen[h] = true
+			hosts = append(hosts, h)
+		}
+	}
+	return hosts
 }

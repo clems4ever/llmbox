@@ -179,6 +179,31 @@ An in-box agent then just runs, e.g., `granular-github issue list --repo o/n`:
 the URL comes from `~/.granular/github.yaml` and the token from
 `~/.granular/subject_token`, both injected here.
 
+### Box networking and isolation
+
+So a box can reach the resource servers **without** being able to reach other
+boxes, llmbox uses a hub-and-spoke layout instead of one shared network:
+
+- Every box is created on its **own** dedicated Docker network (`llmboxnet-<id>`)
+  and attached to nothing else, so no two boxes ever share a network — they
+  cannot talk to each other.
+- llmbox connects each resource server's container into that per-box network, so
+  the box reaches the resource servers by name while staying isolated.
+- The network is torn down (and the resource servers disconnected from it) when
+  the box is destroyed or reaped.
+
+The resource servers are identified by the **hostname in each
+`LLMBOX_GRANULAR_RESOURCE_SERVERS` base URL**, which must match that resource
+server's **container name**. When the resource servers run in a separate compose
+project, give them a fixed `container_name:` so the name is stable, e.g.:
+
+```yaml
+# granular compose
+services:
+  granular-github:
+    container_name: granular-github   # must equal the host in github=http://granular-github:9091
+```
+
 ## Session persistence
 
 The auth-session registry (which token maps to which box, its authorize URL, and

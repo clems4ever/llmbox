@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -55,6 +56,12 @@ type fakeDocker struct {
 
 	copyErr     error
 	copyToCalls []copyToCall // recorded CopyToContainer invocations
+
+	networkCreateErr error
+	networksCreated  []string    // network names passed to NetworkCreate
+	netConnects      [][2]string // {network, container} per NetworkConnect
+	netDisconnects   [][2]string // {network, container} per NetworkDisconnect
+	networksRemoved  []string    // network names passed to NetworkRemove
 }
 
 // copyToCall records one CopyToContainer invocation: the destination path and
@@ -134,6 +141,33 @@ func (f *fakeDocker) CopyToContainer(_ context.Context, _, dst string, content i
 	}
 	b, _ := io.ReadAll(content)
 	f.copyToCalls = append(f.copyToCalls, copyToCall{dst: dst, archive: b})
+	return nil
+}
+
+// NetworkCreate records the created network name and returns the canned error.
+func (f *fakeDocker) NetworkCreate(_ context.Context, name string, _ network.CreateOptions) (network.CreateResponse, error) {
+	if f.networkCreateErr != nil {
+		return network.CreateResponse{}, f.networkCreateErr
+	}
+	f.networksCreated = append(f.networksCreated, name)
+	return network.CreateResponse{ID: name}, nil
+}
+
+// NetworkConnect records the {network, container} pair and always succeeds.
+func (f *fakeDocker) NetworkConnect(_ context.Context, networkID, containerID string, _ *network.EndpointSettings) error {
+	f.netConnects = append(f.netConnects, [2]string{networkID, containerID})
+	return nil
+}
+
+// NetworkDisconnect records the {network, container} pair and always succeeds.
+func (f *fakeDocker) NetworkDisconnect(_ context.Context, networkID, containerID string, _ bool) error {
+	f.netDisconnects = append(f.netDisconnects, [2]string{networkID, containerID})
+	return nil
+}
+
+// NetworkRemove records the removed network name and always succeeds.
+func (f *fakeDocker) NetworkRemove(_ context.Context, networkID string) error {
+	f.networksRemoved = append(f.networksRemoved, networkID)
 	return nil
 }
 
@@ -423,6 +457,54 @@ func TestReapOrphans(t *testing.T) {
 	}
 	if len(f.removed) != 1 || f.removed[0] != "old111111111" {
 		t.Errorf("removed = %v, want only the old pending box", f.removed)
+	}
+}
+
+// TestSetupBoxNetworkConnectsPeers checks each box gets its own network, named
+// after the box, with the box and every resource-server peer connected to it.
+func TestSetupBoxNetworkConnectsPeers(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn: managerEnd,
+	}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"granular-github"}}
+	go func() { _, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\n")) }()
+
+	id, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
+	if err != nil {
+		t.Fatalf("CreateLLMBox: %v", err)
+	}
+	// The box is created on no shared network, then attached only to its own.
+	if f.createConfig == nil {
+		t.Fatal("no container created")
+	}
+	wantNet := boxNetworkName(id)
+	if len(f.networksCreated) != 1 || f.networksCreated[0] != wantNet {
+		t.Errorf("networksCreated = %v, want [%s]", f.networksCreated, wantNet)
+	}
+	wantConnects := [][2]string{{wantNet, id}, {wantNet, "granular-github"}}
+	if !reflect.DeepEqual(f.netConnects, wantConnects) {
+		t.Errorf("netConnects = %v, want %v", f.netConnects, wantConnects)
+	}
+}
+
+// TestDestroyRemovesBoxNetwork checks destroy disconnects the peers and removes
+// the box's dedicated network.
+func TestDestroyRemovesBoxNetwork(t *testing.T) {
+	f := &fakeDocker{listResult: []container.Summary{
+		{ID: "abcdef0123456789", Names: []string{"/llmbox-pending-abcdef012345"}},
+	}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"granular-github"}}
+	if err := m.Destroy(context.Background(), "abcdef012345"); err != nil {
+		t.Fatalf("Destroy: %v", err)
+	}
+	wantNet := boxNetworkName("abcdef0123456789")
+	if len(f.netDisconnects) != 1 || f.netDisconnects[0] != [2]string{wantNet, "granular-github"} {
+		t.Errorf("netDisconnects = %v, want [{%s granular-github}]", f.netDisconnects, wantNet)
+	}
+	if len(f.networksRemoved) != 1 || f.networksRemoved[0] != wantNet {
+		t.Errorf("networksRemoved = %v, want [%s]", f.networksRemoved, wantNet)
 	}
 }
 

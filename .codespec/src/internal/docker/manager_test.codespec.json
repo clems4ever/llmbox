@@ -172,6 +172,46 @@
 			"documentation_hash": "10ea61a06166bbe3a94299609e1166f234d2b076550789367c9e72e3e23b5312",
 			"definition_hash": "59143ef46a629dcaa9147170f0beedfa6fe60a581b9df8c7bb1c64faa6312268",
 			"reviewed_at": "2026-06-17T18:02:06.726104318Z"
+		},
+		{
+			"function_name": "NetworkCreate",
+			"receiver": "fakeDocker",
+			"documentation_hash": "136e0146fda7fc9619038b2b5107999455286b44b1d4534f74425ab9290c22b2",
+			"definition_hash": "a99787a5bb75c6232bf34e8cdde6b447ddbe9a2cf229c795bb82a4fb96015ea9",
+			"reviewed_at": "2026-06-17T21:26:04.622486246Z"
+		},
+		{
+			"function_name": "NetworkConnect",
+			"receiver": "fakeDocker",
+			"documentation_hash": "20ee706412eccb203167abed20c6f5fe2c8f0ab31c1aab356a734275aee4b75e",
+			"definition_hash": "b91ccbdae4462cd96f438827e4380351f9afe83452de4718c90857e0cad2ed3f",
+			"reviewed_at": "2026-06-17T21:26:04.627569544Z"
+		},
+		{
+			"function_name": "NetworkDisconnect",
+			"receiver": "fakeDocker",
+			"documentation_hash": "b97e03dbb9b4b7978abe6f45841b016719d91166e8684c6b49465e7ebb87fddc",
+			"definition_hash": "0045d1b7f685bfb0d33a269d82e583492e69dd6ea5d58a41b855fc2f97b608a7",
+			"reviewed_at": "2026-06-17T21:26:04.631100314Z"
+		},
+		{
+			"function_name": "NetworkRemove",
+			"receiver": "fakeDocker",
+			"documentation_hash": "cbb6f516435b85501fe57d4fb8825f403b3a3fc54240697665d4aa8b9e57e7f7",
+			"definition_hash": "90533a5b4b1dfe9156a3d50ff5078219fb07dc78c4b4cb45bc86f244881bb43f",
+			"reviewed_at": "2026-06-17T21:26:04.634917096Z"
+		},
+		{
+			"function_name": "TestSetupBoxNetworkConnectsPeers",
+			"documentation_hash": "eb2991a05e25756ab3d21af3bc1126c8c96fbc7da8dc187174c5dc9e3c06ec4f",
+			"definition_hash": "0989638c5e57c902b2913cee5e609ab07ede59df1fe65dfd50a30f83535c4f67",
+			"reviewed_at": "2026-06-17T21:26:04.635706409Z"
+		},
+		{
+			"function_name": "TestDestroyRemovesBoxNetwork",
+			"documentation_hash": "b07e27c71e3f7035f299b7d9d02d5eddb501663a5270872f599b6e3fe75ff5ea",
+			"definition_hash": "539e9263deeb9d5e6a5e9bcca0df3483ce347abb20fae889f8b46f76cc0fe136",
+			"reviewed_at": "2026-06-17T21:26:04.640265283Z"
 		}
 	]
 }
