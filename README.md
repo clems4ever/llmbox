@@ -51,7 +51,7 @@ Boxes that are never authenticated are destroyed after `LLMBOX_AUTH_TTL_SECONDS`
 | `create_llmbox`  | `image?`, `hostname?`, `description?` | `box_id`, `auth_url`, `auth_token`, `status`, `instructions` |
 | `get_llmbox`     | `hostname` | `status` (pending/ready/error), `hostname`, `description`, `session_url` when ready |
 | `list_llmboxes`  | – | the managed boxes (id, name, hostname, description, image, state, phase, created) |
-| `destroy_llmbox` | `box` (ID or name) | the destroyed box |
+| `destroy_llmbox` | `hostname` | the destroyed box's hostname |
 
 `hostname` and `description` on `create_llmbox` are optional. When set, `hostname`
 becomes the box's container hostname and **must be unique** across boxes — a
