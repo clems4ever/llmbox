@@ -9,8 +9,8 @@
 		{
 			"function_name": "run",
 			"documentation_hash": "8633c854acf0f6980658599af17d96f524a1feeaa03b8b2e0a5e3da19e1f3a5f",
-			"definition_hash": "7d28fd915614ac6af3e6b2a29a22e1408aaa3674bd4870542beca7b79d56165e",
-			"reviewed_at": "2026-06-14T09:14:30.299162578Z"
+			"definition_hash": "2e9bd4c7476631d7f316c6686aa3acf02fd835676b1356fad37936d2f3f7f3f8",
+			"reviewed_at": "2026-06-17T18:01:55.561779134Z"
 		},
 		{
 			"function_name": "envOr",
@@ -23,6 +23,12 @@
 			"documentation_hash": "3745076543b499757bbe1074ea6255bbb2226486f881c75876556dc6c59e822d",
 			"definition_hash": "eca88ef08881d8b06a812216905d9a83b90b0e22adbc5c2c56ec13dd892d02cf",
 			"reviewed_at": "2026-06-14T09:14:30.306623571Z"
+		},
+		{
+			"function_name": "granularMinter",
+			"documentation_hash": "24c0a73190cbb5e633e3e6be01035844a0c3f16f20517cfc10b01ba7b6ba2db4",
+			"definition_hash": "93010eae377a7e018644286bfaddcb72c95b8260bf64f8dee52c56eff5bb023d",
+			"reviewed_at": "2026-06-17T18:01:55.564865568Z"
 		}
 	]
 }

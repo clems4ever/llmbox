@@ -83,7 +83,7 @@ func TestBoltStoreDelete(t *testing.T) {
 // TestServerWithoutStore checks the server functions with a no-op store.
 func TestServerWithoutStore(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
-	s := New(f, "https://boxes.example.com", time.Minute, noopStore{})
+	s := New(f, nil, "https://boxes.example.com", time.Minute, noopStore{})
 	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
@@ -104,7 +104,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	defer st.Close()
 
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?z=1", submitURL: "https://claude.ai/code/s/1"}
-	s := New(f, "https://boxes.example.com", time.Minute, st)
+	s := New(f, nil, "https://boxes.example.com", time.Minute, st)
 
 	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "h", Description: "d"})
 	if err != nil {
@@ -151,7 +151,7 @@ func TestRestoreLoadsAndReconciles(t *testing.T) {
 
 	// Docker only reports the live box (short 12-char ID).
 	f := &fakeMgr{listResult: []docker.Box{{ID: "aaaaaaaaaaaa"}}}
-	s := New(f, "https://boxes.example.com", time.Minute, st)
+	s := New(f, nil, "https://boxes.example.com", time.Minute, st)
 
 	n, err := s.Restore(context.Background())
 	if err != nil {

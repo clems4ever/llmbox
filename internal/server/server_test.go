@@ -65,9 +65,39 @@ func (f *fakeMgr) ReapOrphans(context.Context, time.Duration) ([]string, error) 
 	return f.reaped, nil
 }
 
-// newTestServer builds a Server backed by the given fake manager and no-op store.
+// newTestServer builds a Server backed by the given fake manager and no-op store,
+// with granular integration disabled (nil minter).
 func newTestServer(f *fakeMgr) *Server {
-	return New(f, "https://boxes.example.com", 5*time.Minute, noopStore{})
+	return New(f, nil, "https://boxes.example.com", 5*time.Minute, noopStore{})
+}
+
+// fakeMinter is a stand-in for *granular.Minter that records mint/revoke calls.
+type fakeMinter struct {
+	mintToken string
+	mintErr   error
+	minted    int
+	revoked   []string
+	path      string
+}
+
+// Mint returns the canned token/error and counts the call.
+func (f *fakeMinter) Mint(context.Context) (string, error) {
+	f.minted++
+	return f.mintToken, f.mintErr
+}
+
+// Revoke records the revoked token and always succeeds.
+func (f *fakeMinter) Revoke(_ context.Context, token string) error {
+	f.revoked = append(f.revoked, token)
+	return nil
+}
+
+// SubjectPath returns the configured in-box path, defaulting when unset.
+func (f *fakeMinter) SubjectPath() string {
+	if f.path == "" {
+		return "/home/node/.granular/subject_token"
+	}
+	return f.path
 }
 
 // --- core flow ---
@@ -109,6 +139,71 @@ func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 	s := newTestServer(f)
 	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{}); err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+// TestCreateBoxMintsAndInjectsSubject checks a configured minter mints a subject,
+// the token is injected into the box and persisted on the session.
+func TestCreateBoxMintsAndInjectsSubject(t *testing.T) {
+	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	mnt := &fakeMinter{mintToken: "subj-xyz"}
+	s := New(f, mnt, "https://boxes.example.com", time.Minute, noopStore{})
+
+	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
+	if err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+	if mnt.minted != 1 {
+		t.Errorf("minted %d times, want 1", mnt.minted)
+	}
+	if sess.SubjectToken != "subj-xyz" {
+		t.Errorf("session subject token = %q, want subj-xyz", sess.SubjectToken)
+	}
+	// The token is injected as a file at the minter's subject path.
+	var found *docker.InjectFile
+	for i := range f.gotOpts.Files {
+		if f.gotOpts.Files[i].Path == mnt.SubjectPath() {
+			found = &f.gotOpts.Files[i]
+		}
+	}
+	if found == nil {
+		t.Fatalf("subject token not injected: %+v", f.gotOpts.Files)
+	}
+	if string(found.Content) != "subj-xyz" || found.UID != 1000 {
+		t.Errorf("injected file = %q uid %d, want subj-xyz uid 1000", found.Content, found.UID)
+	}
+}
+
+// TestCreateBoxRevokesSubjectOnCreateFailure checks the minted subject is revoked
+// when box creation fails, so no orphaned subject is left behind.
+func TestCreateBoxRevokesSubjectOnCreateFailure(t *testing.T) {
+	f := &fakeMgr{createErr: errors.New("no image")}
+	mnt := &fakeMinter{mintToken: "subj-doomed"}
+	s := New(f, mnt, "https://boxes.example.com", time.Minute, noopStore{})
+
+	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{}); err == nil {
+		t.Fatal("expected error")
+	}
+	if len(mnt.revoked) != 1 || mnt.revoked[0] != "subj-doomed" {
+		t.Errorf("revoked = %v, want [subj-doomed]", mnt.revoked)
+	}
+}
+
+// TestDestroyRevokesSubject checks destroying a box revokes its granular subject.
+func TestDestroyRevokesSubject(t *testing.T) {
+	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	mnt := &fakeMinter{mintToken: "subj-live"}
+	s := New(f, mnt, "https://boxes.example.com", time.Minute, noopStore{})
+
+	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
+	if err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+	if err := s.DestroyBox(context.Background(), sess.BoxID); err != nil {
+		t.Fatalf("DestroyBox: %v", err)
+	}
+	if len(mnt.revoked) != 1 || mnt.revoked[0] != "subj-live" {
+		t.Errorf("revoked = %v, want [subj-live]", mnt.revoked)
 	}
 }
 

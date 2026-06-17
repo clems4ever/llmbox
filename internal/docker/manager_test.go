@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -50,6 +52,16 @@ type fakeDocker struct {
 	stopped      []string
 	removed      []string
 	pulled       []string
+
+	copyErr     error
+	copyToCalls []copyToCall // recorded CopyToContainer invocations
+}
+
+// copyToCall records one CopyToContainer invocation: the destination path and
+// the raw tar bytes streamed to it.
+type copyToCall struct {
+	dst     string
+	archive []byte
 }
 
 // ContainerList returns the canned summaries (or error) configured on the fake.
@@ -112,6 +124,16 @@ func (f *fakeDocker) ContainerStop(_ context.Context, id string, _ container.Sto
 // ContainerRemove records the removed ID and always succeeds.
 func (f *fakeDocker) ContainerRemove(_ context.Context, id string, _ container.RemoveOptions) error {
 	f.removed = append(f.removed, id)
+	return nil
+}
+
+// CopyToContainer records the destination and archive bytes, returning the canned error.
+func (f *fakeDocker) CopyToContainer(_ context.Context, _, dst string, content io.Reader, _ container.CopyToContainerOptions) error {
+	if f.copyErr != nil {
+		return f.copyErr
+	}
+	b, _ := io.ReadAll(content)
+	f.copyToCalls = append(f.copyToCalls, copyToCall{dst: dst, archive: b})
 	return nil
 }
 
@@ -409,5 +431,110 @@ func TestStripANSI(t *testing.T) {
 	in := []byte("\x1b[2J\x1b[1;34mhttps://x\x1b[0m\r\n")
 	if got := string(stripANSI(in)); got != "https://x\n" {
 		t.Errorf("stripANSI = %q", got)
+	}
+}
+
+// tarEntries parses a tar archive into a name->header+content map for assertions.
+func tarEntries(t *testing.T, b []byte) map[string]struct {
+	hdr  *tar.Header
+	body []byte
+} {
+	t.Helper()
+	out := map[string]struct {
+		hdr  *tar.Header
+		body []byte
+	}{}
+	tr := tar.NewReader(bytes.NewReader(b))
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("reading tar: %v", err)
+		}
+		body, _ := io.ReadAll(tr)
+		out[hdr.Name] = struct {
+			hdr  *tar.Header
+			body []byte
+		}{hdr, body}
+	}
+	return out
+}
+
+// TestCreateLLMBoxInjectsFiles checks injected files are copied into the box, to
+// the container root, before it starts.
+func TestCreateLLMBoxInjectsFiles(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn: managerEnd,
+	}
+	m := newTestManager(f)
+
+	go func() {
+		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
+	}()
+
+	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{
+		Files: []InjectFile{{
+			Path:    "/home/node/.granular/subject_token",
+			Content: []byte("subj-123"),
+			Mode:    0o600,
+			UID:     1000,
+			GID:     1000,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("CreateLLMBox: %v", err)
+	}
+	if len(f.copyToCalls) != 1 {
+		t.Fatalf("want 1 CopyToContainer call, got %d", len(f.copyToCalls))
+	}
+	call := f.copyToCalls[0]
+	if call.dst != "/" {
+		t.Errorf("copy dst = %q, want /", call.dst)
+	}
+	entries := tarEntries(t, call.archive)
+	file, ok := entries["home/node/.granular/subject_token"]
+	if !ok {
+		t.Fatalf("subject token not in archive: %v keys", entries)
+	}
+	if string(file.body) != "subj-123" {
+		t.Errorf("token content = %q, want subj-123", file.body)
+	}
+	if file.hdr.Uid != 1000 || file.hdr.Gid != 1000 {
+		t.Errorf("token owner = %d:%d, want 1000:1000", file.hdr.Uid, file.hdr.Gid)
+	}
+}
+
+// TestTarFilesCreatesParentDirs checks tarFiles emits an owned parent directory
+// entry for each file and strips the leading slash from absolute paths.
+func TestTarFilesCreatesParentDirs(t *testing.T) {
+	r, err := tarFiles([]InjectFile{{
+		Path:    "/home/node/.granular/subject_token",
+		Content: []byte("tok"),
+		UID:     1000,
+		GID:     1000,
+	}})
+	if err != nil {
+		t.Fatalf("tarFiles: %v", err)
+	}
+	b, _ := io.ReadAll(r)
+	entries := tarEntries(t, b)
+
+	dir, ok := entries["home/node/.granular/"]
+	if !ok {
+		t.Fatalf("parent dir entry missing: %v", entries)
+	}
+	if dir.hdr.Typeflag != tar.TypeDir || dir.hdr.Uid != 1000 || dir.hdr.Gid != 1000 {
+		t.Errorf("dir entry = type %c owner %d:%d, want dir 1000:1000", dir.hdr.Typeflag, dir.hdr.Uid, dir.hdr.Gid)
+	}
+	file, ok := entries["home/node/.granular/subject_token"]
+	if !ok {
+		t.Fatalf("file entry missing: %v", entries)
+	}
+	if file.hdr.Mode != 0o600 {
+		t.Errorf("default mode = %o, want 600", file.hdr.Mode)
 	}
 }

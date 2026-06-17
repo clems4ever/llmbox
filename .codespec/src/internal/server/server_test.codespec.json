@@ -37,9 +37,9 @@
 		},
 		{
 			"function_name": "newTestServer",
-			"documentation_hash": "74baab6bfb21f4cbcb76aa8a640c7620bd987b015c8f4df80cc3521c53706697",
-			"definition_hash": "5472df16eef2ee9665645de7f88375db02120176b352f28232f1c593af0b5aad",
-			"reviewed_at": "2026-06-14T09:15:15.496069779Z"
+			"documentation_hash": "567002e939466197df72cf0fe5cf92d1e33c57aad49cdc115d741f1445c1ad1c",
+			"definition_hash": "69f675c3eede5e2a0e6d4c28ecae2309028b167b7be69489966401eaa59d40bf",
+			"reviewed_at": "2026-06-17T18:02:06.739770352Z"
 		},
 		{
 			"function_name": "connectMCP",
@@ -124,6 +124,45 @@
 			"documentation_hash": "e2e8fa1cd6acb151aff63cc81fd38066df823a2755942b9afdee166a33e558f4",
 			"definition_hash": "411af6832c38286652a0f6ffa4e948c125e2ccaf4e5e8c628107c02ba34ffc24",
 			"reviewed_at": "2026-06-14T14:40:15.008712579Z"
+		},
+		{
+			"function_name": "Mint",
+			"receiver": "fakeMinter",
+			"documentation_hash": "b07c42bc463d512360fceb38bb0e5f5f5dffd8842a6f81a02b54190e22455852",
+			"definition_hash": "eb5d4de372e96e03ef203ae48600ea325b8704889cb0ae3c5eba86224581e5c2",
+			"reviewed_at": "2026-06-17T18:02:06.74125743Z"
+		},
+		{
+			"function_name": "Revoke",
+			"receiver": "fakeMinter",
+			"documentation_hash": "f5bc0feac68f35555e0a34572c2ac518b6bc850916bc8dd91a435de0ced48cfd",
+			"definition_hash": "9ce107dd07d93ea3e4af222608f24a50b9b6b1389218ddaaee1ce602c52cfbf5",
+			"reviewed_at": "2026-06-17T18:02:06.744000668Z"
+		},
+		{
+			"function_name": "SubjectPath",
+			"receiver": "fakeMinter",
+			"documentation_hash": "69d65726ee0bdcf3dd8f036b13ad3af4375f0b79a164040ed7eedfefde4868ba",
+			"definition_hash": "2d336e1d0898e06e4ce18fd7ed5e50bd2ce180b361b00c1b9659a0da26fff61c",
+			"reviewed_at": "2026-06-17T18:02:06.747515246Z"
+		},
+		{
+			"function_name": "TestCreateBoxMintsAndInjectsSubject",
+			"documentation_hash": "d6f136d1f267c254f53abf57c1dde1b0f692732ece1af40da26eaa316415ad75",
+			"definition_hash": "0055f775478dab870fa04ff15d9093bf2cfc6d2e6125c964be42eefb0b8c5df3",
+			"reviewed_at": "2026-06-17T18:02:06.749731663Z"
+		},
+		{
+			"function_name": "TestCreateBoxRevokesSubjectOnCreateFailure",
+			"documentation_hash": "3deaa1d15ce49790b3f6cbc117162e3fe78bdfb48c75ae49d37d6a63080e89c6",
+			"definition_hash": "3a924c1321e5dc16337a149918851ded0ada53d07ec67a6dafd0b05b818664b8",
+			"reviewed_at": "2026-06-17T18:02:06.75141993Z"
+		},
+		{
+			"function_name": "TestDestroyRevokesSubject",
+			"documentation_hash": "3265b982cf2cea1ea2496993ed13908b361b4778e47f321d4cf2548105a73604",
+			"definition_hash": "4845d7872b0453a841ef38436845ff08d7c0f399b1742d1385414116ebba4e8d",
+			"reviewed_at": "2026-06-17T18:02:06.752032972Z"
 		}
 	]
 }
