@@ -28,9 +28,21 @@ services:
       # bbolt file persisting the auth-session registry across restarts. Lives on
       # the mounted volume below so sessions survive container recreation.
       LLMBOX_STATE_FILE: /var/lib/llmbox/sessions.db
+      # Optional granular authorization integration. Disabled while
+      # LLMBOX_GRANULAR_AS_URL is empty (the default). When set, each box gets a
+      # freshly minted granular subject token injected at the subject path; the
+      # admin token file below must also be mounted. See the README's "Granular
+      # authorization" section.
+      LLMBOX_GRANULAR_AS_URL: ${LLMBOX_GRANULAR_AS_URL:-}
+      LLMBOX_GRANULAR_ADMIN_TOKEN_FILE: /run/secrets/granular_admin_token
+      LLMBOX_GRANULAR_SUBJECT_PATH: ${LLMBOX_GRANULAR_SUBJECT_PATH:-/home/node/.granular/subject_token}
     volumes:
       # Needed to create/destroy boxes.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Admin token granular uses to mint/revoke subjects. Only consulted when
+      # LLMBOX_GRANULAR_AS_URL is set; uncomment and point GRANULAR_ADMIN_TOKEN_FILE
+      # at the host file (must be readable by the distroless "nonroot" UID 65532).
+      # - ${GRANULAR_ADMIN_TOKEN_FILE:-./data/granular-admin-token}:/run/secrets/granular_admin_token:ro
       # Persists the session registry (LLMBOX_STATE_FILE above).
       #
       # IMPORTANT: the image runs as the distroless "nonroot" user (UID/GID
