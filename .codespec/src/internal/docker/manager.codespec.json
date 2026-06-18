@@ -82,9 +82,9 @@
 		{
 			"function_name": "SubmitCode",
 			"receiver": "Manager",
-			"documentation_hash": "535f111454bcb6e419477e161d7bd1a2d2a3f3891195f78166b084121babc9c2",
+			"documentation_hash": "ccee3049dfbd88e08f058d78eb56a8c23c0fd5fc3c83a2d9a6b74e8f4f1f5d5b",
 			"definition_hash": "f7b24fbc895b0edc28d144b2c4e500ebd7db6f9f3b1af1218fc6e1787917df6a",
-			"reviewed_at": "2026-06-18T15:05:52.425317928Z"
+			"reviewed_at": "2026-06-18T15:45:52.805084252Z"
 		},
 		{
 			"function_name": "boxNetworkName",

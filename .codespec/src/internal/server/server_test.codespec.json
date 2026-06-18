@@ -182,6 +182,12 @@
 			"documentation_hash": "243b6ba2905f5deba6669c6ea74ee8bff8c97452de3f8f920f9a9ea4c872a5d6",
 			"definition_hash": "7ad668d0f04ec015eb4bd62b82169578a6c374d5228ddd807c048d1c051e249a",
 			"reviewed_at": "2026-06-18T13:16:47.377375041Z"
+		},
+		{
+			"function_name": "TestFaviconServed",
+			"documentation_hash": "df63e6203f21153f9f1d1617032682d62b4a43ddbba899bcb34f4088a40df13d",
+			"definition_hash": "940a84dfba59309ea7fb4fc9115c76399266386cfb77204ebe39e7beed4eec85",
+			"reviewed_at": "2026-06-18T15:38:53.91779039Z"
 		}
 	]
 }

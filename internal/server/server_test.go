@@ -386,6 +386,26 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+// TestFaviconServed checks the favicon route returns the embedded SVG.
+func TestFaviconServed(t *testing.T) {
+	s := newTestServer(&fakeMgr{})
+	h := s.Handler(s.MCPServer("test", "v0"))
+	for _, path := range []string{"/favicon.ico", "/favicon.svg"} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: status %d", path, rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); ct != "image/svg+xml" {
+			t.Errorf("%s: content-type %q, want image/svg+xml", path, ct)
+		}
+		if !strings.Contains(rec.Body.String(), "<svg") {
+			t.Errorf("%s: body is not an SVG", path)
+		}
+	}
+}
+
 // TestGetByHostname checks get_llmbox resolves a box by hostname (case-insensitive)
 // and errors for an empty or unknown hostname.
 func TestGetByHostname(t *testing.T) {
