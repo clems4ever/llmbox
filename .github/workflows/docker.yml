@@ -1,8 +1,9 @@
 name: Build and push images
 
-# Builds two independent images and pushes them to GitHub Container Registry:
-#   - claude-remote : Claude Code in remote-control mode (Dockerfile.claude)
-#   - llmbox-mcp    : the MCP server that manages those containers (Dockerfile.mcp)
+# Builds the server image and pushes it to GitHub Container Registry:
+#   - llmbox-mcp : the MCP server that manages the boxes (Dockerfile.mcp). It
+#                  bakes in the standalone Claude binary and injects it into each
+#                  box at creation, so there is no separate Claude image to build.
 on:
   push:
     branches: [main]
@@ -24,8 +25,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: claude-remote
-            dockerfile: Dockerfile.claude
           - name: llmbox-mcp
             dockerfile: Dockerfile.mcp
     steps:

@@ -76,11 +76,14 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 | `cmd/llmbox-mcp`     | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
 | `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + hostname uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
-| `Dockerfile.claude`  | Image for **Claude Code remote-control** (`claude-remote`). |
-| `Dockerfile.mcp`     | Image for **this server** (`llmbox-mcp`). |
+| `Dockerfile.mcp`     | Image for **this server** (`llmbox-mcp`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
 
-The two Dockerfiles use distinct extensions (`.claude` / `.mcp`) and build two
-independent images.
+Boxes run on a plain base image (`LLMBOX_CLAUDE_IMAGE`, default
+`debian:bookworm-slim`): the server **injects** the standalone Claude binary and
+a small `~/.claude.json` seed into each box at creation, and runs it as root with
+`HOME=/root` and a `/workspace` working directory — so nothing Claude-specific
+needs to be baked into the base image. Any glibc image with `/bin/sh`,
+`util-linux` (for `script`), and CA certificates works.
 
 ## Running
 
@@ -89,8 +92,7 @@ runs as a non-root user, which must be allowed to use the socket via
 `--group-add` (the socket's group, e.g. `docker`):
 
 ```bash
-docker build -f Dockerfile.claude -t claude-remote .
-docker build -f Dockerfile.mcp    -t llmbox-mcp .
+docker build -f Dockerfile.mcp -t llmbox-mcp .
 
 docker run -d --name llmbox-mcp \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -120,7 +122,8 @@ clear text.
 |---------------------------|---------------------------|---------|
 | `LLMBOX_HTTP_ADDR`        | `:8080`                   | Listen address. |
 | `LLMBOX_PUBLIC_URL`       | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
-| `LLMBOX_CLAUDE_IMAGE`     | `claude-remote`           | Image launched per box. |
+| `LLMBOX_CLAUDE_IMAGE`     | `debian:bookworm-slim`    | Base image launched per box. Any glibc image works — Claude is injected, not baked in. |
+| `LLMBOX_CLAUDE_BIN`       | `/opt/llmbox/claude`      | Path (on the server) to the standalone Claude binary injected into each box. |
 | `LLMBOX_REMOTE_ARGS`      | `--spawn same-dir`        | Args passed to `claude remote-control`. |
 | `LLMBOX_AUTH_TTL_SECONDS` | `300`                     | Destroy un-authenticated boxes after this long. |
 | `LLMBOX_STATE_FILE`       | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](#session-persistence)). |
@@ -151,7 +154,7 @@ writes one `Request` to the hook's stdin and reads one `Response` from its stdou
 
 ```jsonc
 // stdin  (llmbox -> hook)
-{ "event": "box.create", "box": { "hostname": "web-box", "image": "claude-remote" } }
+{ "event": "box.create", "box": { "hostname": "web-box", "image": "debian:bookworm-slim" } }
 
 // stdout (hook -> llmbox)
 {
@@ -279,10 +282,9 @@ never touched.
 
 ## CI
 
-`.github/workflows/docker.yml` builds both images and pushes them to GitHub
-Container Registry (`ghcr.io/<owner>/claude-remote` and
-`ghcr.io/<owner>/llmbox-mcp`) on pushes to `main` and version tags. Pull requests
-build without pushing.
+`.github/workflows/docker.yml` builds the server image and pushes it to GitHub
+Container Registry (`ghcr.io/<owner>/llmbox-mcp`) on pushes to `main` and version
+tags. Pull requests build without pushing.
 
 ## Tested
 

@@ -28,7 +28,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"encoding/json"
 	"io"
+	"os"
 	"path"
 	"regexp"
 	"strconv"
@@ -57,8 +59,26 @@ const (
 	HostnameLabel    = "com.llmbox.hostname"
 	DescriptionLabel = "com.llmbox.description"
 
-	// DefaultImage is launched when the caller does not specify one.
-	DefaultImage = "claude-remote"
+	// DefaultImage is launched when the caller does not specify one. Claude is
+	// always injected at create time, so this is a plain glibc base rather than a
+	// Claude-specific image. Any glibc image with /bin/sh, util-linux (for
+	// `script`), and CA certificates works as a substitute.
+	DefaultImage = "debian:bookworm-slim"
+
+	// DefaultClaudeBin is where Dockerfile.mcp bakes the standalone Claude binary;
+	// it is the fallback source the binary is injected from when no path is set.
+	DefaultClaudeBin = "/opt/llmbox/claude"
+
+	// claudeBinTarget is where the injected Claude binary lands inside a box; it
+	// is on the default PATH so the entrypoint can invoke `claude` directly.
+	claudeBinTarget = "/usr/local/bin/claude"
+
+	// boxHome and boxWorkdir are the home and working directory forced on a box
+	// in injection mode, so the injected config and the trusted-project key are
+	// deterministic regardless of the base image's own user/WORKDIR. The box runs
+	// as root (see CreateLLMBox) so both stay writable.
+	boxHome    = "/root"
+	boxWorkdir = "/workspace"
 
 	// pendingPrefix / readyPrefix encode a box's auth phase in its name, so the
 	// phase survives a restart of this server (Docker persists names, but not
@@ -92,25 +112,6 @@ const (
 	// can't return an unbounded payload; output past it is dropped with a marker.
 	maxExecOutput = 64 << 10
 )
-
-// prepConfigCmd pre-answers the two interactive gates a fresh box hits after
-// login, by writing ~/.claude.json before `claude remote-control` runs:
-//
-//   - projects[cwd].hasTrustDialogAccepted=true — else remote-control aborts
-//     with "Workspace not trusted".
-//   - remoteDialogSeen=true (top-level) — else remote-control blocks on an
-//     "Enable Remote Control? (y/n)" prompt; setting it takes the enabled path
-//     without asking, exactly as answering "y" would.
-//
-// Run with the Claude image's bundled node; uses only double quotes inside so it
-// stays safe within the single-quoted `sh -c` entrypoint.
-const prepConfigCmd = `node -e ` +
-	`'const fs=require("fs"),os=require("os"),p=os.homedir()+"/.claude.json";` +
-	`let c={};try{c=JSON.parse(fs.readFileSync(p,"utf8"))}catch(e){}` +
-	`c.projects=c.projects||{};const d=process.cwd();` +
-	`c.projects[d]=Object.assign({},c.projects[d],{hasTrustDialogAccepted:true});` +
-	`c.remoteDialogSeen=true;` +
-	`fs.writeFileSync(p,JSON.stringify(c))'`
 
 // dockerAPI is the subset of the Docker client used by Manager. It exists so
 // the Docker layer can be faked in tests; *client.Client satisfies it.
@@ -146,6 +147,16 @@ type Manager struct {
 	// own network and is attached to nothing else, so boxes are isolated from
 	// one another while still reaching these shared peers.
 	peers []string
+
+	// claudeBinSrc is the path on THIS host (the MCP server) to the standalone
+	// Claude native binary that is injected into each box at creation. Empty
+	// disables injection, in which case the base image must already bundle Claude.
+	claudeBinSrc string
+	// claudeBinOnce/claudeBin/claudeBinErr lazily read and cache the binary bytes
+	// the first time a box is created, so the file is read once per process.
+	claudeBinOnce sync.Once
+	claudeBin     []byte
+	claudeBinErr  error
 
 	// createMu serializes the hostname-uniqueness check and container creation
 	// so two concurrent creates can't both pass the check with the same hostname.
@@ -202,16 +213,20 @@ type InjectFile struct {
 }
 
 // NewManager creates a Manager using Docker configuration from the environment.
-// defaultImage and remoteArgs fall back to sensible defaults when empty.
+// defaultImage, remoteArgs, and claudeBin fall back to sensible defaults when
+// empty. claudeBin is the path to the standalone Claude binary that is always
+// injected into each box at creation, which is what lets boxes run on any plain
+// glibc image rather than a Claude-specific one.
 //
 // @arg defaultImage The image launched when a caller does not specify one; empty falls back to DefaultImage.
 // @arg remoteArgs The remote-control flags; empty falls back to the default flags.
+// @arg claudeBin Path on this host to the standalone Claude binary injected into each box; empty falls back to DefaultClaudeBin.
 // @arg peers Container names (resource servers) connected into every box's own network; empty isolates boxes with no shared peers.
 // @return *Manager A Manager wired to a Docker client built from the environment.
 // @error error if the Docker client cannot be created.
 //
 // @testcase TestListMapsPhaseFromName covers Manager behaviour via a constructed Manager.
-func NewManager(defaultImage, remoteArgs string, peers []string) (*Manager, error) {
+func NewManager(defaultImage, remoteArgs, claudeBin string, peers []string) (*Manager, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("creating docker client: %w", err)
@@ -222,7 +237,53 @@ func NewManager(defaultImage, remoteArgs string, peers []string) (*Manager, erro
 	if remoteArgs == "" {
 		remoteArgs = defaultRemoteArgs
 	}
-	return &Manager{cli: cli, defaultImage: defaultImage, remoteArgs: remoteArgs, peers: peers}, nil
+	if claudeBin == "" {
+		claudeBin = DefaultClaudeBin
+	}
+	return &Manager{cli: cli, defaultImage: defaultImage, remoteArgs: remoteArgs, claudeBinSrc: claudeBin, peers: peers}, nil
+}
+
+// loadClaudeBinary reads and caches the standalone Claude binary from
+// claudeBinSrc, reading the file once per process. It is the bytes injected into
+// each box at claudeBinTarget.
+//
+// @return []byte The Claude binary contents to inject.
+// @error error if the binary cannot be read.
+//
+// @testcase TestCreateLLMBoxInjectsClaude injects the loaded binary into the box.
+// @testcase TestCreateLLMBoxMissingClaudeBinary fails create when the binary is unreadable.
+func (m *Manager) loadClaudeBinary() ([]byte, error) {
+	m.claudeBinOnce.Do(func() {
+		b, err := os.ReadFile(m.claudeBinSrc)
+		if err != nil {
+			m.claudeBinErr = fmt.Errorf("reading claude binary %q for injection: %w", m.claudeBinSrc, err)
+			return
+		}
+		m.claudeBin = b
+	})
+	return m.claudeBin, m.claudeBinErr
+}
+
+// claudeConfigSeed returns the bytes of the ~/.claude.json seed injected into
+// every box. It pre-answers the two interactive gates a fresh box hits —
+// projects[boxWorkdir].hasTrustDialogAccepted (else remote-control aborts
+// "Workspace not trusted") and remoteDialogSeen (else it blocks on "Enable
+// Remote Control?"). Injecting it as a file means boxes need no Node runtime to
+// set these; `claude auth login` merges its account fields into the file at
+// start without clobbering these keys.
+//
+// @return []byte The JSON contents of the ~/.claude.json seed.
+//
+// @testcase TestCreateLLMBoxInjectsClaude checks the injected seed enables trust and remote control.
+func claudeConfigSeed() []byte {
+	cfg := map[string]any{
+		"projects": map[string]any{
+			boxWorkdir: map[string]any{"hasTrustDialogAccepted": true},
+		},
+		"remoteDialogSeen": true,
+	}
+	b, _ := json.Marshal(cfg)
+	return b
 }
 
 // Close releases the underlying Docker client.
@@ -302,17 +363,24 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // present locally, it is pulled and the create is retried once. Any opts.Files
 // are written into the box after creation but before it starts.
 //
+// The standalone Claude binary and a ~/.claude.json seed are always injected,
+// the box is forced to run as root with HOME=boxHome and WorkingDir=boxWorkdir,
+// and a node-free entrypoint is used — so the box runs on any plain glibc image
+// without Claude (or Node) baked in.
+//
 // @arg ctx Context for the Docker create/start/attach calls.
 // @arg opts The caller-controlled image, hostname, description, and files for the box.
 // @return id The full container ID of the created box.
 // @return authorizeURL The OAuth authorize URL captured from the box's login output.
-// @error error if opts.Hostname is already in use, the image cannot be pulled, or the box cannot be created, files injected, started, or its authorize URL captured.
+// @error error if opts.Hostname is already in use, the claude binary cannot be read, the image cannot be pulled, or the box cannot be created, files injected, started, or its authorize URL captured.
 //
 // @testcase TestCreateLLMBoxCapturesURL captures the authorize URL and sets hostname/description labels.
 // @testcase TestCreateLLMBoxCleansUpOnStartFailure removes the container when start fails.
 // @testcase TestCreateLLMBoxRejectsDuplicateHostname rejects a hostname already in use.
 // @testcase TestCreateLLMBoxPullsMissingImage pulls the image then retries when it is absent.
 // @testcase TestCreateLLMBoxInjectsFiles copies injected files into the box before start.
+// @testcase TestCreateLLMBoxInjectsClaude injects the binary and seed and forces root/HOME/WorkingDir.
+// @testcase TestCreateLLMBoxMissingClaudeBinary fails when the claude binary is unreadable.
 func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, authorizeURL string, err error) {
 	image := opts.Image
 	if image == "" {
@@ -327,12 +395,13 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		labels[DescriptionLabel] = opts.Description
 	}
 
-	// Entrypoint: (1) authenticate only if needed, (2) pre-answer the
-	// workspace-trust and "Enable Remote Control?" prompts a fresh box would
-	// otherwise block on, then (3) hand off to remote-control. `script` allocates
-	// a fresh PTY for remote-control's UI, which it needs to reach "Ready". The
-	// node step merges into ~/.claude.json so it doesn't clobber what
-	// `claude auth login` wrote.
+	// Entrypoint: (1) authenticate only if needed, then (2) hand off to
+	// remote-control. The workspace-trust and "Enable Remote Control?" prompts a
+	// fresh box would otherwise block on are pre-answered by the ~/.claude.json
+	// seed injected below, so no Node runtime is required. `script` allocates a
+	// fresh PTY for remote-control's UI, which it needs to reach "Ready";
+	// util-linux (and so `script`) is present in the glibc base images this
+	// targets.
 	//
 	// This entrypoint re-runs on every container start, including `docker restart`.
 	// `claude auth login` is therefore guarded: the OAuth flow only runs when the
@@ -342,8 +411,20 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 	// authenticate again. The guard also honours CLAUDE_CODE_OAUTH_TOKEN, the
 	// token-via-env alternative.
 	entry := fmt.Sprintf(
-		`{ [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || [ -s "$HOME/.claude/.credentials.json" ] || claude auth login --claudeai; } && %s && exec script -qfc "claude remote-control %s" /dev/null`,
-		prepConfigCmd, m.remoteArgs,
+		`{ [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || [ -s "$HOME/.claude/.credentials.json" ] || claude auth login --claudeai; } && exec script -qfc "claude remote-control %s" /dev/null`,
+		m.remoteArgs,
+	)
+
+	// Always inject the Claude binary and the config seed, so an arbitrary base
+	// image needs neither baked in. Read the binary up front so a bad path fails
+	// the create cleanly before any container is made.
+	bin, berr := m.loadClaudeBinary()
+	if berr != nil {
+		return "", "", berr
+	}
+	opts.Files = append(opts.Files,
+		InjectFile{Path: claudeBinTarget, Content: bin, Mode: 0o755, UID: 0, GID: 0},
+		InjectFile{Path: path.Join(boxHome, ".claude.json"), Content: claudeConfigSeed(), Mode: 0o644, UID: 0, GID: 0},
 	)
 
 	// Reserve the hostname atomically: under one lock, reject the create if an
@@ -373,6 +454,12 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		OpenStdin:  true,
 		Labels:     labels,
 	}
+	// Run as root with a fixed HOME/WorkingDir so the injected binary, the
+	// ~/.claude.json seed, and the credentials Claude writes all land in known,
+	// writable paths regardless of the base image's own user/WORKDIR.
+	cfg.User = "0:0"
+	cfg.WorkingDir = boxWorkdir
+	cfg.Env = append(cfg.Env, "HOME="+boxHome)
 	hostCfg := &container.HostConfig{
 		// Start the PTY wide so the authorize URL prints unwrapped.
 		ConsoleSize:   [2]uint{ttyHeight, ttyWidth},
