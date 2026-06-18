@@ -1,17 +1,10 @@
-# The default service is llmbox-mcp: the MCP + auth server. A chatbot calls it
-# to create sandboxed Claude boxes, each authenticated by the end user in a
-# browser. It launches the `claude-remote` *image* for every box, so build that
-# image once first:
+# The only service is llmbox-mcp: the MCP + auth server. A chatbot calls it to
+# create sandboxed Claude boxes, each authenticated by the end user in a browser.
+# The server bakes in the standalone Claude binary and injects it into every box
+# at creation, so boxes run on a plain base image (LLMBOX_CLAUDE_IMAGE) — there
+# is no separate Claude image to build:
 #
-#   docker compose build claude-remote      # build the claude-remote image
 #   docker compose up --build               # build + run llmbox-mcp
-#
-# `claude-remote` is also kept as an opt-in service (profile "manual") for the
-# old single-box flow: one Claude remote-control container reusing the host's
-# already-authenticated credentials (bind-mounted read-write for token refresh):
-#
-#   docker compose --profile manual up --build claude-remote
-#   docker compose --profile manual logs -f claude-remote   # grab the session link
 services:
   llmbox-mcp:
     build:
@@ -23,7 +16,9 @@ services:
     environment:
       # MUST be the URL the user's browser can reach this server at.
       LLMBOX_PUBLIC_URL: ${LLMBOX_PUBLIC_URL:-http://localhost:8080}
-      LLMBOX_CLAUDE_IMAGE: claude-remote
+      # Base image launched per box. Any glibc image with /bin/sh, util-linux
+      # (for `script`), and CA certificates works — Claude is injected, not baked.
+      LLMBOX_CLAUDE_IMAGE: ${LLMBOX_CLAUDE_IMAGE:-debian:bookworm-slim}
       LLMBOX_AUTH_TTL_SECONDS: ${LLMBOX_AUTH_TTL_SECONDS:-300}
       # bbolt file persisting the auth-session registry across restarts. Lives on
       # the mounted volume below so sessions survive container recreation.
@@ -56,39 +51,4 @@ services:
     #   DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
     group_add:
       - ${DOCKER_GID:-999}
-    restart: unless-stopped
-
-  claude-remote:
-    # Opt-in: only built/started when you ask for it (or build it by name).
-    # llmbox-mcp uses this image but does not need the service running.
-    profiles: ["manual"]
-    build:
-      context: .
-      dockerfile: Dockerfile.claude
-    image: claude-remote
-    # Keep STDIN/TTY so the foreground remote-control process behaves well.
-    stdin_open: true
-    tty: true
-    environment:
-      # Extra flags for `claude remote-control`. --spawn must be set
-      # explicitly: without it, headless startup blocks on an interactive
-      # spawn-mode prompt. Override to add --name, --capacity, etc.
-      CLAUDE_REMOTE_ARGS: ${CLAUDE_REMOTE_ARGS:---spawn same-dir}
-      # remote-control's interactive UI (which actually registers the
-      # environment) only engages when TERM is set; unset it stays degraded.
-      TERM: xterm-256color
-      # Fine-grained GitHub token (Issues: write) used by the
-      # create-github-issue skill. Put it in a local .env file beside this
-      # compose file: GH_TOKEN=github_pat_xxx  (.env is gitignored).
-      GH_TOKEN: ${GH_TOKEN:-}
-    volumes:
-      # Project files to work on.
-      - .:/workspace
-      # Host credentials -> container, read-write for token auto-refresh.
-      - ${HOME}/.claude/.credentials.json:/home/node/.claude/.credentials.json
-      # Minimal account/org config (oauthAccount) needed for Remote Control
-      # eligibility. A container-local seed file, isolated from the host's
-      # ~/.claude.json so neither clobbers the other. Regenerate with the
-      # snippet in .claude-config.seed.json's header if your account changes.
-      - ./.claude-config.seed.json:/home/node/.claude.json
     restart: unless-stopped

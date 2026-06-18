@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -246,9 +248,34 @@ func (readConn) SetReadDeadline(time.Time) error { return nil }
 // SetWriteDeadline is a no-op; the fake conn ignores deadlines.
 func (readConn) SetWriteDeadline(time.Time) error { return nil }
 
-// newTestManager builds a Manager backed by the given fake Docker client.
+// testClaudeBin is the path to a stand-in Claude binary written once by TestMain,
+// so the always-on injection in CreateLLMBox has a real file to read.
+var testClaudeBin string
+
+// testClaudeBinContent is the stand-in binary's bytes, asserted on as the
+// injected payload.
+var testClaudeBinContent = []byte("#!/bin/sh\necho fake-claude\n")
+
+// TestMain writes a stand-in Claude binary to a temp file the whole package
+// shares, then runs the tests.
+func TestMain(m *testing.M) {
+	dir, err := os.MkdirTemp("", "llmbox-test-claude")
+	if err != nil {
+		panic(err)
+	}
+	testClaudeBin = filepath.Join(dir, "claude")
+	if err := os.WriteFile(testClaudeBin, testClaudeBinContent, 0o755); err != nil {
+		panic(err)
+	}
+	code := m.Run()
+	_ = os.RemoveAll(dir)
+	os.Exit(code)
+}
+
+// newTestManager builds a Manager backed by the given fake Docker client, with
+// the stand-in Claude binary wired in so box creation can inject it.
 func newTestManager(f *fakeDocker) *Manager {
-	return &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs}
+	return &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: testClaudeBin}
 }
 
 // TestListMapsPhaseFromName checks List maps phase, shortened ID, hostname, and description.
@@ -329,15 +356,9 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	if !strings.Contains(ep, ".claude/.credentials.json") {
 		t.Errorf("entrypoint missing credentials guard for restart: %q", ep)
 	}
-	// Must pre-answer the two post-login gates between login and remote-control,
-	// else a fresh box aborts on "Workspace not trusted" or blocks on the
-	// "Enable Remote Control? (y/n)" prompt.
-	if !strings.Contains(ep, "hasTrustDialogAccepted") {
-		t.Errorf("entrypoint missing workspace-trust accept: %q", ep)
-	}
-	if !strings.Contains(ep, "remoteDialogSeen") {
-		t.Errorf("entrypoint missing remote-control dialog accept: %q", ep)
-	}
+	// The two post-login gates (workspace trust and "Enable Remote Control?") are
+	// pre-answered by the injected ~/.claude.json seed now, not the entrypoint, so
+	// the entrypoint stays node-free. See TestCreateLLMBoxInjectsClaude.
 	if !f.createConfig.Tty || !f.createConfig.OpenStdin {
 		t.Error("box needs Tty and OpenStdin")
 	}
@@ -653,7 +674,7 @@ func TestSetupBoxNetworkConnectsPeers(t *testing.T) {
 		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
 		attachConn: managerEnd,
 	}
-	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"peer-svc"}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: testClaudeBin, peers: []string{"peer-svc"}}
 	go func() { _, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\n")) }()
 
 	id, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
@@ -686,7 +707,7 @@ func TestDestroyRemovesBoxNetwork(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{
 		{ID: "abcdef0123456789", Names: []string{"/llmbox-pending-abcdef012345"}},
 	}}
-	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"peer-svc"}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: testClaudeBin, peers: []string{"peer-svc"}}
 	if err := m.Destroy(context.Background(), "abcdef012345"); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
@@ -778,6 +799,99 @@ func TestCreateLLMBoxInjectsFiles(t *testing.T) {
 	}
 	if file.hdr.Uid != 1000 || file.hdr.Gid != 1000 {
 		t.Errorf("token owner = %d:%d, want 1000:1000", file.hdr.Uid, file.hdr.Gid)
+	}
+}
+
+// TestCreateLLMBoxInjectsClaude checks the standalone Claude binary and the
+// ~/.claude.json seed are injected into every box, and that the box is forced to
+// run as root with a fixed HOME/WorkingDir.
+func TestCreateLLMBoxInjectsClaude(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn: managerEnd,
+	}
+	m := newTestManager(f)
+
+	go func() {
+		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
+	}()
+
+	if _, _, err := m.CreateLLMBox(context.Background(), CreateOptions{}); err != nil {
+		t.Fatalf("CreateLLMBox: %v", err)
+	}
+
+	// Box runs as root with a deterministic HOME/WorkingDir.
+	if f.createConfig.User != "0:0" {
+		t.Errorf("user = %q, want 0:0", f.createConfig.User)
+	}
+	if f.createConfig.WorkingDir != boxWorkdir {
+		t.Errorf("workdir = %q, want %q", f.createConfig.WorkingDir, boxWorkdir)
+	}
+	if !slicesContains(f.createConfig.Env, "HOME="+boxHome) {
+		t.Errorf("env missing HOME=%s: %v", boxHome, f.createConfig.Env)
+	}
+	// Entrypoint is node-free (the seed file answers the gates, not a node step).
+	ep := strings.Join(f.createConfig.Entrypoint, " ")
+	if strings.Contains(ep, "node ") {
+		t.Errorf("entrypoint should not use node: %q", ep)
+	}
+
+	if len(f.copyToCalls) != 1 {
+		t.Fatalf("want 1 CopyToContainer call, got %d", len(f.copyToCalls))
+	}
+	entries := tarEntries(t, f.copyToCalls[0].archive)
+
+	// The Claude binary lands on PATH, executable, owned by root.
+	bin, ok := entries[strings.TrimPrefix(claudeBinTarget, "/")]
+	if !ok {
+		t.Fatalf("claude binary not in archive: %v keys", entries)
+	}
+	if !bytes.Equal(bin.body, testClaudeBinContent) {
+		t.Errorf("claude binary content mismatch")
+	}
+	if bin.hdr.Mode != 0o755 {
+		t.Errorf("claude binary mode = %o, want 0755", bin.hdr.Mode)
+	}
+	if bin.hdr.Uid != 0 || bin.hdr.Gid != 0 {
+		t.Errorf("claude binary owner = %d:%d, want 0:0", bin.hdr.Uid, bin.hdr.Gid)
+	}
+
+	// The ~/.claude.json seed pre-answers the trust and remote-control gates.
+	seed, ok := entries[strings.TrimPrefix(boxHome, "/")+"/.claude.json"]
+	if !ok {
+		t.Fatalf("claude config seed not in archive: %v keys", entries)
+	}
+	body := string(seed.body)
+	for _, want := range []string{"hasTrustDialogAccepted", "remoteDialogSeen", boxWorkdir} {
+		if !strings.Contains(body, want) {
+			t.Errorf("seed missing %q: %s", want, body)
+		}
+	}
+}
+
+// slicesContains reports whether s contains v.
+func slicesContains(s []string, v string) bool {
+	for _, x := range s {
+		if x == v {
+			return true
+		}
+	}
+	return false
+}
+
+// TestCreateLLMBoxMissingClaudeBinary checks create fails cleanly, without making
+// a container, when the Claude binary to inject cannot be read.
+func TestCreateLLMBoxMissingClaudeBinary(t *testing.T) {
+	f := &fakeDocker{createResp: container.CreateResponse{ID: "doomed0000000000"}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: filepath.Join(t.TempDir(), "does-not-exist")}
+
+	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
+	if err == nil {
+		t.Fatal("expected an error when the claude binary is unreadable")
+	}
+	if f.createCalls != 0 {
+		t.Errorf("no container should be created on a bad binary path, got %d creates", f.createCalls)
 	}
 }
 

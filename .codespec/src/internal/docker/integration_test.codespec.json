@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "TestCreateLLMBoxIntegration",
+			"documentation_hash": "05862c0ad028d9cc16f656c9dbaed51b241c71d810d14e8ce28326d868e7b6c6",
+			"definition_hash": "39b607c653611bcf8150fd122a2f36ca7bb033e17cf5c137e13c068096b3125d",
+			"reviewed_at": "2026-06-18T15:05:44.177372828Z"
+		}
+	]
+}

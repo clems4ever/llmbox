@@ -1,0 +1,169 @@
+{
+	"functions": [
+		{
+			"function_name": "NewManager",
+			"documentation_hash": "48d57e601a32eb19fed9e705dacf93c5144202fdfafb853cd5337fd06f96b205",
+			"definition_hash": "c3640bbebf3765e372f91bc15f67fc74da03fa0a4a4a213d8214843231e528b6",
+			"reviewed_at": "2026-06-18T15:05:52.373905273Z"
+		},
+		{
+			"function_name": "loadClaudeBinary",
+			"receiver": "Manager",
+			"documentation_hash": "76404425879626eb2b799eedb10b4010009f15abe8eacb21d1020f1acca88c2b",
+			"definition_hash": "d5597807b20f2b02759593aa07486b4c8b75c320d789b39dfe6971b966f89edc",
+			"reviewed_at": "2026-06-18T15:05:52.378808064Z"
+		},
+		{
+			"function_name": "claudeConfigSeed",
+			"documentation_hash": "0d684621d92b2367adb14b6aecd9a6073cf419d5fc859d63f65cd5b6d8d54c30",
+			"definition_hash": "ca55c8da7d89ac98af5cc8b059aef98d4d0f34f7a75c3b4115b70c8eb536fcfe",
+			"reviewed_at": "2026-06-18T15:05:52.383503567Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "Manager",
+			"documentation_hash": "a836c30d6122ffd85e24e3bf9dbab84249fdfa3370978ad1f9afbc0d634ade95",
+			"definition_hash": "4a29274f58bdcfb4529b9eb67a42c15d57f8b92c9647871c64a74d0020d18570",
+			"reviewed_at": "2026-06-18T15:05:52.390259649Z"
+		},
+		{
+			"function_name": "managedFilter",
+			"documentation_hash": "d92b92963e104f460745196fe66c9cb2192ecccea24f9552a2fc7c47d98010bf",
+			"definition_hash": "e8753d6713886e54093eff0b9e15d172cac988b2c1d10ce8ee5d73d9e9c85a06",
+			"reviewed_at": "2026-06-18T15:05:52.393662163Z"
+		},
+		{
+			"function_name": "phaseOf",
+			"documentation_hash": "eaacfaef1fb0b29d4aac75fdea4916b19241afaf6d415075ac523d2db44925de",
+			"definition_hash": "014b6324e33328153513d7f613dc451253b2e97818cfe993c9ccbf25fe1351b2",
+			"reviewed_at": "2026-06-18T15:05:52.39693957Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "Manager",
+			"documentation_hash": "70c9af14d1e72f997cdac3bfd5fa4191ffa08f8af2cc693d2243a42fdc089d7b",
+			"definition_hash": "91a3780fd63a56b0d2351cd8a20673e66fb2960ac6c7dd12e9240ee13b2b38c8",
+			"reviewed_at": "2026-06-18T15:05:52.400638811Z"
+		},
+		{
+			"function_name": "CreateLLMBox",
+			"receiver": "Manager",
+			"documentation_hash": "40328b642279c0646494cfbb3dc5fd0e38387fb9944cdf1d2f6a271ce87058d9",
+			"definition_hash": "cad07e463478b53a7a09617f4ce37481089124cd6d91392cd34cf5f3ee4b2214",
+			"reviewed_at": "2026-06-18T15:05:52.404723489Z"
+		},
+		{
+			"function_name": "injectFiles",
+			"receiver": "Manager",
+			"documentation_hash": "a84a3e3dfff0b524fc7f5115744fb4607512976bb65572a3c64dfa51e662b444",
+			"definition_hash": "18d4fe121ba8aa1897c6fdaf1fe524c5b2b0b484efb50c2eb7878f01389461f4",
+			"reviewed_at": "2026-06-18T15:05:52.40846912Z"
+		},
+		{
+			"function_name": "tarFiles",
+			"documentation_hash": "75a9545dbbcf3e3035616a9a51d795323b06746a3ba526d3f5221cd39eacb72a",
+			"definition_hash": "ff495aa30f5cf8ca981451e323e7d94d9af0326b7fa918a7652acc60f7010959",
+			"reviewed_at": "2026-06-18T15:05:52.413220202Z"
+		},
+		{
+			"function_name": "pullImage",
+			"receiver": "Manager",
+			"documentation_hash": "45e13900a25eb7c26ab5070f488785a54b9488afc594c7dda9ccd69018fc49c7",
+			"definition_hash": "7535c8eaa0c9a8597047483255fde7834b720b7ab6a84fbcd1ea2ac5302a25ea",
+			"reviewed_at": "2026-06-18T15:05:52.416898957Z"
+		},
+		{
+			"function_name": "readAuthorizeURL",
+			"receiver": "Manager",
+			"documentation_hash": "72a9df45909f81f11d213b7472a4909fb25816a34163e341f65d707a5f35199a",
+			"definition_hash": "dcef2237eebaf393ce9b5a9224b55e41fea46e1dd94097c15acc0a192b8a2451",
+			"reviewed_at": "2026-06-18T15:05:52.422248794Z"
+		},
+		{
+			"function_name": "SubmitCode",
+			"receiver": "Manager",
+			"documentation_hash": "535f111454bcb6e419477e161d7bd1a2d2a3f3891195f78166b084121babc9c2",
+			"definition_hash": "f7b24fbc895b0edc28d144b2c4e500ebd7db6f9f3b1af1218fc6e1787917df6a",
+			"reviewed_at": "2026-06-18T15:05:52.425317928Z"
+		},
+		{
+			"function_name": "boxNetworkName",
+			"documentation_hash": "b9651c47f15937b20d01330cae48eeea9546127840a7e3b58bf23f565990c1dc",
+			"definition_hash": "85b0424b05382023b765783df613bb336025b75828e71f11d0b6261b6f419e37",
+			"reviewed_at": "2026-06-18T15:05:52.428389229Z"
+		},
+		{
+			"function_name": "setupBoxNetwork",
+			"receiver": "Manager",
+			"documentation_hash": "a640ca96f4785a32e8c1cd8b03664c4dcb86f1ee4ede30542f127cdc281b09e2",
+			"definition_hash": "d0f9b0f7f6102feed1aafddd5217f1394a11d1512a4769b5521c7a11fc2e3aad",
+			"reviewed_at": "2026-06-18T15:05:52.433191911Z"
+		},
+		{
+			"function_name": "removeBoxNetwork",
+			"receiver": "Manager",
+			"documentation_hash": "77b91fe7089c83b3ce30e997a3e37dcaecb9825986df7d68d494b832e4892653",
+			"definition_hash": "06cf8c1a7ba49caa300ff692eeb8e3bf66d36fc30e8860636cf4217367fb00d5",
+			"reviewed_at": "2026-06-18T15:05:52.437430524Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "Manager",
+			"documentation_hash": "85cdd0eb6918823e77cfa5948957fe45d9581df1f812aa20e491b752a9bf5405",
+			"definition_hash": "586501f545e1ea20fa010b650417f607f55f6011c989c04e3d0af3748f0b2d67",
+			"reviewed_at": "2026-06-18T15:05:52.443107128Z"
+		},
+		{
+			"function_name": "Logs",
+			"receiver": "Manager",
+			"documentation_hash": "3e8842b9434e2c9be0f6454f0d6771092c33fa84bb2eebf55729f8ffece468f1",
+			"definition_hash": "0411647f9be648ffd6d214cfca7721f326ed6548733c5ac71af7f2bca1fc24c4",
+			"reviewed_at": "2026-06-18T15:05:52.447848099Z"
+		},
+		{
+			"function_name": "Exec",
+			"receiver": "Manager",
+			"documentation_hash": "afbcabad0aeccdf9311aeca9c3266eb6cad992bfbbae03c5ed19578025aa2ca3",
+			"definition_hash": "a93d61b38b608e091b64a82522e66323000f7729e4a5d616f1c529225c0af112",
+			"reviewed_at": "2026-06-18T15:05:52.450056205Z"
+		},
+		{
+			"function_name": "capOutput",
+			"documentation_hash": "a61f5e1143f29dac976d44cf2f9f4a50a4341232fb914c79eab6b594a6e63ff8",
+			"definition_hash": "69918fe31e8d9f19d2f4f5414ed1e13b672cb4d8b2c2e8babe76a5b23b864798",
+			"reviewed_at": "2026-06-18T15:05:52.452700617Z"
+		},
+		{
+			"function_name": "ReapOrphans",
+			"receiver": "Manager",
+			"documentation_hash": "d8f8b6b0264c1b00cf39f2e4ba29ec74b601c52e4f6322eae29938e56ca807ed",
+			"definition_hash": "412fab576ef2e0510b1b061a1b4008a117266e663c04e047f73ea0c84bf9bc2a",
+			"reviewed_at": "2026-06-18T15:05:52.454318981Z"
+		},
+		{
+			"function_name": "findManaged",
+			"receiver": "Manager",
+			"documentation_hash": "9f80e1649517a015e9a29763ea3ade2ed22549008f4ec4f3d44e61c990c28fd0",
+			"definition_hash": "e5e8f0f3b3c93d92a5a87f758d26475bdd0d6fc1fb6c224acb9228048492dcaf",
+			"reviewed_at": "2026-06-18T15:05:52.455652488Z"
+		},
+		{
+			"function_name": "scanFor",
+			"documentation_hash": "24102b3d88d12cf6705de7e73f8e8a6fafe88f760e289d0a239f89f6334395e3",
+			"definition_hash": "7de38ac8d2b9e916a3e8904d81ae7fd9c59d8a255ac63bbbe6fb0c626e199e35",
+			"reviewed_at": "2026-06-18T15:05:52.457286849Z"
+		},
+		{
+			"function_name": "lastLines",
+			"documentation_hash": "0f2d652e1ac6a6a7e7bef96ed0821261e9896bc092520bc6f42296e51f9ba94f",
+			"definition_hash": "e026ccbb1131a399165d2536fb329593c0452717ed2dfc72a9402287abb1c2ee",
+			"reviewed_at": "2026-06-18T15:05:52.459062802Z"
+		},
+		{
+			"function_name": "stripANSI",
+			"documentation_hash": "2e9bbd64368a02839d3c2d89645aa63691330a32c54e8ee5d9b6e19b9376d027",
+			"definition_hash": "1b1685277e533ad562417dc7817dc24e48ffd7907af7eb52c03eff948aef3feb",
+			"reviewed_at": "2026-06-18T15:05:52.461289154Z"
+		}
+	]
+}

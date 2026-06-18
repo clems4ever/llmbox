@@ -184,9 +184,9 @@
 		},
 		{
 			"function_name": "newTestManager",
-			"documentation_hash": "a4d6a38c3561efc6ecdc0e025e39b7a7c8e8216ba21f673a27dfb5437bbf5e26",
-			"definition_hash": "0b077f30bd9a1ec7932676ffc88c9906c92b1c9e9f606125387aa66cfdc87d2f",
-			"reviewed_at": "2026-06-18T13:14:37.899024261Z"
+			"documentation_hash": "be46a4373e35a73f30cf98ab36fad37ad20c5e050d9af9f9991f64e2dc4735a8",
+			"definition_hash": "a91ecba5be298691dda857a8287cf6e1b28543a47f9318d9635ec8546af43734",
+			"reviewed_at": "2026-06-18T15:04:15.849644824Z"
 		},
 		{
 			"function_name": "TestListMapsPhaseFromName",
@@ -197,8 +197,8 @@
 		{
 			"function_name": "TestCreateLLMBoxCapturesURL",
 			"documentation_hash": "66623673f19e5424e15d1a3962738549df2a483c6b2d385b3a0fc025b8610105",
-			"definition_hash": "e61b6de40f3392e8526c94c74466769b741b72bd082f4c892884be4733c645c7",
-			"reviewed_at": "2026-06-18T13:14:37.901927888Z"
+			"definition_hash": "30348736732d58692b9f7d700217ddde6a932cca791165531a5258f72a3e9cdc",
+			"reviewed_at": "2026-06-18T15:04:15.856388082Z"
 		},
 		{
 			"function_name": "TestCreateLLMBoxCleansUpOnStartFailure",
@@ -299,14 +299,14 @@
 		{
 			"function_name": "TestSetupBoxNetworkConnectsPeers",
 			"documentation_hash": "eb2991a05e25756ab3d21af3bc1126c8c96fbc7da8dc187174c5dc9e3c06ec4f",
-			"definition_hash": "817581287beb736e27796c86b5a021ef5e042383bc023f5b16864d011ddf1480",
-			"reviewed_at": "2026-06-18T13:14:40.459623303Z"
+			"definition_hash": "f0f7641c5a1280afb71e23d8933ebce51e89c0510c7bedc9c522001bb5ed014b",
+			"reviewed_at": "2026-06-18T15:04:15.864134388Z"
 		},
 		{
 			"function_name": "TestDestroyRemovesBoxNetwork",
 			"documentation_hash": "b07e27c71e3f7035f299b7d9d02d5eddb501663a5270872f599b6e3fe75ff5ea",
-			"definition_hash": "93c0e9dc624b5f8dffb0e99d5bddcc2456f396026716da1a6e635ef4538b0a01",
-			"reviewed_at": "2026-06-18T13:14:40.461213062Z"
+			"definition_hash": "53d36f759a178a6dc7457badc32a5fdb92e53143eea09d898bc0ddaa1e950f7b",
+			"reviewed_at": "2026-06-18T15:04:15.870362554Z"
 		},
 		{
 			"function_name": "TestStripANSI",
@@ -331,6 +331,30 @@
 			"documentation_hash": "10ea61a06166bbe3a94299609e1166f234d2b076550789367c9e72e3e23b5312",
 			"definition_hash": "d84270e995d204164fb62a5d79c88321d7af9c5d5ffffc6e51c02953141fe096",
 			"reviewed_at": "2026-06-18T13:14:41.299917992Z"
+		},
+		{
+			"function_name": "TestMain",
+			"documentation_hash": "da16935fbd4c36cde88a4755a0ea0caa2bab7a0043be80349a33c6db783ff161",
+			"definition_hash": "06872e08df8e52e19acf911dff84af63cc73cfc83064eed76617be5389ef2011",
+			"reviewed_at": "2026-06-18T15:04:15.84131089Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxInjectsClaude",
+			"documentation_hash": "861fb75dfeb01c54e0c71a6a1ff711e89573077618fc235e9dd2658c8b681ec7",
+			"definition_hash": "8f449559c259cc2186d1ef05e7128369c6f0bb7d2aaa8759c1c2633981ca8850",
+			"reviewed_at": "2026-06-18T15:04:15.876730565Z"
+		},
+		{
+			"function_name": "slicesContains",
+			"documentation_hash": "c9fefd6276dc52d23f4f781754daa9997877b7ca2cd25f9c2909bc62de9edad9",
+			"definition_hash": "fdcf3e2bcac10804152341fa257eda82e17cc84ef11b7217cac02f616d0448e9",
+			"reviewed_at": "2026-06-18T15:04:15.88667718Z"
+		},
+		{
+			"function_name": "TestCreateLLMBoxMissingClaudeBinary",
+			"documentation_hash": "6585a2fe44a68e11fc9817f691b35ab2ca87b0519ee654418db121d001bd6e24",
+			"definition_hash": "46c5a583de5ba0f6586b373d92b860f9e77d5817b8ce6a638df4b940424273c6",
+			"reviewed_at": "2026-06-18T15:04:15.894931062Z"
 		}
 	]
 }

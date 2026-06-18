@@ -4,22 +4,32 @@ package docker
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
 )
 
-// TestCreateLLMBoxIntegration drives a real container: it creates a box from the
-// configured image and verifies that a genuine OAuth authorize URL is captured
-// from the live `claude auth login` flow. It then destroys the box.
+// TestCreateLLMBoxIntegration drives a real container: it creates a box from a
+// plain glibc image with the standalone Claude binary injected, and verifies
+// that a genuine OAuth authorize URL is captured from the live `claude auth
+// login` flow. It then destroys the box.
 //
-// Run with a built claude image:
+// Set LLMBOX_IT_IMAGE to override the base image and LLMBOX_IT_CLAUDE_BIN to
+// point at a Claude binary on the test host:
 //
-//	LLMBOX_IT_IMAGE=claude-remote:test go test -tags=integration -run Integration -v ./internal/docker/
+//	LLMBOX_IT_CLAUDE_BIN=$HOME/.local/bin/claude go test -tags=integration -run Integration -v ./internal/docker/
 func TestCreateLLMBoxIntegration(t *testing.T) {
-	image := "claude-remote:test"
+	image := os.Getenv("LLMBOX_IT_IMAGE")
+	if image == "" {
+		image = "debian:bookworm-slim"
+	}
+	claudeBin := os.Getenv("LLMBOX_IT_CLAUDE_BIN")
+	if claudeBin == "" {
+		t.Skip("set LLMBOX_IT_CLAUDE_BIN to the path of a standalone Claude binary to run this test")
+	}
 
-	m, err := NewManager(image, "", nil)
+	m, err := NewManager(image, "", claudeBin, nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}

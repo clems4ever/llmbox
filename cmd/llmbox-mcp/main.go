@@ -13,7 +13,8 @@
 //
 //	LLMBOX_HTTP_ADDR          listen address (default ":8080")
 //	LLMBOX_PUBLIC_URL         external base URL for auth links (default "http://localhost:8080")
-//	LLMBOX_CLAUDE_IMAGE       image launched for each box (default "claude-remote")
+//	LLMBOX_CLAUDE_IMAGE       base image launched for each box (default "debian:bookworm-slim"); any glibc image works — Claude is injected, not baked in
+//	LLMBOX_CLAUDE_BIN         path to the standalone Claude binary injected into each box (default "/opt/llmbox/claude")
 //	LLMBOX_REMOTE_ARGS        args passed to `claude remote-control` (default "--spawn same-dir")
 //	LLMBOX_AUTH_TTL_SECONDS   how long a box may stay un-authenticated (default 300)
 //	LLMBOX_STATE_FILE         bbolt file persisting the session registry (default "llmbox-sessions.db")
@@ -75,7 +76,7 @@ func run() error {
 	stateFile := envOr("LLMBOX_STATE_FILE", "llmbox-sessions.db")
 
 	peers := splitCommaList(os.Getenv("LLMBOX_BOX_PEERS"))
-	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"), peers)
+	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"), os.Getenv("LLMBOX_CLAUDE_BIN"), peers)
 	if err != nil {
 		return err
 	}
@@ -197,7 +198,7 @@ func splitCommaList(spec string) []string {
 // @testcase TestSplitLists exercises splitAndTrim via the two list helpers.
 func splitAndTrim(spec, sep string) []string {
 	var out []string
-	for _, p := range strings.Split(spec, sep) {
+	for p := range strings.SplitSeq(spec, sep) {
 		if p = strings.TrimSpace(p); p != "" {
 			out = append(out, p)
 		}
