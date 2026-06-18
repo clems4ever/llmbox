@@ -350,6 +350,7 @@ make run CONFIG=llmbox.yaml   # run the server against a config file
 make check              # gofmt-check + go vet + unit tests
 make cover              # unit tests with a coverage total
 make test-integration   # integration tests (needs Docker + a Claude binary)
+make test-e2e           # end-to-end workflow test (needs Chrome + chromedriver)
 make docker-build       # build the Docker image
 ```
 
@@ -357,6 +358,10 @@ make docker-build       # build the Docker image
 
 `.github/workflows/ci.yml` runs `go vet` and the unit-test suite with coverage on
 every push and pull request, publishing the coverage badge (see [Configuration](#configuration)).
+It also runs the end-to-end workflow test in a separate `e2e` job (headless
+Chrome via WebDriver), kept apart from the fast unit suite so developers can run
+either independently — `make test` for the unit tests, `make test-e2e` for the
+workflow test.
 `.github/workflows/docker.yml` builds the server image and pushes it to GitHub
 Container Registry (`ghcr.io/<owner>/llmbox`) on pushes to `main` and version
 tags. Pull requests build without pushing.
@@ -381,6 +386,24 @@ go test -tags=integration -run Integration -v ./internal/docker/
 
 It confirms a live `claude auth login` emits a real OAuth authorize URL (PKCE +
 out-of-band code callback) that the manager captures.
+
+An **end-to-end workflow test** lives under [`e2e/`](e2e/) behind the `e2e` build
+tag. It runs the real server (MCP tools + the auth web UI) on a real HTTP
+listener and exercises the whole activation flow — chatbot creates a box over
+MCP, a human opens the auth page, "signs in with Claude", approves access,
+copies the one-time code, pastes it in, and the box goes ready — driving the
+chatbot side over a real MCP client and the human side through a real headless
+Chrome via [WebDriver](https://github.com/tebeka/selenium). Only the two external
+dependencies are simulated: the Docker box layer (an in-memory box manager) and
+the Anthropic OAuth platform (an in-process consent server). It also asserts the
+core security property: the OAuth URL and code never appear in any MCP output.
+
+```bash
+make test-e2e            # or: go test -tags e2e ./e2e/...
+```
+
+It skips gracefully when no `chromedriver` is on the host (or `$CHROMEWEBDRIVER`),
+so the default `go test ./...` unit run is unaffected and stays fast.
 
 ## Status / caveats
 
