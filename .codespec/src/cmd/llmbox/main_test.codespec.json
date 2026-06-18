@@ -11,6 +11,12 @@
 			"documentation_hash": "8d718062cc597eab5bcb131ef6eae9cdd6dc0e6e7711e89581e01edfbd975f68",
 			"definition_hash": "cbdf4a432789d6f5995c9def689d32892c26e1c72f5e1428df236e3c96ea5b4c",
 			"reviewed_at": "2026-06-18T13:14:36.655836898Z"
+		},
+		{
+			"function_name": "TestNewRootCmd",
+			"documentation_hash": "b4fc5699362d72062293e388e08ac28e4f1287560291a301a8bb584d2ec2aa0d",
+			"definition_hash": "4e73b8baf4920b7f853dd117d1d036e7939680e6b073c14b8dec231eaab08e0e",
+			"reviewed_at": "2026-06-18T16:24:03.39924268Z"
 		}
 	]
 }

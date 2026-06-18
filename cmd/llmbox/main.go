@@ -34,6 +34,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -43,6 +44,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
@@ -54,22 +57,56 @@ const (
 	version = "v0.1.0"
 )
 
-// main runs the server and exits non-zero on a fatal error.
+// main executes the root command and exits non-zero on a fatal error.
 //
 // @testcase TestEnvHelpers covers the configuration helpers main relies on.
 func main() {
-	if err := run(); err != nil {
-		log.Fatalf("%s: %v", name, err)
+	if err := newRootCmd().Execute(); err != nil {
+		os.Exit(1)
 	}
+}
+
+// newRootCmd builds the Cobra command tree: the root command runs the server,
+// and a "version" subcommand prints the build version. Configuration is still
+// taken from the LLMBOX_* environment variables documented in the package
+// comment.
+//
+// @return *cobra.Command The configured root command, ready to Execute.
+//
+// @testcase TestNewRootCmd checks the command wiring (use, subcommands).
+func newRootCmd() *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:           name,
+		Short:         "Run the llmbox MCP server that manages sandboxed Claude containers",
+		Version:       version,
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return run(cmd.Context())
+		},
+	}
+
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the llmbox version",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, _ []string) {
+			fmt.Fprintf(cmd.OutOrStdout(), "%s %s\n", name, version)
+		},
+	}
+	rootCmd.AddCommand(versionCmd)
+
+	return rootCmd
 }
 
 // run wires up the Docker manager, session store, and HTTP server, then serves
 // until interrupted.
 //
+// @arg parent Base context; serving stops when it (or a SIGINT/SIGTERM) fires.
 // @error error if configuration, the store, or the HTTP server fails.
 //
 // @testcase TestEnvHelpers covers the configuration helpers run relies on.
-func run() error {
+func run(parent context.Context) error {
 	addr := envOr("LLMBOX_HTTP_ADDR", ":8080")
 	publicURL := envOr("LLMBOX_PUBLIC_URL", "http://localhost:8080")
 	authTTL := time.Duration(envInt("LLMBOX_AUTH_TTL_SECONDS", 300)) * time.Second
@@ -107,8 +144,8 @@ func run() error {
 		WriteTimeout:      90 * time.Second,
 	}
 
-	// Cancel background work on signal.
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	// Cancel background work on signal (or when the parent context fires).
+	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// Reload sessions saved before a restart, dropping any whose box is gone.
