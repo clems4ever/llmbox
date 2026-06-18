@@ -19,6 +19,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/pkg/stdcopy"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -45,6 +46,13 @@ type fakeDocker struct {
 	logsBody string // raw bytes ContainerLogs hands back
 	logsErr  error
 	logsTail string // Tail option recorded from the last ContainerLogs call
+
+	execStream     []byte // stdcopy-multiplexed bytes ContainerExecAttach replays
+	execExitCode   int    // exit code ContainerExecInspect reports
+	execCreateErr  error
+	execAttachErr  error
+	execInspectErr error
+	gotExecCmd     []string // Cmd recorded from the last ContainerExecCreate call
 
 	// createNotFoundUntilPull makes ContainerCreate return an image-not-found
 	// error until ImagePull has been called, simulating a missing local image.
@@ -185,8 +193,45 @@ func (f *fakeDocker) ContainerLogs(_ context.Context, _ string, opts container.L
 	return io.NopCloser(strings.NewReader(f.logsBody)), nil
 }
 
+// ContainerExecCreate records the requested command and returns a canned exec ID.
+func (f *fakeDocker) ContainerExecCreate(_ context.Context, _ string, opts container.ExecOptions) (container.ExecCreateResponse, error) {
+	if f.execCreateErr != nil {
+		return container.ExecCreateResponse{}, f.execCreateErr
+	}
+	f.gotExecCmd = opts.Cmd
+	return container.ExecCreateResponse{ID: "exec-1"}, nil
+}
+
+// ContainerExecAttach replays the canned multiplexed stream as the exec output.
+func (f *fakeDocker) ContainerExecAttach(_ context.Context, _ string, _ container.ExecAttachOptions) (types.HijackedResponse, error) {
+	if f.execAttachErr != nil {
+		return types.HijackedResponse{}, f.execAttachErr
+	}
+	return types.NewHijackedResponse(readConn{bytes.NewReader(f.execStream)}, ""), nil
+}
+
+// ContainerExecInspect returns the canned exit code (or error).
+func (f *fakeDocker) ContainerExecInspect(_ context.Context, _ string) (container.ExecInspect, error) {
+	if f.execInspectErr != nil {
+		return container.ExecInspect{}, f.execInspectErr
+	}
+	return container.ExecInspect{ExitCode: f.execExitCode}, nil
+}
+
 // Close satisfies the dockerAPI interface; the fake holds no resources.
 func (f *fakeDocker) Close() error { return nil }
+
+// readConn adapts an io.Reader to a net.Conn so it can back a HijackedResponse:
+// reads come from the reader, writes are discarded, and the rest are no-ops.
+type readConn struct{ io.Reader }
+
+func (readConn) Write(p []byte) (int, error)      { return len(p), nil }
+func (readConn) Close() error                     { return nil }
+func (readConn) LocalAddr() net.Addr              { return nil }
+func (readConn) RemoteAddr() net.Addr             { return nil }
+func (readConn) SetDeadline(time.Time) error      { return nil }
+func (readConn) SetReadDeadline(time.Time) error  { return nil }
+func (readConn) SetWriteDeadline(time.Time) error { return nil }
 
 // newTestManager builds a Manager backed by the given fake Docker client.
 func newTestManager(f *fakeDocker) *Manager {
@@ -515,6 +560,74 @@ func TestLogsDefaultsTail(t *testing.T) {
 func TestLogsUnknownBox(t *testing.T) {
 	m := newTestManager(&fakeDocker{})
 	if _, err := m.Logs(context.Background(), "missing", 10); err == nil {
+		t.Fatal("expected error for unknown box")
+	}
+}
+
+// muxStream builds a stdcopy-multiplexed stream carrying the given stdout and
+// stderr payloads, as Docker's exec attach endpoint returns for a non-TTY exec.
+func muxStream(t *testing.T, stdout, stderr string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	if stdout != "" {
+		if _, err := stdcopy.NewStdWriter(&buf, stdcopy.Stdout).Write([]byte(stdout)); err != nil {
+			t.Fatalf("writing stdout frame: %v", err)
+		}
+	}
+	if stderr != "" {
+		if _, err := stdcopy.NewStdWriter(&buf, stdcopy.Stderr).Write([]byte(stderr)); err != nil {
+			t.Fatalf("writing stderr frame: %v", err)
+		}
+	}
+	return buf.Bytes()
+}
+
+// TestExecCapturesOutput checks Exec resolves a box, forwards the command, and
+// returns its demultiplexed stdout, stderr, and exit code.
+func TestExecCapturesOutput(t *testing.T) {
+	f := &fakeDocker{
+		listResult:   []container.Summary{{ID: "abcdef0123456789", Names: []string{"/llmbox-abcdef012345"}}},
+		execStream:   muxStream(t, "hello\n", "oops\n"),
+		execExitCode: 3,
+	}
+	m := newTestManager(f)
+	cmd := []string{"/bin/sh", "-c", "echo hello"}
+	res, err := m.Exec(context.Background(), "abcdef012345", cmd)
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+	if res.Stdout != "hello\n" || res.Stderr != "oops\n" || res.ExitCode != 3 {
+		t.Errorf("unexpected result: %+v", res)
+	}
+	if !reflect.DeepEqual(f.gotExecCmd, cmd) {
+		t.Errorf("manager ran cmd %v, want %v", f.gotExecCmd, cmd)
+	}
+}
+
+// TestExecCapsOutput checks output past the cap is truncated and marked.
+func TestExecCapsOutput(t *testing.T) {
+	big := strings.Repeat("a", maxExecOutput+1000)
+	f := &fakeDocker{
+		listResult: []container.Summary{{ID: "abcdef0123456789", Names: []string{"/llmbox-abcdef012345"}}},
+		execStream: muxStream(t, big, ""),
+	}
+	m := newTestManager(f)
+	res, err := m.Exec(context.Background(), "abcdef012345", []string{"/bin/sh", "-c", "yes"})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+	if !strings.HasSuffix(res.Stdout, "[output truncated]") {
+		t.Errorf("expected truncation marker, got %d bytes ending %q", len(res.Stdout), res.Stdout[len(res.Stdout)-20:])
+	}
+	if len(res.Stdout) > maxExecOutput+len("\n... [output truncated]") {
+		t.Errorf("output not capped: %d bytes", len(res.Stdout))
+	}
+}
+
+// TestExecUnknownBox checks Exec errors when no managed box matches.
+func TestExecUnknownBox(t *testing.T) {
+	m := newTestManager(&fakeDocker{})
+	if _, err := m.Exec(context.Background(), "missing", []string{"true"}); err == nil {
 		t.Fatal("expected error for unknown box")
 	}
 }

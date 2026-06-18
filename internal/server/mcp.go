@@ -47,6 +47,11 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 		Description: "Read the recent console output (logs) of an llmbox by its hostname (the one given to create_llmbox). Optionally limit the number of trailing lines with 'tail'.",
 	}, s.toolLogs)
 
+	mcp.AddTool(srv, &mcp.Tool{
+		Name:        "exec_llmbox",
+		Description: "Run a shell command inside an llmbox by its hostname (the one given to create_llmbox). The command runs via /bin/sh -c; returns its stdout, stderr, and exit code.",
+	}, s.toolExec)
+
 	return srv
 }
 
@@ -220,4 +225,43 @@ func (s *Server) toolLogs(ctx context.Context, _ *mcp.CallToolRequest, in logsIn
 		return nil, logsOutput{}, err
 	}
 	return nil, logsOutput{Hostname: in.Hostname, Logs: logs}, nil
+}
+
+type execInput struct {
+	Hostname string `json:"hostname" jsonschema:"the hostname of the box (the one passed to create_llmbox)"`
+	Command  string `json:"command" jsonschema:"the shell command line to run inside the box; executed with /bin/sh -c"`
+}
+
+type execOutput struct {
+	Hostname string `json:"hostname" jsonschema:"the hostname of the box the command ran in"`
+	Stdout   string `json:"stdout" jsonschema:"the command's standard output"`
+	Stderr   string `json:"stderr" jsonschema:"the command's standard error"`
+	ExitCode int    `json:"exit_code" jsonschema:"the command's exit code (0 means success)"`
+}
+
+// toolExec handles the exec_llmbox tool: it looks up a box's session by hostname
+// and runs the given shell command inside it, returning the captured output.
+//
+// @arg ctx Context for the exec request.
+// @arg _ The MCP call request (unused).
+// @arg in The exec input carrying the box hostname and the command to run.
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return execOutput The box hostname plus the command's stdout, stderr, and exit code.
+// @error error if no hostname or command is given, no box has that hostname, or the command cannot be run.
+//
+// @testcase TestBoxExecByHostname runs a command in a box looked up by hostname.
+func (s *Server) toolExec(ctx context.Context, _ *mcp.CallToolRequest, in execInput) (*mcp.CallToolResult, execOutput, error) {
+	if in.Hostname == "" {
+		return nil, execOutput{}, fmt.Errorf("hostname is required")
+	}
+	res, err := s.BoxExec(ctx, in.Hostname, in.Command)
+	if err != nil {
+		return nil, execOutput{}, err
+	}
+	return nil, execOutput{
+		Hostname: in.Hostname,
+		Stdout:   res.Stdout,
+		Stderr:   res.Stderr,
+		ExitCode: res.ExitCode,
+	}, nil
 }

@@ -30,6 +30,7 @@ type boxManager interface {
 	List(ctx context.Context) ([]docker.Box, error)
 	Destroy(ctx context.Context, idOrName string) error
 	Logs(ctx context.Context, idOrName string, tail int) (string, error)
+	Exec(ctx context.Context, idOrName string, cmd []string) (docker.ExecResult, error)
 	ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error)
 }
 
@@ -422,6 +423,29 @@ func (s *Server) BoxLogs(ctx context.Context, hostname string, tail int) (string
 		return "", fmt.Errorf("no box found with hostname %q (it may have expired, or was created without a hostname)", hostname)
 	}
 	return s.mgr.Logs(ctx, sess.BoxID, tail)
+}
+
+// BoxExec runs a shell command inside the box with the given hostname and returns
+// its captured output. Like get, logs, and destroy, it is keyed by the hostname
+// supplied at create time, so a box created without one is not reachable here. The
+// command is run via "/bin/sh -c" so callers can pass an ordinary shell line.
+//
+// @arg ctx Context for the exec request.
+// @arg hostname The hostname of the box to run the command in.
+// @arg command The shell command line to run inside the box.
+// @return docker.ExecResult The command's stdout, stderr, and exit code.
+// @error error if the command is empty, no box has that hostname, or the command cannot be run.
+//
+// @testcase TestBoxExecByHostname runs a command in a box looked up by hostname.
+func (s *Server) BoxExec(ctx context.Context, hostname, command string) (docker.ExecResult, error) {
+	if strings.TrimSpace(command) == "" {
+		return docker.ExecResult{}, fmt.Errorf("command is required")
+	}
+	sess := s.lookupByHostname(hostname)
+	if sess == nil {
+		return docker.ExecResult{}, fmt.Errorf("no box found with hostname %q (it may have expired, or was created without a hostname)", hostname)
+	}
+	return s.mgr.Exec(ctx, sess.BoxID, []string{"/bin/sh", "-c", command})
 }
 
 // DestroyBox destroys a box and forgets any session pointing at it.

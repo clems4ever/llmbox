@@ -38,6 +38,11 @@ type fakeMgr struct {
 	gotLogsID  string
 	gotLogsN   int
 
+	execResult docker.ExecResult
+	execErr    error
+	gotExecID  string
+	gotExecCmd []string
+
 	gotOpts docker.CreateOptions
 }
 
@@ -73,6 +78,15 @@ func (f *fakeMgr) Logs(_ context.Context, id string, tail int) (string, error) {
 	f.gotLogsN = tail
 	f.mu.Unlock()
 	return f.logsResult, f.logsErr
+}
+
+// Exec records the requested box ID and command and returns the canned result/error.
+func (f *fakeMgr) Exec(_ context.Context, id string, cmd []string) (docker.ExecResult, error) {
+	f.mu.Lock()
+	f.gotExecID = id
+	f.gotExecCmd = cmd
+	f.mu.Unlock()
+	return f.execResult, f.execErr
 }
 
 // ReapOrphans returns the canned reaped IDs.
@@ -444,6 +458,48 @@ func TestBoxLogsByHostname(t *testing.T) {
 	}
 }
 
+// TestBoxExecByHostname checks exec_llmbox resolves a box by hostname, wraps the
+// command in /bin/sh -c, returns the captured output, and errors for empty or
+// unknown hostnames and an empty command.
+func TestBoxExecByHostname(t *testing.T) {
+	f := &fakeMgr{
+		createID:   "abcdef0123456789",
+		createURL:  "u",
+		execResult: docker.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
+	}
+	s := newTestServer(f)
+	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "web-box"}); err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+
+	// Found, case-insensitive; command wrapped and box ID forwarded.
+	_, out, err := s.toolExec(context.Background(), nil, execInput{Hostname: "WEB-BOX", Command: "echo hi"})
+	if err != nil {
+		t.Fatalf("toolExec: %v", err)
+	}
+	if out.Hostname != "WEB-BOX" || out.Stdout != "hi\n" || out.ExitCode != 0 {
+		t.Errorf("unexpected exec output: %+v", out)
+	}
+	if f.gotExecID != "abcdef0123456789" {
+		t.Errorf("manager got box ID %q, want abcdef0123456789", f.gotExecID)
+	}
+	want := []string{"/bin/sh", "-c", "echo hi"}
+	if len(f.gotExecCmd) != 3 || f.gotExecCmd[0] != want[0] || f.gotExecCmd[1] != want[1] || f.gotExecCmd[2] != want[2] {
+		t.Errorf("manager ran cmd %v, want %v", f.gotExecCmd, want)
+	}
+
+	// Empty/unknown hostnames and an empty command error.
+	if _, _, err := s.toolExec(context.Background(), nil, execInput{Hostname: "", Command: "ls"}); err == nil {
+		t.Error("expected error for empty hostname")
+	}
+	if _, _, err := s.toolExec(context.Background(), nil, execInput{Hostname: "nope", Command: "ls"}); err == nil {
+		t.Error("expected error for unknown hostname")
+	}
+	if _, _, err := s.toolExec(context.Background(), nil, execInput{Hostname: "web-box", Command: "  "}); err == nil {
+		t.Error("expected error for empty command")
+	}
+}
+
 // --- MCP wiring ---
 
 // TestMCPToolsRegisteredAndCreate checks all tools are registered and create returns a safe auth URL.
@@ -460,7 +516,7 @@ func TestMCPToolsRegisteredAndCreate(t *testing.T) {
 	for _, tl := range tools.Tools {
 		names[tl.Name] = true
 	}
-	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "destroy_llmbox", "get_llmbox_logs"} {
+	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "destroy_llmbox", "get_llmbox_logs", "exec_llmbox"} {
 		if !names[want] {
 			t.Errorf("tool %q not registered (have %v)", want, names)
 		}
