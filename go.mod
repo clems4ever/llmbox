@@ -9,6 +9,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/spf13/cobra v1.10.2
 	go.etcd.io/bbolt v1.4.3
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

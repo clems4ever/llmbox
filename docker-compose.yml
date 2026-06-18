@@ -12,30 +12,16 @@ services:
     image: llmbox
     ports:
       - "8080:8080"
-    environment:
-      # MUST be the URL the user's browser can reach this server at.
-      LLMBOX_PUBLIC_URL: ${LLMBOX_PUBLIC_URL:-http://localhost:8080}
-      # Base image launched per box. Any glibc image with /bin/sh, util-linux
-      # (for `script`), and CA certificates works — Claude is injected, not baked.
-      LLMBOX_CLAUDE_IMAGE: ${LLMBOX_CLAUDE_IMAGE:-debian:bookworm-slim}
-      LLMBOX_AUTH_TTL_SECONDS: ${LLMBOX_AUTH_TTL_SECONDS:-300}
-      # bbolt file persisting the auth-session registry across restarts. Lives on
-      # the mounted volume below so sessions survive container recreation.
-      LLMBOX_STATE_FILE: /var/lib/llmbox/sessions.db
-      # Optional box lifecycle hooks. LLMBOX_HOOKS is an OS-path-list of external
-      # executables llmbox runs at box.create/box.destroy (JSON over stdin/stdout,
-      # per the hookproto contract); a hook may inject files into each box and
-      # persist opaque state. This is how integrations like granular plug in
-      # WITHOUT llmbox depending on them — see github.com/clems4ever/granular-llmbox
-      # and the README's "Box lifecycle hooks" section. The hook binary must be
-      # present in this container (bake it into a derived image or mount it in).
-      LLMBOX_HOOKS: ${LLMBOX_HOOKS:-}
-      # Container names connected into every box's OWN Docker network (boxes stay
-      # isolated from one another) so boxes can reach them — e.g. a hook's resource
-      # servers. Comma-separated; each must equal that container's name (set via
-      # `container_name:`). e.g. "granular-github,granular-as".
-      LLMBOX_BOX_PEERS: ${LLMBOX_BOX_PEERS:-}
+    # llmbox reads a single YAML config file (see llmbox.example.yaml). Mount
+    # your config to /etc/llmbox/llmbox.yaml and point the server at it. At a
+    # minimum set public_url (the URL the user's browser can reach this server
+    # at) and state_file: /var/lib/llmbox/sessions.db so sessions land on the
+    # mounted volume below and survive container recreation. Box lifecycle hooks
+    # and box_peers are configured in the same file — see the README.
+    command: ["--config", "/etc/llmbox/llmbox.yaml"]
     volumes:
+      # The YAML config (copy llmbox.example.yaml and edit it).
+      - ./llmbox.yaml:/etc/llmbox/llmbox.yaml:ro
       # Needed to create/destroy boxes.
       - /var/run/docker.sock:/var/run/docker.sock
       # Persists the session registry (LLMBOX_STATE_FILE above).

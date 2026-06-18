@@ -2,51 +2,27 @@
 	"functions": [
 		{
 			"function_name": "main",
-			"documentation_hash": "665b9668afa06c97c5b4f27269d2d9e28a263ebf0161e33fb4469503c85a082f",
+			"documentation_hash": "06892287320384e1c9d0573a69738cbe5558558bc9c74acb4e67c5762908149d",
 			"definition_hash": "c53d21f674bca1f78ef6ef0af860885cb06da2f5e4157fadc6975475713bdb7b",
-			"reviewed_at": "2026-06-18T16:24:03.396741284Z"
+			"reviewed_at": "2026-06-18T16:33:14.657457994Z"
 		},
 		{
 			"function_name": "run",
-			"documentation_hash": "03501239642b0bdcb9876d15a5c0c1b0a2d9a23be8e186f6d275b4b9307987d1",
-			"definition_hash": "54dc998d743267f70968fe19b7940ada3ca8c97532b65f876fe90f4daa5b21bb",
-			"reviewed_at": "2026-06-18T16:24:03.398673819Z"
-		},
-		{
-			"function_name": "envOr",
-			"documentation_hash": "c679a2e2d6aa8afb2ada893b384efa294b392e390f4c1dd196f376309be37f9a",
-			"definition_hash": "3648a1b9958c23e27bf1119e52d3c3a18cb28c361dcc8833722c267a8180c022",
-			"reviewed_at": "2026-06-18T13:14:16.497431781Z"
-		},
-		{
-			"function_name": "envInt",
-			"documentation_hash": "3745076543b499757bbe1074ea6255bbb2226486f881c75876556dc6c59e822d",
-			"definition_hash": "eca88ef08881d8b06a812216905d9a83b90b0e22adbc5c2c56ec13dd892d02cf",
-			"reviewed_at": "2026-06-18T13:14:16.498223644Z"
-		},
-		{
-			"function_name": "splitPathList",
-			"documentation_hash": "d965a186c9b74d72c1cd885f48a46e54d15b31d77a62079325166ac4d782a355",
-			"definition_hash": "5b9d13dbe891fb96b74a0246c12de5d1811ddb6a906f65fa661b1a65a0c2ecff",
-			"reviewed_at": "2026-06-18T13:14:16.498928019Z"
-		},
-		{
-			"function_name": "splitCommaList",
-			"documentation_hash": "18c653cd261d058555497b881162d7b96a07d81d7aab5c6225ca67d0ca79b2d7",
-			"definition_hash": "4a6ffa86b8c58a304f7f2a8218f1a35330acf85495e5137b5fdd343564482fd0",
-			"reviewed_at": "2026-06-18T13:14:16.500032256Z"
-		},
-		{
-			"function_name": "splitAndTrim",
-			"documentation_hash": "5d63011407b7365cfae3feb3c9adae5c8d1518a5ae28e6e8ccadc9dbd200cb84",
-			"definition_hash": "6f25599c72d5a54792db54d0bc986c3fbb785661a86795d26a1bea82d2d9b682",
-			"reviewed_at": "2026-06-18T15:04:15.834963493Z"
+			"documentation_hash": "95748f167d94d102bcecb6d57209b4ee48a92f8d5b046f03cfd186f68efce465",
+			"definition_hash": "6e46a53db120c73824803199a2492ef49e96d734d979188e4edcd8640bffdcd9",
+			"reviewed_at": "2026-06-18T16:33:14.660648782Z"
 		},
 		{
 			"function_name": "newRootCmd",
-			"documentation_hash": "00ac5a3c4b87012a811a2e3cfe6de0ef42f7b6e8e511aa5cd040939a317ae125",
-			"definition_hash": "1caa68d2a94c61b91c2cba21815db3f2398c066039c9dad808dc44a308155380",
-			"reviewed_at": "2026-06-18T16:24:03.397702673Z"
+			"documentation_hash": "2840084cdcd0c85fb836fd58d813b4627b38f7a5b6c22be394e0540530f3cff2",
+			"definition_hash": "9b2d15662959b236d18a2fd2b099c66c2632fb9db102239f3ad483d4639d37ea",
+			"reviewed_at": "2026-06-18T16:33:14.65856407Z"
+		},
+		{
+			"function_name": "loadConfig",
+			"documentation_hash": "9c8e09bd71bba0d88351a086729892baa7eec091bd5333cdb5d04c7ab944ca9e",
+			"definition_hash": "3477fbbfd62fc2e497119dab5832a1f0eea14bbef627ecc1c733962c71491ed6",
+			"reviewed_at": "2026-06-18T16:33:14.659921195Z"
 		}
 	]
 }

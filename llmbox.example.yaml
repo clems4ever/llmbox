@@ -1,0 +1,39 @@
+# Example llmbox configuration. Copy to llmbox.yaml (or pass --config <path>).
+# Every field is optional; omitted fields fall back to the defaults shown here.
+
+# Listen address for the combined MCP + auth HTTP server.
+http_addr: ":8080"
+
+# External base URL the user's browser can reach this server at. MUST be set
+# correctly in production — it is used to build the auth-page links.
+public_url: "http://localhost:8080"
+
+# Base image launched per box. Any glibc image with /bin/sh, util-linux (for
+# `script`), and CA certificates works — Claude is injected, not baked in.
+claude_image: "debian:bookworm-slim"
+
+# Path (on the server) to the standalone Claude binary injected into each box.
+claude_bin: "/opt/llmbox/claude"
+
+# Args passed to `claude remote-control`.
+remote_args: "--spawn same-dir"
+
+# How long a box may stay un-authenticated before it is reaped (Go duration).
+auth_ttl: "5m"
+
+# bbolt file persisting the auth-session registry across restarts.
+state_file: "llmbox-sessions.db"
+
+# Optional box lifecycle hooks: external executables run at box.create/destroy
+# (JSON over stdin/stdout, per the hookproto contract). A hook may inject files
+# into each box and persist opaque state — how integrations like granular plug
+# in without llmbox depending on them.
+# hooks:
+#   - /opt/granular-llmbox/hook
+
+# Container names connected into every box's OWN Docker network (boxes stay
+# isolated from one another) so boxes can reach them — e.g. a hook's resource
+# servers. Each must equal that container's name (set via `container_name:`).
+# box_peers:
+#   - granular-github
+#   - granular-as

@@ -3,11 +3,13 @@ package main
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
 // TestNewRootCmd checks the root command is wired up with the expected name,
-// version, and the "version" subcommand which prints the build version.
+// version, the --config flag, and the "version" subcommand which prints the
+// build version.
 func TestNewRootCmd(t *testing.T) {
 	cmd := newRootCmd()
 	if cmd.Use != name {
@@ -15,6 +17,9 @@ func TestNewRootCmd(t *testing.T) {
 	}
 	if cmd.Version != version {
 		t.Errorf("root Version = %q, want %q", cmd.Version, version)
+	}
+	if cmd.Flags().Lookup("config") == nil {
+		t.Error("root command missing --config flag")
 	}
 
 	var found bool
@@ -34,46 +39,39 @@ func TestNewRootCmd(t *testing.T) {
 	}
 }
 
-// TestEnvHelpers checks envOr and envInt fall back to defaults and parse values.
-func TestEnvHelpers(t *testing.T) {
-	t.Setenv("LLMBOX_TEST_STR", "set")
-	if got := envOr("LLMBOX_TEST_STR", "def"); got != "set" {
-		t.Errorf("envOr set = %q, want set", got)
+// TestLoadConfigDefaultsWhenAbsent checks an implicit (non-explicit) missing
+// config path yields the built-in defaults rather than an error.
+func TestLoadConfigDefaultsWhenAbsent(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "does-not-exist.yaml")
+	cfg, err := loadConfig(missing, false)
+	if err != nil {
+		t.Fatalf("loadConfig implicit missing = %v, want nil", err)
 	}
-	if got := envOr("LLMBOX_TEST_MISSING", "def"); got != "def" {
-		t.Errorf("envOr missing = %q, want def", got)
-	}
-
-	t.Setenv("LLMBOX_TEST_INT", "42")
-	if got := envInt("LLMBOX_TEST_INT", 7); got != 42 {
-		t.Errorf("envInt set = %d, want 42", got)
-	}
-	t.Setenv("LLMBOX_TEST_INT", "notanumber")
-	if got := envInt("LLMBOX_TEST_INT", 7); got != 7 {
-		t.Errorf("envInt invalid = %d, want default 7", got)
-	}
-	if got := envInt("LLMBOX_TEST_MISSING", 7); got != 7 {
-		t.Errorf("envInt missing = %d, want default 7", got)
+	if cfg.HTTPAddr != ":8080" {
+		t.Errorf("default HTTPAddr = %q, want :8080", cfg.HTTPAddr)
 	}
 }
 
-// TestSplitLists checks splitPathList and splitCommaList split, trim, and drop
-// empty entries, and yield nil for an empty spec.
-func TestSplitLists(t *testing.T) {
-	sep := string(os.PathListSeparator)
-	got := splitPathList(" /opt/hook " + sep + sep + " /usr/bin/other ")
-	if len(got) != 2 || got[0] != "/opt/hook" || got[1] != "/usr/bin/other" {
-		t.Errorf("splitPathList = %v, want [/opt/hook /usr/bin/other]", got)
+// TestLoadConfigErrorsWhenExplicitMissing checks an explicitly named missing
+// file is a hard error.
+func TestLoadConfigErrorsWhenExplicitMissing(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "does-not-exist.yaml")
+	if _, err := loadConfig(missing, true); err == nil {
+		t.Error("loadConfig explicit missing = nil, want error")
 	}
-	if splitPathList("") != nil {
-		t.Error("empty path-list should yield nil")
-	}
+}
 
-	peers := splitCommaList("granular-github, granular-as ,,")
-	if len(peers) != 2 || peers[0] != "granular-github" || peers[1] != "granular-as" {
-		t.Errorf("splitCommaList = %v, want [granular-github granular-as]", peers)
+// TestLoadConfigReadsFile checks loadConfig parses an existing file.
+func TestLoadConfigReadsFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "llmbox.yaml")
+	if err := os.WriteFile(path, []byte("http_addr: \":9090\"\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if splitCommaList("") != nil {
-		t.Error("empty comma-list should yield nil")
+	cfg, err := loadConfig(path, true)
+	if err != nil {
+		t.Fatalf("loadConfig = %v", err)
+	}
+	if cfg.HTTPAddr != ":9090" {
+		t.Errorf("HTTPAddr = %q, want :9090", cfg.HTTPAddr)
 	}
 }
