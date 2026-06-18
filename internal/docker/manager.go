@@ -31,6 +31,7 @@ import (
 	"io"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -81,6 +82,10 @@ const (
 	// escalates to SIGKILL when stopping a box, giving Claude a chance to shut
 	// down cleanly (e.g. deregister its remote-control session).
 	stopTimeout = 10 * time.Second
+
+	// defaultLogTail is how many trailing log lines Logs returns when the caller
+	// does not ask for a specific count, keeping the output bounded.
+	defaultLogTail = 200
 )
 
 // prepConfigCmd pre-answers the two interactive gates a fresh box hits after
@@ -111,6 +116,7 @@ type dockerAPI interface {
 	ImagePull(ctx context.Context, refStr string, opts image.PullOptions) (io.ReadCloser, error)
 	ContainerStop(ctx context.Context, containerID string, opts container.StopOptions) error
 	ContainerRemove(ctx context.Context, containerID string, opts container.RemoveOptions) error
+	ContainerLogs(ctx context.Context, containerID string, opts container.LogsOptions) (io.ReadCloser, error)
 	ContainerRename(ctx context.Context, containerID, newName string) error
 	ContainerResize(ctx context.Context, containerID string, opts container.ResizeOptions) error
 	CopyToContainer(ctx context.Context, containerID, dstPath string, content io.Reader, opts container.CopyToContainerOptions) error
@@ -674,6 +680,44 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 	}
 	m.removeBoxNetwork(ctx, b.ID)
 	return nil
+}
+
+// Logs returns the recent console output of a managed box identified by ID or
+// name. tail bounds how many trailing lines are returned; a non-positive tail
+// falls back to defaultLogTail. Boxes run with a TTY, so the log stream is raw
+// (not stdout/stderr multiplexed); the output is ANSI-stripped so the caller
+// gets readable text rather than the TUI's escape sequences.
+//
+// @arg ctx Context for the Docker logs request.
+// @arg idOrName The ID or name identifying the box to read logs from.
+// @arg tail The maximum number of trailing log lines to return; non-positive uses defaultLogTail.
+// @return string The box's recent console output, ANSI-stripped.
+// @error error if no managed box matches, or the logs cannot be read.
+//
+// @testcase TestLogsReturnsTail reads a box's logs and strips ANSI from the output.
+// @testcase TestLogsUnknownBox errors when no managed box matches.
+func (m *Manager) Logs(ctx context.Context, idOrName string, tail int) (string, error) {
+	b, err := m.findManaged(ctx, idOrName)
+	if err != nil {
+		return "", err
+	}
+	if tail <= 0 {
+		tail = defaultLogTail
+	}
+	rc, err := m.cli.ContainerLogs(ctx, b.ID, container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Tail:       strconv.Itoa(tail),
+	})
+	if err != nil {
+		return "", fmt.Errorf("reading logs for box %s: %w", idOrName, err)
+	}
+	defer rc.Close()
+	raw, err := io.ReadAll(rc)
+	if err != nil {
+		return "", fmt.Errorf("reading log stream for box %s: %w", idOrName, err)
+	}
+	return string(stripANSI(raw)), nil
 }
 
 // ReapOrphans destroys pending (never-authenticated) boxes older than ttl.
