@@ -43,7 +43,7 @@ box finishes login ──▶ `claude remote-control` starts ──▶ session UR
   └─ get_llmbox(hostname) ──▶ returns the session URL once ready
 ```
 
-Boxes that are never authenticated are destroyed after `LLMBOX_AUTH_TTL_SECONDS`
+Boxes that are never authenticated are destroyed after `auth_ttl`
 (default 5 minutes) — see [Orphan cleanup](#orphan-cleanup).
 
 ## MCP tools
@@ -80,7 +80,7 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile`         | Image for **this server** (`llmbox`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
 
-Boxes run on a plain base image (`LLMBOX_CLAUDE_IMAGE`, default
+Boxes run on a plain base image (`claude_image`, default
 `debian:bookworm-slim`): the server **injects** the standalone Claude binary and
 a small `~/.claude.json` seed into each box at creation, and runs it as root with
 `HOME=/root` and a `/workspace` working directory — so nothing Claude-specific
@@ -96,12 +96,15 @@ runs as a non-root user, which must be allowed to use the socket via
 ```bash
 docker build -t llmbox .
 
+# Copy the example config and edit it (at least set public_url).
+cp llmbox.example.yaml llmbox.yaml
+
 docker run -d --name llmbox \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$PWD/llmbox.yaml:/etc/llmbox/llmbox.yaml:ro" \
   --group-add "$(stat -c '%g' /var/run/docker.sock)" \
   -p 8080:8080 \
-  -e LLMBOX_PUBLIC_URL=https://boxes.example.com \
-  llmbox
+  llmbox --config /etc/llmbox/llmbox.yaml
 ```
 
 Or use [`docker-compose.yml`](docker-compose.yml) (`docker compose up --build`),
@@ -120,20 +123,28 @@ clear text.
 
 ## Configuration
 
-| Env var                   | Default                   | Purpose |
-|---------------------------|---------------------------|---------|
-| `LLMBOX_HTTP_ADDR`        | `:8080`                   | Listen address. |
-| `LLMBOX_PUBLIC_URL`       | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
-| `LLMBOX_CLAUDE_IMAGE`     | `debian:bookworm-slim`    | Base image launched per box. Any glibc image works — Claude is injected, not baked in. |
-| `LLMBOX_CLAUDE_BIN`       | `/opt/llmbox/claude`      | Path (on the server) to the standalone Claude binary injected into each box. |
-| `LLMBOX_REMOTE_ARGS`      | `--spawn same-dir`        | Args passed to `claude remote-control`. |
-| `LLMBOX_AUTH_TTL_SECONDS` | `300`                     | Destroy un-authenticated boxes after this long. |
-| `LLMBOX_STATE_FILE`       | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](#session-persistence)). |
-| `LLMBOX_HOOKS`            | (unset)                   | OS-path-list of [box lifecycle hook](#box-lifecycle-hooks) executables. |
-| `LLMBOX_BOX_PEERS`        | (unset)                   | Comma-separated container names wired into every box's network (see [Box networking](#box-networking-and-isolation)). |
-| `DOCKER_HOST`, etc.       | (Docker default)          | Standard Docker client configuration. |
+llmbox reads a single **YAML config file**, selected with `--config <path>`
+(default `./llmbox.yaml`). When the default file is absent, the built-in defaults
+below are used; an explicitly named missing or invalid file is a hard error.
+Copy [`llmbox.example.yaml`](llmbox.example.yaml) and edit it. Every field is
+optional:
 
-If `LLMBOX_CLAUDE_IMAGE` isn't present on the daemon, the server pulls it on the
+| YAML key       | Default                   | Purpose |
+|----------------|---------------------------|---------|
+| `http_addr`    | `:8080`                   | Listen address. |
+| `public_url`   | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
+| `claude_image` | `debian:bookworm-slim`    | Base image launched per box. Any glibc image works — Claude is injected, not baked in. |
+| `claude_bin`   | `/opt/llmbox/claude`      | Path (on the server) to the standalone Claude binary injected into each box. |
+| `remote_args`  | `--spawn same-dir`        | Args passed to `claude remote-control`. |
+| `auth_ttl`     | `5m`                      | Destroy un-authenticated boxes after this long (a Go duration string, e.g. `300s`, `5m`). |
+| `state_file`   | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](#session-persistence)). |
+| `hooks`        | (empty)                   | List of [box lifecycle hook](#box-lifecycle-hooks) executables. |
+| `box_peers`    | (empty)                   | List of container names wired into every box's network (see [Box networking](#box-networking-and-isolation)). |
+
+The Docker client itself is still configured the standard way (`DOCKER_HOST`,
+etc.). Unknown keys in the config file are rejected so typos surface as errors.
+
+If `claude_image` isn't present on the daemon, the server pulls it on the
 first box creation and retries. Pulls use the daemon's existing credentials, so
 for a **private** registry make sure the daemon is logged in (e.g. `docker
 login`) or the image is pre-pulled.
@@ -141,8 +152,8 @@ login`) or the image is pre-pulled.
 ## Box lifecycle hooks
 
 llmbox knows nothing about what any particular integration needs in a box. Instead
-it runs **hooks** — external executables you point it at with `LLMBOX_HOOKS` (an
-OS-path-list, like `PATH`) — at two points in a box's life:
+it runs **hooks** — external executables you point it at with the `hooks` config
+list — at two points in a box's life:
 
 - **`box.create`** — fires *before* the new box starts. A hook may return **files
   to inject** into the box (secrets, config, even binaries) and an opaque **state**
@@ -215,34 +226,36 @@ hub-and-spoke layout instead of one shared network:
 - Every box is created on its **own** dedicated Docker network (`llmboxnet-<id>`)
   and attached to nothing else, so no two boxes ever share a network — they
   cannot talk to each other.
-- llmbox connects each container named in `LLMBOX_BOX_PEERS` into that per-box
-  network, so the box reaches those peers by name while staying isolated.
+- llmbox connects each container named in the `box_peers` config list into that
+  per-box network, so the box reaches those peers by name while staying isolated.
 - The network is torn down (and the peers disconnected from it) when the box is
   destroyed or reaped.
 
-`LLMBOX_BOX_PEERS` is a comma-separated list of **container names**. When the peers
-run in a separate compose project, give them a fixed `container_name:` so the name
-is stable, e.g.:
+`box_peers` is a list of **container names**. When the peers run in a separate
+compose project, give them a fixed `container_name:` so the name is stable, e.g.:
 
 ```yaml
 services:
   granular-github:
-    container_name: granular-github   # must match an entry in LLMBOX_BOX_PEERS
+    container_name: granular-github   # must match an entry in box_peers
 ```
 
 ## Session persistence
 
 The auth-session registry (which token maps to which box, its authorize URL, and
 status) is persisted to a [bbolt](https://github.com/etcd-io/bbolt) file at
-`LLMBOX_STATE_FILE`, so a server restart doesn't invalidate in-flight auth links.
+`state_file`, so a server restart doesn't invalidate in-flight auth links.
 On startup the server reconciles the saved sessions against Docker and drops any
 whose box no longer exists.
 
-To survive **container recreation**, put that file on a mounted volume:
+To survive **container recreation**, point `state_file` at a mounted volume:
 
 ```yaml
-environment:
-  LLMBOX_STATE_FILE: /var/lib/llmbox/sessions.db
+# in llmbox.yaml
+state_file: /var/lib/llmbox/sessions.db
+```
+```yaml
+# in docker-compose.yml
 volumes:
   - ./data/llmbox:/var/lib/llmbox
 ```
@@ -274,7 +287,7 @@ straight to remote-control without asking the user to authenticate again.
 
 A box's auth phase is encoded in its container name — `llmbox-pending-<id>`
 before authentication, renamed `llmbox-<id>` after. A reaper runs every 30s and
-destroys any `llmbox-pending-*` box older than `LLMBOX_AUTH_TTL_SECONDS`. Because
+destroys any `llmbox-pending-*` box older than `auth_ttl`. Because
 the phase lives in Docker (not just in memory), this also cleans up boxes
 orphaned by a restart of this server, while leaving authenticated boxes running.
 

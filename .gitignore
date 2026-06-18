@@ -2,6 +2,9 @@
 .env
 .claude-config.seed.json
 
+# Per-deployment config (copy from llmbox.example.yaml)
+/llmbox.yaml
+
 # Built binary
 /llmbox
 

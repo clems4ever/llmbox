@@ -1,0 +1,58 @@
+{
+	"functions": [
+		{
+			"function_name": "write",
+			"documentation_hash": "479bd1d134c8ea708cabbb338094871e6c039da5816b48e1c94d4025068d86dc",
+			"definition_hash": "10ad3af7b8999f77724f89128f6f4676381c49b0c5d99fff40bcee0cb834e910",
+			"reviewed_at": "2026-06-18T16:34:58.557797423Z"
+		},
+		{
+			"function_name": "TestDefault",
+			"documentation_hash": "510cdb5ceeaaf95ba8843427dd3831652c32f25ac1114a0f2d23a6e3c3bacfef",
+			"definition_hash": "2166df270c6174765f47b8b0cd089ff3515bf12df40e124b1bea5ff3d3e2456f",
+			"reviewed_at": "2026-06-18T16:34:58.558116369Z"
+		},
+		{
+			"function_name": "TestLoad",
+			"documentation_hash": "a99b8ef269ef1371f85d255c1bddc9aede16586adc848343e03823d7dacce5d9",
+			"definition_hash": "b54ad39c27ab831af1e2cfcff3b5916bfd881ab437a387d64fccd2163f618cad",
+			"reviewed_at": "2026-06-18T16:34:58.558373899Z"
+		},
+		{
+			"function_name": "TestLoadAppliesDefaults",
+			"documentation_hash": "60e0219e260c50503756f9bdd49ad0d61a6ffc9f58ac71255154c849e61a9383",
+			"definition_hash": "553c356ce4dc64262225438479e638ac3abfff465b365909692946911b9f4b2c",
+			"reviewed_at": "2026-06-18T16:34:58.558617254Z"
+		},
+		{
+			"function_name": "TestLoadMissingFile",
+			"documentation_hash": "0630d57c1173a4b8fd21f6b848614ad82b91d5b9a9ab46a1867364a87e935e4d",
+			"definition_hash": "4f520b1d8e4309884f2d9d607eaf1543e373026f77791b8bc008463f44f0220a",
+			"reviewed_at": "2026-06-18T16:34:58.558849777Z"
+		},
+		{
+			"function_name": "TestLoadRejectsUnknownKey",
+			"documentation_hash": "96fbdf7f381ffa03c8244beab64ed8d41089ca5a34c16f633a5a7d72467fb4d9",
+			"definition_hash": "620212aa38b2d5819d2f745d3a50928a65bbe300481698cf32863235320353cc",
+			"reviewed_at": "2026-06-18T16:34:58.559990697Z"
+		},
+		{
+			"function_name": "TestLoadParsesDuration",
+			"documentation_hash": "c0972013b819325f6fe74ea329221a5525ee9a41f5cde1ad52962e130312dfac",
+			"definition_hash": "aa3f1a169d58bbba5062bd16e19ff44e975c619147498a301b163b8d623627f0",
+			"reviewed_at": "2026-06-18T16:34:58.561247301Z"
+		},
+		{
+			"function_name": "TestLoadRejectsBadDuration",
+			"documentation_hash": "e227345700e18455c462cc6d3041cf66708862ce7af166bcb6570726035042be",
+			"definition_hash": "4777d60302f2a19bf0a25d0df51c7e7f1a8ecbbf350855a87e62ced3af3b07b5",
+			"reviewed_at": "2026-06-18T16:34:58.562461292Z"
+		},
+		{
+			"function_name": "TestLoadEmptyFile",
+			"documentation_hash": "ee0bd7ac3af742777cf0c2347f9c603e71a2db31e9f84cc8bb7e7caaad86b26b",
+			"definition_hash": "e57eef21ef1644b2085a3bffb3c2256564f45a07f42fd491f95d6eddd11d8e37",
+			"reviewed_at": "2026-06-18T16:34:58.563409549Z"
+		}
+	]
+}

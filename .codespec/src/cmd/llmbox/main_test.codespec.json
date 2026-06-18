@@ -1,22 +1,28 @@
 {
 	"functions": [
 		{
-			"function_name": "TestEnvHelpers",
-			"documentation_hash": "f5e507a40b754596eec5025368645133012682ceb56bb26e26ce69511d953384",
-			"definition_hash": "9b8ec235f1460fa3caa51ef47badfd43283ee421e71862057642959980a3fcbe",
-			"reviewed_at": "2026-06-18T13:14:36.655691905Z"
-		},
-		{
-			"function_name": "TestSplitLists",
-			"documentation_hash": "8d718062cc597eab5bcb131ef6eae9cdd6dc0e6e7711e89581e01edfbd975f68",
-			"definition_hash": "cbdf4a432789d6f5995c9def689d32892c26e1c72f5e1428df236e3c96ea5b4c",
-			"reviewed_at": "2026-06-18T13:14:36.655836898Z"
-		},
-		{
 			"function_name": "TestNewRootCmd",
-			"documentation_hash": "b4fc5699362d72062293e388e08ac28e4f1287560291a301a8bb584d2ec2aa0d",
-			"definition_hash": "4e73b8baf4920b7f853dd117d1d036e7939680e6b073c14b8dec231eaab08e0e",
-			"reviewed_at": "2026-06-18T16:24:03.39924268Z"
+			"documentation_hash": "0856200bb2756d680e81fcc869363e52ef2fd67f0e0b41ee5f7706bec4cbcf44",
+			"definition_hash": "578c68c8204a6d9e22ef4a9e3b217d5a822a16c9e70cea229c52fa5e653c3b4b",
+			"reviewed_at": "2026-06-18T16:33:14.660998354Z"
+		},
+		{
+			"function_name": "TestLoadConfigDefaultsWhenAbsent",
+			"documentation_hash": "33659db2b39fe8aa39d39b79d4ee263f1d59eff1e3143e02c2a7f7ae41c7db12",
+			"definition_hash": "aec3100cf395594ab095488c7d7fef3819c98ff275d4a246d5d595634bcf3878",
+			"reviewed_at": "2026-06-18T16:33:14.661399657Z"
+		},
+		{
+			"function_name": "TestLoadConfigErrorsWhenExplicitMissing",
+			"documentation_hash": "7447cbd86ee3cd7dd9a664cd951f537de8d2342dc67f70866d737dbc8dfb7c68",
+			"definition_hash": "c42415c4d68af7b86ce34882a40b059ef8b05b1fc5b4a63ea3d9cca21019e8c2",
+			"reviewed_at": "2026-06-18T16:33:14.661761113Z"
+		},
+		{
+			"function_name": "TestLoadConfigReadsFile",
+			"documentation_hash": "df6de5dadb55b43b74931a056500f18dc1d2e26d5951ea52b9fe3d6c565a2d61",
+			"definition_hash": "32c4135c0b86bde3ba365750df52aed99feee36a452c9288327170ab8b012f26",
+			"reviewed_at": "2026-06-18T16:33:14.662123375Z"
 		}
 	]
 }

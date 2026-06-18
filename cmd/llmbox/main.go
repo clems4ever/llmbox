@@ -9,26 +9,29 @@
 //
 // Boxes that are never authenticated are destroyed after a TTL.
 //
-// Configuration (environment variables):
+// Configuration is a YAML file (default ./llmbox.yaml, override with --config).
+// Every field is optional; unset fields fall back to built-in defaults:
 //
-//	LLMBOX_HTTP_ADDR          listen address (default ":8080")
-//	LLMBOX_PUBLIC_URL         external base URL for auth links (default "http://localhost:8080")
-//	LLMBOX_CLAUDE_IMAGE       base image launched for each box (default "debian:bookworm-slim"); any glibc image works — Claude is injected, not baked in
-//	LLMBOX_CLAUDE_BIN         path to the standalone Claude binary injected into each box (default "/opt/llmbox/claude")
-//	LLMBOX_REMOTE_ARGS        args passed to `claude remote-control` (default "--spawn same-dir")
-//	LLMBOX_AUTH_TTL_SECONDS   how long a box may stay un-authenticated (default 300)
-//	LLMBOX_STATE_FILE         bbolt file persisting the session registry (default "llmbox-sessions.db")
+//	http_addr:    ":8080"                  # listen address
+//	public_url:   "http://localhost:8080"  # external base URL for auth links
+//	claude_image: "debian:bookworm-slim"   # base image per box; any glibc image works — Claude is injected, not baked in
+//	claude_bin:   "/opt/llmbox/claude"     # standalone Claude binary injected into each box
+//	remote_args:  "--spawn same-dir"       # args passed to `claude remote-control`
+//	auth_ttl:     "5m"                      # how long a box may stay un-authenticated (Go duration)
+//	state_file:   "llmbox-sessions.db"     # bbolt file persisting the session registry
 //
-// Box lifecycle hooks (optional). LLMBOX_HOOKS is a PATH-style list (separated by
-// the OS path-list separator) of external executables llmbox runs at box.create
-// and box.destroy, exchanging JSON per the hookproto contract. A hook may inject
-// files into each box and persist opaque state; this is how integrations like
-// granular plug in without llmbox depending on them. LLMBOX_BOX_PEERS is a
-// comma-separated list of container names connected into every box's network so
+// Box lifecycle hooks (optional). hooks is a list of external executables llmbox
+// runs at box.create and box.destroy, exchanging JSON per the hookproto
+// contract. A hook may inject files into each box and persist opaque state; this
+// is how integrations like granular plug in without llmbox depending on them.
+// box_peers is a list of container names connected into every box's network so
 // boxes can reach them (e.g. a hook's resource servers):
 //
-//	LLMBOX_HOOKS       OS-path-list of hook executables (e.g. "/opt/granular-llmbox/hook")
-//	LLMBOX_BOX_PEERS   comma-separated container names every box can reach
+//	hooks:
+//	  - /opt/granular-llmbox/hook
+//	box_peers:
+//	  - granular-github
+//	  - granular-as
 package main
 
 import (
@@ -40,13 +43,12 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
 	"github.com/clems4ever/llmbox/internal/server"
@@ -59,22 +61,24 @@ const (
 
 // main executes the root command and exits non-zero on a fatal error.
 //
-// @testcase TestEnvHelpers covers the configuration helpers main relies on.
+// @testcase TestNewRootCmd covers the command wiring main relies on.
 func main() {
 	if err := newRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-// newRootCmd builds the Cobra command tree: the root command runs the server,
-// and a "version" subcommand prints the build version. Configuration is still
-// taken from the LLMBOX_* environment variables documented in the package
-// comment.
+// newRootCmd builds the Cobra command tree: the root command loads the YAML
+// config and runs the server, and a "version" subcommand prints the build
+// version. The --config/-c flag selects the config file (default ./llmbox.yaml);
+// when that default is absent, built-in defaults are used.
 //
 // @return *cobra.Command The configured root command, ready to Execute.
 //
-// @testcase TestNewRootCmd checks the command wiring (use, subcommands).
+// @testcase TestNewRootCmd checks the command wiring (use, subcommands, flag).
 func newRootCmd() *cobra.Command {
+	var configPath string
+
 	rootCmd := &cobra.Command{
 		Use:           name,
 		Short:         "Run the llmbox MCP server that manages sandboxed Claude containers",
@@ -82,9 +86,14 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: false,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return run(cmd.Context())
+			cfg, err := loadConfig(configPath, cmd.Flags().Changed("config"))
+			if err != nil {
+				return err
+			}
+			return run(cmd.Context(), cfg)
 		},
 	}
+	rootCmd.Flags().StringVarP(&configPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file")
 
 	versionCmd := &cobra.Command{
 		Use:   "version",
@@ -99,45 +108,64 @@ func newRootCmd() *cobra.Command {
 	return rootCmd
 }
 
-// run wires up the Docker manager, session store, and HTTP server, then serves
-// until interrupted.
+// loadConfig loads the YAML config at path. When the path was not given
+// explicitly on the command line and the default file is absent, it returns the
+// built-in defaults so llmbox runs without a config file; an explicitly named
+// missing or invalid file is an error.
+//
+// @arg path The config file path.
+// @arg explicit Whether --config was set on the command line.
+// @return *config.Config The loaded (or default) configuration.
+// @error error if an explicitly named file is missing, or any named file is invalid.
+//
+// @testcase TestLoadConfigDefaultsWhenAbsent returns defaults for a missing implicit file.
+// @testcase TestLoadConfigErrorsWhenExplicitMissing errors for a missing explicit file.
+// @testcase TestLoadConfigReadsFile parses an existing config file.
+func loadConfig(path string, explicit bool) (*config.Config, error) {
+	if !explicit {
+		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			return config.Default(), nil
+		}
+	}
+	return config.Load(path)
+}
+
+// run wires up the Docker manager, session store, and HTTP server from the given
+// configuration, then serves until interrupted.
 //
 // @arg parent Base context; serving stops when it (or a SIGINT/SIGTERM) fires.
-// @error error if configuration, the store, or the HTTP server fails.
+// @arg cfg The loaded configuration.
+// @error error if the manager, the store, or the HTTP server fails.
 //
-// @testcase TestEnvHelpers covers the configuration helpers run relies on.
-func run(parent context.Context) error {
-	addr := envOr("LLMBOX_HTTP_ADDR", ":8080")
-	publicURL := envOr("LLMBOX_PUBLIC_URL", "http://localhost:8080")
-	authTTL := time.Duration(envInt("LLMBOX_AUTH_TTL_SECONDS", 300)) * time.Second
-	stateFile := envOr("LLMBOX_STATE_FILE", "llmbox-sessions.db")
+// @testcase TestNewRootCmd covers the command that loads cfg and calls run.
+func run(parent context.Context, cfg *config.Config) error {
+	authTTL := time.Duration(cfg.AuthTTL)
 
-	peers := splitCommaList(os.Getenv("LLMBOX_BOX_PEERS"))
-	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"), os.Getenv("LLMBOX_CLAUDE_BIN"), peers)
+	mgr, err := docker.NewManager(cfg.ClaudeImage, cfg.RemoteArgs, cfg.ClaudeBin, cfg.BoxPeers)
 	if err != nil {
 		return err
 	}
 	defer mgr.Close()
 
 	// Optional box lifecycle hooks: external programs run at box.create/destroy.
-	// New returns nil (no hooks) when LLMBOX_HOOKS is empty.
-	hookRunner := hooks.New(splitPathList(os.Getenv("LLMBOX_HOOKS")))
+	// New returns nil (no hooks) when the list is empty.
+	hookRunner := hooks.New(cfg.Hooks)
 
 	// Persist the session registry so auth links survive a server restart.
-	if dir := filepath.Dir(stateFile); dir != "" && dir != "." {
+	if dir := filepath.Dir(cfg.StateFile); dir != "" && dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
 	}
-	store, err := server.OpenStore(stateFile)
+	store, err := server.OpenStore(cfg.StateFile)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = store.Close() }()
 
-	srv := server.New(mgr, hookRunner, publicURL, authTTL, store)
+	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store)
 	httpSrv := &http.Server{
-		Addr:    addr,
+		Addr:    cfg.HTTPAddr,
 		Handler: srv.Handler(srv.MCPServer(name, version)),
 		// SubmitCode blocks while the box logs in, so allow long requests.
 		ReadHeaderTimeout: 10 * time.Second,
@@ -152,7 +180,7 @@ func run(parent context.Context) error {
 	if n, err := srv.Restore(ctx); err != nil {
 		log.Printf("restore: %v", err)
 	} else if n > 0 {
-		log.Printf("restored %d session(s) from %s", n, stateFile)
+		log.Printf("restored %d session(s) from %s", n, cfg.StateFile)
 	}
 
 	go srv.ReapLoop(ctx, 30*time.Second, func(msg string) { log.Print(msg) })
@@ -164,81 +192,9 @@ func run(parent context.Context) error {
 		_ = httpSrv.Shutdown(shutCtx)
 	}()
 
-	log.Printf("%s %s listening on %s (public URL %s, auth TTL %s)", name, version, addr, publicURL, authTTL)
+	log.Printf("%s %s listening on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.PublicURL, authTTL)
 	if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
-}
-
-// envOr returns the environment variable key, or def when it is unset or empty.
-//
-// @arg key The environment variable name.
-// @arg def The fallback value when key is unset or empty.
-// @return string The variable's value, or def.
-//
-// @testcase TestEnvHelpers checks the set and fallback paths.
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
-
-// envInt returns the environment variable key parsed as an int, or def when it
-// is unset, empty, or not a valid integer.
-//
-// @arg key The environment variable name.
-// @arg def The fallback value when key is unset, empty, or unparseable.
-// @return int The parsed value, or def.
-//
-// @testcase TestEnvHelpers checks the set, invalid, and fallback paths.
-func envInt(key string, def int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
-		}
-	}
-	return def
-}
-
-// splitPathList splits an OS-path-list (e.g. LLMBOX_HOOKS) into its non-empty,
-// trimmed entries. The path-list separator (':' on Unix) is used so hook
-// executable paths read naturally, like PATH.
-//
-// @arg spec The path-list-separated string (may be empty).
-// @return []string The non-empty, trimmed entries, in order.
-//
-// @testcase TestSplitLists splits path-lists and comma-lists, dropping empties.
-func splitPathList(spec string) []string {
-	return splitAndTrim(spec, string(os.PathListSeparator))
-}
-
-// splitCommaList splits a comma-separated list (e.g. LLMBOX_BOX_PEERS) into its
-// non-empty, trimmed entries.
-//
-// @arg spec The comma-separated string (may be empty).
-// @return []string The non-empty, trimmed entries, in order.
-//
-// @testcase TestSplitLists splits path-lists and comma-lists, dropping empties.
-func splitCommaList(spec string) []string {
-	return splitAndTrim(spec, ",")
-}
-
-// splitAndTrim splits spec on sep, trims each entry, and drops empties, returning
-// nil when nothing remains so an unset variable yields no entries.
-//
-// @arg spec The string to split.
-// @arg sep The separator to split on.
-// @return []string The non-empty, trimmed entries, in order.
-//
-// @testcase TestSplitLists exercises splitAndTrim via the two list helpers.
-func splitAndTrim(spec, sep string) []string {
-	var out []string
-	for p := range strings.SplitSeq(spec, sep) {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
 }

@@ -1,0 +1,30 @@
+{
+	"functions": [
+		{
+			"function_name": "UnmarshalYAML",
+			"receiver": "Duration",
+			"documentation_hash": "5253179bb74f0238069fc5f1312253f2fac565b3dfc82c9bb38ff92a53dfbf76",
+			"definition_hash": "fa4f0fb6774a78fad3348af1485f6f3851a2be4f43789c7dbaf62e3e5763bde0",
+			"reviewed_at": "2026-06-18T16:34:49.319360716Z"
+		},
+		{
+			"function_name": "Default",
+			"documentation_hash": "2b555584241c6c215e38734a2854bd0636e5394553b843708e819f9e7455df55",
+			"definition_hash": "5e52b32bd8186311d0a74742aa0bd50e9ce464ce667eb74aa29866d0b48809a5",
+			"reviewed_at": "2026-06-18T16:34:49.319933192Z"
+		},
+		{
+			"function_name": "Load",
+			"documentation_hash": "744da987193b37767bfeba056879bb93cdd4da72a9ff3242eb260e54b26949c8",
+			"definition_hash": "afa6900ccf4adb6a8b43be0ffcac48cb5e1213a1ce59969cfbf7f7d0b94dd437",
+			"reviewed_at": "2026-06-18T16:34:49.320438992Z"
+		},
+		{
+			"function_name": "applyDefaults",
+			"receiver": "Config",
+			"documentation_hash": "8b2b783cab0251051380f21c9a225addb076330e17f56b4879faf34098a23f9c",
+			"definition_hash": "5062b850fba0140f70c96dceaa9efa8cf2a3499e548e4966139226a7dadac78d",
+			"reviewed_at": "2026-06-18T16:34:49.320877627Z"
+		}
+	]
+}
