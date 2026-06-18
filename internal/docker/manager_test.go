@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -40,6 +41,10 @@ type fakeDocker struct {
 
 	stopErr error
 	pullErr error
+
+	logsBody string // raw bytes ContainerLogs hands back
+	logsErr  error
+	logsTail string // Tail option recorded from the last ContainerLogs call
 
 	// createNotFoundUntilPull makes ContainerCreate return an image-not-found
 	// error until ImagePull has been called, simulating a missing local image.
@@ -169,6 +174,15 @@ func (f *fakeDocker) NetworkDisconnect(_ context.Context, networkID, containerID
 func (f *fakeDocker) NetworkRemove(_ context.Context, networkID string) error {
 	f.networksRemoved = append(f.networksRemoved, networkID)
 	return nil
+}
+
+// ContainerLogs records the requested Tail and returns the canned log body or error.
+func (f *fakeDocker) ContainerLogs(_ context.Context, _ string, opts container.LogsOptions) (io.ReadCloser, error) {
+	if f.logsErr != nil {
+		return nil, f.logsErr
+	}
+	f.logsTail = opts.Tail
+	return io.NopCloser(strings.NewReader(f.logsBody)), nil
 }
 
 // Close satisfies the dockerAPI interface; the fake holds no resources.
@@ -457,6 +471,51 @@ func TestReapOrphans(t *testing.T) {
 	}
 	if len(f.removed) != 1 || f.removed[0] != "old111111111" {
 		t.Errorf("removed = %v, want only the old pending box", f.removed)
+	}
+}
+
+// TestLogsReturnsTail checks Logs resolves a box by ID, requests the given tail,
+// and returns its output with ANSI escape sequences stripped.
+func TestLogsReturnsTail(t *testing.T) {
+	f := &fakeDocker{
+		listResult: []container.Summary{
+			{ID: "abcdef0123456789", Names: []string{"/llmbox-abcdef012345"}},
+		},
+		logsBody: "\x1b[2J\x1b[1;32mReady\x1b[0m\r\nlistening\r\n",
+	}
+	m := newTestManager(f)
+	out, err := m.Logs(context.Background(), "abcdef012345", 50)
+	if err != nil {
+		t.Fatalf("Logs: %v", err)
+	}
+	if out != "Ready\nlistening\n" {
+		t.Errorf("logs = %q, want ANSI-stripped output", out)
+	}
+	if f.logsTail != "50" {
+		t.Errorf("tail = %q, want 50", f.logsTail)
+	}
+}
+
+// TestLogsDefaultsTail checks a non-positive tail falls back to the default count.
+func TestLogsDefaultsTail(t *testing.T) {
+	f := &fakeDocker{
+		listResult: []container.Summary{{ID: "abcdef0123456789", Names: []string{"/llmbox-abcdef012345"}}},
+		logsBody:   "hello\r\n",
+	}
+	m := newTestManager(f)
+	if _, err := m.Logs(context.Background(), "abcdef012345", 0); err != nil {
+		t.Fatalf("Logs: %v", err)
+	}
+	if f.logsTail != strconv.Itoa(defaultLogTail) {
+		t.Errorf("tail = %q, want default %d", f.logsTail, defaultLogTail)
+	}
+}
+
+// TestLogsUnknownBox checks Logs errors when no managed box matches.
+func TestLogsUnknownBox(t *testing.T) {
+	m := newTestManager(&fakeDocker{})
+	if _, err := m.Logs(context.Background(), "missing", 10); err == nil {
+		t.Fatal("expected error for unknown box")
 	}
 }
 

@@ -29,6 +29,7 @@ type boxManager interface {
 	SubmitCode(ctx context.Context, id, code string) (sessionURL string, err error)
 	List(ctx context.Context) ([]docker.Box, error)
 	Destroy(ctx context.Context, idOrName string) error
+	Logs(ctx context.Context, idOrName string, tail int) (string, error)
 	ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error)
 }
 
@@ -401,6 +402,26 @@ func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
 // @testcase TestMCPToolsRegisteredAndCreate exercises the server's box wiring.
 func (s *Server) ListBoxes(ctx context.Context) ([]docker.Box, error) {
 	return s.mgr.List(ctx)
+}
+
+// BoxLogs returns the recent console output of the box with the given hostname.
+// Like get and destroy, it is keyed by the hostname supplied at create time, so
+// a box created without one is not reachable here. tail bounds how many trailing
+// lines are returned and is passed through to the manager.
+//
+// @arg ctx Context for the logs request.
+// @arg hostname The hostname of the box to read logs from.
+// @arg tail The maximum number of trailing log lines to return; the manager applies a default when non-positive.
+// @return string The box's recent console output.
+// @error error if no box has that hostname, or the logs cannot be read.
+//
+// @testcase TestBoxLogsByHostname returns a box's logs looked up by hostname.
+func (s *Server) BoxLogs(ctx context.Context, hostname string, tail int) (string, error) {
+	sess := s.lookupByHostname(hostname)
+	if sess == nil {
+		return "", fmt.Errorf("no box found with hostname %q (it may have expired, or was created without a hostname)", hostname)
+	}
+	return s.mgr.Logs(ctx, sess.BoxID, tail)
 }
 
 // DestroyBox destroys a box and forgets any session pointing at it.
