@@ -355,6 +355,12 @@
 			"documentation_hash": "6585a2fe44a68e11fc9817f691b35ab2ca87b0519ee654418db121d001bd6e24",
 			"definition_hash": "46c5a583de5ba0f6586b373d92b860f9e77d5817b8ce6a638df4b940424273c6",
 			"reviewed_at": "2026-06-18T15:04:15.894931062Z"
+		},
+		{
+			"function_name": "TestDestroyDeregistersClaude",
+			"documentation_hash": "847eda017633c1861b77c86965c695fe3a5434099ca1fe5d2de547b2c193d555",
+			"definition_hash": "a959324953f053f995f168a2dbd300f6a76e3efafa98a21babaa151b509c63de",
+			"reviewed_at": "2026-06-18T16:13:49.713901846Z"
 		}
 	]
 }
