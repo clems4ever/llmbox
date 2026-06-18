@@ -3,16 +3,12 @@ module github.com/clems4ever/llmbox-mcp
 go 1.26.2
 
 require (
-	github.com/clems4ever/granular v0.0.0-00010101000000-000000000000
 	github.com/containerd/errdefs v1.0.0
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/opencontainers/image-spec v1.1.1
 	go.etcd.io/bbolt v1.4.3
 )
-
-// granular is vendored as a git submodule under ./granular.
-replace github.com/clems4ever/granular => ./granular
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect

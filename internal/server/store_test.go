@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ func TestBoltStoreRoundTrip(t *testing.T) {
 		BoxID:        "abcdef0123456789",
 		AuthorizeURL: "https://claude.com/cai/oauth/authorize?x=1",
 		CreatedAt:    time.Unix(1700000000, 0).UTC(),
+		HookState:    map[string]string{"granular-hook": "subj-1"},
 		Hostname:     "web-box",
 		Description:  "front-end",
 		Status:       "pending",
@@ -47,7 +49,7 @@ func TestBoltStoreRoundTrip(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("want 1 session, got %d", len(got))
 	}
-	if got[0] != ps {
+	if !reflect.DeepEqual(got[0], ps) {
 		t.Errorf("round-trip mismatch:\n got %+v\nwant %+v", got[0], ps)
 	}
 }

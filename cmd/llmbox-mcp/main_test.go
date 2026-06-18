@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 // TestEnvHelpers checks envOr and envInt fall back to defaults and parse values.
 func TestEnvHelpers(t *testing.T) {
@@ -25,32 +28,23 @@ func TestEnvHelpers(t *testing.T) {
 	}
 }
 
-// TestParseResourceServers checks "id=url" pairs are parsed and malformed or
-// empty entries are skipped.
-func TestParseResourceServers(t *testing.T) {
-	got := parseResourceServers("github=http://gh:9091, gitlab=http://gl:9092 ,,bad,=nope,empty=")
-	if len(got) != 2 {
-		t.Fatalf("want 2 resource servers, got %d: %+v", len(got), got)
+// TestSplitLists checks splitPathList and splitCommaList split, trim, and drop
+// empty entries, and yield nil for an empty spec.
+func TestSplitLists(t *testing.T) {
+	sep := string(os.PathListSeparator)
+	got := splitPathList(" /opt/hook " + sep + sep + " /usr/bin/other ")
+	if len(got) != 2 || got[0] != "/opt/hook" || got[1] != "/usr/bin/other" {
+		t.Errorf("splitPathList = %v, want [/opt/hook /usr/bin/other]", got)
 	}
-	if got[0].ID != "github" || got[0].BaseURL != "http://gh:9091" {
-		t.Errorf("rs[0] = %+v", got[0])
+	if splitPathList("") != nil {
+		t.Error("empty path-list should yield nil")
 	}
-	if got[1].ID != "gitlab" || got[1].BaseURL != "http://gl:9092" {
-		t.Errorf("rs[1] = %+v", got[1])
-	}
-	if parseResourceServers("") != nil {
-		t.Error("empty spec should yield nil")
-	}
-}
 
-// TestResourceServerHosts checks the hostnames are extracted from the base URLs,
-// deduped, and that unparseable entries are skipped.
-func TestResourceServerHosts(t *testing.T) {
-	got := resourceServerHosts("github=http://granular-github:9091, gitlab=http://granular-github:9092 , bad=:// ")
-	if len(got) != 1 || got[0] != "granular-github" {
-		t.Errorf("hosts = %v, want [granular-github]", got)
+	peers := splitCommaList("granular-github, granular-as ,,")
+	if len(peers) != 2 || peers[0] != "granular-github" || peers[1] != "granular-as" {
+		t.Errorf("splitCommaList = %v, want [granular-github granular-as]", peers)
 	}
-	if resourceServerHosts("") != nil {
-		t.Error("empty spec should yield nil hosts")
+	if splitCommaList("") != nil {
+		t.Error("empty comma-list should yield nil")
 	}
 }

@@ -18,13 +18,16 @@
 //	LLMBOX_AUTH_TTL_SECONDS   how long a box may stay un-authenticated (default 300)
 //	LLMBOX_STATE_FILE         bbolt file persisting the session registry (default "llmbox-sessions.db")
 //
-// Granular authorization (optional; enabled only when both AS URL and admin
-// token are set). When enabled, each box gets a freshly minted granular subject
-// token injected at GRANULAR_SUBJECT_PATH for the in-box agent to request grants:
+// Box lifecycle hooks (optional). LLMBOX_HOOKS is a PATH-style list (separated by
+// the OS path-list separator) of external executables llmbox runs at box.create
+// and box.destroy, exchanging JSON per the hookproto contract. A hook may inject
+// files into each box and persist opaque state; this is how integrations like
+// granular plug in without llmbox depending on them. LLMBOX_BOX_PEERS is a
+// comma-separated list of container names connected into every box's network so
+// boxes can reach them (e.g. a hook's resource servers):
 //
-//	LLMBOX_GRANULAR_AS_URL            granular authorization server base URL
-//	LLMBOX_GRANULAR_ADMIN_TOKEN_FILE  file holding the admin token used to mint/revoke subjects
-//	LLMBOX_GRANULAR_SUBJECT_PATH      in-box path for the subject token (default "/home/node/.granular/subject_token")
+//	LLMBOX_HOOKS       OS-path-list of hook executables (e.g. "/opt/granular-llmbox/hook")
+//	LLMBOX_BOX_PEERS   comma-separated container names every box can reach
 package main
 
 import (
@@ -32,7 +35,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -42,7 +44,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox-mcp/internal/docker"
-	"github.com/clems4ever/llmbox-mcp/internal/granular"
+	"github.com/clems4ever/llmbox-mcp/internal/hooks"
 	"github.com/clems4ever/llmbox-mcp/internal/server"
 )
 
@@ -72,19 +74,16 @@ func run() error {
 	authTTL := time.Duration(envInt("LLMBOX_AUTH_TTL_SECONDS", 300)) * time.Second
 	stateFile := envOr("LLMBOX_STATE_FILE", "llmbox-sessions.db")
 
-	peers := resourceServerHosts(os.Getenv("LLMBOX_GRANULAR_RESOURCE_SERVERS"))
+	peers := splitCommaList(os.Getenv("LLMBOX_BOX_PEERS"))
 	mgr, err := docker.NewManager(os.Getenv("LLMBOX_CLAUDE_IMAGE"), os.Getenv("LLMBOX_REMOTE_ARGS"), peers)
 	if err != nil {
 		return err
 	}
 	defer mgr.Close()
 
-	// Optional granular integration: mint a subject per box. New returns nil
-	// (integration disabled) unless both the AS URL and admin token are set.
-	minter, err := granularMinter()
-	if err != nil {
-		return err
-	}
+	// Optional box lifecycle hooks: external programs run at box.create/destroy.
+	// New returns nil (no hooks) when LLMBOX_HOOKS is empty.
+	hookRunner := hooks.New(splitPathList(os.Getenv("LLMBOX_HOOKS")))
 
 	// Persist the session registry so auth links survive a server restart.
 	if dir := filepath.Dir(stateFile); dir != "" && dir != "." {
@@ -98,7 +97,7 @@ func run() error {
 	}
 	defer func() { _ = store.Close() }()
 
-	srv := server.New(mgr, minter, publicURL, authTTL, store)
+	srv := server.New(mgr, hookRunner, publicURL, authTTL, store)
 	httpSrv := &http.Server{
 		Addr:    addr,
 		Handler: srv.Handler(srv.MCPServer(name, version)),
@@ -165,78 +164,43 @@ func envInt(key string, def int) int {
 	return def
 }
 
-// granularMinter builds the granular subject minter from the environment. It
-// returns nil (integration disabled) unless both LLMBOX_GRANULAR_AS_URL and a
-// readable LLMBOX_GRANULAR_ADMIN_TOKEN_FILE are set.
+// splitPathList splits an OS-path-list (e.g. LLMBOX_HOOKS) into its non-empty,
+// trimmed entries. The path-list separator (':' on Unix) is used so hook
+// executable paths read naturally, like PATH.
 //
-// @return *granular.Minter The configured minter, or nil when granular is not configured.
-// @error error if the admin token file is set but cannot be read.
+// @arg spec The path-list-separated string (may be empty).
+// @return []string The non-empty, trimmed entries, in order.
 //
-// @testcase TestEnvHelpers covers the configuration helpers run relies on.
-func granularMinter() (*granular.Minter, error) {
-	asURL := os.Getenv("LLMBOX_GRANULAR_AS_URL")
-	tokenFile := os.Getenv("LLMBOX_GRANULAR_ADMIN_TOKEN_FILE")
-	if asURL == "" || tokenFile == "" {
-		return nil, nil
-	}
-	raw, err := os.ReadFile(tokenFile)
-	if err != nil {
-		return nil, err
-	}
-	return granular.New(granular.Config{
-		ASURL:           asURL,
-		AdminToken:      strings.TrimSpace(string(raw)),
-		SubjectPath:     os.Getenv("LLMBOX_GRANULAR_SUBJECT_PATH"),
-		ResourceServers: parseResourceServers(os.Getenv("LLMBOX_GRANULAR_RESOURCE_SERVERS")),
-	}), nil
+// @testcase TestSplitLists splits path-lists and comma-lists, dropping empties.
+func splitPathList(spec string) []string {
+	return splitAndTrim(spec, string(os.PathListSeparator))
 }
 
-// parseResourceServers parses a "id=url,id=url" list into resource servers,
-// skipping malformed or empty entries. Each becomes a per-RS CLI config injected
-// into every box.
+// splitCommaList splits a comma-separated list (e.g. LLMBOX_BOX_PEERS) into its
+// non-empty, trimmed entries.
 //
-// @arg spec The comma-separated "id=base_url" pairs (may be empty).
-// @return []granular.ResourceServer The parsed resource servers.
+// @arg spec The comma-separated string (may be empty).
+// @return []string The non-empty, trimmed entries, in order.
 //
-// @testcase TestParseResourceServers parses pairs and skips malformed entries.
-func parseResourceServers(spec string) []granular.ResourceServer {
-	var out []granular.ResourceServer
-	for _, pair := range strings.Split(spec, ",") {
-		pair = strings.TrimSpace(pair)
-		if pair == "" {
-			continue
+// @testcase TestSplitLists splits path-lists and comma-lists, dropping empties.
+func splitCommaList(spec string) []string {
+	return splitAndTrim(spec, ",")
+}
+
+// splitAndTrim splits spec on sep, trims each entry, and drops empties, returning
+// nil when nothing remains so an unset variable yields no entries.
+//
+// @arg spec The string to split.
+// @arg sep The separator to split on.
+// @return []string The non-empty, trimmed entries, in order.
+//
+// @testcase TestSplitLists exercises splitAndTrim via the two list helpers.
+func splitAndTrim(spec, sep string) []string {
+	var out []string
+	for _, p := range strings.Split(spec, sep) {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
 		}
-		id, url, ok := strings.Cut(pair, "=")
-		id, url = strings.TrimSpace(id), strings.TrimSpace(url)
-		if !ok || id == "" || url == "" {
-			continue
-		}
-		out = append(out, granular.ResourceServer{ID: id, BaseURL: url})
 	}
 	return out
-}
-
-// resourceServerHosts extracts the hostname of each resource server's base URL.
-// These are the container names llmbox connects into every box's network so the
-// box can reach the resource servers; the hostname in each URL must therefore
-// match the resource server's container name.
-//
-// @arg spec The comma-separated "id=base_url" pairs (may be empty).
-// @return []string The distinct resource-server hostnames, in declaration order.
-//
-// @testcase TestResourceServerHosts extracts hostnames and skips unparseable URLs.
-func resourceServerHosts(spec string) []string {
-	var hosts []string
-	seen := map[string]bool{}
-	for _, rs := range parseResourceServers(spec) {
-		u, err := url.Parse(rs.BaseURL)
-		if err != nil || u.Hostname() == "" {
-			continue
-		}
-		if h := u.Hostname(); !seen[h] {
-			seen[h] = true
-			hosts = append(hosts, h)
-		}
-	}
-	return hosts
 }

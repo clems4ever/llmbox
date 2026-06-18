@@ -29,38 +29,8 @@ jobs:
           - name: llmbox-mcp
             dockerfile: Dockerfile.mcp
     steps:
-      # Check out the main repo WITHOUT submodules and without persisting the
-      # job token in .git/config — otherwise checkout rewrites the granular
-      # submodule's SSH URL to HTTPS+token and bypasses the deploy key below.
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      # granular is a private submodule. Fetch it over SSH with a read-only
-      # deploy key scoped to that repo (GRANULAR_DEPLOY_KEY holds the private
-      # key; its public half is registered as a deploy key on granular).
-      - name: Fetch private submodule
-        env:
-          DEPLOY_KEY: ${{ secrets.GRANULAR_DEPLOY_KEY }}
-        run: |
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/granular
-          chmod 600 ~/.ssh/granular
-          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts 2>/dev/null
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/granular -o IdentitiesOnly=yes" \
-            git submodule update --init --recursive
-
-      # The claude-remote image COPYs in the granular CLIs, fetched here (outside
-      # the build, so no token reaches the Docker build) from the private granular
-      # releases. Needs a token with contents:read on that repo.
-      - name: Fetch granular CLIs
-        if: matrix.name == 'claude-remote'
-        env:
-          GH_TOKEN: ${{ secrets.GRANULAR_RELEASE_TOKEN }}
-        run: |
-          ./scripts/fetch-granular-cli.sh granular-client
-          ./scripts/fetch-granular-cli.sh granular-github
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
