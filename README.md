@@ -76,7 +76,7 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 | `cmd/llmbox`         | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
 | `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + hostname uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
-| `Dockerfile.mcp`     | Image for **this server** (`llmbox-mcp`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
+| `Dockerfile`         | Image for **this server** (`llmbox-mcp`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
 
 Boxes run on a plain base image (`LLMBOX_CLAUDE_IMAGE`, default
 `debian:bookworm-slim`): the server **injects** the standalone Claude binary and
@@ -92,7 +92,7 @@ runs as a non-root user, which must be allowed to use the socket via
 `--group-add` (the socket's group, e.g. `docker`):
 
 ```bash
-docker build -f Dockerfile.mcp -t llmbox-mcp .
+docker build -t llmbox-mcp .
 
 docker run -d --name llmbox-mcp \
   -v /var/run/docker.sock:/var/run/docker.sock \

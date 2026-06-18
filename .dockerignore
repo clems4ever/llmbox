@@ -2,7 +2,7 @@
 .git
 .github
 *.md
-Dockerfile.*
+Dockerfile*
 docker-compose.yml
 .env
 .claude-config.seed.json
