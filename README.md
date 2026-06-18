@@ -295,8 +295,24 @@ Safety: every box created here carries the `com.llmbox.managed=true` label;
 list/destroy/reap are scoped to that label, so unrelated host containers are
 never touched.
 
+## Development
+
+A [`Makefile`](Makefile) wraps the common tasks — run `make help` to list them.
+The most-used:
+
+```bash
+make build              # build ./llmbox
+make run CONFIG=llmbox.yaml   # run the server against a config file
+make check              # gofmt-check + go vet + unit tests
+make cover              # unit tests with a coverage total
+make test-integration   # integration tests (needs Docker + a Claude binary)
+make docker-build       # build the Docker image
+```
+
 ## CI
 
+`.github/workflows/ci.yml` runs `go vet` and the unit-test suite with coverage on
+every push and pull request, publishing the coverage badge (see [Configuration](#configuration)).
 `.github/workflows/docker.yml` builds the server image and pushes it to GitHub
 Container Registry (`ghcr.io/<owner>/llmbox`) on pushes to `main` and version
 tags. Pull requests build without pushing.
