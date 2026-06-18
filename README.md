@@ -73,7 +73,7 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 
 | Path                 | What it is |
 |----------------------|------------|
-| `cmd/llmbox-mcp`     | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
+| `cmd/llmbox`         | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
 | `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + hostname uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile.mcp`     | Image for **this server** (`llmbox-mcp`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
