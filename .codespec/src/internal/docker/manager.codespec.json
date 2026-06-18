@@ -48,9 +48,9 @@
 		{
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
-			"documentation_hash": "40328b642279c0646494cfbb3dc5fd0e38387fb9944cdf1d2f6a271ce87058d9",
-			"definition_hash": "cad07e463478b53a7a09617f4ce37481089124cd6d91392cd34cf5f3ee4b2214",
-			"reviewed_at": "2026-06-18T15:05:52.404723489Z"
+			"documentation_hash": "c8f7585e023367a447fef3ae3f331aa2e618661eac9936a101fa19d217609802",
+			"definition_hash": "72e9473e34d7f2ddf4c1b7d496b06decb85e422a492ebf0a41dae025299f8d5a",
+			"reviewed_at": "2026-06-18T16:00:40.675503763Z"
 		},
 		{
 			"function_name": "injectFiles",
