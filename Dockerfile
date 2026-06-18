@@ -1,4 +1,4 @@
-# llmbox-mcp — MCP server + auth web server that manages sandboxed Claude boxes.
+# llmbox — MCP server + auth web server that manages sandboxed Claude boxes.
 #
 # One process serves two things on the same HTTP port:
 #   /              MCP over streamable HTTP (a chatbot creates/lists/destroys boxes)
@@ -8,14 +8,14 @@
 # access to a Docker socket at runtime.
 #
 # Build:
-#   docker build -t llmbox-mcp .
+#   docker build -t llmbox .
 #
 # Run (Docker socket in, HTTP port out):
 #   docker run --rm \
 #     -v /var/run/docker.sock:/var/run/docker.sock \
 #     -p 8080:8080 \
 #     -e LLMBOX_PUBLIC_URL=https://boxes.example.com \
-#     llmbox-mcp
+#     llmbox
 #
 # Key configuration:
 #   LLMBOX_HTTP_ADDR         listen address (default ":8080")
@@ -61,7 +61,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath -ldflags="-s -w" \
-    -o /out/llmbox-mcp ./cmd/llmbox
+    -o /out/llmbox ./cmd/llmbox
 
 # ---- runtime stage ----
 FROM gcr.io/distroless/static-debian12:nonroot
@@ -74,8 +74,8 @@ ENV LLMBOX_HTTP_ADDR=":8080" \
 
 EXPOSE 8080
 
-COPY --from=build /out/llmbox-mcp /usr/local/bin/llmbox-mcp
+COPY --from=build /out/llmbox /usr/local/bin/llmbox
 # The standalone Claude binary the server injects into each box (see claude stage).
 COPY --from=claude /opt/llmbox/claude /opt/llmbox/claude
 
-ENTRYPOINT ["/usr/local/bin/llmbox-mcp"]
+ENTRYPOINT ["/usr/local/bin/llmbox"]

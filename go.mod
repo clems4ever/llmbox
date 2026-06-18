@@ -1,4 +1,4 @@
-module github.com/clems4ever/llmbox-mcp
+module github.com/clems4ever/llmbox
 
 go 1.26.2
 

@@ -14,7 +14,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/clems4ever/llmbox-mcp/hookproto"
+	"github.com/clems4ever/llmbox/hookproto"
 )
 
 // BoxInfo describes a box to a hook. It aliases the wire type so callers need not

@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/clems4ever/llmbox-mcp/internal/docker"
-	"github.com/clems4ever/llmbox-mcp/internal/hooks"
+	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/hooks"
 )
 
 // boxManager is the behaviour Server needs from the Docker layer (real impl is

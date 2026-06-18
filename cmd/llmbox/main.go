@@ -44,13 +44,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/clems4ever/llmbox-mcp/internal/docker"
-	"github.com/clems4ever/llmbox-mcp/internal/hooks"
-	"github.com/clems4ever/llmbox-mcp/internal/server"
+	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/hooks"
+	"github.com/clems4ever/llmbox/internal/server"
 )
 
 const (
-	name    = "llmbox-mcp"
+	name    = "llmbox"
 	version = "v0.1.0"
 )
 
