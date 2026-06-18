@@ -36,7 +36,7 @@
     border-radius: 16px; padding: 2rem 2rem 1.75rem; box-shadow: 0 10px 40px rgba(0,0,0,.08);
   }
   .brand { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.25rem; }
-  .brand .dot { width: 1.6rem; height: 1.6rem; border-radius: 6px; background: var(--accent); flex: none; }
+  .brand .logo { width: 1.7rem; height: 1.7rem; flex: none; display: block; }
   .brand b { font-size: 1.05rem; letter-spacing: -.01em; }
   h1 { font-size: 1.4rem; line-height: 1.25; margin: 0 0 .35rem; letter-spacing: -.02em; }
   .lead { color: var(--muted); margin: 0 0 1.5rem; }
@@ -83,7 +83,7 @@
 </head>
 <body>
 <main class="card">
-  <div class="brand"><span class="dot"></span><b>llmbox</b></div>
+  <div class="brand"><img class="logo" src="/favicon.svg" width="27" height="27" alt=""><b>llmbox</b></div>
 
 {{if eq .Status "ready"}}
   <div class="banner ok"><strong>Your llmbox is ready.</strong></div>
