@@ -11,8 +11,8 @@
 			"function_name": "persistLocked",
 			"receiver": "session",
 			"documentation_hash": "72fbe470c5d53f3c68de98479499ab305305d768c3cff0fee62e903fced44eb5",
-			"definition_hash": "d67d56ffe77cd29ac16f8cb18d27bb52b8d8e328cef352b0ba26f87dca4fd5de",
-			"reviewed_at": "2026-06-18T16:59:05.501393924Z"
+			"definition_hash": "39d60a0d2f48c8a4173664fe07ab3e39cdf313bfc08a895b3ff775435f0efd31",
+			"reviewed_at": "2026-06-18T18:20:29.61980464Z"
 		},
 		{
 			"function_name": "persist",
@@ -24,14 +24,14 @@
 		{
 			"function_name": "sessionFromPersisted",
 			"documentation_hash": "4fe8ff6888faa54c159f06f87cd22fc13415c250fe06e9ef133b74736ba52f63",
-			"definition_hash": "29643cb1d37c3ef92ccd13e77d1ae8ce032c2841c661f610dba664fb458a426e",
-			"reviewed_at": "2026-06-18T16:59:05.504000863Z"
+			"definition_hash": "012e9654986a7d8c0383b46c05f3463e9b0b4981a2081cce6e751211f85c351a",
+			"reviewed_at": "2026-06-18T18:20:29.623542888Z"
 		},
 		{
 			"function_name": "New",
-			"documentation_hash": "30b7cfaa8c03c25ccdaa5824b8c98063eaff4f407b0511bcbbc6cbd37ee59256",
-			"definition_hash": "b0580de314aa9e77b59320a3f3284319ad5ec46763ea3c7266fb13eb4bbd523f",
-			"reviewed_at": "2026-06-18T17:12:11.818889662Z"
+			"documentation_hash": "7e7e40e8baa3dffd8983658403439abcc050a007ef150734e2e2f677dc3d23c2",
+			"definition_hash": "a85d7973db4a26eb8f979caaef05467a4c15b8f88ba3bfb6414ecd81acad971c",
+			"reviewed_at": "2026-06-18T18:20:29.627269332Z"
 		},
 		{
 			"function_name": "Restore",
@@ -107,8 +107,8 @@
 			"function_name": "ReapLoop",
 			"receiver": "Server",
 			"documentation_hash": "2b417082560c109aff705ea06df9cc75832ac472991917abf1f6a42c74cfb60c",
-			"definition_hash": "10f0eb8022adbbd25d2334cb9653a201840a02b5ba2c77ff310e18ff35a85038",
-			"reviewed_at": "2026-06-18T13:16:39.18421507Z"
+			"definition_hash": "b6e563d1da1db01a7dcc8b0dbcb7d16566090e6295192160a98018a2e9512c57",
+			"reviewed_at": "2026-06-18T18:20:29.630250704Z"
 		},
 		{
 			"function_name": "pruneSessions",

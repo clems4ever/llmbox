@@ -67,10 +67,11 @@ type session struct {
 	BoxID       string
 	Description string
 
-	mu         sync.Mutex
-	Status     string // "pending" | "ready" | "error"
-	SessionURL string
-	Err        string
+	mu          sync.Mutex
+	Status      string // "pending" | "ready" | "error"
+	SessionURL  string
+	Err         string
+	ActivatedBy string // identity (email) that submitted the code, when auth is enabled
 }
 
 // snapshot reads the session's mutable state under its lock.
@@ -104,6 +105,7 @@ func (s *session) persistLocked() persistedSession {
 		Status:       s.Status,
 		SessionURL:   s.SessionURL,
 		Err:          s.Err,
+		ActivatedBy:  s.ActivatedBy,
 	}
 }
 
@@ -136,6 +138,7 @@ func sessionFromPersisted(ps persistedSession) *session {
 		Status:       ps.Status,
 		SessionURL:   ps.SessionURL,
 		Err:          ps.Err,
+		ActivatedBy:  ps.ActivatedBy,
 	}
 }
 
@@ -149,6 +152,10 @@ type Server struct {
 
 	mu      sync.Mutex
 	byToken map[string]*session
+
+	// auth gates box activation behind provider sign-in (Google, …). nil leaves
+	// activation unauthenticated (no provider configured).
+	auth *Authenticator
 
 	// log records best-effort failures (persistence, cleanup, destroy hooks) that
 	// are not propagated to the caller; nil falls back to slog.Default().
@@ -171,24 +178,28 @@ func (s *Server) logger() *slog.Logger {
 // construct auth page links; authTTL is how long a box may stay un-authenticated
 // before the reaper destroys it. store persists the session registry; pass
 // noopStore{} to disable persistence. hooks runs lifecycle hooks per box; pass
-// nil to disable hook integration. Call Restore to load any saved sessions.
+// nil to disable hook integration. auth gates box activation behind provider
+// sign-in; pass nil to leave activation unauthenticated. Call Restore to load any
+// saved sessions.
 //
 // @arg mgr The box manager the server delegates Docker operations to.
 // @arg hooks The box lifecycle hook runner; nil disables hook integration.
 // @arg publicURL The externally reachable base URL for auth page links.
 // @arg authTTL How long a box may stay un-authenticated before being reaped.
 // @arg store The session store used to persist the registry; noopStore{} disables it.
+// @arg auth The activation authenticator; nil leaves activation unauthenticated.
 // @return *Server A ready-to-use Server with an empty in-memory session registry.
 //
 // @testcase TestCreateBoxRegistersSession builds a Server via New.
 // @testcase TestCreateBoxRunsCreateHooks builds a Server with a hook runner.
-func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration, store Store) *Server {
+func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration, store Store, auth *Authenticator) *Server {
 	return &Server{
 		mgr:       mgr,
 		hooks:     hooks,
 		publicURL: strings.TrimRight(publicURL, "/"),
 		authTTL:   authTTL,
 		store:     store,
+		auth:      auth,
 		byToken:   make(map[string]*session),
 		log:       slog.Default(),
 	}
@@ -525,6 +536,11 @@ func (s *Server) ReapLoop(ctx context.Context, every time.Duration, log func(str
 		case <-ctx.Done():
 			return
 		case <-t.C:
+			// Housekeeping: drop expired login sessions/flows (expiry is also
+			// enforced at read time, so this just bounds the buckets' growth).
+			if err := s.store.PurgeExpiredLogins(time.Now()); err != nil {
+				s.logger().Warn("purging expired login sessions", "err", err)
+			}
 			reaped, err := s.mgr.ReapOrphans(ctx, s.authTTL)
 			if err != nil {
 				if log != nil {

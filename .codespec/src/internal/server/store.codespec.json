@@ -37,8 +37,8 @@
 		{
 			"function_name": "openBoltStore",
 			"documentation_hash": "22e4ed75f71a5853320a2629aac5f56ca8b71d44fba103e2358fb355e2bb63da",
-			"definition_hash": "8c4dfc9bab598180aed437bc0cf55053943e701bcfde2747b22a73fd1b14b423",
-			"reviewed_at": "2026-06-18T17:12:11.838277585Z"
+			"definition_hash": "42a454d1a6837e1f486f2cc2d729f6b679ba9bcd7539a6bab1f77c6ee330e099",
+			"reviewed_at": "2026-06-18T18:20:29.654814081Z"
 		},
 		{
 			"function_name": "Save",
@@ -67,6 +67,90 @@
 			"documentation_hash": "bae03986a0b21b6dbbce0157cb015606fea520e441fd30c8c56c2c0739ef6a6e",
 			"definition_hash": "08643523e9ec38fff24764cdf2e0903a19e0a8b6113293e3117bc6c72e2dd3a2",
 			"reviewed_at": "2026-06-18T13:16:49.056102709Z"
+		},
+		{
+			"function_name": "SaveLoginFlow",
+			"receiver": "noopStore",
+			"documentation_hash": "e4ae81a4186f807efefbe70736c4e7a65277763e5005f48c7408b46383a0e459",
+			"definition_hash": "6c529e691fd2f39a4b10b02b2c742be5f24e0d37473d2f3975557a5d5318171c",
+			"reviewed_at": "2026-06-18T18:20:29.644216089Z"
+		},
+		{
+			"function_name": "TakeLoginFlow",
+			"receiver": "noopStore",
+			"documentation_hash": "c47cdd2f85a8174b6a95757bf2a5b583bf5582a8fcb51ab405deb22b5b600806",
+			"definition_hash": "44eb263f8256732caedd6ec20c3c41b0892f091522d45bc258a129f03e125b27",
+			"reviewed_at": "2026-06-18T18:20:29.645901959Z"
+		},
+		{
+			"function_name": "SaveLoginSession",
+			"receiver": "noopStore",
+			"documentation_hash": "be5500f8d039cb345feeb44561b0657055c7667087831807a67e0dc01e203abd",
+			"definition_hash": "22620b800520a434eec3e9955bd58ea034c086fd3f2e5d6d0d94756680606c03",
+			"reviewed_at": "2026-06-18T18:20:29.648276166Z"
+		},
+		{
+			"function_name": "LoginSession",
+			"receiver": "noopStore",
+			"documentation_hash": "37b8b5e17c9df87d0e64d57647fb4b991a2f17d7777273b032fe32a26c2f8ae6",
+			"definition_hash": "18a0ec466410647e74707f55af329770e02a344c12246e3e7fbf03093bb5f4f0",
+			"reviewed_at": "2026-06-18T18:20:29.649781906Z"
+		},
+		{
+			"function_name": "DeleteLoginSession",
+			"receiver": "noopStore",
+			"documentation_hash": "427203b14ae1afe366933dfa25d6319bfd62169c38dae5448f54e62885a3682a",
+			"definition_hash": "dc58dc70a9d046a83d41bd9d95e76af485560cefdcaece76f18e16f9423d4c3c",
+			"reviewed_at": "2026-06-18T18:20:29.651352767Z"
+		},
+		{
+			"function_name": "PurgeExpiredLogins",
+			"receiver": "noopStore",
+			"documentation_hash": "b09a108d9a9e36aa5440fb925302ff52c2215ef6fd3350376076cdb1adc4f246",
+			"definition_hash": "bfb7291e7f298145359e120bf1c611975d8a2a43253043b8c3cd0fd3fd0e4c46",
+			"reviewed_at": "2026-06-18T18:20:29.65264771Z"
+		},
+		{
+			"function_name": "SaveLoginFlow",
+			"receiver": "boltStore",
+			"documentation_hash": "e238dd29ce10ad8821e0308fc734976272920ca2e7b1231fc9ebbbf835c88244",
+			"definition_hash": "d678a7618bd75d52995f9121483b41251888a7719db266225e3d4c1374ff95f1",
+			"reviewed_at": "2026-06-18T18:20:29.656919984Z"
+		},
+		{
+			"function_name": "TakeLoginFlow",
+			"receiver": "boltStore",
+			"documentation_hash": "2dc372aa95f3706759e41eaf1d683ae01adafadc4d55c37384c6f99007436250",
+			"definition_hash": "cdab680df8b6f859b6bdad68db0e6cd7036409be04015d378cffc0bff8e45889",
+			"reviewed_at": "2026-06-18T18:20:29.658907748Z"
+		},
+		{
+			"function_name": "SaveLoginSession",
+			"receiver": "boltStore",
+			"documentation_hash": "7669e01a7b1bcb1f514a9016d1a60b2fa4fdc507fa2076a17964ec50cda5b4cf",
+			"definition_hash": "84f27d7297413a37be0fd4d641a379fce76e15dde483ef90c2b840f1be93af15",
+			"reviewed_at": "2026-06-18T18:20:29.660542266Z"
+		},
+		{
+			"function_name": "LoginSession",
+			"receiver": "boltStore",
+			"documentation_hash": "03d6e6e805890daa478522359d222c228bd3b6edf096b5f821c8c4722d49b8be",
+			"definition_hash": "315b7b06b4a67dfbf0a0145778d4572f45d56cbb0c6a4ed067ff2acf58958ce4",
+			"reviewed_at": "2026-06-18T18:20:29.662577694Z"
+		},
+		{
+			"function_name": "DeleteLoginSession",
+			"receiver": "boltStore",
+			"documentation_hash": "156a2e7ec0dec7e0f0e3a3708304b850b22ebf79aad3acb2d9d008a1a578129f",
+			"definition_hash": "257b62d71dc71431ec4d8ecd738e5cd4e30e2eb01be8ccf610ca59e74c919595",
+			"reviewed_at": "2026-06-18T18:20:29.666896333Z"
+		},
+		{
+			"function_name": "PurgeExpiredLogins",
+			"receiver": "boltStore",
+			"documentation_hash": "2b34a8d5a9821d6a6da651a9ada9b9edf7705b6a9d0d12d655ba4fe9d40ae2e4",
+			"definition_hash": "8534873eaa3c3fb933c76815414eb6ccd2cc9b20e73a90085feef8881ba21a29",
+			"reviewed_at": "2026-06-18T18:20:29.670103469Z"
 		}
 	]
 }

@@ -130,3 +130,80 @@ func TestLoadEmptyFile(t *testing.T) {
 		t.Errorf("HTTPAddr = %q, want default", c.HTTPAddr)
 	}
 }
+
+// writeFile writes content to dir/name and returns its absolute path.
+func writeFile(t *testing.T, dir, name, content string) string {
+	t.Helper()
+	p := filepath.Join(dir, name)
+	if err := os.WriteFile(p, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// TestLoadGoogleAuth checks an enabled Google provider loads, resolves its secret
+// from the referenced file, and defaults its redirect URL from the public URL.
+func TestLoadGoogleAuth(t *testing.T) {
+	dir := t.TempDir()
+	secret := writeFile(t, dir, "secret", "topsecret\n")
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+public_url: "https://boxes.example.com"
+auth:
+  session_ttl: "30m"
+  google:
+    enabled: true
+    client_id: "cid"
+    client_secret_file: "`+secret+`"
+    allowed_domains: ["corp.com"]
+`)
+	c, err := Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	g := c.Auth.Google
+	if g.ClientSecret != "topsecret" {
+		t.Errorf("ClientSecret = %q, want topsecret (trimmed from file)", g.ClientSecret)
+	}
+	if g.RedirectURL != "https://boxes.example.com/auth/google/callback" {
+		t.Errorf("RedirectURL = %q, want defaulted callback", g.RedirectURL)
+	}
+	if time.Duration(c.Auth.SessionTTL) != 30*time.Minute {
+		t.Errorf("SessionTTL = %v, want 30m", time.Duration(c.Auth.SessionTTL))
+	}
+	if len(g.AllowedDomains) != 1 || g.AllowedDomains[0] != "corp.com" {
+		t.Errorf("AllowedDomains = %v", g.AllowedDomains)
+	}
+}
+
+// TestLoadGoogleRequiresAllowlist checks enabling Google with no allow rule is a
+// hard error (it would otherwise authorize every Google account).
+func TestLoadGoogleRequiresAllowlist(t *testing.T) {
+	dir := t.TempDir()
+	secret := writeFile(t, dir, "secret", "s")
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+auth:
+  google:
+    enabled: true
+    client_id: "cid"
+    client_secret_file: "`+secret+`"
+`)
+	if _, err := Load(cfgPath); err == nil {
+		t.Error("Load with no allow rule = nil, want error")
+	}
+}
+
+// TestLoadGoogleMissingSecretFile checks an unreadable client secret file errors.
+func TestLoadGoogleMissingSecretFile(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+auth:
+  google:
+    enabled: true
+    client_id: "cid"
+    client_secret_file: "`+filepath.Join(dir, "nope")+`"
+    allowed_domains: ["corp.com"]
+`)
+	if _, err := Load(cfgPath); err == nil {
+		t.Error("Load with missing secret file = nil, want error")
+	}
+}

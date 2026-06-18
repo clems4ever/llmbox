@@ -85,6 +85,16 @@
 <main class="card">
   <div class="brand"><img class="logo" src="/favicon.svg" width="27" height="27" alt=""><b>llmbox</b></div>
 
+{{if and .AuthEnabled (not .LoggedIn)}}
+  <h1>Sign in to activate</h1>
+  <p class="lead">Activating this box requires signing in first, so only you — the person who requested it — can connect it to a Claude account.</p>
+  {{range .Providers}}
+    <a class="btn-link" style="display:block;text-align:center;margin-bottom:.6rem" href="{{.LoginPath}}">Sign in with {{.Label}}</a>
+  {{else}}
+    <div class="banner err">No sign-in providers are configured, so this box cannot be activated.</div>
+  {{end}}
+  <p class="note">You'll be returned here once you're signed in.</p>
+{{else}}
 {{if eq .Status "ready"}}
   <div class="banner ok"><strong>Your llmbox is ready.</strong></div>
   {{if .SessionURL}}
@@ -118,6 +128,7 @@
       <h2>Paste the code</h2>
       <p>Paste the code from the previous step to activate your sandbox.</p>
       <form id="auth-form" method="post" action="/auth/{{.Token}}" autocomplete="off">
+        {{if .AuthEnabled}}<input type="hidden" name="csrf" value="{{.CSRF}}">{{end}}
         <input type="text" name="code" placeholder="Paste your code here" autofocus
                autocapitalize="off" autocorrect="off" spellcheck="false">
         <button id="activate" type="submit">
@@ -132,6 +143,8 @@
       <p class="note">Your code goes straight to this server and into your private sandbox — it is never sent to the chatbot.</p>
     </div>
   </div>
+{{end}}
+{{if .Email}}<p class="note">Signed in as {{.Email}}.</p>{{end}}
 {{end}}
 </main>
 <script>

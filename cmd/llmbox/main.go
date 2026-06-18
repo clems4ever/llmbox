@@ -171,7 +171,17 @@ func run(parent context.Context, cfg *config.Config) error {
 		}
 	}()
 
-	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store)
+	// Activation auth (OIDC). Returns nil when no provider is configured, which
+	// leaves box activation unauthenticated.
+	auth, err := server.NewAuthenticator(parent, cfg.Auth)
+	if err != nil {
+		return err
+	}
+	if auth == nil {
+		log.Print("activation auth is DISABLED: anyone with a box's auth-page URL can activate it; configure auth.google to require sign-in")
+	}
+
+	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store, auth)
 	httpSrv := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: srv.Handler(srv.MCPServer(name, version)),

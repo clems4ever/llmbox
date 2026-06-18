@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -22,6 +23,10 @@ const (
 	DefaultPublicURL = "http://localhost:8080"
 	DefaultAuthTTL   = 300 * time.Second
 	DefaultStateFile = "llmbox-sessions.db"
+
+	// DefaultSessionTTL is how long an activation login session stays valid when
+	// auth.session_ttl is unset.
+	DefaultSessionTTL = time.Hour
 )
 
 // Duration is a time.Duration that unmarshals from a Go duration string (e.g.
@@ -52,15 +57,42 @@ func (d *Duration) UnmarshalYAML(value *yaml.Node) error {
 // Config is the parsed llmbox configuration. Field semantics mirror the former
 // LLMBOX_* environment variables; see the README's Configuration section.
 type Config struct {
-	HTTPAddr    string   `yaml:"http_addr"`
-	PublicURL   string   `yaml:"public_url"`
-	ClaudeImage string   `yaml:"claude_image"`
-	ClaudeBin   string   `yaml:"claude_bin"`
-	RemoteArgs  string   `yaml:"remote_args"`
-	AuthTTL     Duration `yaml:"auth_ttl"`
-	StateFile   string   `yaml:"state_file"`
-	Hooks       []string `yaml:"hooks"`
-	BoxPeers    []string `yaml:"box_peers"`
+	HTTPAddr    string     `yaml:"http_addr"`
+	PublicURL   string     `yaml:"public_url"`
+	ClaudeImage string     `yaml:"claude_image"`
+	ClaudeBin   string     `yaml:"claude_bin"`
+	RemoteArgs  string     `yaml:"remote_args"`
+	AuthTTL     Duration   `yaml:"auth_ttl"`
+	StateFile   string     `yaml:"state_file"`
+	Hooks       []string   `yaml:"hooks"`
+	BoxPeers    []string   `yaml:"box_peers"`
+	Auth        AuthConfig `yaml:"auth"`
+}
+
+// AuthConfig configures who may activate a box. When a provider is enabled, the
+// activation page requires the visitor to sign in with that provider (over a
+// channel that never transits the chatbot) and be authorized before the box's
+// OAuth code is accepted. Each provider is a dedicated sub-block so more can be
+// added later without changing the existing ones.
+type AuthConfig struct {
+	SessionTTL Duration     `yaml:"session_ttl"`
+	Google     GoogleConfig `yaml:"google"`
+}
+
+// GoogleConfig configures Sign in with Google (OIDC) for box activation. A
+// non-empty allow rule (allowed_domains or allowed_emails) is required when
+// enabled, so enabling it can never authorize every Google account.
+type GoogleConfig struct {
+	Enabled          bool     `yaml:"enabled"`
+	ClientID         string   `yaml:"client_id"`
+	ClientSecretFile string   `yaml:"client_secret_file"`
+	RedirectURL      string   `yaml:"redirect_url"`
+	AllowedDomains   []string `yaml:"allowed_domains"`
+	AllowedEmails    []string `yaml:"allowed_emails"`
+
+	// ClientSecret is read from ClientSecretFile at load time; it is never set in
+	// the YAML itself (secrets live in files, not in the config document).
+	ClientSecret string `yaml:"-"`
 }
 
 // Default returns a Config with every field set to its built-in default. It is
@@ -88,6 +120,9 @@ func Default() *Config {
 // @testcase TestLoadRejectsUnknownKey errors on an unknown field.
 // @testcase TestLoadParsesDuration parses a duration string from the config.
 // @testcase TestLoadRejectsBadDuration fails on an unparseable duration.
+// @testcase TestLoadGoogleAuth loads an enabled Google provider and resolves its secret file.
+// @testcase TestLoadGoogleRequiresAllowlist rejects an enabled Google provider with no allow rule.
+// @testcase TestLoadGoogleMissingSecretFile errors when the client secret file is absent.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -101,7 +136,73 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("parsing config %s: %w", path, err)
 	}
 	cfg.applyDefaults()
+	if err := cfg.resolveSecrets(); err != nil {
+		return nil, fmt.Errorf("config %s: %w", path, err)
+	}
+	if err := cfg.validate(); err != nil {
+		return nil, fmt.Errorf("config %s: %w", path, err)
+	}
 	return cfg, nil
+}
+
+// resolveSecrets reads every file-referenced secret into its in-memory field, so
+// the rest of the program never touches the secret files. Secrets are always
+// referenced by path and never inlined in the YAML.
+//
+// @error error if an enabled provider's secret file cannot be read.
+//
+// @testcase TestLoadGoogleAuth resolves the Google client secret from its file.
+// @testcase TestLoadGoogleMissingSecretFile errors when the secret file is absent.
+func (c *Config) resolveSecrets() error {
+	if c.Auth.Google.Enabled {
+		secret, err := secretFromFile(c.Auth.Google.ClientSecretFile)
+		if err != nil {
+			return fmt.Errorf("auth.google.client_secret_file: %w", err)
+		}
+		c.Auth.Google.ClientSecret = secret
+	}
+	return nil
+}
+
+// secretFromFile reads path and returns its trimmed contents as a secret value.
+//
+// @arg path The file holding the secret; empty is an error.
+// @return string The trimmed file contents.
+// @error error if no path is given or the file cannot be read.
+//
+// @testcase TestLoadGoogleAuth reads a secret from a file via this helper.
+// @testcase TestLoadGoogleMissingSecretFile errors for a missing secret file.
+func secretFromFile(path string) (string, error) {
+	if path == "" {
+		return "", errors.New("no file path configured")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(data)), nil
+}
+
+// validate rejects internally-inconsistent configuration. In particular an
+// enabled auth provider must carry credentials and a non-empty allow rule, so
+// enabling it can never authorize every account.
+//
+// @error error if an enabled provider is missing credentials or an allow rule.
+//
+// @testcase TestLoadGoogleRequiresAllowlist rejects an enabled provider with no allow rule.
+func (c *Config) validate() error {
+	if g := c.Auth.Google; g.Enabled {
+		if g.ClientID == "" {
+			return errors.New("auth.google.enabled requires client_id")
+		}
+		if g.ClientSecret == "" {
+			return errors.New("auth.google.enabled requires a non-empty client_secret_file")
+		}
+		if len(g.AllowedDomains) == 0 && len(g.AllowedEmails) == 0 {
+			return errors.New("auth.google.enabled requires allowed_domains or allowed_emails (refusing to authorize every Google account)")
+		}
+	}
+	return nil
 }
 
 // applyDefaults fills any field left at its zero value with its built-in
@@ -121,5 +222,12 @@ func (c *Config) applyDefaults() {
 	}
 	if c.StateFile == "" {
 		c.StateFile = DefaultStateFile
+	}
+	if c.Auth.SessionTTL == 0 {
+		c.Auth.SessionTTL = Duration(DefaultSessionTTL)
+	}
+	// Default each enabled provider's redirect URL from the public URL.
+	if c.Auth.Google.Enabled && c.Auth.Google.RedirectURL == "" {
+		c.Auth.Google.RedirectURL = strings.TrimRight(c.PublicURL, "/") + "/auth/google/callback"
 	}
 }

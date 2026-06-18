@@ -37,3 +37,20 @@ state_file: "llmbox-sessions.db"
 # box_peers:
 #   - granular-github
 #   - granular-as
+
+# Activation authentication. Without this, anyone who obtains a box's auth-page
+# URL (which is relayed through the chatbot) can activate the box with their own
+# account. Enable a provider to require the person activating a box to sign in
+# first — over a channel that never passes through the chatbot — and be in an
+# allowed domain or email allowlist.
+# auth:
+#   session_ttl: "1h"          # how long a sign-in stays valid
+#   google:
+#     enabled: true
+#     client_id: "xxxxxxxx.apps.googleusercontent.com"
+#     # Secret is read from this file, never inlined here. Register the redirect
+#     # URI {public_url}/auth/google/callback in the Google Cloud console.
+#     client_secret_file: "/etc/llmbox/google-client-secret"
+#     # redirect_url defaults to {public_url}/auth/google/callback
+#     allowed_domains: ["your-company.com"]   # Google Workspace domain(s)
+#     allowed_emails: []                       # or specific addresses

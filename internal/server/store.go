@@ -9,8 +9,34 @@ import (
 )
 
 // sessionsBucket is the bbolt bucket holding one JSON-encoded persistedSession
-// per auth token.
-var sessionsBucket = []byte("sessions")
+// per auth token. loginSessionsBucket and loginFlowsBucket hold the activation
+// login state (see LoginStore): a signed-in user's session and the short-lived
+// in-flight OIDC handshake state, respectively.
+var (
+	sessionsBucket      = []byte("sessions")
+	loginSessionsBucket = []byte("login_sessions")
+	loginFlowsBucket    = []byte("login_flows")
+)
+
+// loginSession is a completed activation login, keyed in the store by an opaque
+// random session ID (the value of the browser cookie). Its presence means the
+// user authenticated and was authorized; CSRF guards the activation POST.
+type loginSession struct {
+	Email     string    `json:"email"`
+	Provider  string    `json:"provider"`
+	CSRF      string    `json:"csrf"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// loginFlow is the short-lived state of an in-flight OIDC handshake, keyed in the
+// store by the OAuth state parameter. It is consumed (deleted) on callback.
+type loginFlow struct {
+	Provider    string    `json:"provider"`
+	ReturnToken string    `json:"return_token"`
+	Nonce       string    `json:"nonce"`
+	Verifier    string    `json:"verifier"`
+	ExpiresAt   time.Time `json:"expires_at"`
+}
 
 // persistedSession is the on-disk form of a session. It mirrors the durable
 // fields of session (the sync.Mutex and live-only state are not stored as a
@@ -26,6 +52,7 @@ type persistedSession struct {
 	Status       string            `json:"status"`
 	SessionURL   string            `json:"session_url,omitempty"`
 	Err          string            `json:"err,omitempty"`
+	ActivatedBy  string            `json:"activated_by,omitempty"`
 }
 
 // Store persists the auth-session registry across restarts. All methods must be
@@ -40,6 +67,28 @@ type Store interface {
 	LoadAll() ([]persistedSession, error)
 	// Close releases the underlying store.
 	Close() error
+
+	LoginStore
+}
+
+// LoginStore persists the activation login state across restarts: completed
+// login sessions (keyed by an opaque cookie ID) and the short-lived in-flight
+// OIDC handshake state (keyed by the OAuth state parameter). All methods must be
+// safe for concurrent use.
+type LoginStore interface {
+	// SaveLoginFlow stores the in-flight handshake state under the OAuth state key.
+	SaveLoginFlow(state string, f loginFlow) error
+	// TakeLoginFlow returns and removes the flow for state (one-time use); the bool
+	// is false when no flow matches.
+	TakeLoginFlow(state string) (loginFlow, bool, error)
+	// SaveLoginSession stores a completed login session under its opaque id.
+	SaveLoginSession(id string, s loginSession) error
+	// LoginSession returns the session for id; the bool is false when none matches.
+	LoginSession(id string) (loginSession, bool, error)
+	// DeleteLoginSession removes a login session; deleting a missing id is a no-op.
+	DeleteLoginSession(id string) error
+	// PurgeExpiredLogins drops login sessions and flows that expired before now.
+	PurgeExpiredLogins(now time.Time) error
 }
 
 // noopStore is a Store that persists nothing. It is used in tests that don't
@@ -77,6 +126,62 @@ func (noopStore) LoadAll() ([]persistedSession, error) { return nil, nil }
 // @testcase TestServerWithoutStore checks the server works with a no-op store.
 func (noopStore) Close() error { return nil }
 
+// SaveLoginFlow discards the flow.
+//
+// @arg _ The OAuth state key.
+// @arg _ The flow to (not) persist.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) SaveLoginFlow(_ string, _ loginFlow) error { return nil }
+
+// TakeLoginFlow finds nothing.
+//
+// @arg _ The OAuth state key.
+// @return loginFlow The zero flow.
+// @return bool Always false.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) TakeLoginFlow(_ string) (loginFlow, bool, error) { return loginFlow{}, false, nil }
+
+// SaveLoginSession discards the session.
+//
+// @arg _ The opaque session id.
+// @arg _ The session to (not) persist.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) SaveLoginSession(_ string, _ loginSession) error { return nil }
+
+// LoginSession finds nothing.
+//
+// @arg _ The opaque session id.
+// @return loginSession The zero session.
+// @return bool Always false.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) LoginSession(_ string) (loginSession, bool, error) {
+	return loginSession{}, false, nil
+}
+
+// DeleteLoginSession does nothing.
+//
+// @arg _ The opaque session id.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) DeleteLoginSession(_ string) error { return nil }
+
+// PurgeExpiredLogins does nothing.
+//
+// @arg _ The cutoff time.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) PurgeExpiredLogins(_ time.Time) error { return nil }
+
 // boltStore is a Store backed by a single bbolt database file.
 type boltStore struct {
 	db *bolt.DB
@@ -105,8 +210,12 @@ func openBoltStore(path string) (*boltStore, error) {
 		return nil, fmt.Errorf("opening session store %q: %w", path, err)
 	}
 	if err := db.Update(func(tx *bolt.Tx) error {
-		_, berr := tx.CreateBucketIfNotExists(sessionsBucket)
-		return berr
+		for _, b := range [][]byte{sessionsBucket, loginSessionsBucket, loginFlowsBucket} {
+			if _, berr := tx.CreateBucketIfNotExists(b); berr != nil {
+				return berr
+			}
+		}
+		return nil
 	}); err != nil {
 		// Close the half-open db before surfacing the real initialization error.
 		_ = db.Close()
@@ -173,3 +282,146 @@ func (b *boltStore) LoadAll() ([]persistedSession, error) {
 //
 // @testcase TestBoltStoreRoundTrip closes the store when done.
 func (b *boltStore) Close() error { return b.db.Close() }
+
+// SaveLoginFlow stores the in-flight OIDC handshake state under the state key.
+//
+// @arg state The OAuth state parameter the flow is keyed by.
+// @arg f The flow to persist.
+// @error error if encoding or the write transaction fails.
+//
+// @testcase TestLoginStoreFlowRoundTrip saves a flow and takes it back once.
+func (b *boltStore) SaveLoginFlow(state string, f loginFlow) error {
+	data, err := json.Marshal(f)
+	if err != nil {
+		return fmt.Errorf("encoding login flow: %w", err)
+	}
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(loginFlowsBucket).Put([]byte(state), data)
+	})
+}
+
+// TakeLoginFlow returns and removes the flow for state in one transaction, so a
+// flow can be used at most once.
+//
+// @arg state The OAuth state parameter to consume.
+// @return loginFlow The decoded flow when one matched.
+// @return bool True when a flow matched, false otherwise.
+// @error error if the transaction or decoding fails.
+//
+// @testcase TestLoginStoreFlowRoundTrip consumes a flow and finds it gone afterwards.
+func (b *boltStore) TakeLoginFlow(state string) (loginFlow, bool, error) {
+	var (
+		f     loginFlow
+		found bool
+	)
+	err := b.db.Update(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(loginFlowsBucket)
+		v := bkt.Get([]byte(state))
+		if v == nil {
+			return nil
+		}
+		if derr := json.Unmarshal(v, &f); derr != nil {
+			return fmt.Errorf("decoding login flow: %w", derr)
+		}
+		found = true
+		return bkt.Delete([]byte(state))
+	})
+	if err != nil {
+		return loginFlow{}, false, err
+	}
+	return f, found, nil
+}
+
+// SaveLoginSession stores a completed login session under its opaque id.
+//
+// @arg id The opaque session id (the browser cookie value).
+// @arg s The session to persist.
+// @error error if encoding or the write transaction fails.
+//
+// @testcase TestLoginStoreSessionRoundTrip saves and reads back a login session.
+func (b *boltStore) SaveLoginSession(id string, s loginSession) error {
+	data, err := json.Marshal(s)
+	if err != nil {
+		return fmt.Errorf("encoding login session: %w", err)
+	}
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(loginSessionsBucket).Put([]byte(id), data)
+	})
+}
+
+// LoginSession returns the login session for id.
+//
+// @arg id The opaque session id to look up.
+// @return loginSession The decoded session when one matched.
+// @return bool True when a session matched, false otherwise.
+// @error error if the read transaction or decoding fails.
+//
+// @testcase TestLoginStoreSessionRoundTrip reads back a stored login session.
+func (b *boltStore) LoginSession(id string) (loginSession, bool, error) {
+	var (
+		s     loginSession
+		found bool
+	)
+	err := b.db.View(func(tx *bolt.Tx) error {
+		v := tx.Bucket(loginSessionsBucket).Get([]byte(id))
+		if v == nil {
+			return nil
+		}
+		found = true
+		return json.Unmarshal(v, &s)
+	})
+	if err != nil {
+		return loginSession{}, false, err
+	}
+	return s, found, nil
+}
+
+// DeleteLoginSession removes a login session; deleting a missing id is a no-op.
+//
+// @arg id The opaque session id to delete.
+// @error error if the write transaction fails.
+//
+// @testcase TestLoginStoreSessionRoundTrip deletes a session and confirms it is gone.
+func (b *boltStore) DeleteLoginSession(id string) error {
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(loginSessionsBucket).Delete([]byte(id))
+	})
+}
+
+// PurgeExpiredLogins drops login sessions and flows whose ExpiresAt is before
+// now. Expiry is also enforced at read time, so this is housekeeping that keeps
+// the buckets from growing unbounded.
+//
+// @arg now The cutoff time; entries expiring before it are removed.
+// @error error if a transaction or decoding fails.
+//
+// @testcase TestLoginStorePurgeExpired drops expired entries and keeps live ones.
+func (b *boltStore) PurgeExpiredLogins(now time.Time) error {
+	return b.db.Update(func(tx *bolt.Tx) error {
+		// loginFlow and loginSession both carry an ExpiresAt; decode just that.
+		var hdr struct {
+			ExpiresAt time.Time `json:"expires_at"`
+		}
+		for _, name := range [][]byte{loginSessionsBucket, loginFlowsBucket} {
+			bkt := tx.Bucket(name)
+			var stale [][]byte
+			if err := bkt.ForEach(func(k, v []byte) error {
+				if jerr := json.Unmarshal(v, &hdr); jerr != nil {
+					return fmt.Errorf("decoding login entry: %w", jerr)
+				}
+				if hdr.ExpiresAt.Before(now) {
+					stale = append(stale, append([]byte(nil), k...))
+				}
+				return nil
+			}); err != nil {
+				return err
+			}
+			for _, k := range stale {
+				if err := bkt.Delete(k); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}

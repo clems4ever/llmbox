@@ -1,0 +1,77 @@
+{
+	"functions": [
+		{
+			"function_name": "authorize",
+			"receiver": "provider",
+			"documentation_hash": "a716bd45d949327fdae054b01defbbfd69239adecb2fc8a755ad9cd1b33e9a28",
+			"definition_hash": "2cdb03f7ea69c51fedc42eae081280e8f541c7d1def751272f781a8bf5314201",
+			"reviewed_at": "2026-06-18T18:20:44.667801388Z"
+		},
+		{
+			"function_name": "emailDomain",
+			"documentation_hash": "69e7ab78ffabeb105e26ab2192b2615d7e4ab1b3e95f3de3776d807a175306f6",
+			"definition_hash": "a0dc521fdf88eaa800ae5b20caa4305cd8d7c0442f9fdecacfdef1b2805759d4",
+			"reviewed_at": "2026-06-18T18:20:44.668083906Z"
+		},
+		{
+			"function_name": "NewAuthenticator",
+			"documentation_hash": "b4d8f52b789a8ea0438902623fa0cc34b1ad4a7a97bd8664c0c74ed7c5663613",
+			"definition_hash": "70d723f92050e9215b94e1892f95d0a3bc1dc0e94ecf65053602d50211f9d278",
+			"reviewed_at": "2026-06-18T18:20:44.668621054Z"
+		},
+		{
+			"function_name": "provider",
+			"receiver": "Authenticator",
+			"documentation_hash": "542b6736b6052615d5ba7207108e6ad28f720cd8c59e5a1ba778e70199963a92",
+			"definition_hash": "1278a7b2253c1a49f1256eb518d6a9b0dda0837a1976eb9643793630b4564435",
+			"reviewed_at": "2026-06-18T18:20:44.669170686Z"
+		},
+		{
+			"function_name": "buttons",
+			"receiver": "Authenticator",
+			"documentation_hash": "6ba13aab2d2850329235a829946758847b9c95da3a248ebf34cdf93065de0bb1",
+			"definition_hash": "3b081b02400a698ba00ca9864a958fd093d1247dcbb4a6011b378fcc55ec7fb4",
+			"reviewed_at": "2026-06-18T18:20:44.669683128Z"
+		},
+		{
+			"function_name": "verify",
+			"receiver": "oidcVerifier",
+			"documentation_hash": "502fcd620489263dbe3ee5163bb6cba3c0f7eef9f2b8cee385f0ed15bd6b06e7",
+			"definition_hash": "605dd6ee77703acd98507f2d7eafb791d20243c4fb8531b5c30a71da44d18723",
+			"reviewed_at": "2026-06-18T18:20:44.671252324Z"
+		},
+		{
+			"function_name": "handleProviderLogin",
+			"receiver": "Server",
+			"documentation_hash": "fdadce89e03bdfc9e68b06fe1d3b5a7cb51c1e7b7d5641960d632a96f89bcc84",
+			"definition_hash": "b2ff097d935f8b18ecf54534ddf12e6dc86553d764e4f2b3654621e88c26a5c5",
+			"reviewed_at": "2026-06-18T18:20:44.673341164Z"
+		},
+		{
+			"function_name": "handleProviderCallback",
+			"receiver": "Server",
+			"documentation_hash": "781578edb87969a938edfeca4014107697240a513f47bfd38f560360fad4c0b1",
+			"definition_hash": "03a423e8c618076976e6bb997d80a684e0de1d6cd7117adf8de865e01ba6f273",
+			"reviewed_at": "2026-06-18T18:20:44.675379821Z"
+		},
+		{
+			"function_name": "currentLogin",
+			"receiver": "Server",
+			"documentation_hash": "0792f9eccda1505b6562db6bc07719e23f480bc5d1f6ea1c400eca8579742df9",
+			"definition_hash": "f48e0e02fbb94ca3e61809149c5d61f07bf067aa134cbf71659bfab5a557dbe8",
+			"reviewed_at": "2026-06-18T18:20:44.677172406Z"
+		},
+		{
+			"function_name": "randToken",
+			"documentation_hash": "24bfc8fb20feb4c27966c13fcf3df498b5500d1c2b613807555a1bbb5b4b8b42",
+			"definition_hash": "27f298da31ea93e4f461b6083bdc1bae537f19e540f06b964caf0e09d7f34738",
+			"reviewed_at": "2026-06-18T18:20:44.678361731Z"
+		},
+		{
+			"function_name": "lowerSet",
+			"documentation_hash": "c377b834a539d07b0c21dbda74cc7457cc2e29c6a9c88c656c14bcbb73578389",
+			"definition_hash": "d529be2beeba1897d20ca9b4d1b68ba7d6c5ef24282d8d8e88880a7c66992557",
+			"reviewed_at": "2026-06-18T18:20:44.680115197Z"
+		}
+	]
+}
