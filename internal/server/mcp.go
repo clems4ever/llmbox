@@ -42,6 +42,11 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 		Description: "Stop and remove an llmbox by its hostname (the one given to create_llmbox).",
 	}, s.toolDestroy)
 
+	mcp.AddTool(srv, &mcp.Tool{
+		Name:        "get_llmbox_logs",
+		Description: "Read the recent console output (logs) of an llmbox by its hostname (the one given to create_llmbox). Optionally limit the number of trailing lines with 'tail'.",
+	}, s.toolLogs)
+
 	return srv
 }
 
@@ -183,4 +188,36 @@ func (s *Server) toolDestroy(ctx context.Context, _ *mcp.CallToolRequest, in des
 		return nil, destroyOutput{}, err
 	}
 	return nil, destroyOutput{Destroyed: in.Hostname}, nil
+}
+
+type logsInput struct {
+	Hostname string `json:"hostname" jsonschema:"the hostname of the box (the one passed to create_llmbox)"`
+	Tail     int    `json:"tail,omitempty" jsonschema:"optional maximum number of trailing log lines to return; a sensible default is used when omitted or non-positive"`
+}
+
+type logsOutput struct {
+	Hostname string `json:"hostname" jsonschema:"the hostname of the box the logs belong to"`
+	Logs     string `json:"logs" jsonschema:"the box's recent console output"`
+}
+
+// toolLogs handles the get_llmbox_logs tool: it looks up a box's session by
+// hostname and returns that box's recent console output.
+//
+// @arg ctx Context for the logs request.
+// @arg _ The MCP call request (unused).
+// @arg in The logs input carrying the box hostname and optional tail count.
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return logsOutput The box's hostname and recent console output.
+// @error error if no hostname is given, no box has that hostname, or the logs cannot be read.
+//
+// @testcase TestBoxLogsByHostname returns a box's logs looked up by hostname.
+func (s *Server) toolLogs(ctx context.Context, _ *mcp.CallToolRequest, in logsInput) (*mcp.CallToolResult, logsOutput, error) {
+	if in.Hostname == "" {
+		return nil, logsOutput{}, fmt.Errorf("hostname is required")
+	}
+	logs, err := s.BoxLogs(ctx, in.Hostname, in.Tail)
+	if err != nil {
+		return nil, logsOutput{}, err
+	}
+	return nil, logsOutput{Hostname: in.Hostname, Logs: logs}, nil
 }

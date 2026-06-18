@@ -33,6 +33,11 @@ type fakeMgr struct {
 	destroyed  []string
 	reaped     []string
 
+	logsResult string
+	logsErr    error
+	gotLogsID  string
+	gotLogsN   int
+
 	gotOpts docker.CreateOptions
 }
 
@@ -59,6 +64,15 @@ func (f *fakeMgr) List(context.Context) ([]docker.Box, error) { return f.listRes
 func (f *fakeMgr) Destroy(_ context.Context, id string) error {
 	f.destroyed = append(f.destroyed, id)
 	return nil
+}
+
+// Logs records the requested box ID and tail and returns the canned output/error.
+func (f *fakeMgr) Logs(_ context.Context, id string, tail int) (string, error) {
+	f.mu.Lock()
+	f.gotLogsID = id
+	f.gotLogsN = tail
+	f.mu.Unlock()
+	return f.logsResult, f.logsErr
 }
 
 // ReapOrphans returns the canned reaped IDs.
@@ -399,6 +413,37 @@ func TestGetByHostname(t *testing.T) {
 	}
 }
 
+// TestBoxLogsByHostname checks get_llmbox_logs resolves a box by hostname,
+// forwards the box ID and tail to the manager, and errors for empty or unknown
+// hostnames.
+func TestBoxLogsByHostname(t *testing.T) {
+	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u", logsResult: "Ready\nlistening\n"}
+	s := newTestServer(f)
+	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "web-box"}); err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+
+	// Found, case-insensitive, with the tail forwarded to the manager.
+	_, out, err := s.toolLogs(context.Background(), nil, logsInput{Hostname: "WEB-BOX", Tail: 25})
+	if err != nil {
+		t.Fatalf("toolLogs: %v", err)
+	}
+	if out.Hostname != "WEB-BOX" || out.Logs != "Ready\nlistening\n" {
+		t.Errorf("unexpected logs output: %+v", out)
+	}
+	if f.gotLogsID != "abcdef0123456789" || f.gotLogsN != 25 {
+		t.Errorf("manager got id=%q tail=%d, want abcdef0123456789/25", f.gotLogsID, f.gotLogsN)
+	}
+
+	// Empty and unknown hostnames error.
+	if _, _, err := s.toolLogs(context.Background(), nil, logsInput{Hostname: ""}); err == nil {
+		t.Error("expected error for empty hostname")
+	}
+	if _, _, err := s.toolLogs(context.Background(), nil, logsInput{Hostname: "nope"}); err == nil {
+		t.Error("expected error for unknown hostname")
+	}
+}
+
 // --- MCP wiring ---
 
 // TestMCPToolsRegisteredAndCreate checks all tools are registered and create returns a safe auth URL.
@@ -415,7 +460,7 @@ func TestMCPToolsRegisteredAndCreate(t *testing.T) {
 	for _, tl := range tools.Tools {
 		names[tl.Name] = true
 	}
-	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "destroy_llmbox"} {
+	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "destroy_llmbox", "get_llmbox_logs"} {
 		if !names[want] {
 			t.Errorf("tool %q not registered (have %v)", want, names)
 		}
