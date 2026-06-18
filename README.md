@@ -1,6 +1,6 @@
-# llmbox-mcp
+# llmbox
 
-[![Build and push images](https://github.com/clems4ever/llmbox-mcp/actions/workflows/docker.yml/badge.svg)](https://github.com/clems4ever/llmbox-mcp/actions/workflows/docker.yml)
+[![Build and push images](https://github.com/clems4ever/llmbox/actions/workflows/docker.yml/badge.svg)](https://github.com/clems4ever/llmbox/actions/workflows/docker.yml)
 
 An [MCP](https://modelcontextprotocol.io) server for spinning up **sandboxed
 Claude instances** ("llmboxes") on demand. From a chatbot you say *"create an
@@ -76,7 +76,7 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 | `cmd/llmbox`         | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
 | `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + hostname uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
-| `Dockerfile`         | Image for **this server** (`llmbox-mcp`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
+| `Dockerfile`         | Image for **this server** (`llmbox`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
 
 Boxes run on a plain base image (`LLMBOX_CLAUDE_IMAGE`, default
 `debian:bookworm-slim`): the server **injects** the standalone Claude binary and
@@ -92,14 +92,14 @@ runs as a non-root user, which must be allowed to use the socket via
 `--group-add` (the socket's group, e.g. `docker`):
 
 ```bash
-docker build -t llmbox-mcp .
+docker build -t llmbox .
 
-docker run -d --name llmbox-mcp \
+docker run -d --name llmbox \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --group-add "$(stat -c '%g' /var/run/docker.sock)" \
   -p 8080:8080 \
   -e LLMBOX_PUBLIC_URL=https://boxes.example.com \
-  llmbox-mcp
+  llmbox
 ```
 
 Or use [`docker-compose.yml`](docker-compose.yml) (`docker compose up --build`),
@@ -173,7 +173,7 @@ started** container via the Docker copy API, owned by the `uid`/`gid` the hook
 chose — so a secret in a non-root user's home stays readable by that user, and is
 never put in an env var or label where `docker inspect` would expose it. Hooks run
 as subprocesses of this server, so they inherit its environment (pass a hook its
-own config that way) and must be present in the `llmbox-mcp` container (bake them
+own config that way) and must be present in the `llmbox` container (bake them
 into a derived image, or mount them in).
 
 Writing a hook in Go is a few lines — implement a `hookproto.Handler` and call
@@ -246,7 +246,7 @@ volumes:
 ```
 
 > [!IMPORTANT]
-> The `llmbox-mcp` image runs as the distroless **`nonroot`** user
+> The `llmbox` image runs as the distroless **`nonroot`** user
 > (**UID/GID 65532**). The host directory you mount must be writable by that
 > UID, or the server crash-loops with `permission denied` opening the store:
 >
@@ -283,7 +283,7 @@ never touched.
 ## CI
 
 `.github/workflows/docker.yml` builds the server image and pushes it to GitHub
-Container Registry (`ghcr.io/<owner>/llmbox-mcp`) on pushes to `main` and version
+Container Registry (`ghcr.io/<owner>/llmbox`) on pushes to `main` and version
 tags. Pull requests build without pushing.
 
 ## Tested

@@ -6,4 +6,4 @@ Dockerfile*
 docker-compose.yml
 .env
 .claude-config.seed.json
-/llmbox-mcp
+/llmbox

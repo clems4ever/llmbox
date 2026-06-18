@@ -3,7 +3,7 @@
 .claude-config.seed.json
 
 # Built binary
-/llmbox-mcp
+/llmbox
 
 # bbolt session store (default LLMBOX_STATE_FILE)
 /llmbox-sessions.db

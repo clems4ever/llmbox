@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox-mcp/internal/docker"
+	"github.com/clems4ever/llmbox/internal/docker"
 )
 
 // TestBoltStoreRoundTrip checks a session survives save, reload, and close.

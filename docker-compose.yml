@@ -1,15 +1,15 @@
-# The only service is llmbox-mcp: the MCP + auth server. A chatbot calls it to
+# The only service is llmbox: the MCP + auth server. A chatbot calls it to
 # create sandboxed Claude boxes, each authenticated by the end user in a browser.
 # The server bakes in the standalone Claude binary and injects it into every box
 # at creation, so boxes run on a plain base image (LLMBOX_CLAUDE_IMAGE) — there
 # is no separate Claude image to build:
 #
-#   docker compose up --build               # build + run llmbox-mcp
+#   docker compose up --build               # build + run llmbox
 services:
-  llmbox-mcp:
+  llmbox:
     build:
       context: .
-    image: llmbox-mcp
+    image: llmbox
     ports:
       - "8080:8080"
     environment:

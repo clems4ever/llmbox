@@ -1,0 +1,53 @@
+{
+	"functions": [
+		{
+			"function_name": "MCPServer",
+			"receiver": "Server",
+			"documentation_hash": "9ebd5d97060918c977bfe5191b0e6aa383f8b8a0a9f87a053ae5abbea3636934",
+			"definition_hash": "5f8d755ce4de796be593b63b36e51d4fc211b8313e133804bf112079604ed51b",
+			"reviewed_at": "2026-06-18T15:15:04.949553846Z"
+		},
+		{
+			"function_name": "toolCreate",
+			"receiver": "Server",
+			"documentation_hash": "db760b46287b8d9d9d98b0f71f99cdc0e4d8a0d2d205f6be29479de5b2483e57",
+			"definition_hash": "bafafbd1a31b2583d6be652927d2f4d3c9959ee895944a37efedaa711b3393cf",
+			"reviewed_at": "2026-06-18T15:15:04.950264771Z"
+		},
+		{
+			"function_name": "toolGet",
+			"receiver": "Server",
+			"documentation_hash": "ea224b869cd4ee772de8d255fdcef1beca05473c38fed5e178b23c089c4474dd",
+			"definition_hash": "9ae3b6172d27a97903dbe3880c5ecfaaf95e4fbc5b52523dfb8d895181b42fd2",
+			"reviewed_at": "2026-06-18T15:15:04.950554541Z"
+		},
+		{
+			"function_name": "toolList",
+			"receiver": "Server",
+			"documentation_hash": "8e86e7eeeb9e26088ec7496497899f380a2ec7bbbbb267ededede12fed0e7b01",
+			"definition_hash": "6e56b163fef2697708eee6579ac75495daf139f6de5773326b610385bab1e5bb",
+			"reviewed_at": "2026-06-18T15:15:04.950824667Z"
+		},
+		{
+			"function_name": "toolDestroy",
+			"receiver": "Server",
+			"documentation_hash": "cf323988b5ae682d5de24e7ff34cf99bcff78bd234dae703c6d6f0c1af42f9fa",
+			"definition_hash": "917653912b7ca9073758f684c1b19152bcf8d3a763b09d62430f740b72432ede",
+			"reviewed_at": "2026-06-18T15:15:04.951124747Z"
+		},
+		{
+			"function_name": "toolLogs",
+			"receiver": "Server",
+			"documentation_hash": "c3dde02e880f78e62d86661fb48c3fe6d998883c22d24d7524ad3e8577cecece",
+			"definition_hash": "a2265e0444abb8f51ed448411c1f5e7b41251715bf006d9dd60b7251427d0639",
+			"reviewed_at": "2026-06-18T15:15:04.951402886Z"
+		},
+		{
+			"function_name": "toolExec",
+			"receiver": "Server",
+			"documentation_hash": "8a9ab0b43bba434c94a1ae190cde76e36f9816e1fcb82f25e09bc01cd1af6b46",
+			"definition_hash": "85b5b1f6471e5b79f05665ba76406ba65a1d3c1a3f1b98041d33ab3a8cd741a7",
+			"reviewed_at": "2026-06-18T15:15:04.951679822Z"
+		}
+	]
+}
