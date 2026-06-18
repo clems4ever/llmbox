@@ -351,10 +351,10 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	if !strings.Contains(ep, "claude auth login") || !strings.Contains(ep, "remote-control") {
 		t.Errorf("entrypoint missing login/remote-control: %q", ep)
 	}
-	// The remote-control environment is named after the box hostname so it is
+	// The pre-created first session is named "<hostname>-default" so it is
 	// identifiable in claude.ai/code.
-	if !strings.Contains(ep, "--name my-box") {
-		t.Errorf("entrypoint missing --name <hostname>: %q", ep)
+	if !strings.Contains(ep, "--name my-box-default") {
+		t.Errorf("entrypoint missing --name <hostname>-default: %q", ep)
 	}
 	// Login is guarded so a restart with credentials already on disk skips
 	// re-authentication instead of prompting the user again.

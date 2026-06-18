@@ -367,8 +367,8 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // the box is forced to run as root with HOME=boxHome and WorkingDir=boxWorkdir,
 // and a node-free entrypoint is used — so the box runs on any plain glibc image
 // without Claude (or Node) baked in. When opts.Hostname is set (and the remote
-// args don't already specify --name), the remote-control environment is named
-// after the hostname so it is identifiable in claude.ai/code.
+// args don't already specify --name), the pre-created first session is named
+// "<hostname>-default" so it is identifiable in claude.ai/code.
 //
 // @arg ctx Context for the Docker create/start/attach calls.
 // @arg opts The caller-controlled image, hostname, description, and files for the box.
@@ -412,14 +412,15 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 	// and skips straight to remote-control, so the user is not asked to
 	// authenticate again. The guard also honours CLAUDE_CODE_OAUTH_TOKEN, the
 	// token-via-env alternative.
-	// Name the remote-control environment after the box's hostname so it is
-	// identifiable in claude.ai/code's environment list (the per-session names
-	// Claude generates are not controllable). Skip when the caller already set
-	// --name via the configured remote args. The hostname is Docker-validated, so
-	// it carries no shell metacharacters to worry about inside the quoted command.
+	// Name the pre-created first session "<hostname>-default" so it is
+	// identifiable in claude.ai/code (remote-control's --name sets the session
+	// name; without it the session gets an auto-generated, random-looking name).
+	// Skip when the caller already set --name via the configured remote args. The
+	// hostname is Docker-validated, so it carries no shell metacharacters to worry
+	// about inside the quoted command.
 	remoteArgs := m.remoteArgs
 	if opts.Hostname != "" && !strings.Contains(remoteArgs, "--name") {
-		remoteArgs = strings.TrimSpace(remoteArgs + " --name " + opts.Hostname)
+		remoteArgs = strings.TrimSpace(remoteArgs + " --name " + opts.Hostname + "-default")
 	}
 	entry := fmt.Sprintf(
 		`{ [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || [ -s "$HOME/.claude/.credentials.json" ] || claude auth login --claudeai; } && exec script -qfc "claude remote-control %s" /dev/null`,
