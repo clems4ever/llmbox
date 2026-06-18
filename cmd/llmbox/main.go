@@ -1,4 +1,4 @@
-// Command llmbox-mcp runs a server that manages sandboxed Claude containers
+// Command llmbox runs a server that manages sandboxed Claude containers
 // ("llmboxes") and lets an end user authenticate each one via OAuth in their
 // browser — never routing the OAuth secret through the chatbot.
 //
