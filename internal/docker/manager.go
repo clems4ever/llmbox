@@ -366,7 +366,9 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // The standalone Claude binary and a ~/.claude.json seed are always injected,
 // the box is forced to run as root with HOME=boxHome and WorkingDir=boxWorkdir,
 // and a node-free entrypoint is used — so the box runs on any plain glibc image
-// without Claude (or Node) baked in.
+// without Claude (or Node) baked in. When opts.Hostname is set (and the remote
+// args don't already specify --name), the remote-control environment is named
+// after the hostname so it is identifiable in claude.ai/code.
 //
 // @arg ctx Context for the Docker create/start/attach calls.
 // @arg opts The caller-controlled image, hostname, description, and files for the box.
@@ -410,9 +412,18 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 	// and skips straight to remote-control, so the user is not asked to
 	// authenticate again. The guard also honours CLAUDE_CODE_OAUTH_TOKEN, the
 	// token-via-env alternative.
+	// Name the remote-control environment after the box's hostname so it is
+	// identifiable in claude.ai/code's environment list (the per-session names
+	// Claude generates are not controllable). Skip when the caller already set
+	// --name via the configured remote args. The hostname is Docker-validated, so
+	// it carries no shell metacharacters to worry about inside the quoted command.
+	remoteArgs := m.remoteArgs
+	if opts.Hostname != "" && !strings.Contains(remoteArgs, "--name") {
+		remoteArgs = strings.TrimSpace(remoteArgs + " --name " + opts.Hostname)
+	}
 	entry := fmt.Sprintf(
 		`{ [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || [ -s "$HOME/.claude/.credentials.json" ] || claude auth login --claudeai; } && exec script -qfc "claude remote-control %s" /dev/null`,
-		m.remoteArgs,
+		remoteArgs,
 	)
 
 	// Always inject the Claude binary and the config seed, so an arbitrary base

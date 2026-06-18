@@ -1,5 +1,6 @@
 # TODO
 
+* we still see old environments in Claude code web.
 * Use Cobra as CLI line framework.
 * Add code coverage in the CI. Add a badge in the README.
 * Use yaml config instead of env variables. For secrets, read them from file. The config should reference the file paths.
@@ -9,3 +10,4 @@
 * We want to pin the version of the Claude code binary in the repo. Then we want to create a github action that resolve the current version and create a PR to bump the version.
 * We want to support remote docker spokes, not only the hub running on the server. Basically llmbox should be the frontend and we should have a way to make spokes join the cluster. Consequently, we should have an option to tell on which spoke to create the container on. In order to simplify, we want an option to make the main server both a server and a spoke so that we don't need to deploy two components in simple setups.
 * Log all commands run in the container in a way that Claude cannot prevent the recording in any way.
+* We should create an integration test that execute the code from start to finish and emulate the Anthropic backend obviously.
