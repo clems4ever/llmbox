@@ -53,6 +53,7 @@ Boxes that are never authenticated are destroyed after `LLMBOX_AUTH_TTL_SECONDS`
 | `list_llmboxes`  | – | the managed boxes (id, name, hostname, description, image, state, phase, created) |
 | `destroy_llmbox` | `hostname` | the destroyed box's hostname |
 | `get_llmbox_logs` | `hostname`, `tail?` | `hostname`, `logs` (the box's recent, ANSI-stripped console output) |
+| `exec_llmbox` | `hostname`, `command` | `hostname`, `stdout`, `stderr`, `exit_code` |
 
 `hostname` and `description` on `create_llmbox` are optional. When set, `hostname`
 becomes the box's container hostname and **must be unique** across boxes — a
@@ -62,8 +63,11 @@ surfaced again by `get_llmbox` and `list_llmboxes`. `get_llmbox` is keyed by
 box's status; boxes created without a hostname can still be seen via
 `list_llmboxes`. `get_llmbox_logs` is likewise keyed by `hostname` and returns
 the box's recent console output (ANSI-stripped), bounded to the last `tail`
-lines (a sensible default applies when `tail` is omitted). Destroying a box stops
-it gracefully (SIGTERM, then SIGKILL after a timeout) before removing it.
+lines (a sensible default applies when `tail` is omitted). `exec_llmbox` is also
+keyed by `hostname`: it runs `command` inside the box via `/bin/sh -c` and returns
+its `stdout`, `stderr`, and `exit_code` (a non-zero exit is reported in the result,
+not as a tool error; each stream is capped to keep the payload bounded). Destroying
+a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removing it.
 
 ## Components
 
