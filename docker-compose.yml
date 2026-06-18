@@ -9,7 +9,6 @@ services:
   llmbox-mcp:
     build:
       context: .
-      dockerfile: Dockerfile.mcp
     image: llmbox-mcp
     ports:
       - "8080:8080"

@@ -65,7 +65,7 @@ const (
 	// `script`), and CA certificates works as a substitute.
 	DefaultImage = "debian:bookworm-slim"
 
-	// DefaultClaudeBin is where Dockerfile.mcp bakes the standalone Claude binary;
+	// DefaultClaudeBin is where the Dockerfile bakes the standalone Claude binary;
 	// it is the fallback source the binary is injected from when no path is set.
 	DefaultClaudeBin = "/opt/llmbox/claude"
 

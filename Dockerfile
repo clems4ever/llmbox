@@ -8,7 +8,7 @@
 # access to a Docker socket at runtime.
 #
 # Build:
-#   docker build -f Dockerfile.mcp -t llmbox-mcp .
+#   docker build -t llmbox-mcp .
 #
 # Run (Docker socket in, HTTP port out):
 #   docker run --rm \
