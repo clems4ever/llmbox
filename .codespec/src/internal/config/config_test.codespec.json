@@ -53,6 +53,30 @@
 			"documentation_hash": "ee0bd7ac3af742777cf0c2347f9c603e71a2db31e9f84cc8bb7e7caaad86b26b",
 			"definition_hash": "e57eef21ef1644b2085a3bffb3c2256564f45a07f42fd491f95d6eddd11d8e37",
 			"reviewed_at": "2026-06-18T16:34:58.563409549Z"
+		},
+		{
+			"function_name": "writeFile",
+			"documentation_hash": "a1e6138a52e3eea14c86a34c58230e4264a57fc1b53b555dad037212423aaaf5",
+			"definition_hash": "f0b7e07bb5eb30c724f37ef090890798797104864e1e33691cc676ad3d5b7c6d",
+			"reviewed_at": "2026-06-18T18:20:29.612719869Z"
+		},
+		{
+			"function_name": "TestLoadGoogleAuth",
+			"documentation_hash": "64de70ee57ffd1df07f96f56c99dc63fdd31a89c2a719a08efc11b772a2b95b6",
+			"definition_hash": "a5eb77011ab0acd1b20ad51e84e081df78ac15fc1d03e4269a0c3b75731fe841",
+			"reviewed_at": "2026-06-18T18:20:29.613768793Z"
+		},
+		{
+			"function_name": "TestLoadGoogleRequiresAllowlist",
+			"documentation_hash": "8d46a47620f90b8ab9f4cf75447e1ff23ed71f346b3bdc9c41a0a8096c649d03",
+			"definition_hash": "de7e1e6877474d3f459a99282ad9ff7eebb3e98d2a26cf2d8166da360ab1cfaa",
+			"reviewed_at": "2026-06-18T18:20:29.614763996Z"
+		},
+		{
+			"function_name": "TestLoadGoogleMissingSecretFile",
+			"documentation_hash": "0568aae507e0be6c854ca70d49b4a89f48d4ec35d33b202501541eac0d39f882",
+			"definition_hash": "23e110ad1126a7119a68fc88585e008f26ffe93cdc4e795daa7258e4998bb879",
+			"reviewed_at": "2026-06-18T18:20:29.615753796Z"
 		}
 	]
 }

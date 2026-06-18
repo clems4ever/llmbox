@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/subtle"
 	_ "embed"
 	"html/template"
 	"net/http"
@@ -28,6 +29,13 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 
 	mux.HandleFunc("GET /auth/{token}", s.handleAuthPage)
 	mux.HandleFunc("POST /auth/{token}", s.handleAuthSubmit)
+
+	// Provider sign-in routes (only when activation auth is configured). The
+	// 3-segment patterns don't collide with the 2-segment /auth/{token} above.
+	if s.auth != nil {
+		mux.HandleFunc("GET /auth/{provider}/login", s.handleProviderLogin)
+		mux.HandleFunc("GET /auth/{provider}/callback", s.handleProviderCallback)
+	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		// A failed write to the client is unactionable here; nothing to recover.
@@ -63,13 +71,27 @@ func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	status, sessionURL, errMsg := sess.snapshot()
-	s.render(w, authPageData{
+	data := authPageData{
 		Token:        sess.Token,
 		AuthorizeURL: template.URL(sess.AuthorizeURL),
 		Status:       status,
 		SessionURL:   sessionURL,
 		Error:        errMsg,
-	})
+	}
+	// When activation auth is enabled, gate the whole page behind sign-in: an
+	// unauthenticated visitor (e.g. someone who only has the leaked token) sees
+	// only the sign-in buttons, never the activation form or the session URL.
+	if s.auth != nil {
+		data.AuthEnabled = true
+		if ls, ok := s.currentLogin(r); ok {
+			data.LoggedIn = true
+			data.Email = ls.Email
+			data.CSRF = ls.CSRF
+		} else {
+			data.Providers = s.auth.buttons(sess.Token)
+		}
+	}
+	s.render(w, data)
 }
 
 // handleAuthSubmit feeds the pasted code to the box (blocking until login
@@ -91,6 +113,26 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad form.", http.StatusBadRequest)
 		return
 	}
+
+	// When activation auth is enabled, require a valid login session and a matching
+	// CSRF token before accepting the code, and record who activated the box.
+	var email string
+	if s.auth != nil {
+		ls, ok := s.currentLogin(r)
+		if !ok {
+			http.Error(w, "Please sign in to activate this box.", http.StatusUnauthorized)
+			return
+		}
+		if subtle.ConstantTimeCompare([]byte(r.PostFormValue("csrf")), []byte(ls.CSRF)) != 1 {
+			http.Error(w, "Invalid or missing form token; reload the page and try again.", http.StatusForbidden)
+			return
+		}
+		email = ls.Email
+		sess.mu.Lock()
+		sess.ActivatedBy = email
+		sess.mu.Unlock()
+	}
+
 	// SubmitCode blocks until login completes (or fails); it records the result
 	// (including any error) on the session, which we then render — so the returned
 	// error needs no separate handling here. The code itself is never logged.
@@ -103,6 +145,9 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 		Status:       status,
 		SessionURL:   sessionURL,
 		Error:        errMsg,
+		AuthEnabled:  s.auth != nil,
+		LoggedIn:     s.auth == nil || email != "",
+		Email:        email,
 	})
 }
 
@@ -112,6 +157,14 @@ type authPageData struct {
 	Status       string
 	SessionURL   string
 	Error        string
+
+	// Activation-auth fields. AuthEnabled is true when a provider is configured;
+	// when so and LoggedIn is false, the template shows only the sign-in buttons.
+	AuthEnabled bool
+	LoggedIn    bool
+	Email       string
+	CSRF        string
+	Providers   []providerButton
 }
 
 // render writes the auth page for data, with no-store caching since the page

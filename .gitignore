@@ -5,6 +5,9 @@
 # Per-deployment config (copy from llmbox.example.yaml)
 /llmbox.yaml
 
+# Secret files referenced by the config (never commit these)
+/google-client-secret
+
 # Built binary
 /llmbox
 

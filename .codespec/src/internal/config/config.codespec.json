@@ -15,16 +15,36 @@
 		},
 		{
 			"function_name": "Load",
-			"documentation_hash": "744da987193b37767bfeba056879bb93cdd4da72a9ff3242eb260e54b26949c8",
-			"definition_hash": "afa6900ccf4adb6a8b43be0ffcac48cb5e1213a1ce59969cfbf7f7d0b94dd437",
-			"reviewed_at": "2026-06-18T16:34:49.320438992Z"
+			"documentation_hash": "236326f3adc43e4c5e076f85717e25fefdce2628df071a4f31d0118acd454d50",
+			"definition_hash": "ce49d83263b198b4d99b3d7c20061158df49b16a252f048c80183af4067bfe09",
+			"reviewed_at": "2026-06-18T18:20:29.607138647Z"
 		},
 		{
 			"function_name": "applyDefaults",
 			"receiver": "Config",
 			"documentation_hash": "8b2b783cab0251051380f21c9a225addb076330e17f56b4879faf34098a23f9c",
-			"definition_hash": "5062b850fba0140f70c96dceaa9efa8cf2a3499e548e4966139226a7dadac78d",
-			"reviewed_at": "2026-06-18T16:34:49.320877627Z"
+			"definition_hash": "b1a8eda1179b83986a6be01d0cfb944e5fd79dff99ce629f99f7fe54d383f67b",
+			"reviewed_at": "2026-06-18T18:20:29.611626957Z"
+		},
+		{
+			"function_name": "resolveSecrets",
+			"receiver": "Config",
+			"documentation_hash": "40b2ff1b91be23185159be60dd40a3c160e4acb6b9a170ef80f69436e8b06838",
+			"definition_hash": "6077f04150ac0e4db1f57f706aa6757f04c7a02397ad95b3435c4b13e8bba9eb",
+			"reviewed_at": "2026-06-18T18:20:29.608537379Z"
+		},
+		{
+			"function_name": "secretFromFile",
+			"documentation_hash": "5990d6ed7d8103ab21252a38b9010e9719d26ed155b39bed3643e0af71e8e746",
+			"definition_hash": "fc064d0c2a8c7d3b68e8b113ae45c22488626737a00d506bb793964fa512ede1",
+			"reviewed_at": "2026-06-18T18:20:29.609389149Z"
+		},
+		{
+			"function_name": "validate",
+			"receiver": "Config",
+			"documentation_hash": "f8b17479771bf69d912c763a37745132762f79d869c9fd822a70eba1aff1a798",
+			"definition_hash": "af6f197907eb740f4b2421f5950e9f36f94b2e66d3bf682e8027787ed7346ad8",
+			"reviewed_at": "2026-06-18T18:20:29.610326312Z"
 		}
 	]
 }

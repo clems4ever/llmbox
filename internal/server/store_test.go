@@ -85,7 +85,7 @@ func TestBoltStoreDelete(t *testing.T) {
 // TestServerWithoutStore checks the server functions with a no-op store.
 func TestServerWithoutStore(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
-	s := New(f, nil, "https://boxes.example.com", time.Minute, noopStore{})
+	s := New(f, nil, "https://boxes.example.com", time.Minute, noopStore{}, nil)
 	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
@@ -106,7 +106,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	defer st.Close()
 
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?z=1", submitURL: "https://claude.ai/code/s/1"}
-	s := New(f, nil, "https://boxes.example.com", time.Minute, st)
+	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
 
 	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "h", Description: "d"})
 	if err != nil {
@@ -153,7 +153,7 @@ func TestRestoreLoadsAndReconciles(t *testing.T) {
 
 	// Docker only reports the live box (short 12-char ID).
 	f := &fakeMgr{listResult: []docker.Box{{ContainerID: "aaaaaaaaaaaa"}}}
-	s := New(f, nil, "https://boxes.example.com", time.Minute, st)
+	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
 
 	n, err := s.Restore(context.Background())
 	if err != nil {
@@ -172,5 +172,91 @@ func TestRestoreLoadsAndReconciles(t *testing.T) {
 	saved, _ := st.LoadAll()
 	if len(saved) != 1 || saved[0].Token != "live" {
 		t.Errorf("dead session not pruned from store: %+v", saved)
+	}
+}
+
+// TestLoginStoreFlowRoundTrip checks an in-flight OIDC flow can be taken exactly
+// once.
+func TestLoginStoreFlowRoundTrip(t *testing.T) {
+	st, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	defer st.Close()
+
+	want := loginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Unix(1700000000, 0).UTC()}
+	if err := st.SaveLoginFlow("state1", want); err != nil {
+		t.Fatalf("SaveLoginFlow: %v", err)
+	}
+	got, ok, err := st.TakeLoginFlow("state1")
+	if err != nil || !ok {
+		t.Fatalf("TakeLoginFlow: ok=%v err=%v", ok, err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("flow mismatch:\n got %+v\nwant %+v", got, want)
+	}
+	// Second take finds nothing (one-time use).
+	if _, ok, _ := st.TakeLoginFlow("state1"); ok {
+		t.Error("flow should be consumed after first take")
+	}
+}
+
+// TestLoginStoreSessionRoundTrip checks a login session survives save/read and
+// can be deleted.
+func TestLoginStoreSessionRoundTrip(t *testing.T) {
+	st, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	defer st.Close()
+
+	want := loginSession{Email: "a@corp.com", Provider: "google", CSRF: "c", ExpiresAt: time.Unix(1700000000, 0).UTC()}
+	if err := st.SaveLoginSession("sid", want); err != nil {
+		t.Fatalf("SaveLoginSession: %v", err)
+	}
+	got, ok, err := st.LoginSession("sid")
+	if err != nil || !ok {
+		t.Fatalf("LoginSession: ok=%v err=%v", ok, err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("session mismatch:\n got %+v\nwant %+v", got, want)
+	}
+	if err := st.DeleteLoginSession("sid"); err != nil {
+		t.Fatalf("DeleteLoginSession: %v", err)
+	}
+	if _, ok, _ := st.LoginSession("sid"); ok {
+		t.Error("session should be gone after delete")
+	}
+}
+
+// TestLoginStorePurgeExpired checks expired sessions and flows are dropped while
+// live ones remain.
+func TestLoginStorePurgeExpired(t *testing.T) {
+	st, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	defer st.Close()
+
+	now := time.Unix(1700000000, 0).UTC()
+	_ = st.SaveLoginSession("live", loginSession{Email: "a@corp.com", ExpiresAt: now.Add(time.Hour)})
+	_ = st.SaveLoginSession("dead", loginSession{Email: "b@corp.com", ExpiresAt: now.Add(-time.Hour)})
+	_ = st.SaveLoginFlow("liveflow", loginFlow{ExpiresAt: now.Add(time.Hour)})
+	_ = st.SaveLoginFlow("deadflow", loginFlow{ExpiresAt: now.Add(-time.Hour)})
+
+	if err := st.PurgeExpiredLogins(now); err != nil {
+		t.Fatalf("PurgeExpiredLogins: %v", err)
+	}
+	if _, ok, _ := st.LoginSession("live"); !ok {
+		t.Error("live session was purged")
+	}
+	if _, ok, _ := st.LoginSession("dead"); ok {
+		t.Error("expired session was not purged")
+	}
+	if _, ok, _ := st.TakeLoginFlow("liveflow"); !ok {
+		t.Error("live flow was purged")
+	}
+	if _, ok, _ := st.TakeLoginFlow("deadflow"); ok {
+		t.Error("expired flow was not purged")
 	}
 }

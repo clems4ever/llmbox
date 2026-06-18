@@ -22,6 +22,9 @@ services:
     volumes:
       # The YAML config (copy llmbox.example.yaml and edit it).
       - ./llmbox.yaml:/etc/llmbox/llmbox.yaml:ro
+      # If you enable auth.google, mount the OAuth client secret read-only at the
+      # path your config's client_secret_file points to. Keep it out of the image.
+      #   - ./google-client-secret:/etc/llmbox/google-client-secret:ro
       # Needed to create/destroy boxes.
       - /var/run/docker.sock:/var/run/docker.sock
       # Persists the session registry (LLMBOX_STATE_FILE above).
