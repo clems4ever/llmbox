@@ -1,0 +1,35 @@
+{
+	"functions": [
+		{
+			"function_name": "TestFileBytesDecodesBase64",
+			"documentation_hash": "8b43b14c5c329cdf9fae7d15484dea75489dba4f6bf60d2c3d1479b99703189e",
+			"definition_hash": "07c6cee4eb24fecc684dace3d9024ab9c399792b97c63e5e6beecc908b0e26b7",
+			"reviewed_at": "2026-06-18T16:59:17.703747975Z"
+		},
+		{
+			"function_name": "TestFileModeParsesOctal",
+			"documentation_hash": "9c1906c72f3c8a6697a53b03a480a0a6e97f1c0bc94d0d141a77f9eb92f80e70",
+			"definition_hash": "73f2ece5ddef73eab66f428571efb2c5367a3d4f62174bddb769446037cfd9bb",
+			"reviewed_at": "2026-06-18T16:59:17.703934236Z"
+		},
+		{
+			"function_name": "TestServeRoundTrips",
+			"documentation_hash": "c716d90e4317fb6875b1ac27b48f84d7266ad8c50be21f8447ab1549fe1138c1",
+			"definition_hash": "29c157dfbc084e714f686d0766d8cccbd781908a64499458e5de2e6e234ccc35",
+			"reviewed_at": "2026-06-18T16:59:17.704123371Z"
+		},
+		{
+			"function_name": "TestServeSurfacesHandlerError",
+			"documentation_hash": "3a6ba172a801284010403c5b5c1255ff0b5f04c63434a97496ad4e0c796c7541",
+			"definition_hash": "4c7f9cd005f7bd628421b4fd006bf50b47b9b451be23157233e39ccbab3fc7d3",
+			"reviewed_at": "2026-06-18T16:59:17.704719373Z"
+		},
+		{
+			"function_name": "Error",
+			"receiver": "stringError",
+			"documentation_hash": "8e70ecc242e23d269d6555abc87aa3052c1d66c5a0d380085a652d0df62caef8",
+			"definition_hash": "edd597d45da3489ff0c0b48efc7e4e257f31b61dacc4a048989c0da417e54444",
+			"reviewed_at": "2026-06-18T16:59:40.302078367Z"
+		}
+	]
+}

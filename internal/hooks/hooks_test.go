@@ -55,7 +55,7 @@ func TestOnCreateInjectsFilesAndState(t *testing.T) {
 printf '%s' '{"state":"tok-1","files":[{"path":"/usr/local/bin/x","content_base64":"aGk=","mode":"0755","uid":0,"gid":0}]}'`)
 	r := New([]string{hook})
 
-	files, state, err := r.OnCreate(context.Background(), BoxInfo{Hostname: "h"})
+	files, state, err := r.OnCreate(context.Background(), BoxInfo{BoxID: "h"})
 	if err != nil {
 		t.Fatalf("OnCreate: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestOnDestroyReplaysState(t *testing.T) {
 	hook := writeHook(t, `cat >`+out+`; printf '{}'`)
 	r := New([]string{hook})
 
-	if err := r.OnDestroy(context.Background(), BoxInfo{Hostname: "h"}, map[string]string{hook: "tok-9"}); err != nil {
+	if err := r.OnDestroy(context.Background(), BoxInfo{BoxID: "h"}, map[string]string{hook: "tok-9"}); err != nil {
 		t.Fatalf("OnDestroy: %v", err)
 	}
 	seen, err := os.ReadFile(out)

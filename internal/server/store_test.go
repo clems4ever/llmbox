@@ -20,11 +20,11 @@ func TestBoltStoreRoundTrip(t *testing.T) {
 
 	ps := persistedSession{
 		Token:        "tok1",
-		BoxID:        "abcdef0123456789",
+		ContainerID:  "abcdef0123456789",
 		AuthorizeURL: "https://claude.com/cai/oauth/authorize?x=1",
 		CreatedAt:    time.Unix(1700000000, 0).UTC(),
 		HookState:    map[string]string{"granular-hook": "subj-1"},
-		Hostname:     "web-box",
+		BoxID:        "web-box",
 		Description:  "front-end",
 		Status:       "pending",
 	}
@@ -64,7 +64,7 @@ func TestBoltStoreDelete(t *testing.T) {
 	}
 	defer st.Close()
 
-	if err := st.Save(persistedSession{Token: "a", BoxID: "id-a", Status: "pending"}); err != nil {
+	if err := st.Save(persistedSession{Token: "a", ContainerID: "id-a", Status: "pending"}); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 	if err := st.Delete("a"); err != nil {
@@ -108,7 +108,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?z=1", submitURL: "https://claude.ai/code/s/1"}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, st)
 
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "h", Description: "d"})
+	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "h", Description: "d"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -120,8 +120,8 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	if len(saved) != 1 || saved[0].Token != sess.Token || saved[0].Status != "pending" {
 		t.Fatalf("create not persisted as pending: %+v", saved)
 	}
-	if saved[0].Hostname != "h" || saved[0].Description != "d" {
-		t.Errorf("hostname/description not persisted: %+v", saved[0])
+	if saved[0].BoxID != "h" || saved[0].Description != "d" {
+		t.Errorf("box ID/description not persisted: %+v", saved[0])
 	}
 
 	if err := s.SubmitCode(context.Background(), sess.Token, "CODE"); err != nil {
@@ -144,15 +144,15 @@ func TestRestoreLoadsAndReconciles(t *testing.T) {
 	defer st.Close()
 
 	// Two saved sessions: one box still exists, one is gone.
-	if err := st.Save(persistedSession{Token: "live", BoxID: "aaaaaaaaaaaa1111", Status: "pending"}); err != nil {
+	if err := st.Save(persistedSession{Token: "live", ContainerID: "aaaaaaaaaaaa1111", Status: "pending"}); err != nil {
 		t.Fatalf("Save live: %v", err)
 	}
-	if err := st.Save(persistedSession{Token: "dead", BoxID: "bbbbbbbbbbbb2222", Status: "pending"}); err != nil {
+	if err := st.Save(persistedSession{Token: "dead", ContainerID: "bbbbbbbbbbbb2222", Status: "pending"}); err != nil {
 		t.Fatalf("Save dead: %v", err)
 	}
 
 	// Docker only reports the live box (short 12-char ID).
-	f := &fakeMgr{listResult: []docker.Box{{ID: "aaaaaaaaaaaa"}}}
+	f := &fakeMgr{listResult: []docker.Box{{ContainerID: "aaaaaaaaaaaa"}}}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, st)
 
 	n, err := s.Restore(context.Background())

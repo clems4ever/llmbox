@@ -1,0 +1,52 @@
+{
+	"functions": [
+		{
+			"function_name": "writeHook",
+			"documentation_hash": "6520ddc60d5cee061a8d9e364059bf9dbae72731497952b1e5e0d11aeb4cf7a4",
+			"definition_hash": "28b52a2967ca5baf47d8eaa92aa1d336e225b37d158397122707b43aa8cde2ec",
+			"reviewed_at": "2026-06-18T16:59:55.832712683Z"
+		},
+		{
+			"function_name": "TestNewEmptyIsNil",
+			"documentation_hash": "79ff52f9d2d0c66520b65f56250b4fedb36f408acb5c84799756d2b68b93cb2a",
+			"definition_hash": "4c4b1ccbd673966e9a7e0735ff36430b11eb190a1818cdd63b6f311e5c6f473c",
+			"reviewed_at": "2026-06-18T16:59:55.832986374Z"
+		},
+		{
+			"function_name": "TestOnCreateNilIsNoop",
+			"documentation_hash": "dfb4cf432a54648b005181133c563a2a4b7397ab57af473df73dae423fd94f42",
+			"definition_hash": "7c681692285cd627fa62e21c080cf5a99ed59f91e3821528e322edaa6086c828",
+			"reviewed_at": "2026-06-18T16:59:55.83320712Z"
+		},
+		{
+			"function_name": "TestOnDestroyNilIsNoop",
+			"documentation_hash": "f78e6feee0568fa1ecacb5b0ac597082173c660140e8337a3bf26f5924ee5d89",
+			"definition_hash": "47455af51e45b94380114adbaf3058245d0421a0eaf1bbcc7e2a08a0e458ec87",
+			"reviewed_at": "2026-06-18T16:59:55.833418759Z"
+		},
+		{
+			"function_name": "TestOnCreateInjectsFilesAndState",
+			"documentation_hash": "5f5a049cef72379911dc7257fcacc3f2ad2cbc348ec9517c3d606c5f0b62aee9",
+			"definition_hash": "6fd98bd84d6b9aa720a3e4861b450e3eb22a6e7de0461616c89166883ed6ece5",
+			"reviewed_at": "2026-06-18T16:59:55.834580049Z"
+		},
+		{
+			"function_name": "TestOnCreateFailingHookErrors",
+			"documentation_hash": "ad7c148fef56c7b051c18071e2f67ab61fb17ea3524b34a07b2adf7d64ef1ef8",
+			"definition_hash": "a64b1773822d0113b5d6958d69fed23f1415a32205412da9627aa93a57d8ff60",
+			"reviewed_at": "2026-06-18T16:59:55.8360833Z"
+		},
+		{
+			"function_name": "TestOnDestroyReplaysState",
+			"documentation_hash": "85313c8ceab3a0ba4318b7948e7a4b9d82597552e4d3d9e2dc8580f5fc89d6bd",
+			"definition_hash": "89744c7435521f9439683f02b2574ec953c6dad19e607a406bc6a6ab1586b834",
+			"reviewed_at": "2026-06-18T16:59:55.837273403Z"
+		},
+		{
+			"function_name": "contains",
+			"documentation_hash": "4740cd5801d0acaf82e8090f1fb8418dfd28cda1b20d8ab3e2166e0477ef0602",
+			"definition_hash": "2289699e8372f8e4bf3e145f6385c279d5c1910cb54dd4345ae73c642ba32915",
+			"reviewed_at": "2026-06-18T16:59:55.838317784Z"
+		}
+	]
+}

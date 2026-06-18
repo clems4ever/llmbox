@@ -47,7 +47,7 @@ type Request struct {
 // may carry only what llmbox still knows about a box.
 type Box struct {
 	Image       string `json:"image,omitempty"`
-	Hostname    string `json:"hostname,omitempty"`
+	BoxID       string `json:"box_id,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 

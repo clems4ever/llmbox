@@ -278,11 +278,11 @@ func newTestManager(f *fakeDocker) *Manager {
 	return &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: testClaudeBin}
 }
 
-// TestListMapsPhaseFromName checks List maps phase, shortened ID, hostname, and description.
+// TestListMapsPhaseFromName checks List maps phase, shortened container ID, box ID, and description.
 func TestListMapsPhaseFromName(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{
 		{ID: "aaaaaaaaaaaa1111", Names: []string{"/llmbox-pending-aaaaaaaaaaaa"}, State: "running", Status: "Up", Created: 1700000000,
-			Labels: map[string]string{HostnameLabel: "web-box", DescriptionLabel: "front-end work"}},
+			Labels: map[string]string{BoxIDLabel: "web-box", DescriptionLabel: "front-end work"}},
 		{ID: "bbbbbbbbbbbb2222", Names: []string{"/llmbox-bbbbbbbbbbbb"}, State: "running", Status: "Up", Created: 1700000001},
 	}}
 	m := newTestManager(f)
@@ -299,18 +299,18 @@ func TestListMapsPhaseFromName(t *testing.T) {
 	if got[1].Phase != "ready" {
 		t.Errorf("box1 phase = %q, want ready", got[1].Phase)
 	}
-	if got[0].ID != "aaaaaaaaaaaa" {
-		t.Errorf("ID not shortened: %q", got[0].ID)
+	if got[0].ContainerID != "aaaaaaaaaaaa" {
+		t.Errorf("ID not shortened: %q", got[0].ContainerID)
 	}
-	if got[0].Hostname != "web-box" || got[0].Description != "front-end work" {
-		t.Errorf("box0 hostname/description = %q/%q, want web-box/front-end work", got[0].Hostname, got[0].Description)
+	if got[0].BoxID != "web-box" || got[0].Description != "front-end work" {
+		t.Errorf("box0 box ID/description = %q/%q, want web-box/front-end work", got[0].BoxID, got[0].Description)
 	}
-	if got[1].Hostname != "" || got[1].Description != "" {
-		t.Errorf("box1 should have empty hostname/description, got %q/%q", got[1].Hostname, got[1].Description)
+	if got[1].BoxID != "" || got[1].Description != "" {
+		t.Errorf("box1 should have empty box ID/description, got %q/%q", got[1].BoxID, got[1].Description)
 	}
 }
 
-// TestCreateLLMBoxCapturesURL checks the authorize URL capture, naming, and hostname/description labels.
+// TestCreateLLMBoxCapturesURL checks the authorize URL capture, naming, and box-id/description labels.
 func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	managerEnd, testEnd := net.Pipe()
 	f := &fakeDocker{
@@ -326,7 +326,7 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
 	}()
 
-	id, url, err := m.CreateLLMBox(context.Background(), CreateOptions{Hostname: "my-box", Description: "scratch box"})
+	id, url, err := m.CreateLLMBox(context.Background(), CreateOptions{BoxID: "my-box", Description: "scratch box"})
 	if err != nil {
 		t.Fatalf("CreateLLMBox: %v", err)
 	}
@@ -351,10 +351,10 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	if !strings.Contains(ep, "claude auth login") || !strings.Contains(ep, "remote-control") {
 		t.Errorf("entrypoint missing login/remote-control: %q", ep)
 	}
-	// The pre-created first session is named "<hostname>-default" so it is
+	// The pre-created first session is named "<box-id>-default" so it is
 	// identifiable in claude.ai/code.
 	if !strings.Contains(ep, "--name my-box-default") {
-		t.Errorf("entrypoint missing --name <hostname>-default: %q", ep)
+		t.Errorf("entrypoint missing --name <box-id>-default: %q", ep)
 	}
 	// Login is guarded so a restart with credentials already on disk skips
 	// re-authentication instead of prompting the user again.
@@ -367,13 +367,13 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	if !f.createConfig.Tty || !f.createConfig.OpenStdin {
 		t.Error("box needs Tty and OpenStdin")
 	}
-	// Hostname is set on the container and, with the description, persisted as
+	// The box ID is set as the container hostname and, with the description, persisted as
 	// labels so List can report them.
 	if f.createConfig.Hostname != "my-box" {
 		t.Errorf("hostname = %q, want my-box", f.createConfig.Hostname)
 	}
-	if got := f.createConfig.Labels[HostnameLabel]; got != "my-box" {
-		t.Errorf("hostname label = %q, want my-box", got)
+	if got := f.createConfig.Labels[BoxIDLabel]; got != "my-box" {
+		t.Errorf("box-id label = %q, want my-box", got)
 	}
 	if got := f.createConfig.Labels[DescriptionLabel]; got != "scratch box" {
 		t.Errorf("description label = %q, want scratch box", got)
@@ -395,24 +395,24 @@ func TestCreateLLMBoxCleansUpOnStartFailure(t *testing.T) {
 	}
 }
 
-// TestCreateLLMBoxRejectsDuplicateHostname checks a create is refused (and no
-// container made) when another box already uses the requested hostname.
-func TestCreateLLMBoxRejectsDuplicateHostname(t *testing.T) {
+// TestCreateLLMBoxRejectsDuplicateBoxID checks a create is refused (and no
+// container made) when another box already uses the requested box ID.
+func TestCreateLLMBoxRejectsDuplicateBoxID(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{
-		{ID: "existing0000aaaa", Names: []string{"/llmbox-existing0000"}, Labels: map[string]string{HostnameLabel: "dup-host"}},
+		{ID: "existing0000aaaa", Names: []string{"/llmbox-existing0000"}, Labels: map[string]string{BoxIDLabel: "dup-host"}},
 	}}
 	m := newTestManager(f)
 
 	// Case-insensitive: "DUP-HOST" must still collide with "dup-host".
-	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{Hostname: "DUP-HOST"})
+	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{BoxID: "DUP-HOST"})
 	if err == nil {
-		t.Fatal("expected error for duplicate hostname")
+		t.Fatal("expected error for duplicate box ID")
 	}
 	if !strings.Contains(err.Error(), "dup-host") && !strings.Contains(err.Error(), "DUP-HOST") {
-		t.Errorf("error should name the conflicting hostname: %v", err)
+		t.Errorf("error should name the conflicting box ID: %v", err)
 	}
 	if f.createConfig != nil {
-		t.Error("no container should be created when the hostname conflicts")
+		t.Error("no container should be created when the box ID conflicts")
 	}
 }
 
