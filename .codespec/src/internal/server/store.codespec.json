@@ -37,8 +37,8 @@
 		{
 			"function_name": "openBoltStore",
 			"documentation_hash": "22e4ed75f71a5853320a2629aac5f56ca8b71d44fba103e2358fb355e2bb63da",
-			"definition_hash": "3a59b30da83e37f8854473b67d1cc55d987cc631ef5c80a208b14650c7adb591",
-			"reviewed_at": "2026-06-18T13:16:49.054478587Z"
+			"definition_hash": "8c4dfc9bab598180aed437bc0cf55053943e701bcfde2747b22a73fd1b14b423",
+			"reviewed_at": "2026-06-18T17:12:11.838277585Z"
 		},
 		{
 			"function_name": "Save",

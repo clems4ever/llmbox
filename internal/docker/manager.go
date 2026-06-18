@@ -30,6 +30,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 	"regexp"
@@ -162,6 +163,23 @@ type Manager struct {
 	// createMu serializes the box-ID-uniqueness check and container creation so
 	// two concurrent creates can't both pass the check with the same box ID.
 	createMu sync.Mutex
+
+	// log records best-effort failures (cleanup, network teardown, etc.) that are
+	// not propagated to the caller; nil falls back to slog.Default() via logger().
+	log *slog.Logger
+}
+
+// logger returns the Manager's logger, or slog.Default() when none was set (e.g.
+// a Manager built directly in a test).
+//
+// @return *slog.Logger The configured logger, or the slog default.
+//
+// @testcase TestListMapsPhaseFromName exercises a Manager whose logger defaults.
+func (m *Manager) logger() *slog.Logger {
+	if m.log != nil {
+		return m.log
+	}
+	return slog.Default()
 }
 
 // Box is a view of a managed container returned to callers.
@@ -243,7 +261,7 @@ func NewManager(defaultImage, remoteArgs, claudeBin string, peers []string) (*Ma
 	if claudeBin == "" {
 		claudeBin = DefaultClaudeBin
 	}
-	return &Manager{cli: cli, defaultImage: defaultImage, remoteArgs: remoteArgs, claudeBinSrc: claudeBin, peers: peers}, nil
+	return &Manager{cli: cli, defaultImage: defaultImage, remoteArgs: remoteArgs, claudeBinSrc: claudeBin, peers: peers, log: slog.Default()}, nil
 }
 
 // loadClaudeBinary reads and caches the standalone Claude binary from
@@ -499,7 +517,9 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 
 	// From here on, clean up the container (and its network) on any failure.
 	cleanup := func() {
-		_ = m.cli.ContainerRemove(context.Background(), id, container.RemoveOptions{Force: true})
+		if err := m.cli.ContainerRemove(context.Background(), id, container.RemoveOptions{Force: true}); err != nil {
+			m.logger().Warn("failed to remove box during cleanup", "container", id, "err", err)
+		}
 		m.removeBoxNetwork(context.Background(), id)
 	}
 
@@ -526,7 +546,11 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		return "", "", fmt.Errorf("starting box: %w", err)
 	}
 	// Belt-and-suspenders: ensure a wide TTY even if ConsoleSize was ignored.
-	_ = m.cli.ContainerResize(ctx, id, container.ResizeOptions{Height: ttyHeight, Width: ttyWidth})
+	// Cosmetic only (keeps the authorize URL unwrapped), so a failure is logged
+	// at debug level rather than failing the create.
+	if err := m.cli.ContainerResize(ctx, id, container.ResizeOptions{Height: ttyHeight, Width: ttyWidth}); err != nil {
+		m.logger().Debug("failed to resize box TTY", "container", id, "err", err)
+	}
 
 	url, err := m.readAuthorizeURL(ctx, id)
 	if err != nil {
@@ -629,7 +653,7 @@ func (m *Manager) pullImage(ctx context.Context, ref string) error {
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	if _, err := io.Copy(io.Discard, rc); err != nil {
 		return fmt.Errorf("reading pull progress: %w", err)
 	}
@@ -744,9 +768,12 @@ func (m *Manager) setupBoxNetwork(ctx context.Context, id string) error {
 		return fmt.Errorf("connecting box to its network: %w", err)
 	}
 	// Connect each resource-server peer. A peer that is missing or already
-	// connected is non-fatal — the box still works for the others.
+	// connected is non-fatal — the box still works for the others — but log it so
+	// an unreachable peer is diagnosable.
 	for _, peer := range m.peers {
-		_ = m.cli.NetworkConnect(ctx, name, peer, nil)
+		if err := m.cli.NetworkConnect(ctx, name, peer, nil); err != nil {
+			m.logger().Warn("failed to connect peer to box network", "network", name, "peer", peer, "err", err)
+		}
 	}
 	// Detach from the default bridge so the box lives only on its own network.
 	if err := m.cli.NetworkDisconnect(ctx, defaultBridgeNetwork, id, true); err != nil {
@@ -757,7 +784,8 @@ func (m *Manager) setupBoxNetwork(ctx context.Context, id string) error {
 
 // removeBoxNetwork tears down a box's dedicated network, first disconnecting the
 // resource-server peers (whose live endpoints would otherwise block removal). It
-// is best-effort: errors are ignored so destroy/reap always proceeds.
+// is best-effort: failures are logged but not returned, so destroy/reap always
+// proceeds.
 //
 // @arg ctx Context for the disconnect/remove calls.
 // @arg id The box's container ID.
@@ -766,9 +794,13 @@ func (m *Manager) setupBoxNetwork(ctx context.Context, id string) error {
 func (m *Manager) removeBoxNetwork(ctx context.Context, id string) {
 	name := boxNetworkName(id)
 	for _, peer := range m.peers {
-		_ = m.cli.NetworkDisconnect(ctx, name, peer, true)
+		if err := m.cli.NetworkDisconnect(ctx, name, peer, true); err != nil {
+			m.logger().Warn("failed to disconnect peer from box network", "network", name, "peer", peer, "err", err)
+		}
 	}
-	_ = m.cli.NetworkRemove(ctx, name)
+	if err := m.cli.NetworkRemove(ctx, name); err != nil {
+		m.logger().Warn("failed to remove box network", "network", name, "err", err)
+	}
 }
 
 // Destroy gracefully stops and removes a managed box identified by ID or name.
@@ -829,7 +861,7 @@ func (m *Manager) Logs(ctx context.Context, idOrName string, tail int) (string, 
 	if err != nil {
 		return "", fmt.Errorf("reading logs for box %s: %w", idOrName, err)
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	raw, err := io.ReadAll(rc)
 	if err != nil {
 		return "", fmt.Errorf("reading log stream for box %s: %w", idOrName, err)

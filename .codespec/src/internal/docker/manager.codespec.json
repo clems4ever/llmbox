@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewManager",
 			"documentation_hash": "48d57e601a32eb19fed9e705dacf93c5144202fdfafb853cd5337fd06f96b205",
-			"definition_hash": "c3640bbebf3765e372f91bc15f67fc74da03fa0a4a4a213d8214843231e528b6",
-			"reviewed_at": "2026-06-18T15:05:52.373905273Z"
+			"definition_hash": "70efd20ae3e7939b0761a8af9248b0c11ac8c616e7ecaaeeda6087ab6529f4fc",
+			"reviewed_at": "2026-06-18T17:12:11.774687081Z"
 		},
 		{
 			"function_name": "loadClaudeBinary",
@@ -49,8 +49,8 @@
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
 			"documentation_hash": "65de0a062e6b65216bb1f3a0191ecd6fc163e0c7f9675d81704f365ff7b18306",
-			"definition_hash": "c5403b5beb4ac37e8ae029549f7d3f9e6b78476d3ef40db5c05b2eb5067573f8",
-			"reviewed_at": "2026-06-18T16:59:05.434145791Z"
+			"definition_hash": "5c7b31382e5322af16380d92b83373edcaaaa6ebf3a9bb441fbe7f53256db432",
+			"reviewed_at": "2026-06-18T17:12:11.780654188Z"
 		},
 		{
 			"function_name": "injectFiles",
@@ -69,8 +69,8 @@
 			"function_name": "pullImage",
 			"receiver": "Manager",
 			"documentation_hash": "45e13900a25eb7c26ab5070f488785a54b9488afc594c7dda9ccd69018fc49c7",
-			"definition_hash": "7535c8eaa0c9a8597047483255fde7834b720b7ab6a84fbcd1ea2ac5302a25ea",
-			"reviewed_at": "2026-06-18T15:05:52.416898957Z"
+			"definition_hash": "b26a9b78fbedc9bf56b5504021f78d2087988528925f2c200a61f6366c1304a5",
+			"reviewed_at": "2026-06-18T17:12:11.786481379Z"
 		},
 		{
 			"function_name": "readAuthorizeURL",
@@ -96,15 +96,15 @@
 			"function_name": "setupBoxNetwork",
 			"receiver": "Manager",
 			"documentation_hash": "a640ca96f4785a32e8c1cd8b03664c4dcb86f1ee4ede30542f127cdc281b09e2",
-			"definition_hash": "d0f9b0f7f6102feed1aafddd5217f1394a11d1512a4769b5521c7a11fc2e3aad",
-			"reviewed_at": "2026-06-18T15:05:52.433191911Z"
+			"definition_hash": "49322a8782e9f68cf02588d8fcdcc85ae591bc9e15623384d705de722025c9de",
+			"reviewed_at": "2026-06-18T17:12:11.791878676Z"
 		},
 		{
 			"function_name": "removeBoxNetwork",
 			"receiver": "Manager",
-			"documentation_hash": "77b91fe7089c83b3ce30e997a3e37dcaecb9825986df7d68d494b832e4892653",
-			"definition_hash": "06cf8c1a7ba49caa300ff692eeb8e3bf66d36fc30e8860636cf4217367fb00d5",
-			"reviewed_at": "2026-06-18T15:05:52.437430524Z"
+			"documentation_hash": "b826f872fe6decacc0d961c02a787960afb8942908a60d44f54e7a7718b39415",
+			"definition_hash": "fab9aa52221e06ce8d0e805c18bf44824096b16e58e23623013ac812d97f3e30",
+			"reviewed_at": "2026-06-18T17:12:11.797109496Z"
 		},
 		{
 			"function_name": "Destroy",
@@ -117,8 +117,8 @@
 			"function_name": "Logs",
 			"receiver": "Manager",
 			"documentation_hash": "3e8842b9434e2c9be0f6454f0d6771092c33fa84bb2eebf55729f8ffece468f1",
-			"definition_hash": "e03bfdef16b072464b90067109e0084dee4647e39c2721b0ec116cac801f6217",
-			"reviewed_at": "2026-06-18T16:59:05.450353452Z"
+			"definition_hash": "ea694cb7f44838674c3c0a513916c6eaae6f72dc6919bd6d50a37f76166dd20c",
+			"reviewed_at": "2026-06-18T17:12:11.805422764Z"
 		},
 		{
 			"function_name": "Exec",
@@ -164,6 +164,13 @@
 			"documentation_hash": "2e9bbd64368a02839d3c2d89645aa63691330a32c54e8ee5d9b6e19b9376d027",
 			"definition_hash": "1b1685277e533ad562417dc7817dc24e48ffd7907af7eb52c03eff948aef3feb",
 			"reviewed_at": "2026-06-18T15:05:52.461289154Z"
+		},
+		{
+			"function_name": "logger",
+			"receiver": "Manager",
+			"documentation_hash": "953c9b1395f1e93b917679ef2a730f6ba4abfeaa10880252851af6d32e5be729",
+			"definition_hash": "bd35664b5d6510c313cbf75ae6206084334b0cb1bb47bc0c497de65320ac29e7",
+			"reviewed_at": "2026-06-18T17:12:11.77332901Z"
 		}
 	]
 }
