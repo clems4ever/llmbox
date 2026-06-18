@@ -1,10 +1,12 @@
 name: CI
 
 # Runs the Go test suite with coverage on every push and pull request. On pushes
-# to main it also generates a coverage badge and commits it to an orphan
-# `badges` branch (using the built-in GITHUB_TOKEN — no external service), which
-# the README badge points at. Integration tests (the //go:build integration set,
-# which need a Docker daemon and a real Claude binary) are excluded here.
+# to main it also regenerates the coverage badge (.github/badges/coverage.svg)
+# and commits it back to main — the README references it by relative path, so it
+# renders against whichever branch is being viewed. The commit carries [skip ci]
+# so it does not re-trigger this workflow. Integration tests (the //go:build
+# integration set, which need a Docker daemon and a real Claude binary) are
+# excluded here.
 on:
   push:
     branches: [main]
@@ -39,8 +41,6 @@ jobs:
 
       - name: Publish coverage badge
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/,"",$3); print $3}')
@@ -50,21 +50,17 @@ jobs:
           elif [ "$rounded" -ge 60 ]; then color=yellow
           elif [ "$rounded" -ge 40 ]; then color=orange
           fi
-          curl -fsSL "https://img.shields.io/badge/coverage-${pct}%25-${color}" -o /tmp/coverage.svg
+          mkdir -p .github/badges
+          curl -fsSL "https://img.shields.io/badge/coverage-${pct}%25-${color}" -o .github/badges/coverage.svg
 
-          repo_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          workdir=$(mktemp -d)
-          if ! git clone --depth=1 --branch badges "$repo_url" "$workdir" 2>/dev/null; then
-            git clone --depth=1 "$repo_url" "$workdir"
-            git -C "$workdir" checkout --orphan badges
-            git -C "$workdir" rm -rf . >/dev/null 2>&1 || true
+          if git diff --quiet -- .github/badges/coverage.svg; then
+            echo "coverage badge unchanged ($pct%)"
+            exit 0
           fi
-          mkdir -p "$workdir/.badges"
-          cp /tmp/coverage.svg "$workdir/.badges/coverage.svg"
-          git -C "$workdir" config user.name  "github-actions[bot]"
-          git -C "$workdir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$workdir" add .badges/coverage.svg
-          if ! git -C "$workdir" diff --cached --quiet; then
-            git -C "$workdir" commit -m "ci: update coverage badge (${pct}%)"
-            git -C "$workdir" push origin badges
-          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/coverage.svg
+          git commit -m "ci: update coverage badge (${pct}%) [skip ci]"
+          # Rebase onto any commits that landed since checkout, then push to main.
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main

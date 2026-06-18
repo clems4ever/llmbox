@@ -1,7 +1,7 @@
 # llmbox
 
 [![CI](https://github.com/clems4ever/llmbox/actions/workflows/ci.yml/badge.svg)](https://github.com/clems4ever/llmbox/actions/workflows/ci.yml)
-[![coverage](https://raw.githubusercontent.com/clems4ever/llmbox/badges/.badges/coverage.svg)](https://github.com/clems4ever/llmbox/actions/workflows/ci.yml)
+[![coverage](.github/badges/coverage.svg)](https://github.com/clems4ever/llmbox/actions/workflows/ci.yml)
 [![Build and push images](https://github.com/clems4ever/llmbox/actions/workflows/docker.yml/badge.svg)](https://github.com/clems4ever/llmbox/actions/workflows/docker.yml)
 
 An [MCP](https://modelcontextprotocol.io) server for spinning up **sandboxed
