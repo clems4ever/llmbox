@@ -15,6 +15,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -89,6 +90,8 @@ func TestEndToEndWorkflow(t *testing.T) {
 	// --- human side: drive the auth UI through a real browser ---
 	b := newBrowser(t) // skips the test if no chromedriver is available
 	t.Cleanup(b.close)
+	// When set (CI sets it), the run saves screenshots of the auth page here.
+	shotDir := os.Getenv("LLMBOX_E2E_SCREENSHOT_DIR")
 
 	// Open the activation page; it offers the "Sign in with Claude" link.
 	if err := b.wd.Get(authURL); err != nil {
@@ -96,6 +99,12 @@ func TestEndToEndWorkflow(t *testing.T) {
 	}
 	if src, _ := b.wd.PageSource(); !strings.Contains(src, "Activate your llmbox") {
 		t.Fatalf("auth page did not render the activation view:\n%s", src)
+	}
+	// Capture the activation page for the README when a screenshot dir is set
+	// (CI does this); it is otherwise skipped, so a plain test run writes nothing.
+	if shotDir != "" {
+		b.resizeForScreenshot(t)
+		b.saveScreenshot(t, shotDir, "auth-page.png")
 	}
 	signIn := b.waitFor(t, by("css"), "a.btn-link")
 	authorizeURL, err := signIn.GetAttribute("href")
@@ -138,6 +147,10 @@ func TestEndToEndWorkflow(t *testing.T) {
 	}
 	if !strings.HasPrefix(sessionURL, "https://claude.ai/code/") {
 		t.Fatalf("session URL = %q, want a claude.ai/code session", sessionURL)
+	}
+	// Capture the activated ("ready") page too, as a before/after for the README.
+	if shotDir != "" {
+		b.saveScreenshot(t, shotDir, "auth-ready.png")
 	}
 
 	// --- chatbot side: confirm readiness, exec, list, then destroy ---

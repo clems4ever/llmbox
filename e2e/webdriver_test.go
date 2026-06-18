@@ -97,6 +97,49 @@ func (b *browser) waitFor(t *testing.T, by, value string) selenium.WebElement {
 	}
 }
 
+// shotWidth and shotHeight frame the auth card (max-width 30rem, centered) with
+// a little margin when capturing a screenshot, so the saved image is a tidy
+// portrait of the page rather than the card lost in a wide viewport.
+const (
+	shotWidth  = 820
+	shotHeight = 1000
+)
+
+// resizeForScreenshot sizes the window to frame the auth card for a screenshot.
+// A failure is logged rather than fatal — the screenshot is documentation, not
+// an assertion.
+//
+// @arg t The test, used for logging.
+func (b *browser) resizeForScreenshot(t *testing.T) {
+	t.Helper()
+	if err := b.wd.ResizeWindow("", shotWidth, shotHeight); err != nil {
+		t.Logf("resizing window for screenshot (continuing): %v", err)
+	}
+}
+
+// saveScreenshot captures the current page as a PNG and writes it to dir/name,
+// creating dir if needed. It is a no-op-friendly helper gated by the caller on
+// $LLMBOX_E2E_SCREENSHOT_DIR, so screenshots are only produced when asked for.
+//
+// @arg t The test, failed if the capture or write fails.
+// @arg dir The directory to write the screenshot into.
+// @arg name The screenshot file name.
+func (b *browser) saveScreenshot(t *testing.T, dir, name string) {
+	t.Helper()
+	png, err := b.wd.Screenshot()
+	if err != nil {
+		t.Fatalf("capturing screenshot %s: %v", name, err)
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("creating screenshot dir %s: %v", dir, err)
+	}
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, png, 0o644); err != nil {
+		t.Fatalf("writing screenshot %s: %v", path, err)
+	}
+	t.Logf("wrote screenshot %s (%d bytes)", path, len(png))
+}
+
 // findChromeDriver locates a chromedriver binary, honouring $CHROMEWEBDRIVER (the
 // directory GitHub-hosted runners expose) and falling back to the PATH. It
 // returns "" when none is found.
