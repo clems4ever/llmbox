@@ -66,12 +66,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 # ---- runtime stage ----
 FROM gcr.io/distroless/static-debian12:nonroot
 
-ENV LLMBOX_HTTP_ADDR=":8080" \
-    LLMBOX_PUBLIC_URL="http://localhost:8080" \
-    LLMBOX_CLAUDE_IMAGE="debian:bookworm-slim" \
-    LLMBOX_CLAUDE_BIN="/opt/llmbox/claude" \
-    LLMBOX_AUTH_TTL_SECONDS="300"
-
 EXPOSE 8080
 
 COPY --from=build /out/llmbox /usr/local/bin/llmbox
