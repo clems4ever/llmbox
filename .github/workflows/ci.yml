@@ -7,6 +7,10 @@ name: CI
 # so it does not re-trigger this workflow. Integration tests (the //go:build
 # integration set, which need a Docker daemon and a real Claude binary) are
 # excluded here.
+#
+# The end-to-end workflow test (the //go:build e2e set) runs in its own `e2e`
+# job, kept separate from the fast unit suite: it drives the auth UI through a
+# real headless Chrome via WebDriver, simulating the Docker and Anthropic layers.
 on:
   push:
     branches: [main]
@@ -64,3 +68,32 @@ jobs:
           # Rebase onto any commits that landed since checkout, then push to main.
           git pull --rebase --autostash origin main
           git push origin HEAD:main
+
+  e2e:
+    name: E2E (WebDriver)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Chrome and ChromeDriver
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          install-chromedriver: true
+
+      - name: Pin Chrome and ChromeDriver for the test
+        # The runner image preinstalls its own chromedriver (via $CHROMEWEBDRIVER);
+        # override both so the test uses the matched pair this action installed.
+        run: |
+          echo "CHROME_BIN=${{ steps.setup-chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
+          echo "CHROMEWEBDRIVER=$(dirname '${{ steps.setup-chrome.outputs.chromedriver-path }}')" >> "$GITHUB_ENV"
+
+      - name: Run end-to-end workflow test
+        run: make test-e2e
