@@ -14,7 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/clems4ever/llmbox-mcp/internal/docker"
-	"github.com/clems4ever/llmbox-mcp/internal/granular"
+	"github.com/clems4ever/llmbox-mcp/internal/hooks"
 )
 
 // fakeMgr is a stand-in for *docker.Manager.
@@ -95,43 +95,33 @@ func (f *fakeMgr) ReapOrphans(context.Context, time.Duration) ([]string, error) 
 }
 
 // newTestServer builds a Server backed by the given fake manager and no-op store,
-// with granular integration disabled (nil minter).
+// with hook integration disabled (nil hooks).
 func newTestServer(f *fakeMgr) *Server {
 	return New(f, nil, "https://boxes.example.com", 5*time.Minute, noopStore{})
 }
 
-// fakeMinter is a stand-in for *granular.Minter that records mint/revoke calls.
-type fakeMinter struct {
-	mintToken   string
-	mintErr     error
-	minted      int
-	revoked     []string
-	path        string
-	configFiles []granular.ConfigFile
+// fakeHooks is a stand-in for *hooks.Runner that records create/destroy calls.
+// It models a single hook keyed by "hook": OnCreate returns canned files and
+// state, OnDestroy records the state it was replayed.
+type fakeHooks struct {
+	createFiles []hooks.File
+	createState map[string]string
+	createErr   error
+	created     int
+	destroyed   []map[string]string
 }
 
-// Mint returns the canned token/error and counts the call.
-func (f *fakeMinter) Mint(context.Context) (string, error) {
-	f.minted++
-	return f.mintToken, f.mintErr
+// OnCreate returns the canned files/state/error and counts the call.
+func (f *fakeHooks) OnCreate(context.Context, hooks.BoxInfo) ([]hooks.File, map[string]string, error) {
+	f.created++
+	return f.createFiles, f.createState, f.createErr
 }
 
-// Revoke records the revoked token and always succeeds.
-func (f *fakeMinter) Revoke(_ context.Context, token string) error {
-	f.revoked = append(f.revoked, token)
+// OnDestroy records the per-hook state it was replayed and always succeeds.
+func (f *fakeHooks) OnDestroy(_ context.Context, _ hooks.BoxInfo, state map[string]string) error {
+	f.destroyed = append(f.destroyed, state)
 	return nil
 }
-
-// SubjectPath returns the configured in-box path, defaulting when unset.
-func (f *fakeMinter) SubjectPath() string {
-	if f.path == "" {
-		return "/home/node/.granular/subject_token"
-	}
-	return f.path
-}
-
-// ConfigFiles returns the canned per-RS config files.
-func (f *fakeMinter) ConfigFiles() []granular.ConfigFile { return f.configFiles }
 
 // --- core flow ---
 
@@ -175,33 +165,36 @@ func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 	}
 }
 
-// TestCreateBoxMintsAndInjectsSubject checks a configured minter mints a subject,
-// the token and the per-RS config files are injected into the box, and the token
-// is persisted on the session.
-func TestCreateBoxMintsAndInjectsSubject(t *testing.T) {
+// TestCreateBoxRunsCreateHooks checks a configured hook runner runs on create,
+// its returned files are injected into the box, and its per-hook state is
+// persisted on the session.
+func TestCreateBoxRunsCreateHooks(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
-	mnt := &fakeMinter{
-		mintToken:   "subj-xyz",
-		configFiles: []granular.ConfigFile{{Path: "/home/node/.granular/github.yaml", Content: []byte("base_url: \"http://gh\"\n")}},
+	h := &fakeHooks{
+		createState: map[string]string{"granular-hook": "subj-xyz"},
+		createFiles: []hooks.File{
+			{Path: "/home/node/.granular/subject_token", Content: []byte("subj-xyz"), Mode: 0o600, UID: 1000, GID: 1000},
+			{Path: "/home/node/.granular/github.yaml", Content: []byte("base_url: \"http://gh\"\n"), Mode: 0o644, UID: 1000, GID: 1000},
+		},
 	}
-	s := New(f, mnt, "https://boxes.example.com", time.Minute, noopStore{})
+	s := New(f, h, "https://boxes.example.com", time.Minute, noopStore{})
 
 	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if mnt.minted != 1 {
-		t.Errorf("minted %d times, want 1", mnt.minted)
+	if h.created != 1 {
+		t.Errorf("create hooks ran %d times, want 1", h.created)
 	}
-	if sess.SubjectToken != "subj-xyz" {
-		t.Errorf("session subject token = %q, want subj-xyz", sess.SubjectToken)
+	if sess.HookState["granular-hook"] != "subj-xyz" {
+		t.Errorf("session hook state = %v, want granular-hook=subj-xyz", sess.HookState)
 	}
 	// Index the injected files by path.
 	byPath := map[string]docker.InjectFile{}
 	for _, fl := range f.gotOpts.Files {
 		byPath[fl.Path] = fl
 	}
-	tok, ok := byPath[mnt.SubjectPath()]
+	tok, ok := byPath["/home/node/.granular/subject_token"]
 	if !ok {
 		t.Fatalf("subject token not injected: %+v", f.gotOpts.Files)
 	}
@@ -217,26 +210,28 @@ func TestCreateBoxMintsAndInjectsSubject(t *testing.T) {
 	}
 }
 
-// TestCreateBoxRevokesSubjectOnCreateFailure checks the minted subject is revoked
-// when box creation fails, so no orphaned subject is left behind.
-func TestCreateBoxRevokesSubjectOnCreateFailure(t *testing.T) {
+// TestCreateBoxRunsDestroyHooksOnCreateFailure checks the create hook's state is
+// replayed to the destroy hooks when box creation fails, so nothing is left
+// dangling.
+func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 	f := &fakeMgr{createErr: errors.New("no image")}
-	mnt := &fakeMinter{mintToken: "subj-doomed"}
-	s := New(f, mnt, "https://boxes.example.com", time.Minute, noopStore{})
+	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-doomed"}}
+	s := New(f, h, "https://boxes.example.com", time.Minute, noopStore{})
 
 	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{}); err == nil {
 		t.Fatal("expected error")
 	}
-	if len(mnt.revoked) != 1 || mnt.revoked[0] != "subj-doomed" {
-		t.Errorf("revoked = %v, want [subj-doomed]", mnt.revoked)
+	if len(h.destroyed) != 1 || h.destroyed[0]["granular-hook"] != "subj-doomed" {
+		t.Errorf("destroyed = %v, want [granular-hook=subj-doomed]", h.destroyed)
 	}
 }
 
-// TestDestroyRevokesSubject checks destroying a box revokes its granular subject.
-func TestDestroyRevokesSubject(t *testing.T) {
+// TestDestroyRunsDestroyHooks checks destroying a box replays its hook state to
+// the destroy hooks.
+func TestDestroyRunsDestroyHooks(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
-	mnt := &fakeMinter{mintToken: "subj-live"}
-	s := New(f, mnt, "https://boxes.example.com", time.Minute, noopStore{})
+	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-live"}}
+	s := New(f, h, "https://boxes.example.com", time.Minute, noopStore{})
 
 	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
@@ -245,8 +240,8 @@ func TestDestroyRevokesSubject(t *testing.T) {
 	if err := s.DestroyBox(context.Background(), sess.BoxID); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
 	}
-	if len(mnt.revoked) != 1 || mnt.revoked[0] != "subj-live" {
-		t.Errorf("revoked = %v, want [subj-live]", mnt.revoked)
+	if len(h.destroyed) != 1 || h.destroyed[0]["granular-hook"] != "subj-live" {
+		t.Errorf("destroyed = %v, want [granular-hook=subj-live]", h.destroyed)
 	}
 }
 

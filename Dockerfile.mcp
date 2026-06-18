@@ -29,11 +29,9 @@ FROM golang:1.26-bookworm AS build
 
 WORKDIR /src
 
-# Cache dependencies first. The granular submodule is a local `replace` target,
-# so its go.mod/go.sum must be present for `go mod download` to resolve the
-# module graph (copy just those to keep this layer cacheable).
+# Cache dependencies first (copy just the module files so this layer stays
+# cacheable across source-only changes).
 COPY go.mod go.sum ./
-COPY granular/go.mod granular/go.sum ./granular/
 RUN go mod download
 
 # Build a static binary so it runs on a distroless base.

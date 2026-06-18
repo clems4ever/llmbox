@@ -88,10 +88,6 @@ The server drives the Docker daemon, so it needs the Docker socket. The image
 runs as a non-root user, which must be allowed to use the socket via
 `--group-add` (the socket's group, e.g. `docker`):
 
-> [!NOTE]
-> The build vendors the [granular](https://github.com/clems4ever/granular)
-> submodule, so initialize it after cloning: `git submodule update --init`.
-
 ```bash
 docker build -f Dockerfile.claude -t claude-remote .
 docker build -f Dockerfile.mcp    -t llmbox-mcp .
@@ -128,6 +124,8 @@ clear text.
 | `LLMBOX_REMOTE_ARGS`      | `--spawn same-dir`        | Args passed to `claude remote-control`. |
 | `LLMBOX_AUTH_TTL_SECONDS` | `300`                     | Destroy un-authenticated boxes after this long. |
 | `LLMBOX_STATE_FILE`       | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](#session-persistence)). |
+| `LLMBOX_HOOKS`            | (unset)                   | OS-path-list of [box lifecycle hook](#box-lifecycle-hooks) executables. |
+| `LLMBOX_BOX_PEERS`        | (unset)                   | Comma-separated container names wired into every box's network (see [Box networking](#box-networking-and-isolation)). |
 | `DOCKER_HOST`, etc.       | (Docker default)          | Standard Docker client configuration. |
 
 If `LLMBOX_CLAUDE_IMAGE` isn't present on the daemon, the server pulls it on the
@@ -135,80 +133,96 @@ first box creation and retries. Pulls use the daemon's existing credentials, so
 for a **private** registry make sure the daemon is logged in (e.g. `docker
 login`) or the image is pre-pulled.
 
-## Granular authorization (optional)
+## Box lifecycle hooks
 
-llmbox can integrate with a [granular](https://github.com/clems4ever/granular)
-authorization server (vendored as a submodule under `./granular`) to give each
-box its own scoped identity for acting on the user's behalf. When enabled, every
-new box gets a **freshly minted granular subject token**, injected into the
-container at `~/.granular/subject_token`. The granular CLIs inside the box read
-that file to request grants and run authorized operations. The subject is
-**revoked** when its box is destroyed or reaped, so a torn-down agent's grants
-die with it.
+llmbox knows nothing about what any particular integration needs in a box. Instead
+it runs **hooks** — external executables you point it at with `LLMBOX_HOOKS` (an
+OS-path-list, like `PATH`) — at two points in a box's life:
 
-llmbox also writes the granular config into each box so the agent never has to
-know any URLs:
+- **`box.create`** — fires *before* the new box starts. A hook may return **files
+  to inject** into the box (secrets, config, even binaries) and an opaque **state**
+  string llmbox persists with the box.
+- **`box.destroy`** — fires when the box is destroyed or reaped. llmbox replays the
+  state the `box.create` hook returned, so the hook can undo whatever it did.
 
-- `~/.granular/<id>.yaml` (per resource server) — the RS `base_url` plus the
-  shared `as_url`, read by the per-RS CLI (e.g. `granular-github`). This lets it
-  run operations **and** `granular-github request` (sign + submit a grant for
-  approval in one step) with no flags.
-- `~/.granular/client.yaml` — a granular-client config (`as_url`, `token_file`,
-  `resource_servers`) for the `granular` CLI, so the agent can bundle several
-  grant requests into one proposal (`granular --config ~/.granular/client.yaml
-  propose ...`).
+The wire protocol is plain JSON over the hook's stdin/stdout, defined in the
+importable [`hookproto`](hookproto/hookproto.go) package. For each event llmbox
+writes one `Request` to the hook's stdin and reads one `Response` from its stdout:
 
-The claude-remote image ships both CLIs (`granular-github` and `granular`) and a
-skill teaching the agent how to use them. The integration is **opt-in**: it
-activates only when both the AS URL and an admin token are configured.
+```jsonc
+// stdin  (llmbox -> hook)
+{ "event": "box.create", "box": { "hostname": "web-box", "image": "claude-remote" } }
 
-| Env var                              | Default                              | Purpose |
-|--------------------------------------|--------------------------------------|---------|
-| `LLMBOX_GRANULAR_AS_URL`             | (unset — disabled)                   | granular authorization server base URL. |
-| `LLMBOX_GRANULAR_ADMIN_TOKEN_FILE`   | (unset — disabled)                   | File holding the admin token llmbox uses to mint/revoke subjects. |
-| `LLMBOX_GRANULAR_SUBJECT_PATH`       | `/home/node/.granular/subject_token` | In-box path the minted subject token is written to. |
-| `LLMBOX_GRANULAR_RESOURCE_SERVERS`   | (unset)                              | Resource servers an in-box agent can reach, as `id=base_url` pairs (e.g. `github=http://granular-github:9091`). Each becomes a `~/.granular/<id>.yaml`. |
+// stdout (hook -> llmbox)
+{
+  "files": [
+    { "path": "/home/node/.secret/token", "content": "…", "mode": "0600", "uid": 1000, "gid": 1000 },
+    { "path": "/usr/local/bin/tool", "content_base64": "…", "mode": "0755" }
+  ],
+  "state": "opaque-handle-for-destroy"
+}
+```
 
-How a box is provisioned on create:
+A non-zero exit fails the hook: on `box.create` that aborts the box (and any state
+already returned is replayed to `box.destroy` for cleanup); on `box.destroy` it is
+logged and ignored. Injected files are streamed into the **created-but-not-yet-
+started** container via the Docker copy API, owned by the `uid`/`gid` the hook
+chose — so a secret in a non-root user's home stays readable by that user, and is
+never put in an env var or label where `docker inspect` would expose it. Hooks run
+as subprocesses of this server, so they inherit its environment (pass a hook its
+own config that way) and must be present in the `llmbox-mcp` container (bake them
+into a derived image, or mount them in).
 
-1. llmbox calls the AS (`PUT /api/subject`, admin-bearer auth) to mint a subject
-   token.
-2. The token — and the config files (one `<id>.yaml` per resource server plus
-   `client.yaml`) — are streamed into the **created-but-not-yet-started**
-   container via the Docker copy API, owned by the box's `node` user (UID 1000);
-   the token is mode `0600`, the config files `0644`. The token is never put in
-   an env var or a label, so `docker inspect` doesn't expose it.
-3. The subject token is persisted alongside the session (so it survives a server
-   restart) and revoked (`DELETE /api/subject/{token}`) when the box goes away.
+Writing a hook in Go is a few lines — implement a `hookproto.Handler` and call
+`hookproto.Main`:
 
-The injected token is a raw string (the CLIs trim whitespace), not JSON or a JWT.
-An in-box agent then just runs, e.g., `granular-github issue list --repo o/n`:
-the URL comes from `~/.granular/github.yaml` and the token from
-`~/.granular/subject_token`, both injected here.
+```go
+func main() {
+    hookproto.Main(func(req hookproto.Request) (hookproto.Response, error) {
+        switch req.Event {
+        case hookproto.EventBoxCreate:
+            // mint a credential, return files to inject + state to remember
+            return hookproto.Response{Files: ..., State: token}, nil
+        case hookproto.EventBoxDestroy:
+            // undo it, using req.State
+            return hookproto.Response{}, revoke(req.State)
+        }
+        return hookproto.Response{}, nil
+    })
+}
+```
+
+**Reference hook — granular.** The
+[granular-llmbox](https://github.com/clems4ever/granular-llmbox) repo implements a
+hook that gives each box its own scoped identity for acting on the user's behalf
+through a [granular](https://github.com/clems4ever/granular) authorization server:
+on create it mints a subject token, installs the granular CLIs, config, and a
+skill into the box, and on destroy it revokes the subject. It depends on llmbox
+(for `hookproto`), never the other way around — which is the whole point of the
+hook boundary.
 
 ### Box networking and isolation
 
-So a box can reach the resource servers **without** being able to reach other
-boxes, llmbox uses a hub-and-spoke layout instead of one shared network:
+A hook's box often needs to reach *other* containers (e.g. an integration's
+resource servers) **without** being able to reach other boxes. llmbox uses a
+hub-and-spoke layout instead of one shared network:
 
 - Every box is created on its **own** dedicated Docker network (`llmboxnet-<id>`)
   and attached to nothing else, so no two boxes ever share a network — they
   cannot talk to each other.
-- llmbox connects each resource server's container into that per-box network, so
-  the box reaches the resource servers by name while staying isolated.
-- The network is torn down (and the resource servers disconnected from it) when
-  the box is destroyed or reaped.
+- llmbox connects each container named in `LLMBOX_BOX_PEERS` into that per-box
+  network, so the box reaches those peers by name while staying isolated.
+- The network is torn down (and the peers disconnected from it) when the box is
+  destroyed or reaped.
 
-The resource servers are identified by the **hostname in each
-`LLMBOX_GRANULAR_RESOURCE_SERVERS` base URL**, which must match that resource
-server's **container name**. When the resource servers run in a separate compose
-project, give them a fixed `container_name:` so the name is stable, e.g.:
+`LLMBOX_BOX_PEERS` is a comma-separated list of **container names**. When the peers
+run in a separate compose project, give them a fixed `container_name:` so the name
+is stable, e.g.:
 
 ```yaml
-# granular compose
 services:
   granular-github:
-    container_name: granular-github   # must equal the host in github=http://granular-github:9091
+    container_name: granular-github   # must match an entry in LLMBOX_BOX_PEERS
 ```
 
 ## Session persistence

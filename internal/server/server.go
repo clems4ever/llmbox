@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox-mcp/internal/docker"
-	"github.com/clems4ever/llmbox-mcp/internal/granular"
+	"github.com/clems4ever/llmbox-mcp/internal/hooks"
 )
 
 // boxManager is the behaviour Server needs from the Docker layer (real impl is
@@ -34,26 +34,18 @@ type boxManager interface {
 	ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error)
 }
 
-// subjectMinter is the behaviour Server needs from the granular layer (real impl
-// is *granular.Minter; tests fake it). A nil minter disables the integration.
-type subjectMinter interface {
-	// Mint creates a granular subject and returns its token.
-	Mint(ctx context.Context) (string, error)
-	// Revoke destroys the granular subject named by token.
-	Revoke(ctx context.Context, token string) error
-	// SubjectPath is the in-box path the minted token is written to.
-	SubjectPath() string
-	// ConfigFiles are the per-resource-server CLI config files to inject.
-	ConfigFiles() []granular.ConfigFile
+// boxHooks is the behaviour Server needs from the hooks layer (real impl is
+// *hooks.Runner; tests fake it). A nil boxHooks disables the integration. The
+// hooks run external programs at box lifecycle events: box.create may return
+// files to inject and opaque per-hook state, which box.destroy is replayed to
+// undo what it did.
+type boxHooks interface {
+	// OnCreate runs the box.create hooks, returning files to inject and the
+	// per-hook state to persist with the box.
+	OnCreate(ctx context.Context, box hooks.BoxInfo) ([]hooks.File, map[string]string, error)
+	// OnDestroy runs the box.destroy hooks, replaying the per-hook state.
+	OnDestroy(ctx context.Context, box hooks.BoxInfo, state map[string]string) error
 }
-
-// boxUserUID and boxUserGID own files injected into a box. The claude image runs
-// as its `node` user at UID/GID 1000, so an injected secret in that user's home
-// must be owned by 1000 to stay readable by the agent.
-const (
-	boxUserUID = 1000
-	boxUserGID = 1000
-)
 
 // session tracks one box through the auth handshake.
 type session struct {
@@ -62,10 +54,12 @@ type session struct {
 	AuthorizeURL string
 	CreatedAt    time.Time
 
-	// SubjectToken is the granular subject minted for this box (empty when
-	// granular integration is disabled). It is revoked when the box is destroyed
-	// or reaped. Set at creation and immutable, so it needs no locking.
-	SubjectToken string
+	// HookState is the opaque per-hook state returned by the box.create hooks
+	// (nil when no hooks are configured), keyed by hook executable. It is replayed
+	// to the box.destroy hooks when the box is destroyed or reaped — e.g. a
+	// granular hook stores its minted subject token here so it can revoke it. Set
+	// at creation and immutable, so it needs no locking.
+	HookState map[string]string
 
 	// Hostname and Description are caller-supplied at creation and immutable,
 	// so they need no locking.
@@ -103,7 +97,7 @@ func (s *session) persistLocked() persistedSession {
 		BoxID:        s.BoxID,
 		AuthorizeURL: s.AuthorizeURL,
 		CreatedAt:    s.CreatedAt,
-		SubjectToken: s.SubjectToken,
+		HookState:    s.HookState,
 		Hostname:     s.Hostname,
 		Description:  s.Description,
 		Status:       s.Status,
@@ -135,7 +129,7 @@ func sessionFromPersisted(ps persistedSession) *session {
 		BoxID:        ps.BoxID,
 		AuthorizeURL: ps.AuthorizeURL,
 		CreatedAt:    ps.CreatedAt,
-		SubjectToken: ps.SubjectToken,
+		HookState:    ps.HookState,
 		Hostname:     ps.Hostname,
 		Description:  ps.Description,
 		Status:       ps.Status,
@@ -147,8 +141,8 @@ func sessionFromPersisted(ps persistedSession) *session {
 // Server orchestrates boxes and owns the session registry.
 type Server struct {
 	mgr       boxManager
-	minter    subjectMinter // mints/revokes granular subjects; nil when disabled
-	publicURL string        // external base URL, e.g. https://boxes.example.com
+	hooks     boxHooks // runs lifecycle hooks per box; nil when none configured
+	publicURL string   // external base URL, e.g. https://boxes.example.com
 	authTTL   time.Duration
 	store     Store // persists the registry across restarts
 
@@ -159,23 +153,22 @@ type Server struct {
 // New builds a Server. publicURL is the externally reachable base URL used to
 // construct auth page links; authTTL is how long a box may stay un-authenticated
 // before the reaper destroys it. store persists the session registry; pass
-// noopStore{} to disable persistence. minter mints/revokes a granular subject
-// per box; pass nil to disable the granular integration. Call Restore to load
-// any saved sessions.
+// noopStore{} to disable persistence. hooks runs lifecycle hooks per box; pass
+// nil to disable hook integration. Call Restore to load any saved sessions.
 //
 // @arg mgr The box manager the server delegates Docker operations to.
-// @arg minter The granular subject minter; nil disables the integration.
+// @arg hooks The box lifecycle hook runner; nil disables hook integration.
 // @arg publicURL The externally reachable base URL for auth page links.
 // @arg authTTL How long a box may stay un-authenticated before being reaped.
 // @arg store The session store used to persist the registry; noopStore{} disables it.
 // @return *Server A ready-to-use Server with an empty in-memory session registry.
 //
 // @testcase TestCreateBoxRegistersSession builds a Server via New.
-// @testcase TestCreateBoxMintsAndInjectsSubject builds a Server with a minter.
-func New(mgr boxManager, minter subjectMinter, publicURL string, authTTL time.Duration, store Store) *Server {
+// @testcase TestCreateBoxRunsCreateHooks builds a Server with a hook runner.
+func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration, store Store) *Server {
 	return &Server{
 		mgr:       mgr,
-		minter:    minter,
+		hooks:     hooks,
 		publicURL: strings.TrimRight(publicURL, "/"),
 		authTTL:   authTTL,
 		store:     store,
@@ -225,62 +218,56 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 	return n, nil
 }
 
-// CreateBox launches a new box and registers an auth session for it. When a
-// granular minter is configured, it first mints a subject token and injects it,
-// along with the per-resource-server CLI config files, into the box so the in-box
-// agent can request grants and reach the resource servers; the subject is revoked
-// if box creation later fails. It returns the session so callers can build the
-// auth page URL. opts carries the optional image, hostname, and description.
+// CreateBox launches a new box and registers an auth session for it. When box
+// hooks are configured, it first runs the box.create hooks, injects the files
+// they return (e.g. a granular hook's subject token, config, and CLIs), and
+// records their opaque state on the session; that state is replayed to the
+// box.destroy hooks if box creation later fails so nothing is left dangling. It
+// returns the session so callers can build the auth page URL. opts carries the
+// optional image, hostname, and description.
 //
 // @arg ctx Context for the box creation.
 // @arg opts The optional image, hostname, and description for the box.
 // @return *session The registered auth session for the new box.
-// @error error if a granular subject cannot be minted, the box cannot be created, or a session token cannot be generated.
+// @error error if a box.create hook fails, the box cannot be created, or a session token cannot be generated.
 //
 // @testcase TestCreateBoxRegistersSession checks the session is registered with hostname/description.
 // @testcase TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
-// @testcase TestCreateBoxMintsAndInjectsSubject mints a subject, injects it, and persists the token.
-// @testcase TestCreateBoxRevokesSubjectOnCreateFailure revokes the subject when box creation fails.
+// @testcase TestCreateBoxRunsCreateHooks runs the hooks, injects their files, and persists their state.
+// @testcase TestCreateBoxRunsDestroyHooksOnCreateFailure replays hook state when box creation fails.
 func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
-	var subjectToken string
-	if s.minter != nil {
-		var err error
-		subjectToken, err = s.minter.Mint(ctx)
+	box := hooks.BoxInfo{Image: opts.Image, Hostname: opts.Hostname, Description: opts.Description}
+	var hookState map[string]string
+	if s.hooks != nil {
+		files, state, err := s.hooks.OnCreate(ctx, box)
 		if err != nil {
+			// A hook may have done partial work (e.g. minted a token) before failing;
+			// replay its state to the destroy hooks so nothing is left dangling.
+			s.runDestroyHooks(box, state)
 			return nil, err
 		}
-		if subjectToken != "" {
+		hookState = state
+		for _, f := range files {
 			opts.Files = append(opts.Files, docker.InjectFile{
-				Path:    s.minter.SubjectPath(),
-				Content: []byte(subjectToken),
-				Mode:    0o600,
-				UID:     boxUserUID,
-				GID:     boxUserGID,
-			})
-		}
-		// Inject the per-resource-server CLI configs (just the RS base URL) so an
-		// in-box agent need not pass the URL on every call.
-		for _, cf := range s.minter.ConfigFiles() {
-			opts.Files = append(opts.Files, docker.InjectFile{
-				Path:    cf.Path,
-				Content: cf.Content,
-				Mode:    0o644,
-				UID:     boxUserUID,
-				GID:     boxUserGID,
+				Path:    f.Path,
+				Content: f.Content,
+				Mode:    f.Mode,
+				UID:     f.UID,
+				GID:     f.GID,
 			})
 		}
 	}
 
 	id, authorizeURL, err := s.mgr.CreateLLMBox(ctx, opts)
 	if err != nil {
-		s.revokeSubject(subjectToken)
+		s.runDestroyHooks(box, hookState)
 		return nil, err
 	}
 	tok, err := newToken()
 	if err != nil {
-		// Best effort: don't leave the box or subject dangling if we can't track it.
+		// Best effort: don't leave the box or hook state dangling if we can't track it.
 		_ = s.mgr.Destroy(context.Background(), id)
-		s.revokeSubject(subjectToken)
+		s.runDestroyHooks(box, hookState)
 		return nil, fmt.Errorf("generating session token: %w", err)
 	}
 	sess := &session{
@@ -288,7 +275,7 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 		BoxID:        id,
 		AuthorizeURL: authorizeURL,
 		CreatedAt:    time.Now(),
-		SubjectToken: subjectToken,
+		HookState:    hookState,
 		Status:       "pending",
 		Hostname:     opts.Hostname,
 		Description:  opts.Description,
@@ -301,19 +288,21 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 	return sess, nil
 }
 
-// revokeSubject best-effort revokes a granular subject, ignoring errors and
-// no-op when no minter is configured or the token is empty. It uses a background
-// context so cleanup runs even when the caller's context is already cancelled.
+// runDestroyHooks best-effort runs the box.destroy hooks for the given per-hook
+// state, ignoring errors and no-op when no hooks are configured or the state is
+// empty. It uses a background context so cleanup runs even when the caller's
+// context is already cancelled.
 //
-// @arg token The subject token to revoke; "" is a no-op.
+// @arg box The box the destroy event concerns.
+// @arg state The per-hook state to replay; empty is a no-op.
 //
-// @testcase TestCreateBoxRevokesSubjectOnCreateFailure revokes via this helper on failure.
-// @testcase TestDestroyRevokesSubject revokes a destroyed box's subject via this helper.
-func (s *Server) revokeSubject(token string) {
-	if s.minter == nil || token == "" {
+// @testcase TestCreateBoxRunsDestroyHooksOnCreateFailure cleans up via this helper on failure.
+// @testcase TestDestroyRunsDestroyHooks replays a destroyed box's hook state via this helper.
+func (s *Server) runDestroyHooks(box hooks.BoxInfo, state map[string]string) {
+	if s.hooks == nil || len(state) == 0 {
 		return
 	}
-	_ = s.minter.Revoke(context.Background(), token)
+	_ = s.hooks.OnDestroy(context.Background(), box, state)
 }
 
 // AuthPageURL is the URL the user opens to finish authentication.
@@ -455,28 +444,37 @@ func (s *Server) BoxExec(ctx context.Context, hostname, command string) (docker.
 // @error error if the box cannot be destroyed.
 //
 // @testcase TestDestroyForgetsSession checks the session is forgotten after destroy.
-// @testcase TestDestroyRevokesSubject checks the box's granular subject is revoked.
+// @testcase TestDestroyRunsDestroyHooks checks the box's hook state is replayed to the destroy hooks.
 func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
 	if err := s.mgr.Destroy(ctx, idOrName); err != nil {
 		return err
 	}
 	s.mu.Lock()
-	var dropped, subjects []string
+	var dropped []string
+	var torn []tornBox
 	for tok, sess := range s.byToken {
 		if strings.HasPrefix(sess.BoxID, idOrName) || strings.HasPrefix(idOrName, sess.BoxID) {
 			delete(s.byToken, tok)
 			dropped = append(dropped, tok)
-			subjects = append(subjects, sess.SubjectToken)
+			torn = append(torn, tornBox{hostname: sess.Hostname, state: sess.HookState})
 		}
 	}
 	s.mu.Unlock()
 	for _, tok := range dropped {
 		_ = s.store.Delete(tok)
 	}
-	for _, subj := range subjects {
-		s.revokeSubject(subj)
+	for _, tb := range torn {
+		s.runDestroyHooks(hooks.BoxInfo{Hostname: tb.hostname}, tb.state)
 	}
 	return nil
+}
+
+// tornBox carries the bits of a removed session that the box.destroy hooks need:
+// the box hostname (for the hook's box context) and the per-hook state to replay.
+// It avoids copying the session struct (and its mutex) out from under the lock.
+type tornBox struct {
+	hostname string
+	state    map[string]string
 }
 
 // ReapLoop periodically destroys orphaned (never-authenticated) boxes and prunes
@@ -523,14 +521,15 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 		reaped[id] = true
 	}
 	s.mu.Lock()
-	var dropped, subjects []string
+	var dropped []string
+	var torn []tornBox
 	for tok, sess := range s.byToken {
 		// reaped IDs are short (12 char); BoxID is the full ID.
 		for id := range reaped {
 			if strings.HasPrefix(sess.BoxID, id) {
 				delete(s.byToken, tok)
 				dropped = append(dropped, tok)
-				subjects = append(subjects, sess.SubjectToken)
+				torn = append(torn, tornBox{hostname: sess.Hostname, state: sess.HookState})
 				break
 			}
 		}
@@ -539,8 +538,8 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 	for _, tok := range dropped {
 		_ = s.store.Delete(tok)
 	}
-	for _, subj := range subjects {
-		s.revokeSubject(subj)
+	for _, tb := range torn {
+		s.runDestroyHooks(hooks.BoxInfo{Hostname: tb.hostname}, tb.state)
 	}
 }
 

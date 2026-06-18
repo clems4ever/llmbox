@@ -28,31 +28,22 @@ services:
       # bbolt file persisting the auth-session registry across restarts. Lives on
       # the mounted volume below so sessions survive container recreation.
       LLMBOX_STATE_FILE: /var/lib/llmbox/sessions.db
-      # Optional granular authorization integration. Disabled while
-      # LLMBOX_GRANULAR_AS_URL is empty (the default). When set, each box gets a
-      # freshly minted granular subject token injected at the subject path; the
-      # admin token file below must also be mounted. See the README's "Granular
-      # authorization" section.
-      LLMBOX_GRANULAR_AS_URL: ${LLMBOX_GRANULAR_AS_URL:-}
-      LLMBOX_GRANULAR_ADMIN_TOKEN_FILE: /run/secrets/granular_admin_token
-      LLMBOX_GRANULAR_SUBJECT_PATH: ${LLMBOX_GRANULAR_SUBJECT_PATH:-/home/node/.granular/subject_token}
-      # Resource servers an in-box agent can reach, as "id=base_url" pairs. Each
-      # becomes a ~/.granular/<id>.yaml config in every box, so the per-RS CLI
-      # (e.g. granular-github) needs no --base-url. e.g. "github=http://granular-github:9091".
-      #
-      # Networking: every box gets its OWN Docker network (boxes are isolated from
-      # one another), and llmbox connects each resource server's container into it
-      # so the box can reach it. The hostname in each base_url MUST equal that
-      # resource server's container name (set `container_name:` in the granular
-      # compose), since that is the name llmbox connects and the box resolves.
-      LLMBOX_GRANULAR_RESOURCE_SERVERS: ${LLMBOX_GRANULAR_RESOURCE_SERVERS:-}
+      # Optional box lifecycle hooks. LLMBOX_HOOKS is an OS-path-list of external
+      # executables llmbox runs at box.create/box.destroy (JSON over stdin/stdout,
+      # per the hookproto contract); a hook may inject files into each box and
+      # persist opaque state. This is how integrations like granular plug in
+      # WITHOUT llmbox depending on them — see github.com/clems4ever/granular-llmbox
+      # and the README's "Box lifecycle hooks" section. The hook binary must be
+      # present in this container (bake it into a derived image or mount it in).
+      LLMBOX_HOOKS: ${LLMBOX_HOOKS:-}
+      # Container names connected into every box's OWN Docker network (boxes stay
+      # isolated from one another) so boxes can reach them — e.g. a hook's resource
+      # servers. Comma-separated; each must equal that container's name (set via
+      # `container_name:`). e.g. "granular-github,granular-as".
+      LLMBOX_BOX_PEERS: ${LLMBOX_BOX_PEERS:-}
     volumes:
       # Needed to create/destroy boxes.
       - /var/run/docker.sock:/var/run/docker.sock
-      # Admin token granular uses to mint/revoke subjects. Only consulted when
-      # LLMBOX_GRANULAR_AS_URL is set; uncomment and point GRANULAR_ADMIN_TOKEN_FILE
-      # at the host file (must be readable by the distroless "nonroot" UID 65532).
-      # - ${GRANULAR_ADMIN_TOKEN_FILE:-./data/granular-admin-token}:/run/secrets/granular_admin_token:ro
       # Persists the session registry (LLMBOX_STATE_FILE above).
       #
       # IMPORTANT: the image runs as the distroless "nonroot" user (UID/GID

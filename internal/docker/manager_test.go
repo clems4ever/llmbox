@@ -225,12 +225,25 @@ func (f *fakeDocker) Close() error { return nil }
 // reads come from the reader, writes are discarded, and the rest are no-ops.
 type readConn struct{ io.Reader }
 
-func (readConn) Write(p []byte) (int, error)      { return len(p), nil }
-func (readConn) Close() error                     { return nil }
-func (readConn) LocalAddr() net.Addr              { return nil }
-func (readConn) RemoteAddr() net.Addr             { return nil }
-func (readConn) SetDeadline(time.Time) error      { return nil }
-func (readConn) SetReadDeadline(time.Time) error  { return nil }
+// Write discards the bytes, reporting them all written (the fake conn is read-only).
+func (readConn) Write(p []byte) (int, error) { return len(p), nil }
+
+// Close is a no-op; the fake conn holds no resources.
+func (readConn) Close() error { return nil }
+
+// LocalAddr returns nil; the fake conn has no address.
+func (readConn) LocalAddr() net.Addr { return nil }
+
+// RemoteAddr returns nil; the fake conn has no address.
+func (readConn) RemoteAddr() net.Addr { return nil }
+
+// SetDeadline is a no-op; the fake conn ignores deadlines.
+func (readConn) SetDeadline(time.Time) error { return nil }
+
+// SetReadDeadline is a no-op; the fake conn ignores deadlines.
+func (readConn) SetReadDeadline(time.Time) error { return nil }
+
+// SetWriteDeadline is a no-op; the fake conn ignores deadlines.
 func (readConn) SetWriteDeadline(time.Time) error { return nil }
 
 // newTestManager builds a Manager backed by the given fake Docker client.
@@ -640,7 +653,7 @@ func TestSetupBoxNetworkConnectsPeers(t *testing.T) {
 		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
 		attachConn: managerEnd,
 	}
-	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"granular-github"}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"peer-svc"}}
 	go func() { _, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\n")) }()
 
 	id, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
@@ -655,7 +668,7 @@ func TestSetupBoxNetworkConnectsPeers(t *testing.T) {
 	if len(f.networksCreated) != 1 || f.networksCreated[0] != wantNet {
 		t.Errorf("networksCreated = %v, want [%s]", f.networksCreated, wantNet)
 	}
-	wantConnects := [][2]string{{wantNet, id}, {wantNet, "granular-github"}}
+	wantConnects := [][2]string{{wantNet, id}, {wantNet, "peer-svc"}}
 	if !reflect.DeepEqual(f.netConnects, wantConnects) {
 		t.Errorf("netConnects = %v, want %v", f.netConnects, wantConnects)
 	}
@@ -673,13 +686,13 @@ func TestDestroyRemovesBoxNetwork(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{
 		{ID: "abcdef0123456789", Names: []string{"/llmbox-pending-abcdef012345"}},
 	}}
-	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"granular-github"}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"peer-svc"}}
 	if err := m.Destroy(context.Background(), "abcdef012345"); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
 	wantNet := boxNetworkName("abcdef0123456789")
-	if len(f.netDisconnects) != 1 || f.netDisconnects[0] != [2]string{wantNet, "granular-github"} {
-		t.Errorf("netDisconnects = %v, want [{%s granular-github}]", f.netDisconnects, wantNet)
+	if len(f.netDisconnects) != 1 || f.netDisconnects[0] != [2]string{wantNet, "peer-svc"} {
+		t.Errorf("netDisconnects = %v, want [{%s peer-svc}]", f.netDisconnects, wantNet)
 	}
 	if len(f.networksRemoved) != 1 || f.networksRemoved[0] != wantNet {
 		t.Errorf("networksRemoved = %v, want [%s]", f.networksRemoved, wantNet)
@@ -738,8 +751,8 @@ func TestCreateLLMBoxInjectsFiles(t *testing.T) {
 
 	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{
 		Files: []InjectFile{{
-			Path:    "/home/node/.granular/subject_token",
-			Content: []byte("subj-123"),
+			Path:    "/home/node/.secrets/token",
+			Content: []byte("sekret-123"),
 			Mode:    0o600,
 			UID:     1000,
 			GID:     1000,
@@ -756,12 +769,12 @@ func TestCreateLLMBoxInjectsFiles(t *testing.T) {
 		t.Errorf("copy dst = %q, want /", call.dst)
 	}
 	entries := tarEntries(t, call.archive)
-	file, ok := entries["home/node/.granular/subject_token"]
+	file, ok := entries["home/node/.secrets/token"]
 	if !ok {
 		t.Fatalf("subject token not in archive: %v keys", entries)
 	}
-	if string(file.body) != "subj-123" {
-		t.Errorf("token content = %q, want subj-123", file.body)
+	if string(file.body) != "sekret-123" {
+		t.Errorf("token content = %q, want sekret-123", file.body)
 	}
 	if file.hdr.Uid != 1000 || file.hdr.Gid != 1000 {
 		t.Errorf("token owner = %d:%d, want 1000:1000", file.hdr.Uid, file.hdr.Gid)
@@ -772,7 +785,7 @@ func TestCreateLLMBoxInjectsFiles(t *testing.T) {
 // entry for each file and strips the leading slash from absolute paths.
 func TestTarFilesCreatesParentDirs(t *testing.T) {
 	r, err := tarFiles([]InjectFile{{
-		Path:    "/home/node/.granular/subject_token",
+		Path:    "/home/node/.secrets/token",
 		Content: []byte("tok"),
 		UID:     1000,
 		GID:     1000,
@@ -783,14 +796,14 @@ func TestTarFilesCreatesParentDirs(t *testing.T) {
 	b, _ := io.ReadAll(r)
 	entries := tarEntries(t, b)
 
-	dir, ok := entries["home/node/.granular/"]
+	dir, ok := entries["home/node/.secrets/"]
 	if !ok {
 		t.Fatalf("parent dir entry missing: %v", entries)
 	}
 	if dir.hdr.Typeflag != tar.TypeDir || dir.hdr.Uid != 1000 || dir.hdr.Gid != 1000 {
 		t.Errorf("dir entry = type %c owner %d:%d, want dir 1000:1000", dir.hdr.Typeflag, dir.hdr.Uid, dir.hdr.Gid)
 	}
-	file, ok := entries["home/node/.granular/subject_token"]
+	file, ok := entries["home/node/.secrets/token"]
 	if !ok {
 		t.Fatalf("file entry missing: %v", entries)
 	}

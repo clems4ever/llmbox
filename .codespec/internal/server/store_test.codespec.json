@@ -3,32 +3,32 @@
 		{
 			"function_name": "TestBoltStoreRoundTrip",
 			"documentation_hash": "2aabd2b6a18cc2b2a75cc928efbe884f92045b42a6a2c64ff60e037c95e64600",
-			"definition_hash": "45cb772affaa9edd034fce7dc798b6b2f70755b4837d747e1a0339f2e83538f8",
-			"reviewed_at": "2026-06-14T09:14:56.340166909Z"
+			"definition_hash": "18ce513ea323504d2f87b5cbc7fa84d5fd22929323a21d868a38b3dfbf127dc8",
+			"reviewed_at": "2026-06-18T13:16:53.448148147Z"
 		},
 		{
 			"function_name": "TestBoltStoreDelete",
 			"documentation_hash": "91768d260f6a0443a54ab229530c6c3180b3b5455d93671e86177cced0770bfd",
 			"definition_hash": "87fc87c3c206bafb714da1dc3a605dd57f642444eff88cf58da79e3a705ec92c",
-			"reviewed_at": "2026-06-14T09:14:56.34831571Z"
+			"reviewed_at": "2026-06-18T13:16:53.448609976Z"
 		},
 		{
 			"function_name": "TestServerWithoutStore",
 			"documentation_hash": "6bc7733415b602d67a13b3ec8211b33e778734eab341ec31b66dd1bd1e6fc240",
 			"definition_hash": "a819b82e6beaaf8482148990549fb0a5322a44c993d563cf63ebc8e41b3811f7",
-			"reviewed_at": "2026-06-17T18:02:06.752272713Z"
+			"reviewed_at": "2026-06-18T13:16:53.458145298Z"
 		},
 		{
 			"function_name": "TestCreateBoxPersistsSession",
 			"documentation_hash": "781fc62fc14bdc6a69e716c28ac26eff1f4bd36aefe3d1832fcd961682a504e4",
 			"definition_hash": "b7a1d6c3d04386244016b2abd6a4e1000d506461539700d3aff278a5de659903",
-			"reviewed_at": "2026-06-17T18:02:06.752435816Z"
+			"reviewed_at": "2026-06-18T13:16:53.45852735Z"
 		},
 		{
 			"function_name": "TestRestoreLoadsAndReconciles",
 			"documentation_hash": "09b6be0bb0232ccd450cfd3824f2f6b7ff53378c8073fd3b55b090ef8fb4c357",
 			"definition_hash": "5931552b1cd632fa3d67f12a6cf925de4693e1ebb4f3ae7aee2cee3ceb0a43cb",
-			"reviewed_at": "2026-06-17T18:02:06.752567142Z"
+			"reviewed_at": "2026-06-18T13:16:53.458902403Z"
 		}
 	]
 }

@@ -16,16 +16,16 @@ var sessionsBucket = []byte("sessions")
 // fields of session (the sync.Mutex and live-only state are not stored as a
 // type, just their values) so the registry survives a server restart.
 type persistedSession struct {
-	Token        string    `json:"token"`
-	BoxID        string    `json:"box_id"`
-	AuthorizeURL string    `json:"authorize_url"`
-	CreatedAt    time.Time `json:"created_at"`
-	SubjectToken string    `json:"subject_token,omitempty"`
-	Hostname     string    `json:"hostname,omitempty"`
-	Description  string    `json:"description,omitempty"`
-	Status       string    `json:"status"`
-	SessionURL   string    `json:"session_url,omitempty"`
-	Err          string    `json:"err,omitempty"`
+	Token        string            `json:"token"`
+	BoxID        string            `json:"box_id"`
+	AuthorizeURL string            `json:"authorize_url"`
+	CreatedAt    time.Time         `json:"created_at"`
+	HookState    map[string]string `json:"hook_state,omitempty"`
+	Hostname     string            `json:"hostname,omitempty"`
+	Description  string            `json:"description,omitempty"`
+	Status       string            `json:"status"`
+	SessionURL   string            `json:"session_url,omitempty"`
+	Err          string            `json:"err,omitempty"`
 }
 
 // Store persists the auth-session registry across restarts. All methods must be
