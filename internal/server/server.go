@@ -14,6 +14,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -148,6 +149,22 @@ type Server struct {
 
 	mu      sync.Mutex
 	byToken map[string]*session
+
+	// log records best-effort failures (persistence, cleanup, destroy hooks) that
+	// are not propagated to the caller; nil falls back to slog.Default().
+	log *slog.Logger
+}
+
+// logger returns the Server's logger, or slog.Default() when none was set.
+//
+// @return *slog.Logger The configured logger, or the slog default.
+//
+// @testcase TestCreateBoxRegistersSession exercises a Server whose logger defaults.
+func (s *Server) logger() *slog.Logger {
+	if s.log != nil {
+		return s.log
+	}
+	return slog.Default()
 }
 
 // New builds a Server. publicURL is the externally reachable base URL used to
@@ -173,6 +190,7 @@ func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration
 		authTTL:   authTTL,
 		store:     store,
 		byToken:   make(map[string]*session),
+		log:       slog.Default(),
 	}
 }
 
@@ -208,7 +226,9 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 	s.mu.Lock()
 	for _, ps := range saved {
 		if !isAlive(ps.ContainerID) {
-			_ = s.store.Delete(ps.Token)
+			if err := s.store.Delete(ps.Token); err != nil {
+				s.logger().Warn("failed to delete stale session during restore", "box", ps.BoxID, "err", err)
+			}
 			continue
 		}
 		s.byToken[ps.Token] = sessionFromPersisted(ps)
@@ -266,7 +286,9 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 	tok, err := newToken()
 	if err != nil {
 		// Best effort: don't leave the box or hook state dangling if we can't track it.
-		_ = s.mgr.Destroy(context.Background(), id)
+		if derr := s.mgr.Destroy(context.Background(), id); derr != nil {
+			s.logger().Warn("failed to destroy untrackable box", "container", id, "err", derr)
+		}
 		s.runDestroyHooks(box, hookState)
 		return nil, fmt.Errorf("generating session token: %w", err)
 	}
@@ -284,14 +306,16 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 	s.byToken[tok] = sess
 	s.mu.Unlock()
 	// Best-effort persist: a disk hiccup shouldn't fail an otherwise-good box.
-	_ = s.store.Save(sess.persist())
+	if err := s.store.Save(sess.persist()); err != nil {
+		s.logger().Warn("failed to persist new session", "box", sess.BoxID, "err", err)
+	}
 	return sess, nil
 }
 
 // runDestroyHooks best-effort runs the box.destroy hooks for the given per-hook
-// state, ignoring errors and no-op when no hooks are configured or the state is
-// empty. It uses a background context so cleanup runs even when the caller's
-// context is already cancelled.
+// state, logging (but not returning) errors and no-op when no hooks are
+// configured or the state is empty. It uses a background context so cleanup runs
+// even when the caller's context is already cancelled.
 //
 // @arg box The box the destroy event concerns.
 // @arg state The per-hook state to replay; empty is a no-op.
@@ -302,7 +326,9 @@ func (s *Server) runDestroyHooks(box hooks.BoxInfo, state map[string]string) {
 	if s.hooks == nil || len(state) == 0 {
 		return
 	}
-	_ = s.hooks.OnDestroy(context.Background(), box, state)
+	if err := s.hooks.OnDestroy(context.Background(), box, state); err != nil {
+		s.logger().Warn("box.destroy hook failed", "box", box.BoxID, "err", err)
+	}
 }
 
 // AuthPageURL is the URL the user opens to finish authentication.
@@ -380,7 +406,9 @@ func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
 	ps := sess.persistLocked()
 	sess.mu.Unlock()
 	// Persist the new status so a restart sees the box as ready (or errored).
-	_ = s.store.Save(ps)
+	if serr := s.store.Save(ps); serr != nil {
+		s.logger().Warn("failed to persist session status", "box", ps.BoxID, "err", serr)
+	}
 	return err
 }
 
@@ -462,7 +490,10 @@ func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
 	}
 	s.mu.Unlock()
 	for _, tok := range dropped {
-		_ = s.store.Delete(tok)
+		// The token is a secret (it's the auth URL), so it is never logged.
+		if err := s.store.Delete(tok); err != nil {
+			s.logger().Warn("failed to delete session from store", "err", err)
+		}
 	}
 	for _, tb := range torn {
 		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)
@@ -537,7 +568,10 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 	}
 	s.mu.Unlock()
 	for _, tok := range dropped {
-		_ = s.store.Delete(tok)
+		// The token is a secret (it's the auth URL), so it is never logged.
+		if err := s.store.Delete(tok); err != nil {
+			s.logger().Warn("failed to delete session from store", "err", err)
+		}
 	}
 	for _, tb := range torn {
 		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)

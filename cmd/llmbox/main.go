@@ -145,7 +145,11 @@ func run(parent context.Context, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	defer mgr.Close()
+	defer func() {
+		if err := mgr.Close(); err != nil {
+			log.Printf("closing docker manager: %v", err)
+		}
+	}()
 
 	// Optional box lifecycle hooks: external programs run at box.create/destroy.
 	// New returns nil (no hooks) when the list is empty.
@@ -161,7 +165,11 @@ func run(parent context.Context, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = store.Close() }()
+	defer func() {
+		if err := store.Close(); err != nil {
+			log.Printf("closing session store: %v", err)
+		}
+	}()
 
 	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store)
 	httpSrv := &http.Server{
@@ -189,7 +197,9 @@ func run(parent context.Context, cfg *config.Config) error {
 		<-ctx.Done()
 		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = httpSrv.Shutdown(shutCtx)
+		if err := httpSrv.Shutdown(shutCtx); err != nil {
+			log.Printf("graceful shutdown failed: %v", err)
+		}
 	}()
 
 	log.Printf("%s %s listening on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.PublicURL, authTTL)

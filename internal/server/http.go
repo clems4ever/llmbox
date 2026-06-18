@@ -30,6 +30,7 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	mux.HandleFunc("POST /auth/{token}", s.handleAuthSubmit)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		// A failed write to the client is unactionable here; nothing to recover.
 		_, _ = w.Write([]byte("ok"))
 	})
 
@@ -38,6 +39,7 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	favicon := func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		w.Header().Set("Cache-Control", "public, max-age=86400")
+		// A failed write to the client is unactionable here; nothing to recover.
 		_, _ = w.Write(faviconSVG)
 	}
 	mux.HandleFunc("GET /favicon.ico", favicon)
@@ -61,7 +63,7 @@ func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	status, sessionURL, errMsg := sess.snapshot()
-	render(w, authPageData{
+	s.render(w, authPageData{
 		Token:        sess.Token,
 		AuthorizeURL: template.URL(sess.AuthorizeURL),
 		Status:       status,
@@ -90,11 +92,12 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// SubmitCode blocks until login completes (or fails); it records the result
-	// on the session, which we then render. The code itself is never logged.
+	// (including any error) on the session, which we then render — so the returned
+	// error needs no separate handling here. The code itself is never logged.
 	_ = s.SubmitCode(r.Context(), token, r.PostFormValue("code"))
 
 	status, sessionURL, errMsg := sess.snapshot()
-	render(w, authPageData{
+	s.render(w, authPageData{
 		Token:        sess.Token,
 		AuthorizeURL: template.URL(sess.AuthorizeURL),
 		Status:       status,
@@ -112,20 +115,23 @@ type authPageData struct {
 }
 
 // render writes the auth page for data, with no-store caching since the page
-// carries live session state.
+// carries live session state. A template-execution failure is logged (the
+// response is already partway written, so it can't be turned into an error page).
 //
 // @arg w The response writer the page is written to.
 // @arg data The auth page state to render.
 //
 // @testcase TestAuthPageRendersAndSubmits renders pages via this helper.
-func render(w http.ResponseWriter, data authPageData) {
+func (s *Server) render(w http.ResponseWriter, data authPageData) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Don't let intermediaries cache an auth page (it contains live state).
 	w.Header().Set("Cache-Control", "no-store")
 	if data.Status == "ready" {
 		w.WriteHeader(http.StatusOK)
 	}
-	_ = authTmpl.Execute(w, data)
+	if err := authTmpl.Execute(w, data); err != nil {
+		s.logger().Warn("failed to render auth page", "err", err)
+	}
 }
 
 // authTmplSrc is the auth page template, embedded into the binary at build time

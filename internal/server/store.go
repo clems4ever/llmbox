@@ -108,6 +108,7 @@ func openBoltStore(path string) (*boltStore, error) {
 		_, berr := tx.CreateBucketIfNotExists(sessionsBucket)
 		return berr
 	}); err != nil {
+		// Close the half-open db before surfacing the real initialization error.
 		_ = db.Close()
 		return nil, fmt.Errorf("initializing session store %q: %w", path, err)
 	}
