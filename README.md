@@ -317,6 +317,13 @@ every push and pull request, publishing the coverage badge (see [Configuration](
 Container Registry (`ghcr.io/<owner>/llmbox`) on pushes to `main` and version
 tags. Pull requests build without pushing.
 
+The Claude Code binary baked into the image is **pinned** to a specific stable
+release — the `ARG CLAUDE_VERSION` line in the [`Dockerfile`](Dockerfile) is the
+single source of truth. `.github/workflows/bump-claude.yml` runs daily, resolves
+the latest stable release from `downloads.claude.ai`, and opens a PR bumping that
+line when a newer version is available. Override per build with
+`docker build --build-arg CLAUDE_VERSION=<x.y.z|stable|latest> .`.
+
 ## Tested
 
 `go test ./...` covers the Docker layer (a faked Docker client; the attach

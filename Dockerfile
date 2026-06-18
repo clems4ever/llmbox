@@ -10,21 +10,15 @@
 # Build:
 #   docker build -t llmbox .
 #
-# Run (Docker socket in, HTTP port out):
+# Run (Docker socket in, HTTP port out; mount a YAML config and point at it):
 #   docker run --rm \
 #     -v /var/run/docker.sock:/var/run/docker.sock \
+#     -v "$PWD/llmbox.yaml:/etc/llmbox/llmbox.yaml:ro" \
 #     -p 8080:8080 \
-#     -e LLMBOX_PUBLIC_URL=https://boxes.example.com \
-#     llmbox
+#     llmbox --config /etc/llmbox/llmbox.yaml
 #
-# Key configuration:
-#   LLMBOX_HTTP_ADDR         listen address (default ":8080")
-#   LLMBOX_PUBLIC_URL        external base URL for auth links (default "http://localhost:8080")
-#   LLMBOX_CLAUDE_IMAGE      base image launched per box (default "debian:bookworm-slim");
-#                            any glibc image works — Claude is injected, not baked in
-#   LLMBOX_CLAUDE_BIN        path to the Claude binary injected into each box (default "/opt/llmbox/claude")
-#   LLMBOX_REMOTE_ARGS       args for `claude remote-control` (default "--spawn same-dir")
-#   LLMBOX_AUTH_TTL_SECONDS  destroy un-authenticated boxes after this many seconds (default 300)
+# Configuration is a YAML file (see llmbox.example.yaml and the README); at a
+# minimum set public_url. llmbox reads no environment variables of its own.
 
 # ---- claude stage ----
 # Fetch the standalone Claude native binary (no Node runtime) once, so the server
@@ -36,8 +30,11 @@ FROM debian:bookworm-slim AS claude
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
-# Pin a version by setting CLAUDE_VERSION (e.g. "2.1.89"); empty installs latest.
-ARG CLAUDE_VERSION=
+# Pinned Claude Code version (stable channel). This is the single source of
+# truth for the version baked into the image; the bump-claude workflow opens a
+# PR editing this line when a newer stable release appears. Override at build
+# time with --build-arg CLAUDE_VERSION=<x.y.z|stable|latest>.
+ARG CLAUDE_VERSION=2.1.170
 RUN set -eux; \
     curl -fsSL https://claude.ai/install.sh | bash -s -- ${CLAUDE_VERSION}; \
     bin="$(command -v claude || echo "$HOME/.local/bin/claude")"; \
