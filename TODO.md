@@ -1,7 +1,7 @@
 # TODO
 
-* Use Cobra as CLI line framework.
-* Add code coverage in the CI. Add a badge in the README.
+* ~~Use Cobra as CLI line framework.~~
+* ~~Add code coverage in the CI. Add a badge in the README.~~
 * Use yaml config instead of env variables. For secrets, read them from file. The config should reference the file paths.
 * Create a makefile for the project.
 * Each container has its network, we set the hostname simply to see the proper name of the box in Claude code on the web. However, I think we should have a concept of box id instead of hostname from the code interfaces. The hostname is set to the box id, that's it.
