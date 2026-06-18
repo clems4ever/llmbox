@@ -130,19 +130,19 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?x=1"}
 	s := newTestServer(f)
 
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "my-box", Description: "scratch"})
+	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "my-box", Description: "scratch"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if sess.BoxID != "abcdef0123456789" || sess.Status != "pending" {
+	if sess.ContainerID != "abcdef0123456789" || sess.Status != "pending" {
 		t.Errorf("unexpected session %+v", sess)
 	}
-	// Hostname/description are recorded on the session and forwarded to the manager.
-	if sess.Hostname != "my-box" || sess.Description != "scratch" {
-		t.Errorf("session hostname/description = %q/%q, want my-box/scratch", sess.Hostname, sess.Description)
+	// BoxID/description are recorded on the session and forwarded to the manager.
+	if sess.BoxID != "my-box" || sess.Description != "scratch" {
+		t.Errorf("session box ID/description = %q/%q, want my-box/scratch", sess.BoxID, sess.Description)
 	}
-	if f.gotOpts.Hostname != "my-box" || f.gotOpts.Description != "scratch" {
-		t.Errorf("manager got opts %+v, want hostname/description my-box/scratch", f.gotOpts)
+	if f.gotOpts.BoxID != "my-box" || f.gotOpts.Description != "scratch" {
+		t.Errorf("manager got opts %+v, want box ID/description my-box/scratch", f.gotOpts)
 	}
 	if len(sess.Token) != 64 {
 		t.Errorf("token not 32 random bytes hex: len %d", len(sess.Token))
@@ -237,7 +237,7 @@ func TestDestroyRunsDestroyHooks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if err := s.DestroyBox(context.Background(), sess.BoxID); err != nil {
+	if err := s.DestroyBox(context.Background(), sess.ContainerID); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
 	}
 	if len(h.destroyed) != 1 || h.destroyed[0]["granular-hook"] != "subj-live" {
@@ -406,22 +406,22 @@ func TestFaviconServed(t *testing.T) {
 	}
 }
 
-// TestGetByHostname checks get_llmbox resolves a box by hostname (case-insensitive)
-// and errors for an empty or unknown hostname.
-func TestGetByHostname(t *testing.T) {
+// TestGetByBoxID checks get_llmbox resolves a box by box ID (case-insensitive)
+// and errors for an empty or unknown box ID.
+func TestGetByBoxID(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u", submitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "web-box", Description: "d"})
+	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "web-box", Description: "d"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
 	// Found, case-insensitive.
-	_, out, err := s.toolGet(context.Background(), nil, getInput{Hostname: "WEB-BOX"})
+	_, out, err := s.toolGet(context.Background(), nil, getInput{BoxID: "WEB-BOX"})
 	if err != nil {
 		t.Fatalf("toolGet: %v", err)
 	}
-	if out.Status != "pending" || out.Hostname != "web-box" || out.Description != "d" {
+	if out.Status != "pending" || out.BoxID != "web-box" || out.Description != "d" {
 		t.Errorf("unexpected get output: %+v", out)
 	}
 
@@ -429,70 +429,70 @@ func TestGetByHostname(t *testing.T) {
 	if err := s.SubmitCode(context.Background(), sess.Token, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
-	if _, out, _ := s.toolGet(context.Background(), nil, getInput{Hostname: "web-box"}); out.Status != "ready" || out.SessionURL != "https://claude.ai/code/s/1" {
+	if _, out, _ := s.toolGet(context.Background(), nil, getInput{BoxID: "web-box"}); out.Status != "ready" || out.SessionURL != "https://claude.ai/code/s/1" {
 		t.Errorf("expected ready with session URL, got %+v", out)
 	}
 
-	// Empty and unknown hostnames error.
-	if _, _, err := s.toolGet(context.Background(), nil, getInput{Hostname: ""}); err == nil {
-		t.Error("expected error for empty hostname")
+	// Empty and unknown box IDs error.
+	if _, _, err := s.toolGet(context.Background(), nil, getInput{BoxID: ""}); err == nil {
+		t.Error("expected error for empty box ID")
 	}
-	if _, _, err := s.toolGet(context.Background(), nil, getInput{Hostname: "nope"}); err == nil {
-		t.Error("expected error for unknown hostname")
+	if _, _, err := s.toolGet(context.Background(), nil, getInput{BoxID: "nope"}); err == nil {
+		t.Error("expected error for unknown box ID")
 	}
 }
 
-// TestBoxLogsByHostname checks get_llmbox_logs resolves a box by hostname,
+// TestBoxLogsByBoxID checks get_llmbox_logs resolves a box by box ID,
 // forwards the box ID and tail to the manager, and errors for empty or unknown
-// hostnames.
-func TestBoxLogsByHostname(t *testing.T) {
+// box IDs.
+func TestBoxLogsByBoxID(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u", logsResult: "Ready\nlistening\n"}
 	s := newTestServer(f)
-	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "web-box"}); err != nil {
+	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
 	// Found, case-insensitive, with the tail forwarded to the manager.
-	_, out, err := s.toolLogs(context.Background(), nil, logsInput{Hostname: "WEB-BOX", Tail: 25})
+	_, out, err := s.toolLogs(context.Background(), nil, logsInput{BoxID: "WEB-BOX", Tail: 25})
 	if err != nil {
 		t.Fatalf("toolLogs: %v", err)
 	}
-	if out.Hostname != "WEB-BOX" || out.Logs != "Ready\nlistening\n" {
+	if out.BoxID != "WEB-BOX" || out.Logs != "Ready\nlistening\n" {
 		t.Errorf("unexpected logs output: %+v", out)
 	}
 	if f.gotLogsID != "abcdef0123456789" || f.gotLogsN != 25 {
 		t.Errorf("manager got id=%q tail=%d, want abcdef0123456789/25", f.gotLogsID, f.gotLogsN)
 	}
 
-	// Empty and unknown hostnames error.
-	if _, _, err := s.toolLogs(context.Background(), nil, logsInput{Hostname: ""}); err == nil {
-		t.Error("expected error for empty hostname")
+	// Empty and unknown box IDs error.
+	if _, _, err := s.toolLogs(context.Background(), nil, logsInput{BoxID: ""}); err == nil {
+		t.Error("expected error for empty box ID")
 	}
-	if _, _, err := s.toolLogs(context.Background(), nil, logsInput{Hostname: "nope"}); err == nil {
-		t.Error("expected error for unknown hostname")
+	if _, _, err := s.toolLogs(context.Background(), nil, logsInput{BoxID: "nope"}); err == nil {
+		t.Error("expected error for unknown box ID")
 	}
 }
 
-// TestBoxExecByHostname checks exec_llmbox resolves a box by hostname, wraps the
+// TestBoxExecByBoxID checks exec_llmbox resolves a box by box ID, wraps the
 // command in /bin/sh -c, returns the captured output, and errors for empty or
-// unknown hostnames and an empty command.
-func TestBoxExecByHostname(t *testing.T) {
+// unknown box IDs and an empty command.
+func TestBoxExecByBoxID(t *testing.T) {
 	f := &fakeMgr{
 		createID:   "abcdef0123456789",
 		createURL:  "u",
 		execResult: docker.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
 	}
 	s := newTestServer(f)
-	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{Hostname: "web-box"}); err != nil {
+	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
 	// Found, case-insensitive; command wrapped and box ID forwarded.
-	_, out, err := s.toolExec(context.Background(), nil, execInput{Hostname: "WEB-BOX", Command: "echo hi"})
+	_, out, err := s.toolExec(context.Background(), nil, execInput{BoxID: "WEB-BOX", Command: "echo hi"})
 	if err != nil {
 		t.Fatalf("toolExec: %v", err)
 	}
-	if out.Hostname != "WEB-BOX" || out.Stdout != "hi\n" || out.ExitCode != 0 {
+	if out.BoxID != "WEB-BOX" || out.Stdout != "hi\n" || out.ExitCode != 0 {
 		t.Errorf("unexpected exec output: %+v", out)
 	}
 	if f.gotExecID != "abcdef0123456789" {
@@ -503,14 +503,14 @@ func TestBoxExecByHostname(t *testing.T) {
 		t.Errorf("manager ran cmd %v, want %v", f.gotExecCmd, want)
 	}
 
-	// Empty/unknown hostnames and an empty command error.
-	if _, _, err := s.toolExec(context.Background(), nil, execInput{Hostname: "", Command: "ls"}); err == nil {
-		t.Error("expected error for empty hostname")
+	// Empty/unknown box IDs and an empty command.error.
+	if _, _, err := s.toolExec(context.Background(), nil, execInput{BoxID: "", Command: "ls"}); err == nil {
+		t.Error("expected error for empty box ID")
 	}
-	if _, _, err := s.toolExec(context.Background(), nil, execInput{Hostname: "nope", Command: "ls"}); err == nil {
-		t.Error("expected error for unknown hostname")
+	if _, _, err := s.toolExec(context.Background(), nil, execInput{BoxID: "nope", Command: "ls"}); err == nil {
+		t.Error("expected error for unknown box ID")
 	}
-	if _, _, err := s.toolExec(context.Background(), nil, execInput{Hostname: "web-box", Command: "  "}); err == nil {
+	if _, _, err := s.toolExec(context.Background(), nil, execInput{BoxID: "web-box", Command: "  "}); err == nil {
 		t.Error("expected error for empty command")
 	}
 }

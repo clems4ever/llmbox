@@ -42,11 +42,11 @@ func TestFileModeParsesOctal(t *testing.T) {
 // TestServeRoundTrips checks Serve decodes a request, runs the handler with it,
 // and encodes the returned response.
 func TestServeRoundTrips(t *testing.T) {
-	in := strings.NewReader(`{"event":"box.create","box":{"hostname":"h1"}}`)
+	in := strings.NewReader(`{"event":"box.create","box":{"box_id":"h1"}}`)
 	var out bytes.Buffer
 	var gotEvent, gotHost string
 	err := Serve(in, &out, func(req Request) (Response, error) {
-		gotEvent, gotHost = req.Event, req.Box.Hostname
+		gotEvent, gotHost = req.Event, req.Box.BoxID
 		return Response{State: "tok", Files: []File{{Path: "/a", Content: "x"}}}, nil
 	})
 	if err != nil {
@@ -79,4 +79,5 @@ var errTest = stringError("boom")
 
 type stringError string
 
+// Error returns the string error message, satisfying the error interface.
 func (e stringError) Error() string { return string(e) }

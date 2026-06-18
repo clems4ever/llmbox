@@ -17,11 +17,11 @@ var sessionsBucket = []byte("sessions")
 // type, just their values) so the registry survives a server restart.
 type persistedSession struct {
 	Token        string            `json:"token"`
-	BoxID        string            `json:"box_id"`
+	ContainerID  string            `json:"container_id"`
 	AuthorizeURL string            `json:"authorize_url"`
 	CreatedAt    time.Time         `json:"created_at"`
 	HookState    map[string]string `json:"hook_state,omitempty"`
-	Hostname     string            `json:"hostname,omitempty"`
+	BoxID        string            `json:"box_id,omitempty"`
 	Description  string            `json:"description,omitempty"`
 	Status       string            `json:"status"`
 	SessionURL   string            `json:"session_url,omitempty"`

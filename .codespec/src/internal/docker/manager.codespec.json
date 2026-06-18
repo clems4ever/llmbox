@@ -41,16 +41,16 @@
 		{
 			"function_name": "List",
 			"receiver": "Manager",
-			"documentation_hash": "70c9af14d1e72f997cdac3bfd5fa4191ffa08f8af2cc693d2243a42fdc089d7b",
-			"definition_hash": "91a3780fd63a56b0d2351cd8a20673e66fb2960ac6c7dd12e9240ee13b2b38c8",
-			"reviewed_at": "2026-06-18T15:05:52.400638811Z"
+			"documentation_hash": "34b394d48f965ed55b9aeff2a8ad442b3dbaf24efbc25c0b47dbe99a98a442c4",
+			"definition_hash": "dc41f9ac6859057d6c7ee0f2ca5a4b14bf3eb2142c9fd345f85897ebf2f6d124",
+			"reviewed_at": "2026-06-18T16:59:05.427274662Z"
 		},
 		{
 			"function_name": "CreateLLMBox",
 			"receiver": "Manager",
-			"documentation_hash": "d6bf509985048737ecf427ff50cb9b12669fa2c2e7a542e4101e0ecb93299dc1",
-			"definition_hash": "30838888fd16d689b51eb905ec5e32621115003bcdcc41125c8236bd7b53e89a",
-			"reviewed_at": "2026-06-18T16:04:55.984788108Z"
+			"documentation_hash": "65de0a062e6b65216bb1f3a0191ecd6fc163e0c7f9675d81704f365ff7b18306",
+			"definition_hash": "c5403b5beb4ac37e8ae029549f7d3f9e6b78476d3ef40db5c05b2eb5067573f8",
+			"reviewed_at": "2026-06-18T16:59:05.434145791Z"
 		},
 		{
 			"function_name": "injectFiles",
@@ -110,22 +110,22 @@
 			"function_name": "Destroy",
 			"receiver": "Manager",
 			"documentation_hash": "85cdd0eb6918823e77cfa5948957fe45d9581df1f812aa20e491b752a9bf5405",
-			"definition_hash": "586501f545e1ea20fa010b650417f607f55f6011c989c04e3d0af3748f0b2d67",
-			"reviewed_at": "2026-06-18T16:17:10.172584428Z"
+			"definition_hash": "3b8fcf86b1d11914ec31c1d3e6b77686a48d24fd0759f1e5cf2addfb59539dc3",
+			"reviewed_at": "2026-06-18T16:59:05.443086909Z"
 		},
 		{
 			"function_name": "Logs",
 			"receiver": "Manager",
 			"documentation_hash": "3e8842b9434e2c9be0f6454f0d6771092c33fa84bb2eebf55729f8ffece468f1",
-			"definition_hash": "0411647f9be648ffd6d214cfca7721f326ed6548733c5ac71af7f2bca1fc24c4",
-			"reviewed_at": "2026-06-18T15:05:52.447848099Z"
+			"definition_hash": "e03bfdef16b072464b90067109e0084dee4647e39c2721b0ec116cac801f6217",
+			"reviewed_at": "2026-06-18T16:59:05.450353452Z"
 		},
 		{
 			"function_name": "Exec",
 			"receiver": "Manager",
 			"documentation_hash": "afbcabad0aeccdf9311aeca9c3266eb6cad992bfbbae03c5ed19578025aa2ca3",
-			"definition_hash": "a93d61b38b608e091b64a82522e66323000f7729e4a5d616f1c529225c0af112",
-			"reviewed_at": "2026-06-18T15:05:52.450056205Z"
+			"definition_hash": "648d2866139aae8c0e475cccde71abb82c041ca9e28f1a206f0da58d3f5c23e8",
+			"reviewed_at": "2026-06-18T16:59:05.456519925Z"
 		},
 		{
 			"function_name": "capOutput",
@@ -137,15 +137,15 @@
 			"function_name": "ReapOrphans",
 			"receiver": "Manager",
 			"documentation_hash": "d8f8b6b0264c1b00cf39f2e4ba29ec74b601c52e4f6322eae29938e56ca807ed",
-			"definition_hash": "412fab576ef2e0510b1b061a1b4008a117266e663c04e047f73ea0c84bf9bc2a",
-			"reviewed_at": "2026-06-18T15:05:52.454318981Z"
+			"definition_hash": "a5d74c438db620151510351179cea4624b51f7b25b2656305918b350eb528683",
+			"reviewed_at": "2026-06-18T16:59:05.461053829Z"
 		},
 		{
 			"function_name": "findManaged",
 			"receiver": "Manager",
 			"documentation_hash": "9f80e1649517a015e9a29763ea3ade2ed22549008f4ec4f3d44e61c990c28fd0",
-			"definition_hash": "e5e8f0f3b3c93d92a5a87f758d26475bdd0d6fc1fb6c224acb9228048492dcaf",
-			"reviewed_at": "2026-06-18T15:05:52.455652488Z"
+			"definition_hash": "72323cdc40e3a2e4cb5046c50cb6dc04b109c2ae388c7f1ab0d907d43280ba72",
+			"reviewed_at": "2026-06-18T16:59:05.466822551Z"
 		},
 		{
 			"function_name": "scanFor",
@@ -164,13 +164,6 @@
 			"documentation_hash": "2e9bbd64368a02839d3c2d89645aa63691330a32c54e8ee5d9b6e19b9376d027",
 			"definition_hash": "1b1685277e533ad562417dc7817dc24e48ffd7907af7eb52c03eff948aef3feb",
 			"reviewed_at": "2026-06-18T15:05:52.461289154Z"
-		},
-		{
-			"function_name": "deregisterClaude",
-			"receiver": "Manager",
-			"documentation_hash": "c5e9f7f6601a1fbf48d20003cfcbecd821afcc5ee81a8288affc4c2ab5624e3c",
-			"definition_hash": "26c4e5b466e049105906639ed597db9122fd26aaa790bec0491b4b5889d1c1e6",
-			"reviewed_at": "2026-06-18T16:13:49.699603115Z"
 		}
 	]
 }

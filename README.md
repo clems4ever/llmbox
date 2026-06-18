@@ -40,7 +40,7 @@ user opens that URL ──▶ "Sign in with Claude" (their account) ──▶ co
                    ──▶ pastes it into the page ──▶ server feeds it to the box
 
 box finishes login ──▶ `claude remote-control` starts ──▶ session URL
-  └─ get_llmbox(hostname) ──▶ returns the session URL once ready
+  └─ get_llmbox(box_id) ──▶ returns the session URL once ready
 ```
 
 Boxes that are never authenticated are destroyed after `auth_ttl`
@@ -50,23 +50,25 @@ Boxes that are never authenticated are destroyed after `auth_ttl`
 
 | Tool             | Arguments | Returns |
 |------------------|-----------|---------|
-| `create_llmbox`  | `image?`, `hostname?`, `description?` | `box_id`, `auth_url`, `auth_token`, `status`, `instructions` |
-| `get_llmbox`     | `hostname` | `status` (pending/ready/error), `hostname`, `description`, `session_url` when ready |
-| `list_llmboxes`  | – | the managed boxes (id, name, hostname, description, image, state, phase, created) |
-| `destroy_llmbox` | `hostname` | the destroyed box's hostname |
-| `get_llmbox_logs` | `hostname`, `tail?` | `hostname`, `logs` (the box's recent, ANSI-stripped console output) |
-| `exec_llmbox` | `hostname`, `command` | `hostname`, `stdout`, `stderr`, `exit_code` |
+| `create_llmbox`  | `image?`, `box_id?`, `description?` | `box_id`, `container_id`, `auth_url`, `auth_token`, `status`, `instructions` |
+| `get_llmbox`     | `box_id` | `status` (pending/ready/error), `box_id`, `description`, `session_url` when ready |
+| `list_llmboxes`  | – | the managed boxes (container_id, name, box_id, description, image, state, phase, created) |
+| `destroy_llmbox` | `box_id` | the destroyed box's box ID |
+| `get_llmbox_logs` | `box_id`, `tail?` | `box_id`, `logs` (the box's recent, ANSI-stripped console output) |
+| `exec_llmbox` | `box_id`, `command` | `box_id`, `stdout`, `stderr`, `exit_code` |
 
-`hostname` and `description` on `create_llmbox` are optional. When set, `hostname`
-becomes the box's container hostname and **must be unique** across boxes — a
-duplicate is rejected with a clear error so the caller can pick another. Both are
-surfaced again by `get_llmbox` and `list_llmboxes`. `get_llmbox` is keyed by
-`hostname` (case-insensitive), so set one at create time if you want to poll a
-box's status; boxes created without a hostname can still be seen via
-`list_llmboxes`. `get_llmbox_logs` is likewise keyed by `hostname` and returns
-the box's recent console output (ANSI-stripped), bounded to the last `tail`
-lines (a sensible default applies when `tail` is omitted). `exec_llmbox` is also
-keyed by `hostname`: it runs `command` inside the box via `/bin/sh -c` and returns
+`box_id` and `description` on `create_llmbox` are optional. When set, `box_id`
+is the identifier you use to reference the box afterwards and is also applied as
+the box's container hostname (so it shows up as the box's name in claude.ai/code);
+it **must be unique** across boxes — a duplicate is rejected with a clear error so
+the caller can pick another. Both are surfaced again by `get_llmbox` and
+`list_llmboxes`. `get_llmbox` is keyed by `box_id` (case-insensitive), so set one
+at create time if you want to poll a box's status; boxes created without a box ID
+can still be seen via `list_llmboxes`. `get_llmbox_logs` is likewise keyed by
+`box_id` and returns the box's recent console output (ANSI-stripped), bounded to
+the last `tail` lines (a sensible default applies when `tail` is omitted).
+`exec_llmbox` is also keyed by `box_id`: it runs `command` inside the box via
+`/bin/sh -c` and returns
 its `stdout`, `stderr`, and `exit_code` (a non-zero exit is reported in the result,
 not as a tool error; each stream is capped to keep the payload bounded). Destroying
 a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removing it.
@@ -76,7 +78,7 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 | Path                 | What it is |
 |----------------------|------------|
 | `cmd/llmbox`         | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
-| `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + hostname uniqueness, login-capture, code-submit, graceful destroy, reap). |
+| `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile`         | Image for **this server** (`llmbox`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
 
@@ -167,7 +169,7 @@ writes one `Request` to the hook's stdin and reads one `Response` from its stdou
 
 ```jsonc
 // stdin  (llmbox -> hook)
-{ "event": "box.create", "box": { "hostname": "web-box", "image": "debian:bookworm-slim" } }
+{ "event": "box.create", "box": { "box_id": "web-box", "image": "debian:bookworm-slim" } }
 
 // stdout (hook -> llmbox)
 {

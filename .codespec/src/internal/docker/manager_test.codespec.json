@@ -190,27 +190,21 @@
 		},
 		{
 			"function_name": "TestListMapsPhaseFromName",
-			"documentation_hash": "f0f27f7d88556198f126ceada2f7e12d33447b2795ace3720567fba53bacc25d",
-			"definition_hash": "e7a0fe36175d8fc71a856a239baae067bc639f6a1ce59784337c8d2fba3f2c7d",
-			"reviewed_at": "2026-06-18T13:14:37.900574839Z"
+			"documentation_hash": "0697ec569e8273f26221566ff89de31b16bead72405e52dd5f5c10bb742f1749",
+			"definition_hash": "83155b5394121160b48ea65244beb977cad1301f85c5e2fbbe677f9a1c7126ea",
+			"reviewed_at": "2026-06-18T16:59:05.474972018Z"
 		},
 		{
 			"function_name": "TestCreateLLMBoxCapturesURL",
-			"documentation_hash": "66623673f19e5424e15d1a3962738549df2a483c6b2d385b3a0fc025b8610105",
-			"definition_hash": "58cc3cb0af2c9dfaa2c8e57851d74b021ac49a345f615978994f6521bc51cb03",
-			"reviewed_at": "2026-06-18T16:04:55.988242837Z"
+			"documentation_hash": "dd24bf73bd03fa882fcec7cd0e1ded07ae899c20313cbec56eea79eded2cba36",
+			"definition_hash": "77fa993f37cb9b67cf6cc69d773f32bf07c4502e87c636de50eea37bfad41375",
+			"reviewed_at": "2026-06-18T16:59:05.483997656Z"
 		},
 		{
 			"function_name": "TestCreateLLMBoxCleansUpOnStartFailure",
 			"documentation_hash": "490c6d9c249102acba45d58a9b90f78fde90039ccc3214a3e056702f7adcc28e",
 			"definition_hash": "1654a5b584506c93668019dd4603289554ec734ed1cd6b57783dd7ca0977394d",
 			"reviewed_at": "2026-06-18T13:14:38.32693629Z"
-		},
-		{
-			"function_name": "TestCreateLLMBoxRejectsDuplicateHostname",
-			"documentation_hash": "3d09277c9d7ebf098937a0e318dfa494de0e329968e6110ebd97609356bddf3a",
-			"definition_hash": "aa21a6feb6cea73aeb72c1803e0769a94a6c2434e9cd31584bc609efb34f2287",
-			"reviewed_at": "2026-06-18T13:14:38.329383606Z"
 		},
 		{
 			"function_name": "TestCreateLLMBoxPullsMissingImage",
@@ -357,10 +351,10 @@
 			"reviewed_at": "2026-06-18T15:04:15.894931062Z"
 		},
 		{
-			"function_name": "TestDestroyDeregistersClaude",
-			"documentation_hash": "847eda017633c1861b77c86965c695fe3a5434099ca1fe5d2de547b2c193d555",
-			"definition_hash": "a959324953f053f995f168a2dbd300f6a76e3efafa98a21babaa151b509c63de",
-			"reviewed_at": "2026-06-18T16:13:49.713901846Z"
+			"function_name": "TestCreateLLMBoxRejectsDuplicateBoxID",
+			"documentation_hash": "5bb06347d7bb85f9e5a8292904378c4ee5de613a72325fade60ec3f3a3416aa9",
+			"definition_hash": "a2dc702b310d3280e749cddd37d486ae092c67b1b414c2bcf26fc8f4c1deff80",
+			"reviewed_at": "2026-06-18T16:59:05.491837908Z"
 		}
 	]
 }

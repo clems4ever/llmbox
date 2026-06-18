@@ -52,11 +52,12 @@ const (
 	// ManagedLabel marks every container created by this server.
 	ManagedLabel = "com.llmbox.managed"
 
-	// HostnameLabel and DescriptionLabel persist the caller-supplied hostname
-	// and description so List can report them straight from a container list
-	// (ContainerList summaries carry labels but neither the hostname nor the
-	// rest of the container config).
-	HostnameLabel    = "com.llmbox.hostname"
+	// BoxIDLabel and DescriptionLabel persist the caller-assigned box ID and
+	// description so List can report them straight from a container list
+	// (ContainerList summaries carry labels but neither the box ID nor the
+	// rest of the container config). The box ID is also set as the container
+	// hostname, but the label is the authoritative copy List reads.
+	BoxIDLabel       = "com.llmbox.box-id"
 	DescriptionLabel = "com.llmbox.description"
 
 	// DefaultImage is launched when the caller does not specify one. Claude is
@@ -158,16 +159,16 @@ type Manager struct {
 	claudeBin     []byte
 	claudeBinErr  error
 
-	// createMu serializes the hostname-uniqueness check and container creation
-	// so two concurrent creates can't both pass the check with the same hostname.
+	// createMu serializes the box-ID-uniqueness check and container creation so
+	// two concurrent creates can't both pass the check with the same box ID.
 	createMu sync.Mutex
 }
 
 // Box is a view of a managed container returned to callers.
 type Box struct {
-	ID          string `json:"id" jsonschema:"the short box ID"`
+	ContainerID string `json:"container_id" jsonschema:"the short Docker container ID"`
 	Name        string `json:"name" jsonschema:"the container name"`
-	Hostname    string `json:"hostname,omitempty" jsonschema:"the hostname set on the box, if the caller supplied one"`
+	BoxID       string `json:"box_id,omitempty" jsonschema:"the box ID the caller assigned, if any (also set as the container hostname)"`
 	Description string `json:"description,omitempty" jsonschema:"the caller-supplied description label, if any"`
 	Image       string `json:"image" jsonschema:"the image the box runs"`
 	State       string `json:"state" jsonschema:"the container state, e.g. running or exited"`
@@ -187,9 +188,11 @@ type ExecResult struct {
 type CreateOptions struct {
 	// Image is the container image to launch; empty means the Manager default.
 	Image string
-	// Hostname, when set, becomes the box's container hostname (what `hostname`
-	// reports inside it). Must be a valid hostname or Docker rejects creation.
-	Hostname string
+	// BoxID is the caller-assigned identifier for the box. When set, it is also
+	// applied as the box's container hostname (what `hostname` reports inside it,
+	// and the name shown in claude.ai/code), so it must be a valid hostname or
+	// Docker rejects creation. It must be unique across managed boxes.
+	BoxID string
 	// Description is a free-form label shown by list/get to help the caller tell
 	// boxes apart. It has no effect on the box itself.
 	Description string
@@ -319,10 +322,10 @@ func phaseOf(name string) string {
 // List returns all boxes created by this server, running or not.
 //
 // @arg ctx Context for the Docker list request.
-// @return []Box One Box per managed container, with phase, hostname, and description filled in.
+// @return []Box One Box per managed container, with phase, box ID, and description filled in.
 // @error error if listing containers from Docker fails.
 //
-// @testcase TestListMapsPhaseFromName checks phase, ID, hostname, and description mapping.
+// @testcase TestListMapsPhaseFromName checks phase, container ID, box ID, and description mapping.
 func (m *Manager) List(ctx context.Context) ([]Box, error) {
 	cs, err := m.cli.ContainerList(ctx, container.ListOptions{All: true, Filters: managedFilter()})
 	if err != nil {
@@ -335,9 +338,9 @@ func (m *Manager) List(ctx context.Context) ([]Box, error) {
 			name = strings.TrimPrefix(c.Names[0], "/")
 		}
 		out = append(out, Box{
-			ID:          c.ID[:12],
+			ContainerID: c.ID[:12],
 			Name:        name,
-			Hostname:    c.Labels[HostnameLabel],
+			BoxID:       c.Labels[BoxIDLabel],
 			Description: c.Labels[DescriptionLabel],
 			Image:       c.Image,
 			State:       c.State,
@@ -355,30 +358,30 @@ func (m *Manager) List(ctx context.Context) ([]Box, error) {
 var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize\?\S*code_challenge=\S*state=[A-Za-z0-9_\-]+`)
 
 // CreateLLMBox creates and starts a box, captures the OAuth authorize URL its
-// login process prints, and returns the box ID plus that URL. The box is left
-// running, parked at the "paste code" prompt, ready for SubmitCode. opts.Hostname
-// sets the container hostname, and opts.Hostname/opts.Description are persisted
-// as labels so List can report them. A non-empty opts.Hostname must be unique
-// across managed boxes; the create is rejected otherwise. If the image is not
-// present locally, it is pulled and the create is retried once. Any opts.Files
+// login process prints, and returns the container ID plus that URL. The box is
+// left running, parked at the "paste code" prompt, ready for SubmitCode.
+// opts.BoxID is applied as the container hostname, and opts.BoxID/opts.Description
+// are persisted as labels so List can report them. A non-empty opts.BoxID must be
+// unique across managed boxes; the create is rejected otherwise. If the image is
+// not present locally, it is pulled and the create is retried once. Any opts.Files
 // are written into the box after creation but before it starts.
 //
 // The standalone Claude binary and a ~/.claude.json seed are always injected,
 // the box is forced to run as root with HOME=boxHome and WorkingDir=boxWorkdir,
 // and a node-free entrypoint is used — so the box runs on any plain glibc image
-// without Claude (or Node) baked in. When opts.Hostname is set (and the remote
+// without Claude (or Node) baked in. When opts.BoxID is set (and the remote
 // args don't already specify --name), the pre-created first session is named
-// "<hostname>-default" so it is identifiable in claude.ai/code.
+// "<box-id>-default" so it is identifiable in claude.ai/code.
 //
 // @arg ctx Context for the Docker create/start/attach calls.
-// @arg opts The caller-controlled image, hostname, description, and files for the box.
+// @arg opts The caller-controlled image, box ID, description, and files for the box.
 // @return id The full container ID of the created box.
 // @return authorizeURL The OAuth authorize URL captured from the box's login output.
-// @error error if opts.Hostname is already in use, the claude binary cannot be read, the image cannot be pulled, or the box cannot be created, files injected, started, or its authorize URL captured.
+// @error error if opts.BoxID is already in use, the claude binary cannot be read, the image cannot be pulled, or the box cannot be created, files injected, started, or its authorize URL captured.
 //
-// @testcase TestCreateLLMBoxCapturesURL captures the authorize URL and sets hostname/description labels.
+// @testcase TestCreateLLMBoxCapturesURL captures the authorize URL and sets box-id/description labels.
 // @testcase TestCreateLLMBoxCleansUpOnStartFailure removes the container when start fails.
-// @testcase TestCreateLLMBoxRejectsDuplicateHostname rejects a hostname already in use.
+// @testcase TestCreateLLMBoxRejectsDuplicateBoxID rejects a box ID already in use.
 // @testcase TestCreateLLMBoxPullsMissingImage pulls the image then retries when it is absent.
 // @testcase TestCreateLLMBoxInjectsFiles copies injected files into the box before start.
 // @testcase TestCreateLLMBoxInjectsClaude injects the binary and seed and forces root/HOME/WorkingDir.
@@ -390,8 +393,8 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 	}
 
 	labels := map[string]string{ManagedLabel: "true"}
-	if opts.Hostname != "" {
-		labels[HostnameLabel] = opts.Hostname
+	if opts.BoxID != "" {
+		labels[BoxIDLabel] = opts.BoxID
 	}
 	if opts.Description != "" {
 		labels[DescriptionLabel] = opts.Description
@@ -412,15 +415,15 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 	// and skips straight to remote-control, so the user is not asked to
 	// authenticate again. The guard also honours CLAUDE_CODE_OAUTH_TOKEN, the
 	// token-via-env alternative.
-	// Name the pre-created first session "<hostname>-default" so it is
+	// Name the pre-created first session "<box-id>-default" so it is
 	// identifiable in claude.ai/code (remote-control's --name sets the session
 	// name; without it the session gets an auto-generated, random-looking name).
 	// Skip when the caller already set --name via the configured remote args. The
-	// hostname is Docker-validated, so it carries no shell metacharacters to worry
-	// about inside the quoted command.
+	// box ID is Docker-validated (it doubles as the hostname), so it carries no
+	// shell metacharacters to worry about inside the quoted command.
 	remoteArgs := m.remoteArgs
-	if opts.Hostname != "" && !strings.Contains(remoteArgs, "--name") {
-		remoteArgs = strings.TrimSpace(remoteArgs + " --name " + opts.Hostname + "-default")
+	if opts.BoxID != "" && !strings.Contains(remoteArgs, "--name") {
+		remoteArgs = strings.TrimSpace(remoteArgs + " --name " + opts.BoxID + "-default")
 	}
 	entry := fmt.Sprintf(
 		`{ [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || [ -s "$HOME/.claude/.credentials.json" ] || claude auth login --claudeai; } && exec script -qfc "claude remote-control %s" /dev/null`,
@@ -439,28 +442,28 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 		InjectFile{Path: path.Join(boxHome, ".claude.json"), Content: claudeConfigSeed(), Mode: 0o644, UID: 0, GID: 0},
 	)
 
-	// Reserve the hostname atomically: under one lock, reject the create if an
+	// Reserve the box ID atomically: under one lock, reject the create if an
 	// existing box already uses it, then create the container (which carries the
-	// hostname label, so a concurrent create will see it). The slow login / URL
+	// box-id label, so a concurrent create will see it). The slow login / URL
 	// capture below runs unlocked.
 	m.createMu.Lock()
-	if opts.Hostname != "" {
+	if opts.BoxID != "" {
 		boxes, lerr := m.List(ctx)
 		if lerr != nil {
 			m.createMu.Unlock()
-			return "", "", fmt.Errorf("checking hostname uniqueness: %w", lerr)
+			return "", "", fmt.Errorf("checking box ID uniqueness: %w", lerr)
 		}
 		for _, b := range boxes {
-			if strings.EqualFold(b.Hostname, opts.Hostname) {
+			if strings.EqualFold(b.BoxID, opts.BoxID) {
 				m.createMu.Unlock()
-				return "", "", fmt.Errorf("hostname %q is already used by box %s; choose a different hostname", opts.Hostname, b.ID)
+				return "", "", fmt.Errorf("box ID %q is already used by container %s; choose a different box ID", opts.BoxID, b.ContainerID)
 			}
 		}
 	}
 
 	cfg := &container.Config{
 		Image:      image,
-		Hostname:   opts.Hostname,
+		Hostname:   opts.BoxID,
 		Entrypoint: []string{"/bin/sh", "-c", entry},
 		Tty:        true,
 		OpenStdin:  true,
@@ -786,13 +789,13 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 	// Graceful stop: SIGTERM, then SIGKILL after the timeout. Returns once the
 	// box has actually terminated.
 	timeout := int(stopTimeout.Seconds())
-	if err := m.cli.ContainerStop(ctx, b.ID, container.StopOptions{Timeout: &timeout}); err != nil {
+	if err := m.cli.ContainerStop(ctx, b.ContainerID, container.StopOptions{Timeout: &timeout}); err != nil {
 		return fmt.Errorf("stopping box %s: %w", idOrName, err)
 	}
-	if err := m.cli.ContainerRemove(ctx, b.ID, container.RemoveOptions{RemoveVolumes: true}); err != nil {
+	if err := m.cli.ContainerRemove(ctx, b.ContainerID, container.RemoveOptions{RemoveVolumes: true}); err != nil {
 		return fmt.Errorf("removing box %s: %w", idOrName, err)
 	}
-	m.removeBoxNetwork(ctx, b.ID)
+	m.removeBoxNetwork(ctx, b.ContainerID)
 	return nil
 }
 
@@ -818,7 +821,7 @@ func (m *Manager) Logs(ctx context.Context, idOrName string, tail int) (string, 
 	if tail <= 0 {
 		tail = defaultLogTail
 	}
-	rc, err := m.cli.ContainerLogs(ctx, b.ID, container.LogsOptions{
+	rc, err := m.cli.ContainerLogs(ctx, b.ContainerID, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Tail:       strconv.Itoa(tail),
@@ -853,7 +856,7 @@ func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (Exec
 	if err != nil {
 		return ExecResult{}, err
 	}
-	created, err := m.cli.ContainerExecCreate(ctx, b.ID, container.ExecOptions{
+	created, err := m.cli.ContainerExecCreate(ctx, b.ContainerID, container.ExecOptions{
 		Cmd:          cmd,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -919,9 +922,9 @@ func (m *Manager) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string,
 	var reaped []string
 	for _, b := range boxes {
 		if b.Phase == "pending" && b.Created < cutoff {
-			if err := m.cli.ContainerRemove(ctx, b.ID, container.RemoveOptions{Force: true, RemoveVolumes: true}); err == nil {
-				m.removeBoxNetwork(ctx, b.ID)
-				reaped = append(reaped, b.ID)
+			if err := m.cli.ContainerRemove(ctx, b.ContainerID, container.RemoveOptions{Force: true, RemoveVolumes: true}); err == nil {
+				m.removeBoxNetwork(ctx, b.ContainerID)
+				reaped = append(reaped, b.ContainerID)
 			}
 		}
 	}
@@ -945,8 +948,8 @@ func (m *Manager) findManaged(ctx context.Context, idOrName string) (*Box, error
 	for i := range bs {
 		b := bs[i]
 		if b.Name == idOrName ||
-			strings.HasPrefix(b.ID, idOrName) ||
-			strings.HasPrefix(idOrName, b.ID) ||
+			strings.HasPrefix(b.ContainerID, idOrName) ||
+			strings.HasPrefix(idOrName, b.ContainerID) ||
 			b.Name == pendingPrefix+idOrName ||
 			b.Name == readyPrefix+idOrName {
 			return &b, nil

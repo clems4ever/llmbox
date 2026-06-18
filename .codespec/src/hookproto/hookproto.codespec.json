@@ -1,0 +1,30 @@
+{
+	"functions": [
+		{
+			"function_name": "Bytes",
+			"receiver": "File",
+			"documentation_hash": "3d31e7da559db50b0d0448d7d5e5d26b7e7834da50e49e5b9f89375dbe4e0f21",
+			"definition_hash": "bb491b44d8a0215bbdd4001e16f3a2968e9ebb884a7354da3a7f85d1324659fe",
+			"reviewed_at": "2026-06-18T16:59:05.425726829Z"
+		},
+		{
+			"function_name": "FileMode",
+			"receiver": "File",
+			"documentation_hash": "70ffe4f67a9ea36564e747d0b444dfaf48f71cd88096f602c2e4fa31ba6e3792",
+			"definition_hash": "0ab1d6e1bb3d881d0709d1e5893322b3fd55fdc0629295924a00521c70e61aed",
+			"reviewed_at": "2026-06-18T16:59:05.425964848Z"
+		},
+		{
+			"function_name": "Serve",
+			"documentation_hash": "a24656d777a1d8818bd625cd79a60733f0569d07ac47a1baa31ec02bb4af99cb",
+			"definition_hash": "3903c29eef2a0452be094e42c97cb9c7becd4f98e011b690be9cc3344ef2f4ab",
+			"reviewed_at": "2026-06-18T16:59:05.426177862Z"
+		},
+		{
+			"function_name": "Main",
+			"documentation_hash": "1a695b54e8fa6ad5f8d218b1d4d1cf9bf0521007c1e9ee13c85a9beb4cf93b03",
+			"definition_hash": "dd513f573e5329df2cb806751de967e7188f61b6b4604ea98edd9f3147739730",
+			"reviewed_at": "2026-06-18T16:59:05.426369932Z"
+		}
+	]
+}

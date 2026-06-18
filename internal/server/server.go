@@ -50,7 +50,7 @@ type boxHooks interface {
 // session tracks one box through the auth handshake.
 type session struct {
 	Token        string
-	BoxID        string
+	ContainerID  string
 	AuthorizeURL string
 	CreatedAt    time.Time
 
@@ -61,9 +61,9 @@ type session struct {
 	// at creation and immutable, so it needs no locking.
 	HookState map[string]string
 
-	// Hostname and Description are caller-supplied at creation and immutable,
+	// BoxID and Description are caller-supplied at creation and immutable,
 	// so they need no locking.
-	Hostname    string
+	BoxID       string
 	Description string
 
 	mu         sync.Mutex
@@ -94,11 +94,11 @@ func (s *session) snapshot() (status, sessionURL, errMsg string) {
 func (s *session) persistLocked() persistedSession {
 	return persistedSession{
 		Token:        s.Token,
-		BoxID:        s.BoxID,
+		ContainerID:  s.ContainerID,
 		AuthorizeURL: s.AuthorizeURL,
 		CreatedAt:    s.CreatedAt,
 		HookState:    s.HookState,
-		Hostname:     s.Hostname,
+		BoxID:        s.BoxID,
 		Description:  s.Description,
 		Status:       s.Status,
 		SessionURL:   s.SessionURL,
@@ -126,11 +126,11 @@ func (s *session) persist() persistedSession {
 func sessionFromPersisted(ps persistedSession) *session {
 	return &session{
 		Token:        ps.Token,
-		BoxID:        ps.BoxID,
+		ContainerID:  ps.ContainerID,
 		AuthorizeURL: ps.AuthorizeURL,
 		CreatedAt:    ps.CreatedAt,
 		HookState:    ps.HookState,
-		Hostname:     ps.Hostname,
+		BoxID:        ps.BoxID,
 		Description:  ps.Description,
 		Status:       ps.Status,
 		SessionURL:   ps.SessionURL,
@@ -195,10 +195,10 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("listing boxes to reconcile sessions: %w", err)
 	}
-	// List returns short (12-char) IDs; a session stores the full box ID.
-	isAlive := func(boxID string) bool {
+	// List returns short (12-char) container IDs; a session stores the full one.
+	isAlive := func(containerID string) bool {
 		for _, b := range boxes {
-			if strings.HasPrefix(boxID, b.ID) {
+			if strings.HasPrefix(containerID, b.ContainerID) {
 				return true
 			}
 		}
@@ -207,7 +207,7 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 
 	s.mu.Lock()
 	for _, ps := range saved {
-		if !isAlive(ps.BoxID) {
+		if !isAlive(ps.ContainerID) {
 			_ = s.store.Delete(ps.Token)
 			continue
 		}
@@ -224,19 +224,19 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 // records their opaque state on the session; that state is replayed to the
 // box.destroy hooks if box creation later fails so nothing is left dangling. It
 // returns the session so callers can build the auth page URL. opts carries the
-// optional image, hostname, and description.
+// optional image, box ID, and description.
 //
 // @arg ctx Context for the box creation.
-// @arg opts The optional image, hostname, and description for the box.
+// @arg opts The optional image, box ID, and description for the box.
 // @return *session The registered auth session for the new box.
 // @error error if a box.create hook fails, the box cannot be created, or a session token cannot be generated.
 //
-// @testcase TestCreateBoxRegistersSession checks the session is registered with hostname/description.
+// @testcase TestCreateBoxRegistersSession checks the session is registered with box ID/description.
 // @testcase TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
 // @testcase TestCreateBoxRunsCreateHooks runs the hooks, injects their files, and persists their state.
 // @testcase TestCreateBoxRunsDestroyHooksOnCreateFailure replays hook state when box creation fails.
 func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
-	box := hooks.BoxInfo{Image: opts.Image, Hostname: opts.Hostname, Description: opts.Description}
+	box := hooks.BoxInfo{Image: opts.Image, BoxID: opts.BoxID, Description: opts.Description}
 	var hookState map[string]string
 	if s.hooks != nil {
 		files, state, err := s.hooks.OnCreate(ctx, box)
@@ -272,12 +272,12 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 	}
 	sess := &session{
 		Token:        tok,
-		BoxID:        id,
+		ContainerID:  id,
 		AuthorizeURL: authorizeURL,
 		CreatedAt:    time.Now(),
 		HookState:    hookState,
 		Status:       "pending",
-		Hostname:     opts.Hostname,
+		BoxID:        opts.BoxID,
 		Description:  opts.Description,
 	}
 	s.mu.Lock()
@@ -327,18 +327,19 @@ func (s *Server) lookup(tok string) *session {
 	return s.byToken[tok]
 }
 
-// lookupByHostname returns the session for a box's hostname (case-insensitive),
-// or nil. Hostnames are unique across boxes, so at most one matches.
+// lookupByBoxID returns the session for a box's caller-assigned box ID
+// (case-insensitive), or nil. Box IDs are unique across boxes, so at most one
+// matches.
 //
-// @arg hostname The box hostname to look up.
-// @return *session The matching session, or nil if none has that hostname.
+// @arg boxID The box ID to look up.
+// @return *session The matching session, or nil if none has that box ID.
 //
-// @testcase TestGetByHostname looks a box up by its hostname.
-func (s *Server) lookupByHostname(hostname string) *session {
+// @testcase TestGetByBoxID looks a box up by its box ID.
+func (s *Server) lookupByBoxID(boxID string) *session {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, sess := range s.byToken {
-		if sess.Hostname != "" && strings.EqualFold(sess.Hostname, hostname) {
+		if sess.BoxID != "" && strings.EqualFold(sess.BoxID, boxID) {
 			return sess
 		}
 	}
@@ -366,7 +367,7 @@ func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
 		return fmt.Errorf("the code is empty")
 	}
 
-	url, err := s.mgr.SubmitCode(ctx, sess.BoxID, code)
+	url, err := s.mgr.SubmitCode(ctx, sess.ContainerID, code)
 	sess.mu.Lock()
 	if err != nil {
 		sess.Status = "error"
@@ -394,47 +395,47 @@ func (s *Server) ListBoxes(ctx context.Context) ([]docker.Box, error) {
 	return s.mgr.List(ctx)
 }
 
-// BoxLogs returns the recent console output of the box with the given hostname.
-// Like get and destroy, it is keyed by the hostname supplied at create time, so
+// BoxLogs returns the recent console output of the box with the given box ID.
+// Like get and destroy, it is keyed by the box ID supplied at create time, so
 // a box created without one is not reachable here. tail bounds how many trailing
 // lines are returned and is passed through to the manager.
 //
 // @arg ctx Context for the logs request.
-// @arg hostname The hostname of the box to read logs from.
+// @arg boxID The box ID of the box to read logs from.
 // @arg tail The maximum number of trailing log lines to return; the manager applies a default when non-positive.
 // @return string The box's recent console output.
-// @error error if no box has that hostname, or the logs cannot be read.
+// @error error if no box has that box ID, or the logs cannot be read.
 //
-// @testcase TestBoxLogsByHostname returns a box's logs looked up by hostname.
-func (s *Server) BoxLogs(ctx context.Context, hostname string, tail int) (string, error) {
-	sess := s.lookupByHostname(hostname)
+// @testcase TestBoxLogsByBoxID returns a box's logs looked up by box ID.
+func (s *Server) BoxLogs(ctx context.Context, boxID string, tail int) (string, error) {
+	sess := s.lookupByBoxID(boxID)
 	if sess == nil {
-		return "", fmt.Errorf("no box found with hostname %q (it may have expired, or was created without a hostname)", hostname)
+		return "", fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
 	}
-	return s.mgr.Logs(ctx, sess.BoxID, tail)
+	return s.mgr.Logs(ctx, sess.ContainerID, tail)
 }
 
-// BoxExec runs a shell command inside the box with the given hostname and returns
-// its captured output. Like get, logs, and destroy, it is keyed by the hostname
+// BoxExec runs a shell command inside the box with the given box ID and returns
+// its captured output. Like get, logs, and destroy, it is keyed by the box ID
 // supplied at create time, so a box created without one is not reachable here. The
 // command is run via "/bin/sh -c" so callers can pass an ordinary shell line.
 //
 // @arg ctx Context for the exec request.
-// @arg hostname The hostname of the box to run the command in.
+// @arg boxID The box ID of the box to run the command in.
 // @arg command The shell command line to run inside the box.
 // @return docker.ExecResult The command's stdout, stderr, and exit code.
-// @error error if the command is empty, no box has that hostname, or the command cannot be run.
+// @error error if the command is empty, no box has that box ID, or the command cannot be run.
 //
-// @testcase TestBoxExecByHostname runs a command in a box looked up by hostname.
-func (s *Server) BoxExec(ctx context.Context, hostname, command string) (docker.ExecResult, error) {
+// @testcase TestBoxExecByBoxID runs a command in a box looked up by box ID.
+func (s *Server) BoxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error) {
 	if strings.TrimSpace(command) == "" {
 		return docker.ExecResult{}, fmt.Errorf("command is required")
 	}
-	sess := s.lookupByHostname(hostname)
+	sess := s.lookupByBoxID(boxID)
 	if sess == nil {
-		return docker.ExecResult{}, fmt.Errorf("no box found with hostname %q (it may have expired, or was created without a hostname)", hostname)
+		return docker.ExecResult{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
 	}
-	return s.mgr.Exec(ctx, sess.BoxID, []string{"/bin/sh", "-c", command})
+	return s.mgr.Exec(ctx, sess.ContainerID, []string{"/bin/sh", "-c", command})
 }
 
 // DestroyBox destroys a box and forgets any session pointing at it.
@@ -453,10 +454,10 @@ func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
 	var dropped []string
 	var torn []tornBox
 	for tok, sess := range s.byToken {
-		if strings.HasPrefix(sess.BoxID, idOrName) || strings.HasPrefix(idOrName, sess.BoxID) {
+		if strings.HasPrefix(sess.ContainerID, idOrName) || strings.HasPrefix(idOrName, sess.ContainerID) {
 			delete(s.byToken, tok)
 			dropped = append(dropped, tok)
-			torn = append(torn, tornBox{hostname: sess.Hostname, state: sess.HookState})
+			torn = append(torn, tornBox{boxID: sess.BoxID, state: sess.HookState})
 		}
 	}
 	s.mu.Unlock()
@@ -464,17 +465,17 @@ func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
 		_ = s.store.Delete(tok)
 	}
 	for _, tb := range torn {
-		s.runDestroyHooks(hooks.BoxInfo{Hostname: tb.hostname}, tb.state)
+		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)
 	}
 	return nil
 }
 
 // tornBox carries the bits of a removed session that the box.destroy hooks need:
-// the box hostname (for the hook's box context) and the per-hook state to replay.
+// the box ID (for the hook's box context) and the per-hook state to replay.
 // It avoids copying the session struct (and its mutex) out from under the lock.
 type tornBox struct {
-	hostname string
-	state    map[string]string
+	boxID string
+	state map[string]string
 }
 
 // ReapLoop periodically destroys orphaned (never-authenticated) boxes and prunes
@@ -524,12 +525,12 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 	var dropped []string
 	var torn []tornBox
 	for tok, sess := range s.byToken {
-		// reaped IDs are short (12 char); BoxID is the full ID.
+		// reaped IDs are short (12 char); ContainerID is the full ID.
 		for id := range reaped {
-			if strings.HasPrefix(sess.BoxID, id) {
+			if strings.HasPrefix(sess.ContainerID, id) {
 				delete(s.byToken, tok)
 				dropped = append(dropped, tok)
-				torn = append(torn, tornBox{hostname: sess.Hostname, state: sess.HookState})
+				torn = append(torn, tornBox{boxID: sess.BoxID, state: sess.HookState})
 				break
 			}
 		}
@@ -539,7 +540,7 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 		_ = s.store.Delete(tok)
 	}
 	for _, tb := range torn {
-		s.runDestroyHooks(hooks.BoxInfo{Hostname: tb.hostname}, tb.state)
+		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)
 	}
 }
 
