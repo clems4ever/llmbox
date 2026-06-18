@@ -1,7 +1,8 @@
 # TODO
 
-* Improve the UI to make it more beautiful and professional. Also add a progress spinner to let the user know that the box is being activated. Block the button even.
 * Use Cobra as CLI line framework.
 * Add code coverage in the CI. Add a badge in the README.
 * Use yaml config instead of env variables. For secrets, read them from file. The config should reference the file paths.
 * Create a makefile for the project.
+* Each container has its own network so setting hostname does not really make sense. We should rather use some kind of id and make sure the operations can reach only containers managed by llmbox, not other containers!
+* There are many functions where the errors are inhibited. This is bad, we should never inhibit a function. We need to fix that.

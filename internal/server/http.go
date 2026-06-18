@@ -1,14 +1,22 @@
 package server
 
 import (
+	_ "embed"
 	"html/template"
 	"net/http"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Handler builds the HTTP handler serving both the MCP endpoint (at /mcp) and
-// the auth web pages (at /auth/{token}). mcpServer is reused across sessions.
+// Handler builds the HTTP handler serving both the MCP endpoint (at the root) and
+// the auth web pages (at /auth/{token}), plus a /healthz probe. mcpServer is
+// reused across sessions.
+//
+// @arg mcpServer The MCP server shared across all requests to the root endpoint.
+// @return http.Handler A mux routing the MCP, auth, and health endpoints.
+//
+// @testcase TestAuthPageRendersAndSubmits drives the auth routes through this handler.
+// @testcase TestHealthz checks the /healthz route returns ok.
 func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	mux := http.NewServeMux()
 
@@ -27,7 +35,14 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	return mux
 }
 
-// handleAuthPage renders the current state of an auth session.
+// handleAuthPage renders the current state of an auth session, looked up by the
+// {token} path value. It 404s when no session matches the token.
+//
+// @arg w The response writer the page is rendered to.
+// @arg r The request whose {token} path value identifies the auth session.
+//
+// @testcase TestAuthPageRendersAndSubmits renders a pending session's page.
+// @testcase TestAuthPageUnknownToken 404s for an unknown token.
 func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 	sess := s.lookup(r.PathValue("token"))
 	if sess == nil {
@@ -44,7 +59,14 @@ func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleAuthSubmit feeds the pasted code to the box, then re-renders the page.
+// handleAuthSubmit feeds the pasted code to the box (blocking until login
+// completes or fails), then re-renders the page with the result. The code is
+// never logged. It 404s when no session matches the {token} path value.
+//
+// @arg w The response writer the result page is rendered to.
+// @arg r The request carrying the {token} path value and the posted code form field.
+//
+// @testcase TestAuthPageRendersAndSubmits submits a code and renders the session URL.
 func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	sess := s.lookup(token)
@@ -78,6 +100,13 @@ type authPageData struct {
 	Error        string
 }
 
+// render writes the auth page for data, with no-store caching since the page
+// carries live session state.
+//
+// @arg w The response writer the page is written to.
+// @arg data The auth page state to render.
+//
+// @testcase TestAuthPageRendersAndSubmits renders pages via this helper.
 func render(w http.ResponseWriter, data authPageData) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Don't let intermediaries cache an auth page (it contains live state).
@@ -88,56 +117,11 @@ func render(w http.ResponseWriter, data authPageData) {
 	_ = authTmpl.Execute(w, data)
 }
 
-var authTmpl = template.Must(template.New("auth").Parse(`<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Authenticate your llmbox</title>
-<style>
-  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
-  .step { margin: 1.5rem 0; }
-  code { background: #f2f2f2; padding: .1rem .3rem; border-radius: 3px; }
-  input[type=text] { width: 100%; padding: .6rem; font-size: 1rem; box-sizing: border-box; }
-  button { margin-top: .8rem; padding: .6rem 1.2rem; font-size: 1rem; cursor: pointer; }
-  .btn-link { display: inline-block; padding: .6rem 1.2rem; background: #d97757; color: #fff; text-decoration: none; border-radius: 6px; }
-  .ok { color: #1a7f37; } .err { color: #b42318; }
-  .url { word-break: break-all; }
-</style>
-</head>
-<body>
-<h1>Authenticate your llmbox</h1>
+// authTmplSrc is the auth page template, embedded into the binary at build time
+// from auth.html.tmpl so the server ships as a single self-contained executable.
+//
+//go:embed auth.html.tmpl
+var authTmplSrc string
 
-{{if eq .Status "ready"}}
-  <p class="ok"><strong>Your llmbox is ready.</strong></p>
-  {{if .SessionURL}}
-    <p>Drive it from here:</p>
-    <p class="url"><a href="{{.SessionURL}}">{{.SessionURL}}</a></p>
-  {{else}}
-    <p>Authentication succeeded.</p>
-  {{end}}
-{{else}}
-  {{if eq .Status "error"}}
-    <p class="err"><strong>That didn't work:</strong> {{.Error}}</p>
-    <p>The code may have been mistyped or expired. Get a fresh code and try again.</p>
-  {{end}}
-
-  <div class="step">
-    <h2>Step 1 — Sign in</h2>
-    <p>Open the Claude sign-in page, approve access, then copy the code it shows you.</p>
-    <p><a class="btn-link" href="{{.AuthorizeURL}}" target="_blank" rel="noopener noreferrer">Sign in with Claude</a></p>
-  </div>
-
-  <div class="step">
-    <h2>Step 2 — Paste the code</h2>
-    <form method="post" action="/auth/{{.Token}}" autocomplete="off">
-      <input type="text" name="code" placeholder="Paste your code here" autofocus
-             autocapitalize="off" autocorrect="off" spellcheck="false">
-      <br>
-      <button type="submit">Activate llmbox</button>
-    </form>
-    <p><small>Your code goes straight to this server and into your private sandbox — it is never sent to the chatbot.</small></p>
-  </div>
-{{end}}
-</body>
-</html>`))
+// authTmpl is the parsed auth page template.
+var authTmpl = template.Must(template.New("auth").Parse(authTmplSrc))

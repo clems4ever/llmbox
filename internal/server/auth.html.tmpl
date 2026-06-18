@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activate your llmbox</title>
+<style>
+  :root {
+    --accent: #d97757;
+    --accent-strong: #c2410c;
+    --bg: #f6f5f2;
+    --card: #ffffff;
+    --ink: #1f2328;
+    --muted: #6b7280;
+    --line: #e7e5e0;
+    --ok: #1a7f37;
+    --err: #b42318;
+    --ok-bg: #eaf6ec;
+    --err-bg: #fdeceb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1916; --card: #242220; --ink: #ececec; --muted: #a1a1aa;
+      --line: #38352f; --ok-bg: #16271a; --err-bg: #2a1614;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.55; margin: 0;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+  }
+  .card {
+    background: var(--card); width: 100%; max-width: 30rem; border: 1px solid var(--line);
+    border-radius: 16px; padding: 2rem 2rem 1.75rem; box-shadow: 0 10px 40px rgba(0,0,0,.08);
+  }
+  .brand { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.25rem; }
+  .brand .dot { width: 1.6rem; height: 1.6rem; border-radius: 6px; background: var(--accent); flex: none; }
+  .brand b { font-size: 1.05rem; letter-spacing: -.01em; }
+  h1 { font-size: 1.4rem; line-height: 1.25; margin: 0 0 .35rem; letter-spacing: -.02em; }
+  .lead { color: var(--muted); margin: 0 0 1.5rem; }
+  .step { display: flex; gap: .85rem; padding: 1rem 0; border-top: 1px solid var(--line); }
+  .step .n {
+    flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent);
+    color: #fff; font-size: .85rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
+  }
+  .step h2 { font-size: .98rem; margin: .15rem 0 .35rem; }
+  .step p { margin: 0 0 .6rem; color: var(--muted); font-size: .92rem; }
+  .btn-link {
+    display: inline-block; padding: .6rem 1.1rem; background: var(--accent); color: #fff;
+    text-decoration: none; border-radius: 8px; font-weight: 600; font-size: .92rem;
+  }
+  .btn-link:hover { background: var(--accent-strong); }
+  input[type=text] {
+    width: 100%; padding: .7rem .8rem; font-size: 1rem; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--bg); color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+  button {
+    margin-top: .8rem; width: 100%; padding: .7rem 1.2rem; font-size: 1rem; font-weight: 600;
+    color: #fff; background: var(--accent); border: 0; border-radius: 8px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
+  }
+  button:hover { background: var(--accent-strong); }
+  button:disabled { cursor: default; opacity: .85; }
+  .spinner {
+    width: 1.05rem; height: 1.05rem; border: 2px solid rgba(255,255,255,.45);
+    border-top-color: #fff; border-radius: 50%; display: none; animation: spin .7s linear infinite;
+  }
+  form.submitting .spinner { display: inline-block; }
+  .note { color: var(--muted); font-size: .82rem; margin: .9rem 0 0; }
+  .activating { display: none; align-items: center; gap: .6rem; margin-top: 1rem; color: var(--muted); font-size: .9rem; }
+  form.submitting ~ .activating { display: flex; }
+  .activating .spinner { display: inline-block; border-color: rgba(127,127,127,.35); border-top-color: var(--accent); }
+  .banner { padding: .8rem 1rem; border-radius: 10px; font-size: .92rem; margin-bottom: 1.25rem; }
+  .banner.ok { background: var(--ok-bg); color: var(--ok); }
+  .banner.err { background: var(--err-bg); color: var(--err); }
+  .result a { color: var(--accent-strong); }
+  .url { word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand"><span class="dot"></span><b>llmbox</b></div>
+
+{{if eq .Status "ready"}}
+  <div class="banner ok"><strong>Your llmbox is ready.</strong></div>
+  {{if .SessionURL}}
+    <div class="result">
+      <p class="lead">Drive your sandbox from here:</p>
+      <p class="url"><a href="{{.SessionURL}}">{{.SessionURL}}</a></p>
+    </div>
+  {{else}}
+    <p class="lead">Authentication succeeded — your sandbox is now active.</p>
+  {{end}}
+{{else}}
+  <h1>Activate your llmbox</h1>
+  <p class="lead">Connect your sandbox to your own Claude account. Two quick steps.</p>
+
+  {{if eq .Status "error"}}
+    <div class="banner err"><strong>That didn't work:</strong> {{.Error}}<br>The code may have been mistyped or expired — get a fresh one and try again.</div>
+  {{end}}
+
+  <div class="step">
+    <div class="n">1</div>
+    <div>
+      <h2>Sign in with Claude</h2>
+      <p>Open the Claude sign-in page, approve access, then copy the code it shows you.</p>
+      <a class="btn-link" href="{{.AuthorizeURL}}" target="_blank" rel="noopener noreferrer">Sign in with Claude →</a>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">2</div>
+    <div style="flex:1">
+      <h2>Paste the code</h2>
+      <p>Paste the code from the previous step to activate your sandbox.</p>
+      <form id="auth-form" method="post" action="/auth/{{.Token}}" autocomplete="off">
+        <input type="text" name="code" placeholder="Paste your code here" autofocus
+               autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button id="activate" type="submit">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="label">Activate llmbox</span>
+        </button>
+      </form>
+      <div class="activating" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        Contacting Claude and starting your box — this can take up to a minute.
+      </div>
+      <p class="note">Your code goes straight to this server and into your private sandbox — it is never sent to the chatbot.</p>
+    </div>
+  </div>
+{{end}}
+</main>
+<script>
+  (function () {
+    var form = document.getElementById('auth-form');
+    if (!form) return;
+    form.addEventListener('submit', function () {
+      var btn = document.getElementById('activate');
+      var input = form.querySelector('input[name=code]');
+      form.classList.add('submitting');
+      // Defer disabling so the in-flight submission is not cancelled.
+      setTimeout(function () {
+        if (btn) {
+          btn.disabled = true;
+          var label = btn.querySelector('.label');
+          if (label) label.textContent = 'Activating…';
+        }
+        if (input) input.readOnly = true;
+      }, 0);
+    });
+  })();
+</script>
+</body>
+</html>
