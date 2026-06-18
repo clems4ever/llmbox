@@ -42,6 +42,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -86,6 +87,10 @@ const (
 	// defaultLogTail is how many trailing log lines Logs returns when the caller
 	// does not ask for a specific count, keeping the output bounded.
 	defaultLogTail = 200
+
+	// maxExecOutput caps each of an exec's stdout and stderr so a chatty command
+	// can't return an unbounded payload; output past it is dropped with a marker.
+	maxExecOutput = 64 << 10
 )
 
 // prepConfigCmd pre-answers the two interactive gates a fresh box hits after
@@ -117,6 +122,9 @@ type dockerAPI interface {
 	ContainerStop(ctx context.Context, containerID string, opts container.StopOptions) error
 	ContainerRemove(ctx context.Context, containerID string, opts container.RemoveOptions) error
 	ContainerLogs(ctx context.Context, containerID string, opts container.LogsOptions) (io.ReadCloser, error)
+	ContainerExecCreate(ctx context.Context, containerID string, opts container.ExecOptions) (container.ExecCreateResponse, error)
+	ContainerExecAttach(ctx context.Context, execID string, opts container.ExecAttachOptions) (types.HijackedResponse, error)
+	ContainerExecInspect(ctx context.Context, execID string) (container.ExecInspect, error)
 	ContainerRename(ctx context.Context, containerID, newName string) error
 	ContainerResize(ctx context.Context, containerID string, opts container.ResizeOptions) error
 	CopyToContainer(ctx context.Context, containerID, dstPath string, content io.Reader, opts container.CopyToContainerOptions) error
@@ -155,6 +163,13 @@ type Box struct {
 	Status      string `json:"status" jsonschema:"a human readable status string"`
 	Phase       string `json:"phase" jsonschema:"auth phase: pending (awaiting login) or ready (authenticated)"`
 	Created     int64  `json:"created" jsonschema:"creation time as a unix timestamp"`
+}
+
+// ExecResult is the captured outcome of a command run inside a box.
+type ExecResult struct {
+	Stdout   string `json:"stdout" jsonschema:"the command's standard output"`
+	Stderr   string `json:"stderr" jsonschema:"the command's standard error"`
+	ExitCode int    `json:"exit_code" jsonschema:"the command's exit code (0 means success)"`
 }
 
 // CreateOptions holds the caller-controlled inputs for a new box.
@@ -718,6 +733,73 @@ func (m *Manager) Logs(ctx context.Context, idOrName string, tail int) (string, 
 		return "", fmt.Errorf("reading log stream for box %s: %w", idOrName, err)
 	}
 	return string(stripANSI(raw)), nil
+}
+
+// Exec runs cmd inside a managed box identified by ID or name and returns its
+// captured stdout, stderr, and exit code. The exec runs without a TTY so the
+// two streams stay separable (demultiplexed with stdcopy); each is capped at
+// maxExecOutput. A non-zero exit code is reported in the result, not as an error
+// — only a failure to run the command at all returns an error.
+//
+// @arg ctx Context for the Docker exec create/attach/inspect calls.
+// @arg idOrName The ID or name identifying the box to run the command in.
+// @arg cmd The command and its arguments to run inside the box.
+// @return ExecResult The command's stdout, stderr, and exit code.
+// @error error if no managed box matches, or the command cannot be created, started, or read.
+//
+// @testcase TestExecCapturesOutput runs a command and returns its stdout, stderr, and exit code.
+// @testcase TestExecUnknownBox errors when no managed box matches.
+func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (ExecResult, error) {
+	b, err := m.findManaged(ctx, idOrName)
+	if err != nil {
+		return ExecResult{}, err
+	}
+	created, err := m.cli.ContainerExecCreate(ctx, b.ID, container.ExecOptions{
+		Cmd:          cmd,
+		AttachStdout: true,
+		AttachStderr: true,
+	})
+	if err != nil {
+		return ExecResult{}, fmt.Errorf("creating exec in box %s: %w", idOrName, err)
+	}
+	// ContainerExecAttach both starts the exec and streams its output.
+	hj, err := m.cli.ContainerExecAttach(ctx, created.ID, container.ExecAttachOptions{})
+	if err != nil {
+		return ExecResult{}, fmt.Errorf("starting exec in box %s: %w", idOrName, err)
+	}
+	defer hj.Close()
+
+	var stdout, stderr bytes.Buffer
+	// The exec has no TTY, so its stream is stdout/stderr multiplexed; demux it.
+	if _, err := stdcopy.StdCopy(&stdout, &stderr, hj.Reader); err != nil {
+		return ExecResult{}, fmt.Errorf("reading exec output from box %s: %w", idOrName, err)
+	}
+
+	// The exit code is only known once the command has finished (the stream above
+	// has drained), so inspect after reading.
+	insp, err := m.cli.ContainerExecInspect(ctx, created.ID)
+	if err != nil {
+		return ExecResult{}, fmt.Errorf("inspecting exec in box %s: %w", idOrName, err)
+	}
+	return ExecResult{
+		Stdout:   capOutput(stdout.Bytes()),
+		Stderr:   capOutput(stderr.Bytes()),
+		ExitCode: insp.ExitCode,
+	}, nil
+}
+
+// capOutput truncates b to maxExecOutput, appending a marker when it overflows,
+// so a single exec can't return an unbounded payload.
+//
+// @arg b The captured output bytes.
+// @return string The output, truncated with a marker when it exceeds maxExecOutput.
+//
+// @testcase TestExecCapsOutput truncates output past the cap and marks it.
+func capOutput(b []byte) string {
+	if len(b) <= maxExecOutput {
+		return string(b)
+	}
+	return string(b[:maxExecOutput]) + "\n... [output truncated]"
 }
 
 // ReapOrphans destroys pending (never-authenticated) boxes older than ttl.
