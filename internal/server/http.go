@@ -8,15 +8,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Handler builds the HTTP handler serving both the MCP endpoint (at the root) and
-// the auth web pages (at /auth/{token}), plus a /healthz probe. mcpServer is
-// reused across sessions.
+// Handler builds the HTTP handler serving the MCP endpoint (at the root), the
+// auth web pages (at /auth/{token}), a /healthz probe, and the server favicon.
+// mcpServer is reused across sessions.
 //
 // @arg mcpServer The MCP server shared across all requests to the root endpoint.
-// @return http.Handler A mux routing the MCP, auth, and health endpoints.
+// @return http.Handler A mux routing the MCP, auth, health, and favicon endpoints.
 //
 // @testcase TestAuthPageRendersAndSubmits drives the auth routes through this handler.
 // @testcase TestHealthz checks the /healthz route returns ok.
+// @testcase TestFaviconServed checks the favicon route returns the embedded SVG.
 func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	mux := http.NewServeMux()
 
@@ -31,6 +32,16 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+
+	// The server favicon (also referenced by the auth page), served as SVG at the
+	// conventional /favicon.ico path and at /favicon.svg.
+	favicon := func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(faviconSVG)
+	}
+	mux.HandleFunc("GET /favicon.ico", favicon)
+	mux.HandleFunc("GET /favicon.svg", favicon)
 
 	return mux
 }
@@ -125,3 +136,9 @@ var authTmplSrc string
 
 // authTmpl is the parsed auth page template.
 var authTmpl = template.Must(template.New("auth").Parse(authTmplSrc))
+
+// faviconSVG is the server favicon, embedded into the binary at build time from
+// favicon.svg and served at /favicon.ico and /favicon.svg.
+//
+//go:embed favicon.svg
+var faviconSVG []byte

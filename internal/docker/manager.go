@@ -27,8 +27,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -654,8 +654,8 @@ var sessionURLRe = regexp.MustCompile(`https://claude\.(?:ai|com)/[A-Za-z0-9/_?=
 
 // SubmitCode writes the OAuth code to a pending box's login prompt, waits for
 // the login to complete and remote-control to print a session URL, then renames
-// the box to mark it authenticated. It returns the session URL (and any tail of
-// output captured, for diagnostics).
+// the box to mark it authenticated. It returns the session URL exactly as the
+// box printed it (and any tail of output captured, for diagnostics).
 //
 // @arg ctx Context for the Docker attach call.
 // @arg id The container ID of the pending box.
