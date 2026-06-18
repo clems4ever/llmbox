@@ -73,6 +73,10 @@ test: ## Run the unit test suite.
 test-integration: ## Run integration tests (needs Docker + a Claude binary; see integration_test.go).
 	go test -tags integration ./...
 
+.PHONY: test-e2e
+test-e2e: ## Run the end-to-end workflow test (needs Chrome + chromedriver; see e2e/).
+	go test -tags e2e ./e2e/...
+
 .PHONY: cover
 cover: ## Run tests with coverage and print the total.
 	go test -covermode=atomic -coverprofile=$(COVERPROFILE) ./...
