@@ -52,6 +52,7 @@ Boxes that are never authenticated are destroyed after `LLMBOX_AUTH_TTL_SECONDS`
 | `get_llmbox`     | `hostname` | `status` (pending/ready/error), `hostname`, `description`, `session_url` when ready |
 | `list_llmboxes`  | – | the managed boxes (id, name, hostname, description, image, state, phase, created) |
 | `destroy_llmbox` | `hostname` | the destroyed box's hostname |
+| `get_llmbox_logs` | `hostname`, `tail?` | `hostname`, `logs` (the box's recent, ANSI-stripped console output) |
 
 `hostname` and `description` on `create_llmbox` are optional. When set, `hostname`
 becomes the box's container hostname and **must be unique** across boxes — a
@@ -59,8 +60,10 @@ duplicate is rejected with a clear error so the caller can pick another. Both ar
 surfaced again by `get_llmbox` and `list_llmboxes`. `get_llmbox` is keyed by
 `hostname` (case-insensitive), so set one at create time if you want to poll a
 box's status; boxes created without a hostname can still be seen via
-`list_llmboxes`. Destroying a box stops it gracefully (SIGTERM, then SIGKILL
-after a timeout) before removing it.
+`list_llmboxes`. `get_llmbox_logs` is likewise keyed by `hostname` and returns
+the box's recent console output (ANSI-stripped), bounded to the last `tail`
+lines (a sensible default applies when `tail` is omitted). Destroying a box stops
+it gracefully (SIGTERM, then SIGKILL after a timeout) before removing it.
 
 ## Components
 
