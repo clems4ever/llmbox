@@ -1,6 +1,5 @@
 # TODO
 
-* we still see old environments in Claude code web.
 * Use Cobra as CLI line framework.
 * Add code coverage in the CI. Add a badge in the README.
 * Use yaml config instead of env variables. For secrets, read them from file. The config should reference the file paths.

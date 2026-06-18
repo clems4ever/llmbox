@@ -111,7 +111,7 @@
 			"receiver": "Manager",
 			"documentation_hash": "85cdd0eb6918823e77cfa5948957fe45d9581df1f812aa20e491b752a9bf5405",
 			"definition_hash": "586501f545e1ea20fa010b650417f607f55f6011c989c04e3d0af3748f0b2d67",
-			"reviewed_at": "2026-06-18T15:05:52.443107128Z"
+			"reviewed_at": "2026-06-18T16:17:10.172584428Z"
 		},
 		{
 			"function_name": "Logs",
@@ -164,6 +164,13 @@
 			"documentation_hash": "2e9bbd64368a02839d3c2d89645aa63691330a32c54e8ee5d9b6e19b9376d027",
 			"definition_hash": "1b1685277e533ad562417dc7817dc24e48ffd7907af7eb52c03eff948aef3feb",
 			"reviewed_at": "2026-06-18T15:05:52.461289154Z"
+		},
+		{
+			"function_name": "deregisterClaude",
+			"receiver": "Manager",
+			"documentation_hash": "c5e9f7f6601a1fbf48d20003cfcbecd821afcc5ee81a8288affc4c2ab5624e3c",
+			"definition_hash": "26c4e5b466e049105906639ed597db9122fd26aaa790bec0491b4b5889d1c1e6",
+			"reviewed_at": "2026-06-18T16:13:49.699603115Z"
 		}
 	]
 }
