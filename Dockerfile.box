@@ -1,0 +1,21 @@
+# llmbox-box — the default base image launched per sandboxed box.
+#
+# llmbox does not need a Claude-specific box image: the server injects the
+# standalone Claude binary (and a small config seed) into every box at creation.
+# A box base therefore only needs the few things the box entrypoint and the tools
+# running inside a box rely on:
+#   - /bin/sh and util-linux (the entrypoint runs `script`), and
+#   - the public CA-certificate bundle, so HTTPS calls from inside the box
+#     succeed. Plain debian:bookworm-slim ships WITHOUT ca-certificates, which
+#     leaves the trust store empty and makes every TLS call fail with
+#     "certificate signed by unknown authority"; this image adds it.
+#
+# It is intentionally minimal. To give boxes more tooling (git, curl, language
+# runtimes, …), build your own image FROM this one (or any glibc base meeting the
+# requirements above) and point `claude_image` at it.
+#
+# Build:  docker build -f Dockerfile.box -t llmbox-box .
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates util-linux \
+    && rm -rf /var/lib/apt/lists/*

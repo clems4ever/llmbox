@@ -10,7 +10,9 @@ public_url: "http://localhost:8080"
 
 # Base image launched per box. Any glibc image with /bin/sh, util-linux (for
 # `script`), and CA certificates works — Claude is injected, not baked in.
-claude_image: "debian:bookworm-slim"
+# Defaults to ghcr.io/clems4ever/llmbox-box (debian:bookworm-slim + ca-certificates;
+# plain debian:bookworm-slim has no CA bundle, so HTTPS from inside a box fails).
+claude_image: "ghcr.io/clems4ever/llmbox-box:latest"
 
 # Path (on the server) to the standalone Claude binary injected into each box.
 claude_bin: "/opt/llmbox/claude"

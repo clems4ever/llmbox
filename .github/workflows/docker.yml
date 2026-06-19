@@ -1,9 +1,12 @@
 name: Build and push images
 
-# Builds the server image and pushes it to GitHub Container Registry:
-#   - llmbox : the MCP server that manages the boxes (Dockerfile). It bakes in the
-#              standalone Claude binary and injects it into each box at creation,
-#              so there is no separate Claude image to build.
+# Builds the images and pushes them to GitHub Container Registry:
+#   - llmbox     : the MCP server that manages the boxes (Dockerfile). It bakes in
+#                  the standalone Claude binary and injects it into each box at
+#                  creation, so there is no separate Claude image to build.
+#   - llmbox-box : the default base image launched per box (Dockerfile.box) —
+#                  debian:bookworm-slim plus ca-certificates / util-linux. It is
+#                  the default `claude_image`; Claude is injected, not baked in.
 on:
   push:
     branches: [main]
@@ -27,6 +30,8 @@ jobs:
         include:
           - name: llmbox
             dockerfile: Dockerfile
+          - name: llmbox-box
+            dockerfile: Dockerfile.box
     steps:
       - name: Checkout
         uses: actions/checkout@v4

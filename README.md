@@ -94,13 +94,17 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 | `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile`         | Image for **this server** (`llmbox`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
+| `Dockerfile.box`     | The default per-box base image (`llmbox-box`): `debian:bookworm-slim` plus `ca-certificates` and `util-linux`. Intentionally minimal; layer your own image on top for more tooling. |
 
 Boxes run on a plain base image (`claude_image`, default
-`debian:bookworm-slim`): the server **injects** the standalone Claude binary and
-a small `~/.claude.json` seed into each box at creation, and runs it as root with
-`HOME=/root` and a `/workspace` working directory — so nothing Claude-specific
-needs to be baked into the base image. Any glibc image with `/bin/sh`,
-`util-linux` (for `script`), and CA certificates works.
+`ghcr.io/clems4ever/llmbox-box`): the server **injects** the standalone Claude
+binary and a small `~/.claude.json` seed into each box at creation, and runs it as
+root with `HOME=/root` and a `/workspace` working directory — so nothing
+Claude-specific needs to be baked into the base image. Any glibc image with
+`/bin/sh`, `util-linux` (for `script`), and CA certificates works; the default
+just adds the CA bundle that plain `debian:bookworm-slim` omits (without it,
+HTTPS calls from inside a box fail with "certificate signed by unknown
+authority").
 
 ## Running
 
@@ -148,7 +152,7 @@ optional:
 |----------------|---------------------------|---------|
 | `http_addr`    | `:8080`                   | Listen address. |
 | `public_url`   | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
-| `claude_image` | `debian:bookworm-slim`    | Base image launched per box. Any glibc image works — Claude is injected, not baked in. |
+| `claude_image` | `ghcr.io/clems4ever/llmbox-box:latest` | Base image launched per box. Any glibc image with a CA bundle works — Claude is injected, not baked in. |
 | `claude_bin`   | `/opt/llmbox/claude`      | Path (on the server) to the standalone Claude binary injected into each box. |
 | `remote_args`  | `--spawn same-dir`        | Args passed to `claude remote-control`. |
 | `auth_ttl`     | `5m`                      | Destroy un-authenticated boxes after this long (a Go duration string, e.g. `300s`, `5m`). |

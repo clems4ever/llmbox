@@ -92,6 +92,10 @@ cover-html: cover ## Open the HTML coverage report.
 docker-build: ## Build the llmbox Docker image (tagged $(IMAGE):$(VERSION) and :latest).
 	docker build -t $(IMAGE):$(VERSION) -t $(IMAGE):latest .
 
+.PHONY: docker-build-box
+docker-build-box: ## Build the default box base image (tagged $(IMAGE)-box:$(VERSION) and :latest).
+	docker build -f Dockerfile.box -t $(IMAGE)-box:$(VERSION) -t $(IMAGE)-box:latest .
+
 .PHONY: compose-up
 compose-up: ## Build and start via docker compose (needs llmbox.yaml).
 	docker compose up --build

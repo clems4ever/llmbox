@@ -14,7 +14,7 @@
 //
 //	http_addr:    ":8080"                  # listen address
 //	public_url:   "http://localhost:8080"  # external base URL for auth links
-//	claude_image: "debian:bookworm-slim"   # base image per box; any glibc image works — Claude is injected, not baked in
+//	claude_image: "ghcr.io/clems4ever/llmbox-box:latest"  # base image per box; any glibc image with a CA bundle works — Claude is injected, not baked in
 //	claude_bin:   "/opt/llmbox/claude"     # standalone Claude binary injected into each box
 //	remote_args:  "--spawn same-dir"       # args passed to `claude remote-control`
 //	auth_ttl:     "5m"                      # how long a box may stay un-authenticated (Go duration)

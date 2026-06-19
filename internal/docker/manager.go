@@ -63,9 +63,12 @@ const (
 
 	// DefaultImage is launched when the caller does not specify one. Claude is
 	// always injected at create time, so this is a plain glibc base rather than a
-	// Claude-specific image. Any glibc image with /bin/sh, util-linux (for
-	// `script`), and CA certificates works as a substitute.
-	DefaultImage = "debian:bookworm-slim"
+	// Claude-specific image: it only needs /bin/sh, util-linux (for `script`),
+	// and the CA-certificate bundle the box's HTTPS calls rely on. Any glibc
+	// image with those works as a substitute; this one is built by Dockerfile.box
+	// (debian:bookworm-slim + ca-certificates), since plain debian:bookworm-slim
+	// omits ca-certificates and breaks TLS from inside the box.
+	DefaultImage = "ghcr.io/clems4ever/llmbox-box:latest"
 
 	// DefaultClaudeBin is where the Dockerfile bakes the standalone Claude binary;
 	// it is the fallback source the binary is injected from when no path is set.
