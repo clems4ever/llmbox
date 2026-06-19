@@ -36,6 +36,15 @@ state_file: "llmbox-sessions.db"
 # cluster:
 #   enabled: true
 
+# Spoke settings — read only by the `llmbox spoke` command (the hub ignores
+# this block). allowed_images restricts which explicit images this spoke will
+# launch on the hub's behalf (defense in depth); empty means no restriction, and
+# a create with no image uses claude_image above. The hub URL, join token, and
+# credential-state file are passed as flags to `llmbox spoke`, not configured here.
+# spoke:
+#   allowed_images:
+#     - "ghcr.io/clems4ever/llmbox-box:latest"
+
 # Optional box lifecycle hooks: external executables run at box.create/destroy
 # (JSON over stdin/stdout, per the hookproto contract). A hook may inject files
 # into each box and persist opaque state — how integrations like granular plug

@@ -1,0 +1,46 @@
+{
+	"functions": [
+		{
+			"function_name": "newSecret",
+			"documentation_hash": "50ff5f568aea7b50a90abb86983a758784acbcb8df713814d2c42c2e50a5aba1",
+			"definition_hash": "3d59cb94c0c39a21552dcc6302c55e6310959a04d88af7914c379a24f5f27516",
+			"reviewed_at": "2026-06-19T20:34:04.989753079Z"
+		},
+		{
+			"function_name": "hashSecret",
+			"documentation_hash": "a8d5c307a9a6c339e278818202eabb75dbb910557524c3170d1b2e6831f079e8",
+			"definition_hash": "fd6c2328005860893141c649e0dd9746b8d7195e6b9524616124191e72e4b49d",
+			"reviewed_at": "2026-06-19T20:34:04.99063633Z"
+		},
+		{
+			"function_name": "sameHash",
+			"documentation_hash": "3522afb5b731fc4ef1a542a8c71b4622f246e7beb6443f9cd8230b0d0ec28974",
+			"definition_hash": "8a47fd585c79d2a7fba4387c0943108366431296bac2aad4faf7664d876cdd74",
+			"reviewed_at": "2026-06-19T20:34:04.991364185Z"
+		},
+		{
+			"function_name": "CreateJoinToken",
+			"documentation_hash": "24eda493c3e727ddcb6cae6d52c81f0088b2fe362cb70b6e06cd4a41926de4bf",
+			"definition_hash": "039eec24316b6466aced2aeb7ee4dc5abc00833358952c94ab9e5f2fb0a55f4e",
+			"reviewed_at": "2026-06-19T20:34:04.992057967Z"
+		},
+		{
+			"function_name": "authenticateEnroll",
+			"documentation_hash": "98298454829fe553e559783560eb12775d51f18f3ff16115a0c7744293ef910d",
+			"definition_hash": "b053d7b2f5f5fa0c21879079652b0553bced0d4a79ce4a943b05ea2f806f71e1",
+			"reviewed_at": "2026-06-19T20:34:04.992790652Z"
+		},
+		{
+			"function_name": "enrollWithJoinToken",
+			"documentation_hash": "55661ef83930f7870ec60303496c9ca44be6a3b69f567fbba7dc5d73ffe40624",
+			"definition_hash": "64f5c171f198bf358d5bf2dd9f82a8c3a604e824a6c3235c0d69d21bdeae8b50",
+			"reviewed_at": "2026-06-19T20:34:04.993863402Z"
+		},
+		{
+			"function_name": "reconnect",
+			"documentation_hash": "a7212ff898d6bb615b5c24611ae3fcdc805367081a55758d20b9ebdfb751c15a",
+			"definition_hash": "c09bd365322b0d5fc04622933127ae10232cceb19f34d57502c276e67fd39ad7",
+			"reviewed_at": "2026-06-19T20:34:04.995273468Z"
+		}
+	]
+}

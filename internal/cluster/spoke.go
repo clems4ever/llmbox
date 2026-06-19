@@ -54,12 +54,13 @@ func WebSocketDialer(url string) Dialer {
 // @arg joinToken The one-time join token for first enrollment; ignored when creds is set.
 // @arg creds Saved credentials for reconnect; nil for first enrollment.
 // @arg save Callback invoked with freshly minted credentials on first enrollment; may be nil.
+// @arg policy The admission policy the spoke applies to box-creation requests.
 // @error error if dialing, enrollment, or the serve loop fails.
 //
 // @testcase TestSpokeRunEnrollsAndServes enrolls with a join token and serves a verb.
 // @testcase TestSpokeRunReconnectsWithCreds reconnects using saved credentials.
 // @testcase TestSpokeRunEnrollRejected returns the hub's rejection error.
-func Run(ctx context.Context, dial Dialer, mgr BoxManager, joinToken string, creds *Credentials, save func(Credentials) error) error {
+func Run(ctx context.Context, dial Dialer, mgr BoxManager, joinToken string, creds *Credentials, save func(Credentials) error, policy ValidationPolicy) error {
 	tr, err := dial(ctx)
 	if err != nil {
 		return fmt.Errorf("dialing hub: %w", err)
@@ -76,7 +77,7 @@ func Run(ctx context.Context, dial Dialer, mgr BoxManager, joinToken string, cre
 		}
 	}
 
-	return serve(ctx, tr, mgr)
+	return serve(ctx, tr, mgr, policy)
 }
 
 // enrollSpoke performs the spoke's side of the enrollment handshake and returns

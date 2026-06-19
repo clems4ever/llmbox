@@ -1,0 +1,28 @@
+{
+	"functions": [
+		{
+			"function_name": "TestValidateCreateRejectsBadBoxID",
+			"documentation_hash": "ea437c48d2a68ec69e05d57ca7e4b2b9e27bf1cbde607851666546b074ade62e",
+			"definition_hash": "e547fca273762fcb24617305f432e5c42658345b7241ac9fcf7fcef82e174281",
+			"reviewed_at": "2026-06-19T20:38:25.999479458Z"
+		},
+		{
+			"function_name": "TestValidateCreateImageAllowlist",
+			"documentation_hash": "7cd3da13877970af665bf2ebad3af395540d66d90dd806478114741b6eb7a1fb",
+			"definition_hash": "2b866c2cdc3db5a8294336dbbee6ca7a6ba480c8ead0c5ca70419c6bbb6bd22a",
+			"reviewed_at": "2026-06-19T20:38:25.999880447Z"
+		},
+		{
+			"function_name": "TestValidateCreateAllowsEmptyImage",
+			"documentation_hash": "2fd582d42c76d4d14f5c7a648497d15c92e776e064b04d9ad1de1db7fb7f20af",
+			"definition_hash": "be2613854e09d2c0ae48531bdba5cd15987f2e273517c7d2906124b8fd48419c",
+			"reviewed_at": "2026-06-19T20:38:26.000190122Z"
+		},
+		{
+			"function_name": "TestDispatchRejectsInvalidCreate",
+			"documentation_hash": "cf41c4dc60b5e20e5f90008afb902fc5f687d43dc7314997a4d8eb82033bcb26",
+			"definition_hash": "67bfad4e3b6e3e9a121bf28d76e191dac1a4825b6060fd3649d710071fc85dba",
+			"reviewed_at": "2026-06-19T20:38:26.000515146Z"
+		}
+	]
+}

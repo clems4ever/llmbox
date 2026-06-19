@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// TestCreateJoinTokenStoresHash is a package test.
 func TestCreateJoinTokenStoresHash(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(1_000, 0)
@@ -28,18 +29,21 @@ func TestCreateJoinTokenStoresHash(t *testing.T) {
 	}
 }
 
+// TestCreateJoinTokenRejectsEmptyName is a package test.
 func TestCreateJoinTokenRejectsEmptyName(t *testing.T) {
 	if _, err := CreateJoinToken(newMemStore(), "", time.Hour, time.Now()); err == nil {
 		t.Fatal("expected error for empty name")
 	}
 }
 
+// TestCreateJoinTokenRejectsTTL is a package test.
 func TestCreateJoinTokenRejectsTTL(t *testing.T) {
 	if _, err := CreateJoinToken(newMemStore(), "edge", 0, time.Now()); err == nil {
 		t.Fatal("expected error for non-positive ttl")
 	}
 }
 
+// TestEnrollWithJoinTokenMintsCredential is a package test.
 func TestEnrollWithJoinTokenMintsCredential(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(2_000, 0)
@@ -69,6 +73,7 @@ func TestEnrollWithJoinTokenMintsCredential(t *testing.T) {
 	}
 }
 
+// TestEnrollRejectsExpiredToken is a package test.
 func TestEnrollRejectsExpiredToken(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(3_000, 0)
@@ -83,6 +88,7 @@ func TestEnrollRejectsExpiredToken(t *testing.T) {
 	}
 }
 
+// TestEnrollRejectsUnknownToken is a package test.
 func TestEnrollRejectsUnknownToken(t *testing.T) {
 	_, _, err := authenticateEnroll(newMemStore(), enrollReq{JoinToken: "nope"}, time.Now())
 	if !errors.Is(err, errEnrollRejected) {
@@ -90,6 +96,7 @@ func TestEnrollRejectsUnknownToken(t *testing.T) {
 	}
 }
 
+// TestEnrollReusedTokenRejected is a package test.
 func TestEnrollReusedTokenRejected(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(4_000, 0)
@@ -102,6 +109,7 @@ func TestEnrollReusedTokenRejected(t *testing.T) {
 	}
 }
 
+// TestReconnectChecksCredential is a package test.
 func TestReconnectChecksCredential(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(5_000, 0)

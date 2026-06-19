@@ -10,6 +10,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
+	"github.com/clems4ever/llmbox/internal/server"
 )
 
 // TestNewSpokeCmd checks the spoke command wiring: its flags and the
@@ -62,6 +63,121 @@ func TestCreateJoinTokenCmdPrintsToken(t *testing.T) {
 	}
 	if !strings.Contains(s, "llmbox spoke --hub") {
 		t.Errorf("output missing usage hint: %q", s)
+	}
+}
+
+// seedJoinToken mints a join token for name into cfg's store and returns its ID.
+func seedJoinToken(t *testing.T, cfg *config.Config, name string) string {
+	t.Helper()
+	store, err := server.OpenStore(cfg.StateFile)
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	defer func() { _ = store.Close() }()
+	if _, err := cluster.CreateJoinToken(store, name, time.Hour, time.Now()); err != nil {
+		t.Fatalf("CreateJoinToken: %v", err)
+	}
+	infos, err := store.ListJoinTokens()
+	if err != nil {
+		t.Fatalf("ListJoinTokens: %v", err)
+	}
+	for _, i := range infos {
+		if i.Name == name {
+			return i.ID
+		}
+	}
+	t.Fatalf("seeded token for %q not found", name)
+	return ""
+}
+
+// countJoinTokens returns how many join tokens are stored in cfg's state file.
+func countJoinTokens(t *testing.T, cfg *config.Config) int {
+	t.Helper()
+	store, err := server.OpenStore(cfg.StateFile)
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	defer func() { _ = store.Close() }()
+	infos, err := store.ListJoinTokens()
+	if err != nil {
+		t.Fatalf("ListJoinTokens: %v", err)
+	}
+	return len(infos)
+}
+
+// TestListJoinTokensCmd lists outstanding tokens with their spoke and a short ID.
+func TestListJoinTokensCmd(t *testing.T) {
+	cfg := config.Default()
+	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
+	id := seedJoinToken(t, cfg, "edge")
+
+	var out bytes.Buffer
+	if err := listJoinTokens(&out, cfg, time.Now()); err != nil {
+		t.Fatalf("listJoinTokens: %v", err)
+	}
+	s := out.String()
+	if !strings.Contains(s, "edge") || !strings.Contains(s, "SPOKE") {
+		t.Errorf("listing missing spoke/header: %q", s)
+	}
+	if !strings.Contains(s, id[:joinTokenIDLen]) {
+		t.Errorf("listing missing short ID %q: %q", id[:joinTokenIDLen], s)
+	}
+}
+
+// TestListJoinTokensCmdEmpty reports when there are no tokens.
+func TestListJoinTokensCmdEmpty(t *testing.T) {
+	cfg := config.Default()
+	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
+	var out bytes.Buffer
+	if err := listJoinTokens(&out, cfg, time.Now()); err != nil {
+		t.Fatalf("listJoinTokens: %v", err)
+	}
+	if !strings.Contains(out.String(), "No outstanding join tokens") {
+		t.Errorf("empty listing = %q", out.String())
+	}
+}
+
+// TestRevokeJoinTokenByID revokes the single token matching an ID prefix.
+func TestRevokeJoinTokenByID(t *testing.T) {
+	cfg := config.Default()
+	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
+	id := seedJoinToken(t, cfg, "edge")
+
+	var out bytes.Buffer
+	if err := revokeJoinTokens(&out, cfg, id[:10], ""); err != nil {
+		t.Fatalf("revokeJoinTokens: %v", err)
+	}
+	if !strings.Contains(out.String(), "Revoked") {
+		t.Errorf("revoke output = %q", out.String())
+	}
+	if n := countJoinTokens(t, cfg); n != 0 {
+		t.Errorf("token count after revoke = %d, want 0", n)
+	}
+}
+
+// TestRevokeJoinTokenByName revokes every token for a spoke name.
+func TestRevokeJoinTokenByName(t *testing.T) {
+	cfg := config.Default()
+	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
+	seedJoinToken(t, cfg, "edge")
+	seedJoinToken(t, cfg, "edge")
+	seedJoinToken(t, cfg, "other")
+
+	var out bytes.Buffer
+	if err := revokeJoinTokens(&out, cfg, "", "edge"); err != nil {
+		t.Fatalf("revokeJoinTokens: %v", err)
+	}
+	if n := countJoinTokens(t, cfg); n != 1 {
+		t.Errorf("token count after revoking edge = %d, want 1 (other remains)", n)
+	}
+}
+
+// TestRevokeJoinTokenNoMatch errors when nothing matches.
+func TestRevokeJoinTokenNoMatch(t *testing.T) {
+	cfg := config.Default()
+	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
+	if err := revokeJoinTokens(&bytes.Buffer{}, cfg, "deadbeef", ""); err == nil {
+		t.Fatal("expected error when no token matches")
 	}
 }
 

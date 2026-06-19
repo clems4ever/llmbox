@@ -76,7 +76,7 @@ func TestClusterEndToEnd(t *testing.T) {
 	edgeMgr := newFakeSpokeMgr("edge")
 	wsURL := "ws://" + addr + "/spoke/connect"
 	go func() {
-		_ = cluster.Run(ctx, cluster.WebSocketDialer(wsURL), edgeMgr, joinToken, nil, func(cluster.Credentials) error { return nil })
+		_ = cluster.Run(ctx, cluster.WebSocketDialer(wsURL), edgeMgr, joinToken, nil, func(cluster.Credentials) error { return nil }, cluster.ValidationPolicy{})
 	}()
 
 	// The chatbot side, over a real MCP client.
@@ -115,6 +115,15 @@ func TestClusterEndToEnd(t *testing.T) {
 		t.Fatalf("list shows box b1 on spoke %q, want edge", spoke)
 	}
 
+	// list_spokes reports the edge spoke (and the local spoke) as connected.
+	spokesOut := callTool(t, cs, "list_spokes", map[string]any{})
+	if !spokeConnected(spokesOut, "edge") {
+		t.Fatalf("list_spokes does not show edge connected: %v", spokesOut)
+	}
+	if !spokeConnected(spokesOut, "local") {
+		t.Fatalf("list_spokes does not show the local spoke connected: %v", spokesOut)
+	}
+
 	// exec routes to the spoke.
 	execOut := callTool(t, cs, "exec_llmbox", map[string]any{"box_id": "b1", "command": "echo hi"})
 	if execOut["stdout"] != "hello-from-edge\n" {
@@ -135,7 +144,7 @@ func TestClusterEndToEnd(t *testing.T) {
 	// The join token is one-time: a second enrollment with it must be rejected.
 	enrollCtx, enrollCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer enrollCancel()
-	err = cluster.Run(enrollCtx, cluster.WebSocketDialer(wsURL), newFakeSpokeMgr("edge2"), joinToken, nil, nil)
+	err = cluster.Run(enrollCtx, cluster.WebSocketDialer(wsURL), newFakeSpokeMgr("edge2"), joinToken, nil, nil, cluster.ValidationPolicy{})
 	if err == nil {
 		t.Fatal("second enrollment with the same join token should have been rejected")
 	}
@@ -248,6 +257,22 @@ func spokeOfBox(listOut map[string]any, boxID string) string {
 		}
 	}
 	return ""
+}
+
+// spokeConnected reports whether list_spokes output marks the named spoke connected.
+func spokeConnected(listOut map[string]any, name string) bool {
+	spokes, _ := listOut["spokes"].([]any)
+	for _, s := range spokes {
+		m, ok := s.(map[string]any)
+		if !ok {
+			continue
+		}
+		if m["name"] == name {
+			c, _ := m["connected"].(bool)
+			return c
+		}
+	}
+	return false
 }
 
 // waitHealthy blocks until the server answers /healthz.

@@ -1,0 +1,141 @@
+{
+	"functions": [
+		{
+			"function_name": "TestClusterEndToEnd",
+			"documentation_hash": "23fcc25d19c4f7e34061cdbfb319ef7f44f81ebee6329d0d15e49719b40f43ad",
+			"definition_hash": "854296c7f50d05e56d9864772d185cb3b20fbba3772cf5fe4f21c4722f9852dc",
+			"reviewed_at": "2026-06-19T20:31:47.086672678Z"
+		},
+		{
+			"function_name": "newFakeSpokeMgr",
+			"documentation_hash": "78d7a36fbb73726928408c254350ddcb5058cb0475f43edeb92574c9e44883c3",
+			"definition_hash": "0e0bc3954ffa9eaf6565dfc6d8c9fb684ed759fb016fa838ce4752dca4d5d496",
+			"reviewed_at": "2026-06-19T20:31:48.714984766Z"
+		},
+		{
+			"function_name": "Create",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "e91be58eb99529e3bc7566f716b14c7abd79e4d26d54846d176d6fea38d69022",
+			"definition_hash": "b62dd9c74e41e4cd71a354ebe9e0a352ceacc818357113165dcbb864ff5db94e",
+			"reviewed_at": "2026-06-19T20:31:49.972477389Z"
+		},
+		{
+			"function_name": "SubmitCode",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "38632f0ca034e455399d522a9d4a9511403873f714a50c574959e658bbd50cea",
+			"definition_hash": "04ac1a299162bd04178107d77ebc8e658485e16a9047409625da17b5a41c6045",
+			"reviewed_at": "2026-06-19T20:31:51.303328426Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "707cad061b856d83f20be435ae16a52f80614e8c2342f71a1ac7c3ef38528728",
+			"definition_hash": "d1c580ba2851c971451e34b00e2eec1b3064ca24d47b19139fbd700bdc54744b",
+			"reviewed_at": "2026-06-19T20:31:52.359320677Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "87e97ad3a73aba8054ac3b2a31dfe2b25cd49c66ef47acadaf4a0ca11dfcd05c",
+			"definition_hash": "a0fd378b6ded440ec5a7a15b16b7c6aa0cd84c6aadd65f29005dcbc9dab8abae",
+			"reviewed_at": "2026-06-19T20:31:53.270827457Z"
+		},
+		{
+			"function_name": "Logs",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "342af416cd708e3c08822133e0c893a72cca2242668612a2d53c35ce449e7a33",
+			"definition_hash": "f12d5d05d8a2e44e161329d7230ba8171a8b390e7ddc38220391d8bd915d8c54",
+			"reviewed_at": "2026-06-19T20:31:54.162738815Z"
+		},
+		{
+			"function_name": "Exec",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "f0baa96183d55df79556428275525987be560cecaef953cdc12ade56fa6e02c0",
+			"definition_hash": "c7e3a24e0e4d503192f9fcddca74a90b16bdf2f94bd2cca88d06185355a3d8f4",
+			"reviewed_at": "2026-06-19T20:31:55.418422372Z"
+		},
+		{
+			"function_name": "ReapOrphans",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "1971cda8d65b3d413f462a9af2919569dd9f5674c68ef6b7d48cbbd021011946",
+			"definition_hash": "eaaaace7e0f2e2853929566c0036fb30759522f837495e17cf700aff426224b9",
+			"reviewed_at": "2026-06-19T20:31:56.997438599Z"
+		},
+		{
+			"function_name": "creates",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "623dd3d22dc0b6dc482dce795c43fa8b47d64b851c6262a40982864c26f46dc4",
+			"definition_hash": "22fb63a7cd57ebf02bb2797faedd257f513b05a0dfab46098c035ebf6ca5607e",
+			"reviewed_at": "2026-06-19T20:31:58.127360084Z"
+		},
+		{
+			"function_name": "execs",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "f11b1f66d17146a39b8ddd139660d378ea9feffe035c8a9f1cf46d77ec389e43",
+			"definition_hash": "53838cfdfc31b29115e35a3384a74e33817dbba429398b0e04a95ca1a3d89a6a",
+			"reviewed_at": "2026-06-19T20:31:58.633650548Z"
+		},
+		{
+			"function_name": "live",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "0a7e0f1278fc66597bc211eb4e807e2205f02f9595fdb8b1c9044e47adcecc09",
+			"definition_hash": "69404a59900f6d18e410afe58ebdb12e229cc69b165a7c6d18a83f1cab0f8e1e",
+			"reviewed_at": "2026-06-19T20:32:00.090861233Z"
+		},
+		{
+			"function_name": "hasPrefix",
+			"documentation_hash": "a82919f0c568900631e837a5189916dc84583f851d82f4b6c49e28bb096b2905",
+			"definition_hash": "27ba2eeb891483603bb7cf75d1b4a3f194a1aab0a158d259d665ca8d124b120a",
+			"reviewed_at": "2026-06-19T20:32:01.7567527Z"
+		},
+		{
+			"function_name": "randHex",
+			"documentation_hash": "ce6d2a6d0732d09f06a0f88b837fbc36b36b7af388064349fe2732d347502b03",
+			"definition_hash": "4ac93e7299c650fe4e15a9975e93281d5bf05677b093ef06de0f97dca0023ffe",
+			"reviewed_at": "2026-06-19T20:32:02.807294922Z"
+		},
+		{
+			"function_name": "spokeOfBox",
+			"documentation_hash": "559d84358284d811dc7e1f1d71dbd9b30828333cd879b03d41c2c5f5f2f83296",
+			"definition_hash": "8ddcf65115196f9faa4ff8ecde6e785a446baa45f383ae257c0579378e51d116",
+			"reviewed_at": "2026-06-19T20:32:03.886015049Z"
+		},
+		{
+			"function_name": "spokeConnected",
+			"documentation_hash": "88c677ad30a646ef6a4d7fdb23f2b5e8c2199476f42f12bb80efcb2d188c507f",
+			"definition_hash": "a54da586bd7f6068af135b8439f25fd01ed114ce359156e56ceb9304b2f16e74",
+			"reviewed_at": "2026-06-19T20:32:04.624728934Z"
+		},
+		{
+			"function_name": "waitHealthy",
+			"documentation_hash": "781259a85614acd66b85296d4226090dc3b8303d42ffd1d123119c1237209256",
+			"definition_hash": "57aa0e4066932708286ee88f21ea4646713b4a43811df9177a8d5c0b5d04f1d4",
+			"reviewed_at": "2026-06-19T20:32:05.628456566Z"
+		},
+		{
+			"function_name": "connectMCP",
+			"documentation_hash": "d8b724ddbb328b3c7b3e60961d4169b9e3bebcff339c385f80d58f12efa6c765",
+			"definition_hash": "fe2ce16d1358859492a3c1d12fbb13848234d403da6e40b8d439efc99f516bfc",
+			"reviewed_at": "2026-06-19T20:32:06.807442253Z"
+		},
+		{
+			"function_name": "callTool",
+			"documentation_hash": "d1c03920edc8bd108f1cd63c75233aaadf2d7a8ac116232ca8b11e9db202fe1f",
+			"definition_hash": "dc2c78165876d5737e87d4f23a9da1de455de71ed9cd6813fa76270dd58e69b7",
+			"reviewed_at": "2026-06-19T20:32:07.681945965Z"
+		},
+		{
+			"function_name": "callToolRaw",
+			"documentation_hash": "9ceb2a7e48e7802150188132ab252b4ae6e6a96f0cda7716f8217b80ae488c5e",
+			"definition_hash": "9cc571717037cf9b86502305fb1411da5de6d97b9acd12d8796812dc64dec7da",
+			"reviewed_at": "2026-06-19T20:32:08.477169851Z"
+		},
+		{
+			"function_name": "Error",
+			"receiver": "toolError",
+			"documentation_hash": "e1cb0767179cb9ce64eaf36f4e88a6607c6f202eb94f82b2c955f2c92e3b620c",
+			"definition_hash": "afdd757cd808edd1d05b9ba534fa6876bdcf48ac6651ced6e9e6e636ba38fb00",
+			"reviewed_at": "2026-06-19T20:32:09.894714289Z"
+		}
+	]
+}

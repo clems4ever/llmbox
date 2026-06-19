@@ -18,11 +18,12 @@ import (
 // @arg ctx Context whose cancellation stops the loop.
 // @arg tr The transport to the hub.
 // @arg mgr The local box manager verbs are dispatched to.
+// @arg policy The admission policy applied to creation requests.
 // @error error The transport error that ended the loop (nil on a clean context cancel).
 //
 // @testcase TestDispatchHandlesVerbs dispatches each verb to a fake manager and replies.
 // @testcase TestDispatchUnknownMethod replies with an error for an unknown method.
-func serve(ctx context.Context, tr transport, mgr BoxManager) error {
+func serve(ctx context.Context, tr transport, mgr BoxManager, policy ValidationPolicy) error {
 	for {
 		f, err := tr.Recv(ctx)
 		if err != nil {
@@ -31,7 +32,7 @@ func serve(ctx context.Context, tr transport, mgr BoxManager) error {
 		if f.Type != frameReq {
 			continue
 		}
-		go handleRequest(ctx, tr, mgr, f)
+		go handleRequest(ctx, tr, mgr, f, policy)
 	}
 }
 
@@ -41,10 +42,11 @@ func serve(ctx context.Context, tr transport, mgr BoxManager) error {
 // @arg tr The transport to reply on.
 // @arg mgr The local box manager.
 // @arg req The request frame.
+// @arg policy The admission policy applied to creation requests.
 //
 // @testcase TestDispatchHandlesVerbs covers each verb path through handleRequest.
-func handleRequest(ctx context.Context, tr transport, mgr BoxManager, req frame) {
-	payload, err := dispatch(ctx, mgr, req)
+func handleRequest(ctx context.Context, tr transport, mgr BoxManager, req frame, policy ValidationPolicy) {
+	payload, err := dispatch(ctx, mgr, req, policy)
 	resp := frame{Type: frameResp, ID: req.ID}
 	if err != nil {
 		resp.Error = err.Error()
@@ -56,22 +58,28 @@ func handleRequest(ctx context.Context, tr transport, mgr BoxManager, req frame)
 }
 
 // dispatch decodes a verb request, calls the matching BoxManager method, and
-// returns the encoded response payload.
+// returns the encoded response payload. A creation request is admission-checked
+// against policy before it reaches the manager.
 //
 // @arg ctx Context for the verb call.
 // @arg mgr The local box manager.
 // @arg req The request frame to dispatch.
+// @arg policy The admission policy applied to creation requests.
 // @return json.RawMessage The encoded response payload (nil for void verbs).
-// @error error if the method is unknown, the payload is malformed, or the verb fails.
+// @error error if the method is unknown, the payload is malformed, the request is rejected by policy, or the verb fails.
 //
 // @testcase TestDispatchHandlesVerbs decodes and runs each verb.
 // @testcase TestDispatchUnknownMethod errors on an unrecognized method.
 // @testcase TestDispatchBadPayload errors on a malformed request payload.
-func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, error) {
+// @testcase TestDispatchRejectsInvalidCreate rejects a creation that fails the policy.
+func dispatch(ctx context.Context, mgr BoxManager, req frame, policy ValidationPolicy) (json.RawMessage, error) {
 	switch req.Method {
 	case methodCreate:
 		var in createReq
 		if err := decodePayload(req.Payload, &in); err != nil {
+			return nil, err
+		}
+		if err := policy.validateCreate(in.Opts); err != nil {
 			return nil, err
 		}
 		id, url, err := mgr.Create(ctx, in.Opts)

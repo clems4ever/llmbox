@@ -235,6 +235,34 @@
 			"documentation_hash": "5cbbdd940b04e8564d1df20afe90e717aca5f481af0cc5e50207d70d09122328",
 			"definition_hash": "6940a3d7d06cf9f78053d80e65f5479f79c866f68beed0c54808d20ac71f5942",
 			"reviewed_at": "2026-06-19T19:47:04.471396677Z"
+		},
+		{
+			"function_name": "ListJoinTokens",
+			"receiver": "noopStore",
+			"documentation_hash": "28ab8982a964339ed7895b1fa91455ea52fc21b249cb523315a72a71341ab64e",
+			"definition_hash": "1a439ef17954f62f01152b0aac7ea61d16fc6a97f12faba730c59a6acfa9d2d5",
+			"reviewed_at": "2026-06-19T20:37:52.916971197Z"
+		},
+		{
+			"function_name": "DeleteJoinToken",
+			"receiver": "noopStore",
+			"documentation_hash": "f6fdf99aa4afa64be044ad52f47a6f649534b40385a128662fb40fc717194971",
+			"definition_hash": "ffe77c49741f528c9af33129d998febecf13ad2d59a6bd90166eeccda3932893",
+			"reviewed_at": "2026-06-19T20:37:52.921047002Z"
+		},
+		{
+			"function_name": "ListJoinTokens",
+			"receiver": "boltStore",
+			"documentation_hash": "1845c75d7ab42a152ebc3afccf96bb20d9bf96155f5481772598de3a17d5de4b",
+			"definition_hash": "6f23b63a62b6df34a9355237e4ea41c51afa91f1ed16efa76f9ea2b5285be205",
+			"reviewed_at": "2026-06-19T20:37:52.926072555Z"
+		},
+		{
+			"function_name": "DeleteJoinToken",
+			"receiver": "boltStore",
+			"documentation_hash": "a1841fc0b7f235b060a8556d4d5412941ccc0140cf53be3c26ae59e0a2d8ca93",
+			"definition_hash": "d7bc93c2aa1ac7b9373be5e4b16b305fea0985c0c9bfcf8faee969b9b81bb2ca",
+			"reviewed_at": "2026-06-19T20:37:52.931588759Z"
 		}
 	]
 }

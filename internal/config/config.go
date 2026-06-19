@@ -68,6 +68,7 @@ type Config struct {
 	BoxPeers    []string      `yaml:"box_peers"`
 	Auth        AuthConfig    `yaml:"auth"`
 	Cluster     ClusterConfig `yaml:"cluster"`
+	Spoke       SpokeConfig   `yaml:"spoke"`
 }
 
 // ClusterConfig enables hub-and-spoke clustering on the hub. When enabled, the
@@ -77,6 +78,15 @@ type Config struct {
 // this block.
 type ClusterConfig struct {
 	Enabled bool `yaml:"enabled"`
+}
+
+// SpokeConfig is read by the `llmbox spoke` command. It carries the spoke's
+// admission policy for box-creation requests arriving from the hub (defense in
+// depth on the edge). allowed_images, when set, restricts which explicit images
+// the spoke will launch; an empty list places no image restriction (a request
+// with no image uses the spoke's own configured default).
+type SpokeConfig struct {
+	AllowedImages []string `yaml:"allowed_images"`
 }
 
 // AuthConfig configures who may activate a box. When a provider is enabled, the

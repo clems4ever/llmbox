@@ -34,6 +34,7 @@ func newPipe() (a, b *memTransport) {
 	return a, b
 }
 
+// Send is a test helper.
 func (t *memTransport) Send(ctx context.Context, f frame) error {
 	select {
 	case <-t.done:
@@ -45,6 +46,7 @@ func (t *memTransport) Send(ctx context.Context, f frame) error {
 	}
 }
 
+// Recv is a test helper.
 func (t *memTransport) Recv(ctx context.Context) (frame, error) {
 	select {
 	case <-t.done:
@@ -56,6 +58,7 @@ func (t *memTransport) Recv(ctx context.Context) (frame, error) {
 	}
 }
 
+// Close is a test helper.
 func (t *memTransport) Close() error {
 	t.closeFn()
 	return nil
@@ -89,6 +92,7 @@ type fakeManager struct {
 	lastReap time.Duration
 }
 
+// Create is a test helper.
 func (f *fakeManager) Create(_ context.Context, opts docker.CreateOptions) (string, string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -99,6 +103,7 @@ func (f *fakeManager) Create(_ context.Context, opts docker.CreateOptions) (stri
 	return f.createID, f.createURL, nil
 }
 
+// SubmitCode is a test helper.
 func (f *fakeManager) SubmitCode(_ context.Context, id, code string) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -109,6 +114,7 @@ func (f *fakeManager) SubmitCode(_ context.Context, id, code string) (string, er
 	return f.sessionURL, nil
 }
 
+// List is a test helper.
 func (f *fakeManager) List(_ context.Context) ([]docker.Box, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -118,6 +124,7 @@ func (f *fakeManager) List(_ context.Context) ([]docker.Box, error) {
 	return f.boxes, nil
 }
 
+// Destroy is a test helper.
 func (f *fakeManager) Destroy(_ context.Context, idOrName string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -125,6 +132,7 @@ func (f *fakeManager) Destroy(_ context.Context, idOrName string) error {
 	return f.err
 }
 
+// Logs is a test helper.
 func (f *fakeManager) Logs(_ context.Context, idOrName string, tail int) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -135,6 +143,7 @@ func (f *fakeManager) Logs(_ context.Context, idOrName string, tail int) (string
 	return f.logsOut, nil
 }
 
+// Exec is a test helper.
 func (f *fakeManager) Exec(_ context.Context, idOrName string, cmd []string) (docker.ExecResult, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -146,6 +155,7 @@ func (f *fakeManager) Exec(_ context.Context, idOrName string, cmd []string) (do
 	return f.execResult, nil
 }
 
+// ReapOrphans is a test helper.
 func (f *fakeManager) ReapOrphans(_ context.Context, ttl time.Duration) ([]string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -163,10 +173,12 @@ type memStore struct {
 	spokes map[string]SpokeRecord
 }
 
+// newMemStore is a test helper.
 func newMemStore() *memStore {
 	return &memStore{join: map[string]JoinTokenRecord{}, spokes: map[string]SpokeRecord{}}
 }
 
+// PutJoinToken is a test helper.
 func (m *memStore) PutJoinToken(hash string, rec JoinTokenRecord) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -174,6 +186,7 @@ func (m *memStore) PutJoinToken(hash string, rec JoinTokenRecord) error {
 	return nil
 }
 
+// TakeJoinToken is a test helper.
 func (m *memStore) TakeJoinToken(hash string) (JoinTokenRecord, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -184,6 +197,26 @@ func (m *memStore) TakeJoinToken(hash string) (JoinTokenRecord, bool, error) {
 	return rec, ok, nil
 }
 
+// ListJoinTokens is a test helper.
+func (m *memStore) ListJoinTokens() ([]JoinTokenInfo, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]JoinTokenInfo, 0, len(m.join))
+	for hash, rec := range m.join {
+		out = append(out, JoinTokenInfo{ID: hash, Name: rec.Name, ExpiresAt: rec.ExpiresAt})
+	}
+	return out, nil
+}
+
+// DeleteJoinToken is a test helper.
+func (m *memStore) DeleteJoinToken(hash string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.join, hash)
+	return nil
+}
+
+// PutSpoke is a test helper.
 func (m *memStore) PutSpoke(name string, rec SpokeRecord) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -191,6 +224,7 @@ func (m *memStore) PutSpoke(name string, rec SpokeRecord) error {
 	return nil
 }
 
+// GetSpoke is a test helper.
 func (m *memStore) GetSpoke(name string) (SpokeRecord, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -198,6 +232,7 @@ func (m *memStore) GetSpoke(name string) (SpokeRecord, bool, error) {
 	return rec, ok, nil
 }
 
+// ListSpokes is a test helper.
 func (m *memStore) ListSpokes() ([]SpokeRecord, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -208,6 +243,7 @@ func (m *memStore) ListSpokes() ([]SpokeRecord, error) {
 	return out, nil
 }
 
+// DeleteSpoke is a test helper.
 func (m *memStore) DeleteSpoke(name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

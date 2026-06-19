@@ -38,6 +38,40 @@ func TestClusterStoreJoinTokenRoundTrip(t *testing.T) {
 	}
 }
 
+// TestClusterStoreJoinTokenListAndDelete checks join tokens can be listed (with
+// their hash ID, name, and expiry) and revoked by ID.
+func TestClusterStoreJoinTokenListAndDelete(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	exp := time.Now().Add(time.Hour).UTC().Round(time.Second)
+	_ = store.PutJoinToken("hashA", cluster.JoinTokenRecord{Name: "edge-1", ExpiresAt: exp})
+	_ = store.PutJoinToken("hashB", cluster.JoinTokenRecord{Name: "edge-2", ExpiresAt: exp})
+
+	tokens, err := store.ListJoinTokens()
+	if err != nil || len(tokens) != 2 {
+		t.Fatalf("ListJoinTokens = (%v,%v), want 2", tokens, err)
+	}
+	byID := map[string]cluster.JoinTokenInfo{}
+	for _, tk := range tokens {
+		byID[tk.ID] = tk
+	}
+	if byID["hashA"].Name != "edge-1" || !byID["hashA"].ExpiresAt.Equal(exp) {
+		t.Errorf("listing for hashA = %+v", byID["hashA"])
+	}
+
+	if err := store.DeleteJoinToken("hashA"); err != nil {
+		t.Fatalf("DeleteJoinToken: %v", err)
+	}
+	tokens, _ = store.ListJoinTokens()
+	if len(tokens) != 1 || tokens[0].ID != "hashB" {
+		t.Errorf("after delete, listing = %v, want only hashB", tokens)
+	}
+}
+
 // TestClusterStoreSpokeRoundTrip checks enrolled spokes persist, list, and delete.
 func TestClusterStoreSpokeRoundTrip(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))

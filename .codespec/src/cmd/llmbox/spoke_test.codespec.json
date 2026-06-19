@@ -23,6 +23,48 @@
 			"documentation_hash": "c0fc709786f81ea560e35180bb1bb21379beb97a12039ec844c89f743e27a07e",
 			"definition_hash": "0261aa57ebaf31c2565571471b978bc998317dc0150ef00f4c4a203edaed5865",
 			"reviewed_at": "2026-06-19T19:49:54.550005526Z"
+		},
+		{
+			"function_name": "seedJoinToken",
+			"documentation_hash": "ecfd38c015b0e2302341c80dd133a67ff208f3e59d4c81fb7fb00b96eff1320b",
+			"definition_hash": "4fa521df2aa4edf747a224f1e8e22b6b0b26b8b82473734dcc86d7acea902a8e",
+			"reviewed_at": "2026-06-19T20:22:09.942493137Z"
+		},
+		{
+			"function_name": "countJoinTokens",
+			"documentation_hash": "41787364dd2bea05d695bb1cce7c07468ccd2068c6c39d92e24da82f72f44ec3",
+			"definition_hash": "9caa464dfa010ceb2ab0de8dd7348c8587a1b051491ab7d97d670462e97f0399",
+			"reviewed_at": "2026-06-19T20:23:12.787824816Z"
+		},
+		{
+			"function_name": "TestListJoinTokensCmd",
+			"documentation_hash": "ecb2df9708708f792187ae284c97528d96765e18e6c33b2cafb87ebde75140fd",
+			"definition_hash": "d4001c1705a802ebef840417f99fad909a35b011ba0390fb71200b28cb11366a",
+			"reviewed_at": "2026-06-19T20:23:14.108301008Z"
+		},
+		{
+			"function_name": "TestListJoinTokensCmdEmpty",
+			"documentation_hash": "d26b18376c8a8db22b281471ca15040f788b289d050f0ba1f78a7b5af5083946",
+			"definition_hash": "1799ed9a8ce1d541c36626c4a955a364f50c114372a819a7929a71e19a4ff3ba",
+			"reviewed_at": "2026-06-19T20:23:15.393357908Z"
+		},
+		{
+			"function_name": "TestRevokeJoinTokenByID",
+			"documentation_hash": "c3fb9e84d55e6f676c453625b5e77928b238066d912e987f0c4cbed7dc1dd336",
+			"definition_hash": "ea3b49d116c77ac3781ad8ec5cb00c5b9be0336623efe1c65fb6fe16a434eede",
+			"reviewed_at": "2026-06-19T20:23:16.97147483Z"
+		},
+		{
+			"function_name": "TestRevokeJoinTokenByName",
+			"documentation_hash": "569aa8d1035f4f8f59d78e7feafa167ee53eb9fb55826905dc13df24d005a5b9",
+			"definition_hash": "0943153c41a9ae72f1e2ac3dc7c4e3bd968fff50d87290b8ec46df962af60716",
+			"reviewed_at": "2026-06-19T20:23:18.653195057Z"
+		},
+		{
+			"function_name": "TestRevokeJoinTokenNoMatch",
+			"documentation_hash": "ab9fdc92dc333bbda9e8bd8cc1f945bd97103f7a1733a906cd3a6133b584fc99",
+			"definition_hash": "6a33b7bf519b1bebdd998b06063910f171a3aee08e931862385be638b5763579",
+			"reviewed_at": "2026-06-19T20:23:20.581672127Z"
 		}
 	]
 }

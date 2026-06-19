@@ -275,6 +275,43 @@ func (s *Server) allSpokes() map[string]boxManager {
 	return out
 }
 
+// SpokeStatus describes one cluster spoke and its health. The in-process spoke
+// is always present and connected; each enrolled remote spoke is reported with
+// whether it currently holds a live connection to the hub.
+type SpokeStatus struct {
+	Name       string    `json:"name" jsonschema:"the spoke's name; 'local' is the in-process spoke"`
+	Connected  bool      `json:"connected" jsonschema:"whether the spoke currently has a live connection to the hub"`
+	Local      bool      `json:"local,omitempty" jsonschema:"true for the in-process spoke (always connected)"`
+	EnrolledAt time.Time `json:"enrolled_at,omitempty" jsonschema:"when the remote spoke enrolled (absent for the local spoke)"`
+}
+
+// SpokeStatuses reports every spoke and its health: the in-process "local"
+// spoke plus each enrolled remote spoke, marking which are currently connected.
+// With clustering disabled it returns just the local spoke.
+//
+// @arg _ Context (unused; the data is in-memory and in the store).
+// @return []SpokeStatus The local spoke followed by each enrolled remote spoke.
+// @error error if the enrolled spokes cannot be read from the store.
+//
+// @testcase TestSpokeStatusesReportsHealth marks enrolled spokes connected or not.
+// @testcase TestSpokeStatusesLocalOnly returns just the local spoke without a hub.
+func (s *Server) SpokeStatuses(_ context.Context) ([]SpokeStatus, error) {
+	out := []SpokeStatus{{Name: localSpokeName, Connected: true, Local: true}}
+	if s.hub == nil {
+		return out, nil
+	}
+	connected := s.hub.Spokes()
+	enrolled, err := s.store.ListSpokes()
+	if err != nil {
+		return nil, err
+	}
+	for _, rec := range enrolled {
+		_, isConnected := connected[rec.Name]
+		out = append(out, SpokeStatus{Name: rec.Name, Connected: isConnected, EnrolledAt: rec.EnrolledAt})
+	}
+	return out, nil
+}
+
 // Restore loads persisted sessions into the registry and reconciles them with
 // the spokes: a session whose box no longer exists on its (reachable) spoke is
 // dropped (and deleted from the store) so a stale token can't linger. A session

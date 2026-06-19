@@ -9,6 +9,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sort"
+	"strings"
 	"syscall"
 	"time"
 
@@ -111,10 +113,60 @@ func newSpokeTokenCmd() *cobra.Command {
 	createCmd.Flags().StringVarP(&configPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for the hub state file)")
 	createCmd.Flags().StringVar(&spokeName, "name", "", "name of the spoke this token enrolls")
 	createCmd.Flags().DurationVar(&ttl, "ttl", defaultJoinTokenTTL, "how long the token stays valid")
-
 	tokenCmd.AddCommand(createCmd)
+
+	var listConfigPath string
+	listCmd := &cobra.Command{
+		Use:           "list",
+		Short:         "List outstanding spoke join tokens",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := loadConfig(listConfigPath, cmd.Flags().Changed("config"))
+			if err != nil {
+				return err
+			}
+			return listJoinTokens(cmd.OutOrStdout(), cfg, time.Now())
+		},
+	}
+	listCmd.Flags().StringVarP(&listConfigPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for the hub state file)")
+	tokenCmd.AddCommand(listCmd)
+
+	var (
+		revokeConfigPath string
+		revokeID         string
+		revokeName       string
+	)
+	revokeCmd := &cobra.Command{
+		Use:           "revoke",
+		Short:         "Revoke spoke join tokens by ID or spoke name",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if revokeID == "" && revokeName == "" {
+				return errors.New("one of --id or --name is required")
+			}
+			cfg, err := loadConfig(revokeConfigPath, cmd.Flags().Changed("config"))
+			if err != nil {
+				return err
+			}
+			return revokeJoinTokens(cmd.OutOrStdout(), cfg, revokeID, revokeName)
+		},
+	}
+	revokeCmd.Flags().StringVarP(&revokeConfigPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for the hub state file)")
+	revokeCmd.Flags().StringVar(&revokeID, "id", "", "revoke the single token whose ID has this prefix")
+	revokeCmd.Flags().StringVar(&revokeName, "name", "", "revoke every token issued for this spoke name")
+	tokenCmd.AddCommand(revokeCmd)
+
 	return tokenCmd
 }
+
+// joinTokenIDLen is how many leading hash characters the CLI shows (and accepts
+// as an --id prefix) for a join token — enough to be unambiguous in practice
+// without dumping the full hash.
+const joinTokenIDLen = 12
 
 // createJoinToken opens the hub's store, mints a one-time join token for the
 // named spoke, and prints it once to out.
@@ -139,6 +191,103 @@ func createJoinToken(out io.Writer, cfg *config.Config, spokeName string, ttl ti
 	}
 	fmt.Fprintf(out, "Join token for spoke %q (valid %s, one-time use):\n\n  %s\n\nStart the spoke with:\n\n  llmbox spoke --hub wss://<hub>/spoke/connect --token %s\n", spokeName, ttl, token, token)
 	return nil
+}
+
+// listJoinTokens prints the outstanding join tokens (short ID, spoke name, and
+// expiry/expired marker) from the hub's store.
+//
+// @arg out The writer the listing is printed to.
+// @arg cfg The hub configuration (its StateFile holds the cluster store).
+// @arg now The current time, used to flag expired tokens.
+// @error error if the store cannot be opened or read.
+//
+// @testcase TestListJoinTokensCmd lists outstanding tokens with their spoke and expiry.
+func listJoinTokens(out io.Writer, cfg *config.Config, now time.Time) error {
+	store, err := server.OpenStore(cfg.StateFile)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = store.Close() }()
+
+	tokens, err := store.ListJoinTokens()
+	if err != nil {
+		return err
+	}
+	if len(tokens) == 0 {
+		fmt.Fprintln(out, "No outstanding join tokens.")
+		return nil
+	}
+	sort.Slice(tokens, func(i, j int) bool { return tokens[i].Name < tokens[j].Name })
+	fmt.Fprintf(out, "%-*s  %-20s  %s\n", joinTokenIDLen, "ID", "SPOKE", "EXPIRES")
+	for _, t := range tokens {
+		status := t.ExpiresAt.Format(time.RFC3339)
+		if now.After(t.ExpiresAt) {
+			status += " (expired)"
+		}
+		fmt.Fprintf(out, "%-*s  %-20s  %s\n", joinTokenIDLen, shortID(t.ID), t.Name, status)
+	}
+	return nil
+}
+
+// revokeJoinTokens deletes join tokens by ID prefix or by spoke name. With idPrefix
+// set it revokes the single token whose ID starts with it (erroring if none or
+// more than one match); with name set it revokes every token for that spoke.
+//
+// @arg out The writer revocation results are printed to.
+// @arg cfg The hub configuration (its StateFile holds the cluster store).
+// @arg idPrefix The ID prefix selecting a single token; empty to select by name.
+// @arg name The spoke name selecting all its tokens; empty to select by ID.
+// @error error if the store cannot be opened, no token matches, or an ID prefix is ambiguous.
+//
+// @testcase TestRevokeJoinTokenByID revokes the single token matching an ID prefix.
+// @testcase TestRevokeJoinTokenByName revokes every token for a spoke name.
+// @testcase TestRevokeJoinTokenNoMatch errors when nothing matches.
+func revokeJoinTokens(out io.Writer, cfg *config.Config, idPrefix, name string) error {
+	store, err := server.OpenStore(cfg.StateFile)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = store.Close() }()
+
+	tokens, err := store.ListJoinTokens()
+	if err != nil {
+		return err
+	}
+
+	var matched []cluster.JoinTokenInfo
+	for _, t := range tokens {
+		if idPrefix != "" && strings.HasPrefix(t.ID, idPrefix) {
+			matched = append(matched, t)
+		} else if name != "" && t.Name == name {
+			matched = append(matched, t)
+		}
+	}
+	if len(matched) == 0 {
+		return errors.New("no join token matches")
+	}
+	if idPrefix != "" && len(matched) > 1 {
+		return fmt.Errorf("ID prefix %q is ambiguous (%d tokens match); use more characters", idPrefix, len(matched))
+	}
+	for _, t := range matched {
+		if err := store.DeleteJoinToken(t.ID); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "Revoked join token %s for spoke %q.\n", shortID(t.ID), t.Name)
+	}
+	return nil
+}
+
+// shortID truncates a join token hash ID to the display length.
+//
+// @arg id The full hash ID.
+// @return string The leading joinTokenIDLen characters (or the whole id if shorter).
+//
+// @testcase TestListJoinTokensCmd shows shortened token IDs.
+func shortID(id string) string {
+	if len(id) <= joinTokenIDLen {
+		return id
+	}
+	return id[:joinTokenIDLen]
 }
 
 // runSpoke connects a spoke to the hub and serves boxes against the local
@@ -185,10 +334,11 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 		log.Printf("enrolled as spoke %q; credential saved to %s", c.Name, statePath)
 		return nil
 	}
+	policy := cluster.ValidationPolicy{AllowedImages: cfg.Spoke.AllowedImages}
 
 	backoff := time.Second
 	for {
-		err := cluster.Run(ctx, dial, mgr, token, creds, save)
+		err := cluster.Run(ctx, dial, mgr, token, creds, save, policy)
 		if ctx.Err() != nil {
 			return nil
 		}

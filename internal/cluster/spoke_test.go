@@ -21,6 +21,7 @@ func recvWithin(t *testing.T, tr transport) frame {
 	return f
 }
 
+// TestSpokeRunEnrollsAndServes is a package test.
 func TestSpokeRunEnrollsAndServes(t *testing.T) {
 	spokeEnd, hubEnd := newPipe()
 	dial := func(context.Context) (transport, error) { return spokeEnd, nil }
@@ -34,7 +35,7 @@ func TestSpokeRunEnrollsAndServes(t *testing.T) {
 		done <- Run(ctx, dial, fake, "tok", nil, func(c Credentials) error {
 			saved <- c
 			return nil
-		})
+		}, ValidationPolicy{})
 	}()
 
 	// Hub side: receive the enroll request carrying the join token.
@@ -76,6 +77,7 @@ func TestSpokeRunEnrollsAndServes(t *testing.T) {
 	}
 }
 
+// TestSpokeRunReconnectsWithCreds is a package test.
 func TestSpokeRunReconnectsWithCreds(t *testing.T) {
 	spokeEnd, hubEnd := newPipe()
 	dial := func(context.Context) (transport, error) { return spokeEnd, nil }
@@ -88,7 +90,7 @@ func TestSpokeRunReconnectsWithCreds(t *testing.T) {
 		_ = Run(ctx, dial, &fakeManager{}, "", creds, func(Credentials) error {
 			savedCount++
 			return nil
-		})
+		}, ValidationPolicy{})
 	}()
 
 	enroll := recvWithin(t, hubEnd)
@@ -114,13 +116,14 @@ func TestSpokeRunReconnectsWithCreds(t *testing.T) {
 	}
 }
 
+// TestSpokeRunEnrollRejected is a package test.
 func TestSpokeRunEnrollRejected(t *testing.T) {
 	spokeEnd, hubEnd := newPipe()
 	dial := func(context.Context) (transport, error) { return spokeEnd, nil }
 
 	done := make(chan error, 1)
 	go func() {
-		done <- Run(context.Background(), dial, &fakeManager{}, "tok", nil, nil)
+		done <- Run(context.Background(), dial, &fakeManager{}, "tok", nil, nil, ValidationPolicy{})
 	}()
 
 	_ = recvWithin(t, hubEnd) // consume enroll

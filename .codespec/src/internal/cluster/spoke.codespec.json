@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "WebSocketDialer",
+			"documentation_hash": "58788d99bba2523752c4d0ae3fe8ff2c8c8f797091d56069fbe075fc9c109794",
+			"definition_hash": "47bb88c59c8bf41f80f7ea8220a18bd2f3784ae327707c902b5843242b8113d6",
+			"reviewed_at": "2026-06-19T20:33:59.793122179Z"
+		},
+		{
+			"function_name": "Run",
+			"documentation_hash": "79f433a181e8f6a0cdcc9e185365e89e6f29b6464843be325bcfeb6a1bd0e9d2",
+			"definition_hash": "61c448e32ca0c4d6d74c7f2f497346c66d30d90f26c367ea1ffcd16f1e77e410",
+			"reviewed_at": "2026-06-19T20:33:59.793779177Z"
+		},
+		{
+			"function_name": "enrollSpoke",
+			"documentation_hash": "421a8189a3790a343a3ebeebb135f886d98a64fe0920a0663520e1cdc8668eba",
+			"definition_hash": "e4996a865e3057542115bf9c58ef59dee724af0ae574904044a706790864e9d4",
+			"reviewed_at": "2026-06-19T20:33:59.794305793Z"
+		}
+	]
+}

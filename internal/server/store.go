@@ -211,6 +211,22 @@ func (noopStore) TakeJoinToken(_ string) (cluster.JoinTokenRecord, bool, error) 
 	return cluster.JoinTokenRecord{}, false, nil
 }
 
+// ListJoinTokens returns no tokens.
+//
+// @return []cluster.JoinTokenInfo Always nil.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) ListJoinTokens() ([]cluster.JoinTokenInfo, error) { return nil, nil }
+
+// DeleteJoinToken does nothing.
+//
+// @arg _ The join token hash ID.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) DeleteJoinToken(_ string) error { return nil }
+
 // PutSpoke discards the spoke.
 //
 // @arg _ The spoke name key.
@@ -540,6 +556,44 @@ func (b *boltStore) TakeJoinToken(hash string) (cluster.JoinTokenRecord, bool, e
 		return cluster.JoinTokenRecord{}, false, err
 	}
 	return rec, found, nil
+}
+
+// ListJoinTokens returns every outstanding join token (hash ID, spoke name, and
+// expiry).
+//
+// @return []cluster.JoinTokenInfo One entry per stored join token.
+// @error error if a read transaction or decoding fails.
+//
+// @testcase TestClusterStoreJoinTokenListAndDelete lists and revokes join tokens.
+func (b *boltStore) ListJoinTokens() ([]cluster.JoinTokenInfo, error) {
+	var out []cluster.JoinTokenInfo
+	err := b.db.View(func(tx *bolt.Tx) error {
+		return tx.Bucket(joinTokensBucket).ForEach(func(k, v []byte) error {
+			var rec cluster.JoinTokenRecord
+			if derr := json.Unmarshal(v, &rec); derr != nil {
+				return fmt.Errorf("decoding join token: %w", derr)
+			}
+			out = append(out, cluster.JoinTokenInfo{ID: string(k), Name: rec.Name, ExpiresAt: rec.ExpiresAt})
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DeleteJoinToken removes a join token by its hash ID; deleting a missing one is
+// a no-op.
+//
+// @arg hash The join token hash ID to delete.
+// @error error if the write transaction fails.
+//
+// @testcase TestClusterStoreJoinTokenListAndDelete revokes a join token by ID.
+func (b *boltStore) DeleteJoinToken(hash string) error {
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(joinTokensBucket).Delete([]byte(hash))
+	})
 }
 
 // PutSpoke stores (creating or replacing) an enrolled spoke as JSON keyed by its

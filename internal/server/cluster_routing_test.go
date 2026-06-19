@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
 )
 
@@ -136,6 +137,64 @@ func TestDestroyRoutesToSpoke(t *testing.T) {
 	}
 	if len(local.destroyed) != 0 {
 		t.Errorf("local.destroyed = %v, want none", local.destroyed)
+	}
+}
+
+// TestSpokeStatusesReportsHealth checks SpokeStatuses returns the local spoke
+// plus each enrolled spoke, marking which are currently connected.
+func TestSpokeStatusesReportsHealth(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	_ = store.PutSpoke("edge", cluster.SpokeRecord{Name: "edge"})
+	_ = store.PutSpoke("offline", cluster.SpokeRecord{Name: "offline"})
+
+	s := New(&fakeMgr{}, nil, "https://h", time.Minute, store, nil)
+	s.SetHub(&fakeHub{spokes: map[string]boxManager{"edge": &fakeMgr{}}}) // only edge connected
+
+	got, err := s.SpokeStatuses(context.Background())
+	if err != nil {
+		t.Fatalf("SpokeStatuses: %v", err)
+	}
+	byName := map[string]SpokeStatus{}
+	for _, st := range got {
+		byName[st.Name] = st
+	}
+	if !byName[localSpokeName].Connected || !byName[localSpokeName].Local {
+		t.Errorf("local spoke status = %+v, want connected+local", byName[localSpokeName])
+	}
+	if !byName["edge"].Connected {
+		t.Errorf("edge should be connected: %+v", byName["edge"])
+	}
+	if byName["offline"].Connected {
+		t.Errorf("offline should not be connected: %+v", byName["offline"])
+	}
+}
+
+// TestSpokeStatusesLocalOnly checks that without a hub only the local spoke is reported.
+func TestSpokeStatusesLocalOnly(t *testing.T) {
+	s := newTestServer(&fakeMgr{})
+	got, err := s.SpokeStatuses(context.Background())
+	if err != nil {
+		t.Fatalf("SpokeStatuses: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != localSpokeName || !got[0].Connected {
+		t.Fatalf("SpokeStatuses without hub = %+v, want only local", got)
+	}
+}
+
+// TestListSpokesTool checks the list_spokes MCP handler returns the spoke statuses.
+func TestListSpokesTool(t *testing.T) {
+	s := newTestServer(&fakeMgr{})
+	s.SetHub(&fakeHub{spokes: map[string]boxManager{}})
+	_, out, err := s.toolListSpokes(context.Background(), nil, struct{}{})
+	if err != nil {
+		t.Fatalf("toolListSpokes: %v", err)
+	}
+	if len(out.Spokes) != 1 || out.Spokes[0].Name != localSpokeName {
+		t.Fatalf("list_spokes output = %+v, want the local spoke", out.Spokes)
 	}
 }
 

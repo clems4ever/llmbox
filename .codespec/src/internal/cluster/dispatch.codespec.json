@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "serve",
+			"documentation_hash": "33398662fae1210a5f6b7a508df8bd45031ec770a6b0379caa1b4f998292b13d",
+			"definition_hash": "47cad6003cb4a7dbbc20f3f732aa9e497f84facc1f1654830010c9a392399c2c",
+			"reviewed_at": "2026-06-19T20:33:53.190634018Z"
+		},
+		{
+			"function_name": "handleRequest",
+			"documentation_hash": "daeacddf73a531c68c299a37846f238ef5f8c43c7eb9c69c9685c9a3f3cc3ce7",
+			"definition_hash": "74cf89fdf6750c7bda265e93d906b5092f504c1bcfa488e0cc035cc708f832fd",
+			"reviewed_at": "2026-06-19T20:33:53.191913518Z"
+		},
+		{
+			"function_name": "dispatch",
+			"documentation_hash": "fd04f3f7250b3730103cb543d5e65b8b7d9b6849572fd2d0d2a7a8fe212a414e",
+			"definition_hash": "07dbea7a0d32f603296c5c4fffdce288bc76c688e2cfb0510d48a5178ade04c7",
+			"reviewed_at": "2026-06-19T20:33:53.193063489Z"
+		}
+	]
+}

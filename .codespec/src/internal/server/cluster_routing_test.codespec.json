@@ -62,6 +62,24 @@
 			"documentation_hash": "95973e8ee49b48ab06ab84e1c75140c8ad16af60214a35b8ef306954c6a22e29",
 			"definition_hash": "8b7bee4f4510dd62bda82a786b7b61fdf1f75bb921e652dc3a64029c422e5662",
 			"reviewed_at": "2026-06-19T19:52:37.093563434Z"
+		},
+		{
+			"function_name": "TestSpokeStatusesReportsHealth",
+			"documentation_hash": "81929a5b812bc282316e4959397f24380f725235a2ad24098c6f0b2dcadf87f8",
+			"definition_hash": "54e7a8a83df4ee8438c2b71eadfae354cc15937925d09a9e8e18db9dd495d9d0",
+			"reviewed_at": "2026-06-19T20:33:53.195412939Z"
+		},
+		{
+			"function_name": "TestSpokeStatusesLocalOnly",
+			"documentation_hash": "5d7dd2b670261a141779a086832bfec8011775f9f70c3177bcd92930195d571e",
+			"definition_hash": "8a2b2996c6787a32620d126e2230aa449b0026581bdf5a624b2eb789490faf35",
+			"reviewed_at": "2026-06-19T20:33:53.196999167Z"
+		},
+		{
+			"function_name": "TestListSpokesTool",
+			"documentation_hash": "a362766fbf7a6929e6057a5a86ea4a836a04b90e2cff18e331cb38782da4490e",
+			"definition_hash": "9eb9af750b73c359b53c360793405dcc46f23c73034d18996cb12f5ed2679269",
+			"reviewed_at": "2026-06-19T20:33:53.198094233Z"
 		}
 	]
 }

@@ -24,6 +24,7 @@ func waitForSpoke(t *testing.T, hub *Hub, name string) BoxManager {
 	return nil
 }
 
+// TestHubEnrollAndRoute is a package test.
 func TestHubEnrollAndRoute(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(10_000, 0)
@@ -47,7 +48,7 @@ func TestHubEnrollAndRoute(t *testing.T) {
 		_ = Run(spokeCtx, WebSocketDialer(url), fake, tok, nil, func(c Credentials) error {
 			saved <- c
 			return nil
-		})
+		}, ValidationPolicy{})
 	}()
 
 	bm := waitForSpoke(t, hub, "edge")
@@ -69,6 +70,7 @@ func TestHubEnrollAndRoute(t *testing.T) {
 	}
 }
 
+// TestHubRejectsBadEnrollment is a package test.
 func TestHubRejectsBadEnrollment(t *testing.T) {
 	hubCtx, hubCancel := context.WithCancel(context.Background())
 	defer hubCancel()
@@ -77,7 +79,7 @@ func TestHubRejectsBadEnrollment(t *testing.T) {
 	defer srv.Close()
 	url := "ws" + srv.URL[len("http"):] + "/"
 
-	err := Run(context.Background(), WebSocketDialer(url), &fakeManager{}, "bad-token", nil, nil)
+	err := Run(context.Background(), WebSocketDialer(url), &fakeManager{}, "bad-token", nil, nil, ValidationPolicy{})
 	if !errors.Is(err, ErrEnrollRejected) {
 		t.Fatalf("Run err = %v, want ErrEnrollRejected", err)
 	}
@@ -86,6 +88,7 @@ func TestHubRejectsBadEnrollment(t *testing.T) {
 	}
 }
 
+// TestHubReconnectSupersedes is a package test.
 func TestHubReconnectSupersedes(t *testing.T) {
 	hub := NewHub(context.Background(), newMemStore(), nil, nil)
 

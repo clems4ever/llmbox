@@ -1,0 +1,52 @@
+{
+	"functions": [
+		{
+			"function_name": "TestCreateJoinTokenStoresHash",
+			"documentation_hash": "32895500727a500ec2f63d8bd6c1edf759b22b24394ea1ab9f412827058aedb7",
+			"definition_hash": "48e18db78c1a4da5982534ec1869f0a18760705db011fc7e6dce204c516e8d97",
+			"reviewed_at": "2026-06-19T20:34:09.016739568Z"
+		},
+		{
+			"function_name": "TestCreateJoinTokenRejectsEmptyName",
+			"documentation_hash": "11833d04e1661fb349c364977eac5458c254e4b39b8f3d3f21290db54ad784a6",
+			"definition_hash": "b7fa45b1b8134945150206e73cf044b0c6e06681d504c13a477d79b82b9a13a1",
+			"reviewed_at": "2026-06-19T20:34:09.01747047Z"
+		},
+		{
+			"function_name": "TestCreateJoinTokenRejectsTTL",
+			"documentation_hash": "aa22eb681f07389e28d9802e51404c973969e3d629d1765be1ba8758f78d4c1a",
+			"definition_hash": "4cc284cb221841e778b605ed6b208962acce9160251c8c2efa031f21635140df",
+			"reviewed_at": "2026-06-19T20:34:09.018131089Z"
+		},
+		{
+			"function_name": "TestEnrollWithJoinTokenMintsCredential",
+			"documentation_hash": "d372fd73c28d61075c0b5b4fa2652f2ecf23cdaf583497e980adbfbea46f6b9c",
+			"definition_hash": "a888adb9bd3360b34831432fa1300078ebf01f7f99ff9d201a8d0542b336b7b1",
+			"reviewed_at": "2026-06-19T20:34:09.018867196Z"
+		},
+		{
+			"function_name": "TestEnrollRejectsExpiredToken",
+			"documentation_hash": "ac9567c178e894c6816ff8665d49784bc4a560a6d5363a62878772bb9e83831c",
+			"definition_hash": "575f338ca24963503372c1d3f0c1fe96f2c63dd0be6fc957c4f562e0db8a3ac7",
+			"reviewed_at": "2026-06-19T20:34:09.019625597Z"
+		},
+		{
+			"function_name": "TestEnrollRejectsUnknownToken",
+			"documentation_hash": "643a656a5a9d8a7d96003d315eeca9ee0119c1430b818ba7794b172c4f772f37",
+			"definition_hash": "bff59e8dfa2db113fbdd479bb87b8cfb85545c6c385417f70cd41c4030b9ca38",
+			"reviewed_at": "2026-06-19T20:34:09.020184888Z"
+		},
+		{
+			"function_name": "TestEnrollReusedTokenRejected",
+			"documentation_hash": "350e9a3cd3b2f6c4372e68cc1672bcd7f0fe65a8d05cda05343b9f46d51dd7d0",
+			"definition_hash": "6aa09dab667e014c8cdc933b9d2624552efaabaa9391ab20353d74c4146a0106",
+			"reviewed_at": "2026-06-19T20:34:09.020634976Z"
+		},
+		{
+			"function_name": "TestReconnectChecksCredential",
+			"documentation_hash": "4f285573faf91a2e4db2396ec05ee420e703da5b6b9d806fd57ddb7d2d2c2410",
+			"definition_hash": "836fdeec2633472bb9e9d9057d6a91442271002dfe82a4701bf3837e9b160e28",
+			"reviewed_at": "2026-06-19T20:34:09.02108455Z"
+		}
+	]
+}

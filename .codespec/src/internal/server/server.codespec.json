@@ -164,6 +164,13 @@
 			"documentation_hash": "fa6c4cf004bbc029f9c89687effd2392808488ceb285cadf90e3457c8804b305",
 			"definition_hash": "92bb655c8a3581028ef40822bd99903dd278f0dc05a692db6511f567be69c02c",
 			"reviewed_at": "2026-06-19T19:47:04.445772238Z"
+		},
+		{
+			"function_name": "SpokeStatuses",
+			"receiver": "Server",
+			"documentation_hash": "5ee204fb6ff12f0907d1d57e4331b3416166c2b249bb988f613fe448d9a66fd7",
+			"definition_hash": "6f5456a36f62a8cf228484cfbf5d1f8750fbe6320a5083a89b9794f4c970b534",
+			"reviewed_at": "2026-06-19T20:37:11.47226761Z"
 		}
 	]
 }

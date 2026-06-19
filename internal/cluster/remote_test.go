@@ -19,12 +19,13 @@ func startSpoke(t *testing.T, fake *fakeManager) *remoteSpoke {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	hubEnd, spokeEnd := newPipe()
-	go func() { _ = serve(ctx, spokeEnd, fake) }()
+	go func() { _ = serve(ctx, spokeEnd, fake, ValidationPolicy{}) }()
 	rs := newRemoteSpoke("s", hubEnd)
 	t.Cleanup(func() { _ = rs.Close() })
 	return rs
 }
 
+// TestRemoteSpokeRoundTrip is a package test.
 func TestRemoteSpokeRoundTrip(t *testing.T) {
 	fake := &fakeManager{
 		createID:   "cid",
@@ -87,6 +88,7 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 	}
 }
 
+// TestRemoteSpokeVerbError is a package test.
 func TestRemoteSpokeVerbError(t *testing.T) {
 	rs := startSpoke(t, &fakeManager{err: errors.New("boom")})
 	_, err := rs.List(context.Background())
@@ -95,6 +97,7 @@ func TestRemoteSpokeVerbError(t *testing.T) {
 	}
 }
 
+// TestRemoteSpokeDisconnect is a package test.
 func TestRemoteSpokeDisconnect(t *testing.T) {
 	hubEnd, spokeEnd := newPipe()
 	rs := newRemoteSpoke("s", hubEnd)
@@ -125,6 +128,7 @@ func TestRemoteSpokeDisconnect(t *testing.T) {
 	}
 }
 
+// TestRemoteSpokeContextCancel is a package test.
 func TestRemoteSpokeContextCancel(t *testing.T) {
 	hubEnd, _ := newPipe()
 	rs := newRemoteSpoke("s", hubEnd)
@@ -137,6 +141,7 @@ func TestRemoteSpokeContextCancel(t *testing.T) {
 	}
 }
 
+// TestDispatchHandlesVerbs is a package test.
 func TestDispatchHandlesVerbs(t *testing.T) {
 	fake := &fakeManager{
 		createID:   "cid",
@@ -158,7 +163,7 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 	}
 
 	// Destroy returns a nil payload.
-	p, err := dispatch(ctx, fake, mustReq(methodDestroy, destroyReq{IDOrName: "b1"}))
+	p, err := dispatch(ctx, fake, mustReq(methodDestroy, destroyReq{IDOrName: "b1"}), ValidationPolicy{})
 	if err != nil || p != nil {
 		t.Fatalf("destroy dispatch = (%s,%v)", p, err)
 	}
@@ -167,7 +172,7 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 	}
 
 	// List returns boxes.
-	p, err = dispatch(ctx, fake, mustReq(methodList, struct{}{}))
+	p, err = dispatch(ctx, fake, mustReq(methodList, struct{}{}), ValidationPolicy{})
 	if err != nil {
 		t.Fatalf("list dispatch: %v", err)
 	}
@@ -177,16 +182,18 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 	}
 }
 
+// TestDispatchUnknownMethod is a package test.
 func TestDispatchUnknownMethod(t *testing.T) {
-	_, err := dispatch(context.Background(), &fakeManager{}, frame{Type: frameReq, Method: "bogus"})
+	_, err := dispatch(context.Background(), &fakeManager{}, frame{Type: frameReq, Method: "bogus"}, ValidationPolicy{})
 	if err == nil || !strings.Contains(err.Error(), "unknown method") {
 		t.Fatalf("err = %v, want unknown method", err)
 	}
 }
 
+// TestDispatchBadPayload is a package test.
 func TestDispatchBadPayload(t *testing.T) {
 	req := frame{Type: frameReq, Method: methodCreate, Payload: []byte("{not json")}
-	if _, err := dispatch(context.Background(), &fakeManager{}, req); err == nil {
+	if _, err := dispatch(context.Background(), &fakeManager{}, req, ValidationPolicy{}); err == nil {
 		t.Fatal("expected error for malformed payload")
 	}
 }

@@ -1,0 +1,28 @@
+{
+	"functions": [
+		{
+			"function_name": "waitForSpoke",
+			"documentation_hash": "b165135663f3b0ec90b9ccceaa97b8e8bd41a450304483eda8d02a654b2bc634",
+			"definition_hash": "b711ebb6b98a731e24aa00fc7e659011f64a257bfd60c6511e5309ad18b02221",
+			"reviewed_at": "2026-06-19T20:33:57.75728074Z"
+		},
+		{
+			"function_name": "TestHubEnrollAndRoute",
+			"documentation_hash": "558dabc7f7337c0fa491def90d3b5bdd90a75d8d403227877323f1be61723d48",
+			"definition_hash": "f78ad5fcf9221a995ac5b1f092837a3631993b2a0f6a323df994c04d11a8eac8",
+			"reviewed_at": "2026-06-19T20:33:57.757504817Z"
+		},
+		{
+			"function_name": "TestHubRejectsBadEnrollment",
+			"documentation_hash": "ee96521dabb585e17951ee62ce7a903df0ef997db4dc5863482c1eee9a4ce488",
+			"definition_hash": "68db92d6138c681a5e187602494b431e5e3c65dfa229bf7661f89f3feea6455f",
+			"reviewed_at": "2026-06-19T20:33:57.75767692Z"
+		},
+		{
+			"function_name": "TestHubReconnectSupersedes",
+			"documentation_hash": "9b263f78c489cb2e7d79811daf3de6ba93d3150fee0bd398d5e64ef846fdf66d",
+			"definition_hash": "8a1d6adfd3c5f6078c47652365dd4ab050a05d4155a5a576d451582666e07a58",
+			"reviewed_at": "2026-06-19T20:33:57.757845484Z"
+		}
+	]
+}

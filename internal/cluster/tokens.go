@@ -21,6 +21,12 @@ type Store interface {
 	// TakeJoinToken atomically reads and removes the record for a token hash
 	// (one-time use); found is false when no token matches.
 	TakeJoinToken(hash string) (rec JoinTokenRecord, found bool, err error)
+	// ListJoinTokens returns every outstanding join token (its hash as an opaque
+	// ID, its spoke name, and its expiry — never the secret, which is not stored).
+	ListJoinTokens() ([]JoinTokenInfo, error)
+	// DeleteJoinToken removes a join token by its hash ID; deleting a missing one
+	// is a no-op.
+	DeleteJoinToken(hash string) error
 	// PutSpoke stores (creating or replacing) an enrolled spoke keyed by name.
 	PutSpoke(name string, rec SpokeRecord) error
 	// GetSpoke returns the spoke record for name; found is false when none matches.
@@ -37,6 +43,15 @@ type Store interface {
 type JoinTokenRecord struct {
 	Name      string    `json:"name"`
 	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// JoinTokenInfo describes an outstanding join token for listing/revocation. ID
+// is the token's hash (an opaque handle the operator can revoke by); the secret
+// is never recoverable.
+type JoinTokenInfo struct {
+	ID        string
+	Name      string
+	ExpiresAt time.Time
 }
 
 // SpokeRecord is an enrolled spoke: its name, the hash of its bearer credential,

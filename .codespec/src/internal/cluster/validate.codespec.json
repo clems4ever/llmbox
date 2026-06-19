@@ -1,0 +1,11 @@
+{
+	"functions": [
+		{
+			"function_name": "validateCreate",
+			"receiver": "ValidationPolicy",
+			"documentation_hash": "2e358e534bdcc64e566b0af3a5abc20c137fbfc5f6cee2c400b1da595afcbd6b",
+			"definition_hash": "cdda76d2d68b8d2d517861465140c364b6d6ac734c3cc40e8b8282d2a5b1e582",
+			"reviewed_at": "2026-06-19T20:38:10.550000908Z"
+		}
+	]
+}

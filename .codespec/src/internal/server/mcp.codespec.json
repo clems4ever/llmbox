@@ -4,8 +4,8 @@
 			"function_name": "MCPServer",
 			"receiver": "Server",
 			"documentation_hash": "9ebd5d97060918c977bfe5191b0e6aa383f8b8a0a9f87a053ae5abbea3636934",
-			"definition_hash": "972431f4e030a532090f85d5475a134b606ab2d2883d9261730c7aba331ff8f4",
-			"reviewed_at": "2026-06-18T16:59:05.495863908Z"
+			"definition_hash": "1d186f79c57ea9654de7039fde5d7aa2b8045ea9466893a3563e27de61a37b9f",
+			"reviewed_at": "2026-06-19T20:33:53.200379449Z"
 		},
 		{
 			"function_name": "toolCreate",
@@ -48,6 +48,13 @@
 			"documentation_hash": "acf9e087a4fcbcaea5c5b02ce3747d8171aa7eca09e04b731240d4677ace1b36",
 			"definition_hash": "82179e0a6e16a5729580a0c7d00465f830401e562f11566ba77faccf0a30a0ac",
 			"reviewed_at": "2026-06-18T16:59:05.500232438Z"
+		},
+		{
+			"function_name": "toolListSpokes",
+			"receiver": "Server",
+			"documentation_hash": "27da93e6b3facaa09393d83e926e221cecf27f8a4682eff64204335b9ef7b340",
+			"definition_hash": "23a454bb15d3ad27e722c6850089f6d46089d3ab10f994c65db2c45c63ac24f7",
+			"reviewed_at": "2026-06-19T20:33:53.202703501Z"
 		}
 	]
 }

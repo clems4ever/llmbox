@@ -38,6 +38,11 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 	}, s.toolList)
 
 	mcp.AddTool(srv, &mcp.Tool{
+		Name:        "list_spokes",
+		Description: "List the cluster spokes (hosts that can run boxes) and whether each is currently connected. 'local' is this server's own host; pass a connected spoke's name to create_llmbox's 'spoke' argument to place a box there.",
+	}, s.toolListSpokes)
+
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "destroy_llmbox",
 		Description: "Stop and remove an llmbox by its box ID (the one given to create_llmbox).",
 	}, s.toolDestroy)
@@ -170,6 +175,30 @@ func (s *Server) toolList(ctx context.Context, _ *mcp.CallToolRequest, _ struct{
 		return nil, listOutput{}, err
 	}
 	return nil, listOutput{Boxes: boxes}, nil
+}
+
+type listSpokesOutput struct {
+	Spokes []SpokeStatus `json:"spokes" jsonschema:"the cluster spokes and their connection status"`
+}
+
+// toolListSpokes handles the list_spokes tool: it returns every spoke (the
+// in-process 'local' spoke plus each enrolled remote spoke) and whether each is
+// currently connected, so a caller can pick a healthy spoke for create_llmbox.
+//
+// @arg ctx Context for the request.
+// @arg _ The MCP call request (unused).
+// @arg _ The empty tool input (unused).
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return listSpokesOutput The spokes and their connection status.
+// @error error if the enrolled spokes cannot be read.
+//
+// @testcase TestListSpokesTool returns the spokes with their connection status.
+func (s *Server) toolListSpokes(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, listSpokesOutput, error) {
+	spokes, err := s.SpokeStatuses(ctx)
+	if err != nil {
+		return nil, listSpokesOutput{}, err
+	}
+	return nil, listSpokesOutput{Spokes: spokes}, nil
 }
 
 type destroyInput struct {

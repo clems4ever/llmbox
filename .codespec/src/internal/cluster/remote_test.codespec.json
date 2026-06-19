@@ -1,0 +1,52 @@
+{
+	"functions": [
+		{
+			"function_name": "startSpoke",
+			"documentation_hash": "9bbc03352a790da308b4d0d4b249ee9d316b28f3f9169aa5188962d129f2efb7",
+			"definition_hash": "a54639c695b64a46e248c914f27793b5094916c3b8933e248f8d16c36f215bb8",
+			"reviewed_at": "2026-06-19T20:33:58.629575263Z"
+		},
+		{
+			"function_name": "TestRemoteSpokeRoundTrip",
+			"documentation_hash": "fba263705900b40995c133edd5e51a53bc47f935305eb47f3ae4620060576cb7",
+			"definition_hash": "32e97c6f4baf077f8e30005e336c3dbe46488096913bc66fbce030292ca0f07e",
+			"reviewed_at": "2026-06-19T20:33:58.629943812Z"
+		},
+		{
+			"function_name": "TestRemoteSpokeVerbError",
+			"documentation_hash": "ef5d44ed59f722e04d9af66e4819666efb264c94abb4aea4fb667f7d70128da7",
+			"definition_hash": "0509ab278225e4364d6d9cad51ea04b24e2e0447058d6fc274ff460ed8b2ec9d",
+			"reviewed_at": "2026-06-19T20:33:58.630273339Z"
+		},
+		{
+			"function_name": "TestRemoteSpokeDisconnect",
+			"documentation_hash": "7a0c0d704fbfe85ba96d469607d34ae87fe5e981d6bb875997c4110711c88391",
+			"definition_hash": "b1428ac75f10c8c778a6031550580150f5a33e16c0d3d8fe3bf95643c239a49d",
+			"reviewed_at": "2026-06-19T20:33:58.6305669Z"
+		},
+		{
+			"function_name": "TestRemoteSpokeContextCancel",
+			"documentation_hash": "e0cb5576457e86d81705d11ceb5c40a98973c9211a2a017d0c6ec2276a3a1e3f",
+			"definition_hash": "78f0edb16455a49cbad566694bfeb3827e2615fc0479f44dd8998ac646658493",
+			"reviewed_at": "2026-06-19T20:33:58.630853169Z"
+		},
+		{
+			"function_name": "TestDispatchHandlesVerbs",
+			"documentation_hash": "6a3d05679654e8d90b219f7f9bdba13aa7c39e1817ea085e507b872baf5b39e3",
+			"definition_hash": "702f0710438bd5f3a5465f5879ae2aaaa7f063e3d43df002bc7612330c46379e",
+			"reviewed_at": "2026-06-19T20:33:58.631119957Z"
+		},
+		{
+			"function_name": "TestDispatchUnknownMethod",
+			"documentation_hash": "0703710ecefe8046eee5cf33aaf1f63595f98331a0d034adf55ad73774de9464",
+			"definition_hash": "80a1ecbd01d9f3774c0acd1a12e7644d939af9e66dbdf4d5286db7ffa0e252b5",
+			"reviewed_at": "2026-06-19T20:33:58.631395785Z"
+		},
+		{
+			"function_name": "TestDispatchBadPayload",
+			"documentation_hash": "4cea948bc564ab042141bc66272af91b47247e6953c19eada9074aadf814c1b0",
+			"definition_hash": "e7f17f0c860feb8dabf24142dfa9a7732478a0fd2c305866b2f0b3d03b753f9b",
+			"reviewed_at": "2026-06-19T20:33:58.631654623Z"
+		}
+	]
+}

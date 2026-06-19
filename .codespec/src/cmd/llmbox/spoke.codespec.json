@@ -9,8 +9,8 @@
 		{
 			"function_name": "newSpokeTokenCmd",
 			"documentation_hash": "62db1f4feb1a5ff2d2670e9de6406fc0cef322730966523f715c32826c485dd6",
-			"definition_hash": "0503c341294b7f2acd89c354cdedd343c7007324e4ec230783d19f8e35b14426",
-			"reviewed_at": "2026-06-19T19:47:37.793753566Z"
+			"definition_hash": "402f0171eea686331b9f00b158796e592ae4e373a2387ee946d7223f4e597803",
+			"reviewed_at": "2026-06-19T20:22:06.68011442Z"
 		},
 		{
 			"function_name": "createJoinToken",
@@ -21,8 +21,8 @@
 		{
 			"function_name": "runSpoke",
 			"documentation_hash": "f6b5a64cf46283aa148105dfceac05b94182687263b4251246ec8d3e954240cc",
-			"definition_hash": "228b4393a0b9589c2343795f62b6c68cb518620dbbb7231a17718a3279b1e087",
-			"reviewed_at": "2026-06-19T19:47:37.794066424Z"
+			"definition_hash": "e54c53792b86c6d5a3246ade07e4c1c610595d75ecf9cd56d8479d53338f6296",
+			"reviewed_at": "2026-06-19T20:22:06.969429444Z"
 		},
 		{
 			"function_name": "loadSpokeCreds",
@@ -35,6 +35,24 @@
 			"documentation_hash": "59c3e4b6a25159ef0d6977df61cee0f08c5002ca7fd1cdde3731e32c36eeb22f",
 			"definition_hash": "6c7f49be4f1a5a6664f756d4971e10768a6330a7e588ab571228d3a4fde58c86",
 			"reviewed_at": "2026-06-19T19:47:37.794376739Z"
+		},
+		{
+			"function_name": "listJoinTokens",
+			"documentation_hash": "288e1673c793362caffb93a277cdb3cb4ee6c0a1f56e7d9a4139364fe157a15c",
+			"definition_hash": "78897909581e7f5d9720b29d4b35af93994840e190d6cb4a1b5da23161c8d5f8",
+			"reviewed_at": "2026-06-19T20:22:06.760077715Z"
+		},
+		{
+			"function_name": "revokeJoinTokens",
+			"documentation_hash": "4a92f80d7de7176d1d6acbfbbb0d932e99185e798230f0366fe445b77d996dab",
+			"definition_hash": "0b25918d27918b1713b4ca6870fa4b641291278d5f114f8430f3bbd9491f672c",
+			"reviewed_at": "2026-06-19T20:22:06.847492058Z"
+		},
+		{
+			"function_name": "shortID",
+			"documentation_hash": "361f729a46b7b00c279fbaac605200f846a5208a6151875cf479df0f763158ac",
+			"definition_hash": "76fd95af20b73f2f3c46dc33e3aa100d8e2eb6496b8c7836fba7cf4ee26b3728",
+			"reviewed_at": "2026-06-19T20:22:06.927142529Z"
 		}
 	]
 }
