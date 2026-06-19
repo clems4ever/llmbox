@@ -10,9 +10,9 @@
 		{
 			"function_name": "toolCreate",
 			"receiver": "Server",
-			"documentation_hash": "c6122f9be6d081cd8226a6fb5b31c07a7ecede46e6ee7f78d446ce39b8bc3135",
-			"definition_hash": "ab0e5c692ef43fde8d46d93776b6051020b79f71017102d90c23077f486cdaae",
-			"reviewed_at": "2026-06-18T16:59:05.49693026Z"
+			"documentation_hash": "3839a5ae4f1d8ad1caba79f8f533f22c4dcabe47a8d9ff6ea15f9964642c8a2d",
+			"definition_hash": "06461764f405c972d827d89703d34676ab2d394f4e8d5fc89d8cd1ffb7290a11",
+			"reviewed_at": "2026-06-19T13:31:00.029468106Z"
 		},
 		{
 			"function_name": "toolGet",

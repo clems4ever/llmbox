@@ -562,7 +562,7 @@ func TestMCPToolsRegisteredAndCreate(t *testing.T) {
 	}
 
 	// create_llmbox returns an auth URL on our public host, never a secret.
-	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "create_llmbox", Arguments: map[string]any{}})
+	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "create_llmbox", Arguments: map[string]any{"box_id": "web-box"}})
 	if err != nil {
 		t.Fatalf("CallTool: %v", err)
 	}
@@ -576,6 +576,21 @@ func TestMCPToolsRegisteredAndCreate(t *testing.T) {
 	}
 	if strings.Contains(authURL, "oauth/authorize") {
 		t.Error("auth_url must not leak the raw OAuth URL into MCP output")
+	}
+}
+
+// TestCreateRequiresBoxID checks create_llmbox rejects a call with an empty box
+// ID and does not create a box, so every box stays reachable by its box ID.
+func TestCreateRequiresBoxID(t *testing.T) {
+	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	s := newTestServer(f)
+
+	_, _, err := s.toolCreate(context.Background(), nil, createInput{Description: "no box id"})
+	if err == nil {
+		t.Fatal("expected error for empty box ID")
+	}
+	if f.gotOpts.Description != "" {
+		t.Errorf("manager was called despite missing box ID: %+v", f.gotOpts)
 	}
 }
 

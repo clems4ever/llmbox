@@ -156,8 +156,8 @@
 		{
 			"function_name": "TestMCPToolsRegisteredAndCreate",
 			"documentation_hash": "f84ff68d9f29b9ce93b37f5b412babfffc82a3c0f4654e34fe45cad32996201e",
-			"definition_hash": "2452b0ea429a73a4a62e977c804062a39d5631d303450d69f9c1c28cec739226",
-			"reviewed_at": "2026-06-18T13:16:47.376211567Z"
+			"definition_hash": "eaefcfefc63dbfcc7df1e45b2da767b94b2fc71b24085a60b5a13a920aab383e",
+			"reviewed_at": "2026-06-19T13:31:08.560310689Z"
 		},
 		{
 			"function_name": "connectMCP",
@@ -194,6 +194,12 @@
 			"documentation_hash": "ff474275e7950468a75fe2abd7f0e09d9ec57cbbe152dcd920802224b7b8c5fb",
 			"definition_hash": "dadbaecffe06c49dac31182b454e09269708d1d328d0c7dbb0435ce78ac34f84",
 			"reviewed_at": "2026-06-19T13:25:54.79429169Z"
+		},
+		{
+			"function_name": "TestCreateRequiresBoxID",
+			"documentation_hash": "ca5d83c47e5068b7c5b64e0986cef4beffb29363ccf8ea307451c2b16f5b2573",
+			"definition_hash": "80298c800062189082a4aaa986071cdb787c773af596aaf2f281223fed0f73da",
+			"reviewed_at": "2026-06-19T13:31:08.574977415Z"
 		}
 	]
 }

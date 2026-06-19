@@ -57,12 +57,12 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 
 type createInput struct {
 	Image       string `json:"image,omitempty" jsonschema:"optional image to launch; defaults to the configured Claude image"`
-	BoxID       string `json:"box_id,omitempty" jsonschema:"optional box ID to assign; used to reference the box later (get/destroy/logs/exec) and used as the box's hostname, which is the name the user sees in claude.ai/code. Pick a unique, human-readable string that conveys what the box is for (e.g. 'refactor-auth-service'), since it is what identifies the box to the user. Must be a valid hostname (lowercase letters, digits and hyphens) and unique across boxes (creation fails if another box already uses it)"`
+	BoxID       string `json:"box_id" jsonschema:"required box ID to assign; used to reference the box later (get/destroy/logs/exec) and used as the box's hostname, which is the name the user sees in claude.ai/code. Pick a unique, human-readable string that conveys what the box is for (e.g. 'refactor-auth-service'), since it is what identifies the box to the user. Must be a valid hostname (lowercase letters, digits and hyphens) and unique across boxes (creation fails if another box already uses it)"`
 	Description string `json:"description,omitempty" jsonschema:"optional human-readable description shown in list and get to tell boxes apart"`
 }
 
 type createOutput struct {
-	BoxID        string `json:"box_id,omitempty" jsonschema:"the box ID you assigned (empty if none was given); pass it to get/destroy/logs/exec to reference this box"`
+	BoxID        string `json:"box_id" jsonschema:"the box ID you assigned; pass it to get/destroy/logs/exec to reference this box"`
 	ContainerID  string `json:"container_id" jsonschema:"the short Docker container ID of the new box"`
 	AuthURL      string `json:"auth_url" jsonschema:"URL the user opens to authenticate the box in their browser"`
 	AuthToken    string `json:"auth_token" jsonschema:"token identifying this box's auth session (already embedded in auth_url); to poll status, call get_llmbox with the box's box ID"`
@@ -75,13 +75,17 @@ type createOutput struct {
 //
 // @arg ctx Context for the box creation.
 // @arg _ The MCP call request (unused).
-// @arg in The create input carrying optional image, box ID, and description.
+// @arg in The create input carrying the required box ID and an optional image and description.
 // @return *mcp.CallToolResult Always nil; structured output is returned instead.
 // @return createOutput The box ID, container ID, auth URL, token, status, and instructions.
-// @error error if the box cannot be created.
+// @error error if box_id is empty, or the box cannot be created.
 //
 // @testcase TestMCPToolsRegisteredAndCreate calls create_llmbox and checks the auth URL.
+// @testcase TestCreateRequiresBoxID rejects a create_llmbox call with an empty box ID.
 func (s *Server) toolCreate(ctx context.Context, _ *mcp.CallToolRequest, in createInput) (*mcp.CallToolResult, createOutput, error) {
+	if in.BoxID == "" {
+		return nil, createOutput{}, fmt.Errorf("box_id is required")
+	}
 	sess, err := s.CreateBox(ctx, docker.CreateOptions{
 		Image:       in.Image,
 		BoxID:       in.BoxID,
