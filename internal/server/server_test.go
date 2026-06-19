@@ -46,8 +46,8 @@ type fakeMgr struct {
 	gotOpts docker.CreateOptions
 }
 
-// CreateLLMBox records the requested options and returns the canned ID/URL/error.
-func (f *fakeMgr) CreateLLMBox(_ context.Context, opts docker.CreateOptions) (string, string, error) {
+// Create records the requested options and returns the canned ID/URL/error.
+func (f *fakeMgr) Create(_ context.Context, opts docker.CreateOptions) (string, string, error) {
 	f.mu.Lock()
 	f.gotOpts = opts
 	f.mu.Unlock()

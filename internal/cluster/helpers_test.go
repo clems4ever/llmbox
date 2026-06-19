@@ -89,7 +89,7 @@ type fakeManager struct {
 	lastReap time.Duration
 }
 
-func (f *fakeManager) CreateLLMBox(_ context.Context, opts docker.CreateOptions) (string, string, error) {
+func (f *fakeManager) Create(_ context.Context, opts docker.CreateOptions) (string, string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.lastCreate = opts

@@ -4,9 +4,9 @@
 //
 // Lifecycle of a box:
 //
-//  1. CreateLLMBox starts a container whose entrypoint runs `claude auth login`.
+//  1. Create starts a container whose entrypoint runs `claude auth login`.
 //     The container has a TTY; the login process parks at a "paste code" prompt
-//     after printing an OAuth authorize URL. CreateLLMBox captures that URL and
+//     after printing an OAuth authorize URL. Create captures that URL and
 //     returns it. The box is named "llmbox-pending-<id>".
 //  2. SubmitCode writes the OAuth code (obtained out-of-band by the user) to the
 //     login process's stdin. On success the CLI stores credentials inside the
@@ -81,7 +81,7 @@ const (
 	// boxHome and boxWorkdir are the home and working directory forced on a box
 	// in injection mode, so the injected config and the trusted-project key are
 	// deterministic regardless of the base image's own user/WORKDIR. The box runs
-	// as root (see CreateLLMBox) so both stay writable.
+	// as root (see Create) so both stay writable.
 	boxHome    = "/root"
 	boxWorkdir = "/workspace"
 
@@ -279,8 +279,8 @@ func NewManager(defaultImage, remoteArgs, claudeBin string, peers []string) (*Ma
 // @return []byte The Claude binary contents to inject.
 // @error error if the binary cannot be read.
 //
-// @testcase TestCreateLLMBoxInjectsClaude injects the loaded binary into the box.
-// @testcase TestCreateLLMBoxMissingClaudeBinary fails create when the binary is unreadable.
+// @testcase TestCreateInjectsClaude injects the loaded binary into the box.
+// @testcase TestCreateMissingClaudeBinary fails create when the binary is unreadable.
 func (m *Manager) loadClaudeBinary() ([]byte, error) {
 	m.claudeBinOnce.Do(func() {
 		b, err := os.ReadFile(m.claudeBinSrc)
@@ -303,7 +303,7 @@ func (m *Manager) loadClaudeBinary() ([]byte, error) {
 //
 // @return []byte The JSON contents of the ~/.claude.json seed.
 //
-// @testcase TestCreateLLMBoxInjectsClaude checks the injected seed enables trust and remote control.
+// @testcase TestCreateInjectsClaude checks the injected seed enables trust and remote control.
 func claudeConfigSeed() []byte {
 	cfg := map[string]any{
 		"projects": map[string]any{
@@ -383,7 +383,7 @@ func (m *Manager) List(ctx context.Context) ([]Box, error) {
 // is not accepted.
 var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize\?\S*code_challenge=\S*state=[A-Za-z0-9_\-]+`)
 
-// CreateLLMBox creates and starts a box, captures the OAuth authorize URL its
+// Create creates and starts a box, captures the OAuth authorize URL its
 // login process prints, and returns the container ID plus that URL. The box is
 // left running, parked at the "paste code" prompt, ready for SubmitCode.
 // opts.BoxID is applied as the container hostname, and opts.BoxID/opts.Description
@@ -405,14 +405,14 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // @return authorizeURL The OAuth authorize URL captured from the box's login output.
 // @error error if opts.BoxID is already in use, the claude binary cannot be read, the image cannot be pulled, or the box cannot be created, files injected, started, or its authorize URL captured.
 //
-// @testcase TestCreateLLMBoxCapturesURL captures the authorize URL and sets box-id/description labels.
-// @testcase TestCreateLLMBoxCleansUpOnStartFailure removes the container when start fails.
-// @testcase TestCreateLLMBoxRejectsDuplicateBoxID rejects a box ID already in use.
-// @testcase TestCreateLLMBoxPullsMissingImage pulls the image then retries when it is absent.
-// @testcase TestCreateLLMBoxInjectsFiles copies injected files into the box before start.
-// @testcase TestCreateLLMBoxInjectsClaude injects the binary and seed and forces root/HOME/WorkingDir.
-// @testcase TestCreateLLMBoxMissingClaudeBinary fails when the claude binary is unreadable.
-func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, authorizeURL string, err error) {
+// @testcase TestCreateCapturesURL captures the authorize URL and sets box-id/description labels.
+// @testcase TestCreateCleansUpOnStartFailure removes the container when start fails.
+// @testcase TestCreateRejectsDuplicateBoxID rejects a box ID already in use.
+// @testcase TestCreatePullsMissingImage pulls the image then retries when it is absent.
+// @testcase TestCreateInjectsFiles copies injected files into the box before start.
+// @testcase TestCreateInjectsClaude injects the binary and seed and forces root/HOME/WorkingDir.
+// @testcase TestCreateMissingClaudeBinary fails when the claude binary is unreadable.
+func (m *Manager) Create(ctx context.Context, opts CreateOptions) (id, authorizeURL string, err error) {
 	image := opts.Image
 	if image == "" {
 		image = m.defaultImage
@@ -578,7 +578,7 @@ func (m *Manager) CreateLLMBox(ctx context.Context, opts CreateOptions) (id, aut
 // @arg files The files to write into the container.
 // @error error if the archive cannot be built or the copy fails.
 //
-// @testcase TestCreateLLMBoxInjectsFiles copies injected files into the box before start.
+// @testcase TestCreateInjectsFiles copies injected files into the box before start.
 func (m *Manager) injectFiles(ctx context.Context, id string, files []InjectFile) error {
 	archive, err := tarFiles(files)
 	if err != nil {
@@ -654,8 +654,8 @@ func tarFiles(files []InjectFile) (io.Reader, error) {
 // @arg ref The image reference to pull.
 // @error error if the pull cannot start or its progress stream fails.
 //
-// @testcase TestCreateLLMBoxPullsMissingImage pulls then retries when the image is absent.
-// @testcase TestCreateLLMBoxPullFailure surfaces an error when the pull fails.
+// @testcase TestCreatePullsMissingImage pulls then retries when the image is absent.
+// @testcase TestCreatePullFailure surfaces an error when the pull fails.
 func (m *Manager) pullImage(ctx context.Context, ref string) error {
 	rc, err := m.cli.ImagePull(ctx, ref, image.PullOptions{})
 	if err != nil {
@@ -676,7 +676,7 @@ func (m *Manager) pullImage(ctx context.Context, ref string) error {
 // @return string The OAuth authorize URL read from the box's output.
 // @error error if attaching fails or the URL does not appear before the timeout.
 //
-// @testcase TestCreateLLMBoxCapturesURL drives readAuthorizeURL via CreateLLMBox.
+// @testcase TestCreateCapturesURL drives readAuthorizeURL via Create.
 func (m *Manager) readAuthorizeURL(ctx context.Context, id string) (string, error) {
 	hj, err := m.cli.ContainerAttach(ctx, id, container.AttachOptions{
 		Stream: true, Stdout: true, Stderr: true,
@@ -1021,7 +1021,7 @@ func (m *Manager) findManaged(ctx context.Context, idOrName string) (*Box, error
 // @return tail The trailing output captured when no match was found, for diagnostics.
 // @error error if the stream ends or the timeout elapses before a match.
 //
-// @testcase TestCreateLLMBoxCapturesURL relies on scanFor to find the authorize URL.
+// @testcase TestCreateCapturesURL relies on scanFor to find the authorize URL.
 func scanFor(r *bufio.Reader, re *regexp.Regexp, timeout time.Duration, onTimeout func()) (match, tail string, err error) {
 	type result struct {
 		match string

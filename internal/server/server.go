@@ -396,7 +396,7 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 		}
 	}
 
-	id, authorizeURL, err := mgr.CreateLLMBox(ctx, opts)
+	id, authorizeURL, err := mgr.Create(ctx, opts)
 	if err != nil {
 		s.runDestroyHooks(box, hookState)
 		return nil, err

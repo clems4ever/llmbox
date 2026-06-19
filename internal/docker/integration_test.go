@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// TestCreateLLMBoxIntegration drives a real container: it creates a box from a
+// TestCreateIntegration drives a real container: it creates a box from a
 // plain glibc image with the standalone Claude binary injected, and verifies
 // that a genuine OAuth authorize URL is captured from the live `claude auth
 // login` flow. It then destroys the box.
@@ -19,7 +19,7 @@ import (
 // point at a Claude binary on the test host:
 //
 //	LLMBOX_IT_CLAUDE_BIN=$HOME/.local/bin/claude go test -tags=integration -run Integration -v ./internal/docker/
-func TestCreateLLMBoxIntegration(t *testing.T) {
+func TestCreateIntegration(t *testing.T) {
 	image := os.Getenv("LLMBOX_IT_IMAGE")
 	if image == "" {
 		image = "debian:bookworm-slim"
@@ -38,7 +38,7 @@ func TestCreateLLMBoxIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	id, url, err := m.CreateLLMBox(ctx, CreateOptions{})
+	id, url, err := m.Create(ctx, CreateOptions{})
 	if id != "" {
 		// Always clean up the container we started.
 		defer func() {
@@ -48,7 +48,7 @@ func TestCreateLLMBoxIntegration(t *testing.T) {
 		}()
 	}
 	if err != nil {
-		t.Fatalf("CreateLLMBox: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 
 	t.Logf("captured authorize URL: %s", url)

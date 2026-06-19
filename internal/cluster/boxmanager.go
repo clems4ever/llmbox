@@ -21,7 +21,7 @@ import (
 // the complete RPC allowlist of the cluster protocol — no operation outside it
 // can cross the hub/spoke boundary.
 type BoxManager interface {
-	CreateLLMBox(ctx context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error)
+	Create(ctx context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error)
 	SubmitCode(ctx context.Context, idOrName, code string) (sessionURL string, err error)
 	List(ctx context.Context) ([]docker.Box, error)
 	Destroy(ctx context.Context, idOrName string) error

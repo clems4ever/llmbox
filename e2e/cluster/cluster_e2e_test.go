@@ -153,11 +153,13 @@ type fakeSpokeMgr struct {
 	execCount   int
 }
 
+// newFakeSpokeMgr builds an empty simulated spoke box manager.
 func newFakeSpokeMgr(name string) *fakeSpokeMgr {
 	return &fakeSpokeMgr{name: name, boxes: map[string]string{}}
 }
 
-func (m *fakeSpokeMgr) CreateLLMBox(_ context.Context, opts docker.CreateOptions) (string, string, error) {
+// Create simulates launching a box, recording the call and returning a fake container ID.
+func (m *fakeSpokeMgr) Create(_ context.Context, opts docker.CreateOptions) (string, string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := randHex(20)
@@ -166,10 +168,12 @@ func (m *fakeSpokeMgr) CreateLLMBox(_ context.Context, opts docker.CreateOptions
 	return id, "https://auth.example/", nil
 }
 
+// SubmitCode simulates a completed activation, returning a session URL.
 func (m *fakeSpokeMgr) SubmitCode(_ context.Context, _, _ string) (string, error) {
 	return "https://claude.ai/code/session", nil
 }
 
+// List returns the spoke's in-memory boxes.
 func (m *fakeSpokeMgr) List(_ context.Context) ([]docker.Box, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -180,6 +184,7 @@ func (m *fakeSpokeMgr) List(_ context.Context) ([]docker.Box, error) {
 	return out, nil
 }
 
+// Destroy removes a matching in-memory box.
 func (m *fakeSpokeMgr) Destroy(_ context.Context, idOrName string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -191,10 +196,12 @@ func (m *fakeSpokeMgr) Destroy(_ context.Context, idOrName string) error {
 	return nil
 }
 
+// Logs returns canned output identifying this spoke.
 func (m *fakeSpokeMgr) Logs(_ context.Context, _ string, _ int) (string, error) {
 	return "log from " + m.name, nil
 }
 
+// Exec records the call and returns canned output identifying this spoke.
 func (m *fakeSpokeMgr) Exec(_ context.Context, _ string, _ []string) (docker.ExecResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -202,16 +209,24 @@ func (m *fakeSpokeMgr) Exec(_ context.Context, _ string, _ []string) (docker.Exe
 	return docker.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
 }
 
+// ReapOrphans reaps nothing in the simulation.
 func (m *fakeSpokeMgr) ReapOrphans(_ context.Context, _ time.Duration) ([]string, error) {
 	return nil, nil
 }
 
+// creates returns how many boxes were created on this spoke.
 func (m *fakeSpokeMgr) creates() int { m.mu.Lock(); defer m.mu.Unlock(); return m.createCount }
-func (m *fakeSpokeMgr) execs() int   { m.mu.Lock(); defer m.mu.Unlock(); return m.execCount }
-func (m *fakeSpokeMgr) live() int    { m.mu.Lock(); defer m.mu.Unlock(); return len(m.boxes) }
 
+// execs returns how many commands were exec'd on this spoke.
+func (m *fakeSpokeMgr) execs() int { m.mu.Lock(); defer m.mu.Unlock(); return m.execCount }
+
+// live returns the number of boxes currently on this spoke.
+func (m *fakeSpokeMgr) live() int { m.mu.Lock(); defer m.mu.Unlock(); return len(m.boxes) }
+
+// hasPrefix reports whether s starts with prefix.
 func hasPrefix(s, prefix string) bool { return len(s) >= len(prefix) && s[:len(prefix)] == prefix }
 
+// randHex returns n random bytes hex-encoded, for fake container IDs.
 func randHex(n int) string {
 	b := make([]byte, n)
 	_, _ = rand.Read(b)
@@ -293,4 +308,5 @@ func callToolRaw(t *testing.T, cs *mcp.ClientSession, name string, args map[stri
 
 type toolError struct{ name string }
 
+// Error renders the tool error.
 func (e *toolError) Error() string { return e.name + " returned a tool error" }

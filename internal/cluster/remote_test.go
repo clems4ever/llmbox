@@ -38,9 +38,9 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 	rs := startSpoke(t, fake)
 	ctx := context.Background()
 
-	id, url, err := rs.CreateLLMBox(ctx, docker.CreateOptions{BoxID: "b1", SpokeName: "s"})
+	id, url, err := rs.Create(ctx, docker.CreateOptions{BoxID: "b1", SpokeName: "s"})
 	if err != nil || id != "cid" || url != "https://auth" {
-		t.Fatalf("CreateLLMBox = (%q,%q,%v)", id, url, err)
+		t.Fatalf("Create = (%q,%q,%v)", id, url, err)
 	}
 	if fake.lastCreate.BoxID != "b1" {
 		t.Errorf("spoke saw create box id %q", fake.lastCreate.BoxID)
@@ -102,7 +102,7 @@ func TestRemoteSpokeDisconnect(t *testing.T) {
 	// A call in flight (no serve loop answers) fails once the connection drops.
 	errc := make(chan error, 1)
 	go func() {
-		_, _, err := rs.CreateLLMBox(context.Background(), docker.CreateOptions{})
+		_, _, err := rs.Create(context.Background(), docker.CreateOptions{})
 		errc <- err
 	}()
 	// Let the call register, then drop the connection.

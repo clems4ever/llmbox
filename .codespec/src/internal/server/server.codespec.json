@@ -44,8 +44,8 @@
 			"function_name": "CreateBox",
 			"receiver": "Server",
 			"documentation_hash": "05798d44d85efe62b76beb05e8ee818aa8423670ce1f4e160cae21e9aebd94fc",
-			"definition_hash": "db7ef0c5707a7ec3d462db07a2cbaf84865b864a6b832a9df5c0eba58321ff13",
-			"reviewed_at": "2026-06-19T19:47:04.422923355Z"
+			"definition_hash": "6e724cee6e26bf8094dcb3903481e08f4eded767ed79d9534fada3ca4b686379",
+			"reviewed_at": "2026-06-19T20:04:57.629199224Z"
 		},
 		{
 			"function_name": "runDestroyHooks",

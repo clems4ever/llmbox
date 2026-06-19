@@ -249,7 +249,7 @@ func (readConn) SetReadDeadline(time.Time) error { return nil }
 func (readConn) SetWriteDeadline(time.Time) error { return nil }
 
 // testClaudeBin is the path to a stand-in Claude binary written once by TestMain,
-// so the always-on injection in CreateLLMBox has a real file to read.
+// so the always-on injection in Create has a real file to read.
 var testClaudeBin string
 
 // testClaudeBinContent is the stand-in binary's bytes, asserted on as the
@@ -310,8 +310,8 @@ func TestListMapsPhaseFromName(t *testing.T) {
 	}
 }
 
-// TestCreateLLMBoxCapturesURL checks the authorize URL capture, naming, and box-id/description labels.
-func TestCreateLLMBoxCapturesURL(t *testing.T) {
+// TestCreateCapturesURL checks the authorize URL capture, naming, and box-id/description labels.
+func TestCreateCapturesURL(t *testing.T) {
 	managerEnd, testEnd := net.Pipe()
 	f := &fakeDocker{
 		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
@@ -326,9 +326,9 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
 	}()
 
-	id, url, err := m.CreateLLMBox(context.Background(), CreateOptions{BoxID: "my-box", Description: "scratch box"})
+	id, url, err := m.Create(context.Background(), CreateOptions{BoxID: "my-box", Description: "scratch box"})
 	if err != nil {
-		t.Fatalf("CreateLLMBox: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	if id != "abcdef0123456789ffff" {
 		t.Errorf("id = %q", id)
@@ -363,7 +363,7 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	}
 	// The two post-login gates (workspace trust and "Enable Remote Control?") are
 	// pre-answered by the injected ~/.claude.json seed now, not the entrypoint, so
-	// the entrypoint stays node-free. See TestCreateLLMBoxInjectsClaude.
+	// the entrypoint stays node-free. See TestCreateInjectsClaude.
 	if !f.createConfig.Tty || !f.createConfig.OpenStdin {
 		t.Error("box needs Tty and OpenStdin")
 	}
@@ -380,14 +380,14 @@ func TestCreateLLMBoxCapturesURL(t *testing.T) {
 	}
 }
 
-// TestCreateLLMBoxCleansUpOnStartFailure checks the container is removed when start fails.
-func TestCreateLLMBoxCleansUpOnStartFailure(t *testing.T) {
+// TestCreateCleansUpOnStartFailure checks the container is removed when start fails.
+func TestCreateCleansUpOnStartFailure(t *testing.T) {
 	f := &fakeDocker{
 		createResp: container.CreateResponse{ID: "doomed0000000000"},
 		startErr:   errors.New("no resources"),
 	}
 	m := newTestManager(f)
-	if _, _, err := m.CreateLLMBox(context.Background(), CreateOptions{}); err == nil {
+	if _, _, err := m.Create(context.Background(), CreateOptions{}); err == nil {
 		t.Fatal("expected error when start fails")
 	}
 	if len(f.removed) != 1 || f.removed[0] != "doomed0000000000" {
@@ -395,16 +395,16 @@ func TestCreateLLMBoxCleansUpOnStartFailure(t *testing.T) {
 	}
 }
 
-// TestCreateLLMBoxRejectsDuplicateBoxID checks a create is refused (and no
+// TestCreateRejectsDuplicateBoxID checks a create is refused (and no
 // container made) when another box already uses the requested box ID.
-func TestCreateLLMBoxRejectsDuplicateBoxID(t *testing.T) {
+func TestCreateRejectsDuplicateBoxID(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{
 		{ID: "existing0000aaaa", Names: []string{"/llmbox-existing0000"}, Labels: map[string]string{BoxIDLabel: "dup-host"}},
 	}}
 	m := newTestManager(f)
 
 	// Case-insensitive: "DUP-HOST" must still collide with "dup-host".
-	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{BoxID: "DUP-HOST"})
+	_, _, err := m.Create(context.Background(), CreateOptions{BoxID: "DUP-HOST"})
 	if err == nil {
 		t.Fatal("expected error for duplicate box ID")
 	}
@@ -416,9 +416,9 @@ func TestCreateLLMBoxRejectsDuplicateBoxID(t *testing.T) {
 	}
 }
 
-// TestCreateLLMBoxPullsMissingImage checks that when the image is absent the
+// TestCreatePullsMissingImage checks that when the image is absent the
 // manager pulls it and retries the create, succeeding on the second attempt.
-func TestCreateLLMBoxPullsMissingImage(t *testing.T) {
+func TestCreatePullsMissingImage(t *testing.T) {
 	managerEnd, testEnd := net.Pipe()
 	f := &fakeDocker{
 		createResp:              container.CreateResponse{ID: "abcdef0123456789ffff"},
@@ -431,9 +431,9 @@ func TestCreateLLMBoxPullsMissingImage(t *testing.T) {
 		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
 	}()
 
-	id, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
+	id, _, err := m.Create(context.Background(), CreateOptions{})
 	if err != nil {
-		t.Fatalf("CreateLLMBox: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	if id != "abcdef0123456789ffff" {
 		t.Errorf("id = %q", id)
@@ -446,14 +446,14 @@ func TestCreateLLMBoxPullsMissingImage(t *testing.T) {
 	}
 }
 
-// TestCreateLLMBoxPullFailure checks a failed pull surfaces an error and no box.
-func TestCreateLLMBoxPullFailure(t *testing.T) {
+// TestCreatePullFailure checks a failed pull surfaces an error and no box.
+func TestCreatePullFailure(t *testing.T) {
 	f := &fakeDocker{
 		createNotFoundUntilPull: true,
 		pullErr:                 errors.New("registry unreachable"),
 	}
 	m := newTestManager(f)
-	if _, _, err := m.CreateLLMBox(context.Background(), CreateOptions{}); err == nil {
+	if _, _, err := m.Create(context.Background(), CreateOptions{}); err == nil {
 		t.Fatal("expected error when the pull fails")
 	}
 	if len(f.started) != 0 {
@@ -711,9 +711,9 @@ func TestSetupBoxNetworkConnectsPeers(t *testing.T) {
 	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: testClaudeBin, peers: []string{"peer-svc"}}
 	go func() { _, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\n")) }()
 
-	id, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
+	id, _, err := m.Create(context.Background(), CreateOptions{})
 	if err != nil {
-		t.Fatalf("CreateLLMBox: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	// The box is created on no shared network, then attached only to its own.
 	if f.createConfig == nil {
@@ -790,9 +790,9 @@ func tarEntries(t *testing.T, b []byte) map[string]struct {
 	return out
 }
 
-// TestCreateLLMBoxInjectsFiles checks injected files are copied into the box, to
+// TestCreateInjectsFiles checks injected files are copied into the box, to
 // the container root, before it starts.
-func TestCreateLLMBoxInjectsFiles(t *testing.T) {
+func TestCreateInjectsFiles(t *testing.T) {
 	managerEnd, testEnd := net.Pipe()
 	f := &fakeDocker{
 		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
@@ -804,7 +804,7 @@ func TestCreateLLMBoxInjectsFiles(t *testing.T) {
 		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
 	}()
 
-	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{
+	_, _, err := m.Create(context.Background(), CreateOptions{
 		Files: []InjectFile{{
 			Path:    "/home/node/.secrets/token",
 			Content: []byte("sekret-123"),
@@ -814,7 +814,7 @@ func TestCreateLLMBoxInjectsFiles(t *testing.T) {
 		}},
 	})
 	if err != nil {
-		t.Fatalf("CreateLLMBox: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	if len(f.copyToCalls) != 1 {
 		t.Fatalf("want 1 CopyToContainer call, got %d", len(f.copyToCalls))
@@ -836,10 +836,10 @@ func TestCreateLLMBoxInjectsFiles(t *testing.T) {
 	}
 }
 
-// TestCreateLLMBoxInjectsClaude checks the standalone Claude binary and the
+// TestCreateInjectsClaude checks the standalone Claude binary and the
 // ~/.claude.json seed are injected into every box, and that the box is forced to
 // run as root with a fixed HOME/WorkingDir.
-func TestCreateLLMBoxInjectsClaude(t *testing.T) {
+func TestCreateInjectsClaude(t *testing.T) {
 	managerEnd, testEnd := net.Pipe()
 	f := &fakeDocker{
 		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
@@ -851,8 +851,8 @@ func TestCreateLLMBoxInjectsClaude(t *testing.T) {
 		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
 	}()
 
-	if _, _, err := m.CreateLLMBox(context.Background(), CreateOptions{}); err != nil {
-		t.Fatalf("CreateLLMBox: %v", err)
+	if _, _, err := m.Create(context.Background(), CreateOptions{}); err != nil {
+		t.Fatalf("Create: %v", err)
 	}
 
 	// Box runs as root with a deterministic HOME/WorkingDir.
@@ -914,13 +914,13 @@ func slicesContains(s []string, v string) bool {
 	return false
 }
 
-// TestCreateLLMBoxMissingClaudeBinary checks create fails cleanly, without making
+// TestCreateMissingClaudeBinary checks create fails cleanly, without making
 // a container, when the Claude binary to inject cannot be read.
-func TestCreateLLMBoxMissingClaudeBinary(t *testing.T) {
+func TestCreateMissingClaudeBinary(t *testing.T) {
 	f := &fakeDocker{createResp: container.CreateResponse{ID: "doomed0000000000"}}
 	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: filepath.Join(t.TempDir(), "does-not-exist")}
 
-	_, _, err := m.CreateLLMBox(context.Background(), CreateOptions{})
+	_, _, err := m.Create(context.Background(), CreateOptions{})
 	if err == nil {
 		t.Fatal("expected an error when the claude binary is unreadable")
 	}

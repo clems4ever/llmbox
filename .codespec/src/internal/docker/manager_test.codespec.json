@@ -293,8 +293,8 @@
 		{
 			"function_name": "TestSetupBoxNetworkConnectsPeers",
 			"documentation_hash": "eb2991a05e25756ab3d21af3bc1126c8c96fbc7da8dc187174c5dc9e3c06ec4f",
-			"definition_hash": "f0f7641c5a1280afb71e23d8933ebce51e89c0510c7bedc9c522001bb5ed014b",
-			"reviewed_at": "2026-06-18T15:04:15.864134388Z"
+			"definition_hash": "0017924dcbf3c06d8e57f920ebe0a558711c0a21981dd33e9e0ad6b980d970c6",
+			"reviewed_at": "2026-06-19T20:04:57.60376801Z"
 		},
 		{
 			"function_name": "TestDestroyRemovesBoxNetwork",
@@ -361,6 +361,54 @@
 			"documentation_hash": "bf17458e16f47c887d7939f1cf1f689f4b1398005413393d1f34434d87e9e196",
 			"definition_hash": "44a2c0bc2d409834629488ef149fa1f2504ba98fa5bbe52aaa0825dcd7d80ca6",
 			"reviewed_at": "2026-06-19T20:02:09.366409033Z"
+		},
+		{
+			"function_name": "TestCreateCapturesURL",
+			"documentation_hash": "f472d72b2c6d2501326aceaa6531bb1dab4d7bde05f92b69c752c37a9bca68f2",
+			"definition_hash": "b87d44a9c5ce1df8dcc73b8384f055a88e50808e68cac74ae85d888a0805d455",
+			"reviewed_at": "2026-06-19T20:04:57.562128146Z"
+		},
+		{
+			"function_name": "TestCreateCleansUpOnStartFailure",
+			"documentation_hash": "92f583252f866bd35daab22e5ba8a3e4935ce8f0a8a4661b4e735d53b5780d4e",
+			"definition_hash": "88a5658d3d0e921db5d13cfaf0d4662d1e19c79ecaeb3897110909fbb368c307",
+			"reviewed_at": "2026-06-19T20:04:57.566728359Z"
+		},
+		{
+			"function_name": "TestCreateRejectsDuplicateBoxID",
+			"documentation_hash": "440d856858943be4827340cf622a93e5e84424fbd420b7d1c2cb6d6607241554",
+			"definition_hash": "b885523f97a37e0b183485cc6f46b93678800c963a30bb33486ad0a7a62578fe",
+			"reviewed_at": "2026-06-19T20:04:57.583271578Z"
+		},
+		{
+			"function_name": "TestCreatePullsMissingImage",
+			"documentation_hash": "b9618b200c86246534a060ab53360e9f52174ee64ff48ba22d6a3895248c794c",
+			"definition_hash": "56ce89103c7e6cd074ba92e15ab56fa227621abcf9a10f8a53572faf54707223",
+			"reviewed_at": "2026-06-19T20:04:57.58983247Z"
+		},
+		{
+			"function_name": "TestCreatePullFailure",
+			"documentation_hash": "9a43dfeb6f42c80d362c98c103c886202950e88ae928e874e619d8ea53728dd5",
+			"definition_hash": "1e14f245d82d3bd8616f43267ddbf55bef88a93469b08383e66b6323b98b8674",
+			"reviewed_at": "2026-06-19T20:04:57.596039173Z"
+		},
+		{
+			"function_name": "TestCreateInjectsFiles",
+			"documentation_hash": "e1915cd31baf30d59eb54fd0b40592d99130fef2863d14525d168dd93dcfb862",
+			"definition_hash": "7a77167eff36ba8042f50a9cf1ddf7956e63e280db1af1ceb36c488f8a81e51a",
+			"reviewed_at": "2026-06-19T20:04:57.61087821Z"
+		},
+		{
+			"function_name": "TestCreateInjectsClaude",
+			"documentation_hash": "22b4e517fc215d5e8e9348c612cdf1685eeb5edef9a4772c368e987a5ad1c104",
+			"definition_hash": "7b04e546ac1239e7cb2ba5b950e23280fe99f288cd9edeefdebfae75e7b83279",
+			"reviewed_at": "2026-06-19T20:04:57.618600434Z"
+		},
+		{
+			"function_name": "TestCreateMissingClaudeBinary",
+			"documentation_hash": "36d96b590f2bc6fc9060715bfd19395e1289ea9629aeb2c190335a71119815a9",
+			"definition_hash": "57a0e705266436284cb2078a3409e9663943921802ecd52d097e98be3cd1e56c",
+			"reviewed_at": "2026-06-19T20:04:57.625183756Z"
 		}
 	]
 }

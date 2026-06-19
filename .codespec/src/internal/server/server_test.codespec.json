@@ -200,6 +200,13 @@
 			"documentation_hash": "ca5d83c47e5068b7c5b64e0986cef4beffb29363ccf8ea307451c2b16f5b2573",
 			"definition_hash": "80298c800062189082a4aaa986071cdb787c773af596aaf2f281223fed0f73da",
 			"reviewed_at": "2026-06-19T13:31:08.574977415Z"
+		},
+		{
+			"function_name": "Create",
+			"receiver": "fakeMgr",
+			"documentation_hash": "acefce74c58dd6d4d280532ecbaeab6e4034cfe14b448a7a8f28f12b56521004",
+			"definition_hash": "da0ed833034e5541d6acd6c486e6634de6f46a6411d53dddc20e54938d772d7b",
+			"reviewed_at": "2026-06-19T20:04:57.632337739Z"
 		}
 	]
 }

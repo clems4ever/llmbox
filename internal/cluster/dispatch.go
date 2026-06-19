@@ -74,7 +74,7 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 		if err := decodePayload(req.Payload, &in); err != nil {
 			return nil, err
 		}
-		id, url, err := mgr.CreateLLMBox(ctx, in.Opts)
+		id, url, err := mgr.Create(ctx, in.Opts)
 		if err != nil {
 			return nil, err
 		}

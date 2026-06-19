@@ -169,7 +169,7 @@ func (r *remoteSpoke) call(ctx context.Context, method string, req, resp any) er
 	}
 }
 
-// CreateLLMBox forwards a box creation to the spoke.
+// Create forwards a box creation to the spoke.
 //
 // @arg ctx Context for the call.
 // @arg opts The box creation options.
@@ -178,7 +178,7 @@ func (r *remoteSpoke) call(ctx context.Context, method string, req, resp any) er
 // @error error if the call fails or the spoke returns an error.
 //
 // @testcase TestRemoteSpokeRoundTrip creates a box through the remote spoke.
-func (r *remoteSpoke) CreateLLMBox(ctx context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error) {
+func (r *remoteSpoke) Create(ctx context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error) {
 	var resp createResp
 	if err := r.call(ctx, methodCreate, createReq{Opts: opts}, &resp); err != nil {
 		return "", "", err

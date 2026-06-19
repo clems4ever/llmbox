@@ -46,7 +46,7 @@ func newFakeBoxManager(platform *fakeAnthropic) *fakeBoxManager {
 	return &fakeBoxManager{platform: platform, boxes: map[string]*fakeBox{}}
 }
 
-// CreateLLMBox simulates launching a box: it rejects a duplicate box ID, begins
+// Create simulates launching a box: it rejects a duplicate box ID, begins
 // an OAuth login on the platform, and returns the new container ID plus the
 // authorize URL the user must open — exactly the contract the real manager has.
 //
@@ -55,7 +55,7 @@ func newFakeBoxManager(platform *fakeAnthropic) *fakeBoxManager {
 // @return id The simulated container ID of the new box.
 // @return authorizeURL The OAuth authorize URL for the box's login.
 // @error error if the requested box ID is already in use.
-func (m *fakeBoxManager) CreateLLMBox(_ context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error) {
+func (m *fakeBoxManager) Create(_ context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if opts.BoxID != "" {

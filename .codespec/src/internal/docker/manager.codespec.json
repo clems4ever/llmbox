@@ -9,15 +9,15 @@
 		{
 			"function_name": "loadClaudeBinary",
 			"receiver": "Manager",
-			"documentation_hash": "76404425879626eb2b799eedb10b4010009f15abe8eacb21d1020f1acca88c2b",
+			"documentation_hash": "2c8e382d6233968b76f9823d5e17fa4c4fc0e2df3bb002b05fc9c68042b84af2",
 			"definition_hash": "d5597807b20f2b02759593aa07486b4c8b75c320d789b39dfe6971b966f89edc",
-			"reviewed_at": "2026-06-18T15:05:52.378808064Z"
+			"reviewed_at": "2026-06-19T20:04:57.527572207Z"
 		},
 		{
 			"function_name": "claudeConfigSeed",
-			"documentation_hash": "0d684621d92b2367adb14b6aecd9a6073cf419d5fc859d63f65cd5b6d8d54c30",
+			"documentation_hash": "d2bffe7c9ac2d69f4ffb85df7c06a993e7ac7ad2814ddc7c3a1d840c40ae7f09",
 			"definition_hash": "ca55c8da7d89ac98af5cc8b059aef98d4d0f34f7a75c3b4115b70c8eb536fcfe",
-			"reviewed_at": "2026-06-18T15:05:52.383503567Z"
+			"reviewed_at": "2026-06-19T20:04:57.532181125Z"
 		},
 		{
 			"function_name": "Close",
@@ -55,9 +55,9 @@
 		{
 			"function_name": "injectFiles",
 			"receiver": "Manager",
-			"documentation_hash": "a84a3e3dfff0b524fc7f5115744fb4607512976bb65572a3c64dfa51e662b444",
+			"documentation_hash": "8fc9cd6447aa61b5c376390dd0ad8ce568646d994d15faa139e06474872c64ab",
 			"definition_hash": "18d4fe121ba8aa1897c6fdaf1fe524c5b2b0b484efb50c2eb7878f01389461f4",
-			"reviewed_at": "2026-06-18T15:05:52.40846912Z"
+			"reviewed_at": "2026-06-19T20:04:57.539282663Z"
 		},
 		{
 			"function_name": "tarFiles",
@@ -68,16 +68,16 @@
 		{
 			"function_name": "pullImage",
 			"receiver": "Manager",
-			"documentation_hash": "45e13900a25eb7c26ab5070f488785a54b9488afc594c7dda9ccd69018fc49c7",
+			"documentation_hash": "b9b76a2edcc403122308c8f96fefe67d6aa22a573a88579a5b3e3b2b4a22cac2",
 			"definition_hash": "b26a9b78fbedc9bf56b5504021f78d2087988528925f2c200a61f6366c1304a5",
-			"reviewed_at": "2026-06-18T17:12:11.786481379Z"
+			"reviewed_at": "2026-06-19T20:04:57.547279836Z"
 		},
 		{
 			"function_name": "readAuthorizeURL",
 			"receiver": "Manager",
-			"documentation_hash": "72a9df45909f81f11d213b7472a4909fb25816a34163e341f65d707a5f35199a",
+			"documentation_hash": "e7aaa60c2e4831986fe5150fa3959b0e3dc0914cbb764487ed31eb9168cd9c91",
 			"definition_hash": "dcef2237eebaf393ce9b5a9224b55e41fea46e1dd94097c15acc0a192b8a2451",
-			"reviewed_at": "2026-06-18T15:05:52.422248794Z"
+			"reviewed_at": "2026-06-19T20:04:57.552678917Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -149,9 +149,9 @@
 		},
 		{
 			"function_name": "scanFor",
-			"documentation_hash": "24102b3d88d12cf6705de7e73f8e8a6fafe88f760e289d0a239f89f6334395e3",
+			"documentation_hash": "80329e426349bc6202bf2f9ae7da8f4a2dc2abf1b948a52994293cb4b800a66c",
 			"definition_hash": "7de38ac8d2b9e916a3e8904d81ae7fd9c59d8a255ac63bbbe6fb0c626e199e35",
-			"reviewed_at": "2026-06-18T15:05:52.457286849Z"
+			"reviewed_at": "2026-06-19T20:04:57.55763081Z"
 		},
 		{
 			"function_name": "lastLines",
@@ -171,6 +171,13 @@
 			"documentation_hash": "953c9b1395f1e93b917679ef2a730f6ba4abfeaa10880252851af6d32e5be729",
 			"definition_hash": "bd35664b5d6510c313cbf75ae6206084334b0cb1bb47bc0c497de65320ac29e7",
 			"reviewed_at": "2026-06-18T17:12:11.77332901Z"
+		},
+		{
+			"function_name": "Create",
+			"receiver": "Manager",
+			"documentation_hash": "9cd25fa3ee962fac4396d7124c9672c798ac6cc026a164160547de9dc230e159",
+			"definition_hash": "6458db07a0e5b6d3d5db8eb1c1cf20b07bf6885d256fa17d8747f49b8d3f6fe3",
+			"reviewed_at": "2026-06-19T20:04:57.534488238Z"
 		}
 	]
 }
