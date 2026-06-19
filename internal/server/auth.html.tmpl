@@ -86,8 +86,9 @@
   .note { color: var(--muted); font-size: .82rem; margin: 0; text-align: justify; }
   /* A subtle info callout for meta-information (e.g. the privacy note), so it
      reads as secondary to the numbered instructions: smaller, tinted box, info
-     colour. */
-  .callout {
+     colour. Scoped under .step-body so it beats the `.step p` rule (which is more
+     specific than a bare `.callout` and would otherwise override size/colour). */
+  .step-body .callout {
     margin: 0; padding: .6rem .7rem; border-radius: 8px;
     background: var(--info-bg); color: var(--info);
     font-size: .72rem; line-height: 1.5;
