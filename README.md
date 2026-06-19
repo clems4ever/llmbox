@@ -49,10 +49,11 @@ Boxes that are never authenticated are destroyed after `auth_ttl`
 ### The activation page
 
 This is what the user sees at the auth-page URL — paste the code to activate, and
-the box reports ready with its session URL. The page is responsive, so it works
-just as well on a phone. These images are **captured by the end-to-end test**
-(headless Chrome via WebDriver) and refreshed by CI on every push to `main`, so
-they always reflect the current UI — see [Tested](#tested).
+the box reports ready with its session URL. The page is responsive, so on a phone
+it drops the card framing and fills the screen. These images are **captured by the
+end-to-end test** (headless Chrome via WebDriver) and refreshed by CI **on the
+pull request** that changes the UI — committed straight into the PR's diff — so
+they always reflect the current UI and stay reviewable; see [Tested](#tested).
 
 | Activate | Ready | On mobile |
 |----------|-------|-----------|
@@ -414,15 +415,19 @@ core security property: the OAuth URL and code never appear in any MCP output.
 make test-e2e            # or: go test -tags e2e ./e2e/...
 ```
 
-It skips gracefully when no `chromedriver` is on the host (or `$CHROMEWEBDRIVER`),
-so the default `go test ./...` unit run is unaffected and stays fast.
+The e2e suite is opt-in: it only builds under `-tags e2e`, so the default
+`go test ./...` unit run never includes it and stays fast. When you do run it and
+no `chromedriver` is available (on `$CHROMEWEBDRIVER` or `$PATH`), it **fails**
+rather than skipping — running the suite is an explicit request, so a missing
+browser is an error, not a silent pass.
 
 When `$LLMBOX_E2E_SCREENSHOT_DIR` is set, the test also saves PNG screenshots of
 the auth page (`auth-page.png`, `auth-ready.png`, and a phone-sized
 `auth-page-mobile.png`) to that directory. CI sets it
-to [`.github/screenshots/`](.github/screenshots) and, on pushes to `main`,
-commits the refreshed images back, so the [activation page](#the-activation-page)
-shown above always matches the live UI.
+to [`.github/screenshots/`](.github/screenshots) and, **on pull requests** (from
+this repo), commits the refreshed images straight onto the PR branch, so the
+[activation page](#the-activation-page) shown above always matches the live UI
+and the change is reviewed together with the code that caused it.
 
 ## Status / caveats
 

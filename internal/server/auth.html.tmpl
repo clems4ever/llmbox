@@ -78,6 +78,16 @@
   .banner.err { background: var(--err-bg); color: var(--err); }
   .result a { color: var(--accent-strong); }
   .url { word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
+  /* On phones, drop the floating-card framing and fill the viewport: no side
+     gutters, border, radius, or shadow, so the content uses the whole screen. */
+  @media (max-width: 30rem) {
+    body { padding: 0; align-items: stretch; }
+    .card {
+      max-width: none; min-height: 100vh;
+      border: 0; border-radius: 0; box-shadow: none;
+      padding: 1.75rem 1.25rem;
+    }
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
