@@ -105,6 +105,12 @@ func TestEndToEndWorkflow(t *testing.T) {
 	if shotDir != "" {
 		b.resizeForScreenshot(t)
 		b.saveScreenshot(t, shotDir, "auth-page.png")
+		// Also capture the same activation page at a phone viewport for the
+		// README, then restore the desktop size so the later "ready" capture
+		// (taken without its own resize) still matches auth-page.png.
+		b.resizeForMobileScreenshot(t)
+		b.saveScreenshot(t, shotDir, "auth-page-mobile.png")
+		b.resizeForScreenshot(t)
 	}
 	signIn := b.waitFor(t, by("css"), "a.btn-link")
 	authorizeURL, err := signIn.GetAttribute("href")

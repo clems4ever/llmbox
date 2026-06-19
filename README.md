@@ -49,13 +49,14 @@ Boxes that are never authenticated are destroyed after `auth_ttl`
 ### The activation page
 
 This is what the user sees at the auth-page URL — paste the code to activate, and
-the box reports ready with its session URL. These images are **captured by the
-end-to-end test** (headless Chrome via WebDriver) and refreshed by CI on every
-push to `main`, so they always reflect the current UI — see [Tested](#tested).
+the box reports ready with its session URL. The page is responsive, so it works
+just as well on a phone. These images are **captured by the end-to-end test**
+(headless Chrome via WebDriver) and refreshed by CI on every push to `main`, so
+they always reflect the current UI — see [Tested](#tested).
 
-| Activate | Ready |
-|----------|-------|
-| ![The llmbox activation page](.github/screenshots/auth-page.png) | ![The activated llmbox page showing the session URL](.github/screenshots/auth-ready.png) |
+| Activate | Ready | On mobile |
+|----------|-------|-----------|
+| ![The llmbox activation page](.github/screenshots/auth-page.png) | ![The activated llmbox page showing the session URL](.github/screenshots/auth-ready.png) | ![The llmbox activation page on a phone-sized screen](.github/screenshots/auth-page-mobile.png) |
 
 ## MCP tools
 
@@ -417,7 +418,8 @@ It skips gracefully when no `chromedriver` is on the host (or `$CHROMEWEBDRIVER`
 so the default `go test ./...` unit run is unaffected and stays fast.
 
 When `$LLMBOX_E2E_SCREENSHOT_DIR` is set, the test also saves PNG screenshots of
-the auth page (`auth-page.png`, `auth-ready.png`) to that directory. CI sets it
+the auth page (`auth-page.png`, `auth-ready.png`, and a phone-sized
+`auth-page-mobile.png`) to that directory. CI sets it
 to [`.github/screenshots/`](.github/screenshots) and, on pushes to `main`,
 commits the refreshed images back, so the [activation page](#the-activation-page)
 shown above always matches the live UI.
