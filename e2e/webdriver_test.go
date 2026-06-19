@@ -100,9 +100,16 @@ func (b *browser) waitFor(t *testing.T, by, value string) selenium.WebElement {
 // shotWidth and shotHeight frame the auth card (max-width 30rem, centered) with
 // a little margin when capturing a screenshot, so the saved image is a tidy
 // portrait of the page rather than the card lost in a wide viewport.
+//
+// mobileShotWidth and mobileShotHeight frame the same page at a typical phone
+// viewport (portrait, iPhone-class), so the README can show the responsive
+// mobile layout alongside the desktop capture.
 const (
 	shotWidth  = 820
 	shotHeight = 1000
+
+	mobileShotWidth  = 390
+	mobileShotHeight = 844
 )
 
 // resizeForScreenshot sizes the window to frame the auth card for a screenshot.
@@ -114,6 +121,18 @@ func (b *browser) resizeForScreenshot(t *testing.T) {
 	t.Helper()
 	if err := b.wd.ResizeWindow("", shotWidth, shotHeight); err != nil {
 		t.Logf("resizing window for screenshot (continuing): %v", err)
+	}
+}
+
+// resizeForMobileScreenshot sizes the window to a phone-sized viewport for a
+// mobile screenshot. Like resizeForScreenshot, a failure is logged rather than
+// fatal — the screenshot is documentation, not an assertion.
+//
+// @arg t The test, used for logging.
+func (b *browser) resizeForMobileScreenshot(t *testing.T) {
+	t.Helper()
+	if err := b.wd.ResizeWindow("", mobileShotWidth, mobileShotHeight); err != nil {
+		t.Logf("resizing window for mobile screenshot (continuing): %v", err)
 	}
 }
 
