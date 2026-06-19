@@ -11,7 +11,8 @@ import (
 
 // Handler builds the HTTP handler serving the MCP endpoint (at the root), the
 // auth web pages (at /auth/{token}), a /healthz probe, and the server favicon.
-// mcpServer is reused across sessions.
+// When clustering is enabled (a hub was set), it also serves the spoke
+// connection endpoint at /spoke/connect. mcpServer is reused across sessions.
 //
 // @arg mcpServer The MCP server shared across all requests to the root endpoint.
 // @return http.Handler A mux routing the MCP, auth, health, and favicon endpoints.
@@ -29,6 +30,12 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 
 	mux.HandleFunc("GET /auth/{token}", s.handleAuthPage)
 	mux.HandleFunc("POST /auth/{token}", s.handleAuthSubmit)
+
+	// Spoke connection endpoint (only when clustering is enabled): a spoke dials
+	// this to enroll and then serve box verbs over the upgraded WebSocket.
+	if s.hub != nil {
+		mux.HandleFunc("/spoke/connect", s.hub.ConnectHandler)
+	}
 
 	// Provider sign-in routes (only when activation auth is configured). The
 	// 3-segment patterns don't collide with the 2-segment /auth/{token} above.

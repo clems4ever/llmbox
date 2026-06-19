@@ -1,0 +1,70 @@
+package server
+
+import (
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/clems4ever/llmbox/internal/cluster"
+)
+
+// TestClusterStoreJoinTokenRoundTrip checks join tokens persist, take once (one-time), and miss cleanly.
+func TestClusterStoreJoinTokenRoundTrip(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	exp := time.Now().Add(time.Hour).UTC().Round(time.Second)
+	if err := store.PutJoinToken("hash1", cluster.JoinTokenRecord{Name: "edge", ExpiresAt: exp}); err != nil {
+		t.Fatalf("PutJoinToken: %v", err)
+	}
+
+	rec, found, err := store.TakeJoinToken("hash1")
+	if err != nil || !found {
+		t.Fatalf("TakeJoinToken = (%+v,%v,%v)", rec, found, err)
+	}
+	if rec.Name != "edge" || !rec.ExpiresAt.Equal(exp) {
+		t.Errorf("record = %+v", rec)
+	}
+	// One-time: a second take finds nothing.
+	if _, found, _ := store.TakeJoinToken("hash1"); found {
+		t.Error("join token was not consumed")
+	}
+	// Missing token is not found, not an error.
+	if _, found, err := store.TakeJoinToken("nope"); found || err != nil {
+		t.Errorf("missing token = (%v,%v)", found, err)
+	}
+}
+
+// TestClusterStoreSpokeRoundTrip checks enrolled spokes persist, list, and delete.
+func TestClusterStoreSpokeRoundTrip(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	rec := cluster.SpokeRecord{Name: "edge", CredentialHash: "abc", EnrolledAt: time.Now().UTC().Round(time.Second)}
+	if err := store.PutSpoke("edge", rec); err != nil {
+		t.Fatalf("PutSpoke: %v", err)
+	}
+
+	got, found, err := store.GetSpoke("edge")
+	if err != nil || !found || got.CredentialHash != "abc" {
+		t.Fatalf("GetSpoke = (%+v,%v,%v)", got, found, err)
+	}
+
+	spokes, err := store.ListSpokes()
+	if err != nil || len(spokes) != 1 || spokes[0].Name != "edge" {
+		t.Fatalf("ListSpokes = (%v,%v)", spokes, err)
+	}
+
+	if err := store.DeleteSpoke("edge"); err != nil {
+		t.Fatalf("DeleteSpoke: %v", err)
+	}
+	if _, found, _ := store.GetSpoke("edge"); found {
+		t.Error("spoke not deleted")
+	}
+}

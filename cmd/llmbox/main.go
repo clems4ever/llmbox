@@ -48,6 +48,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
@@ -69,9 +70,11 @@ func main() {
 }
 
 // newRootCmd builds the Cobra command tree: the root command loads the YAML
-// config and runs the server, and a "version" subcommand prints the build
-// version. The --config/-c flag selects the config file (default ./llmbox.yaml);
-// when that default is absent, built-in defaults are used.
+// config and runs the server (the hub), a "version" subcommand prints the build
+// version, and a "spoke" subcommand runs a hub-and-spoke spoke (with a
+// "spoke token create" child for minting join tokens). The --config/-c flag
+// selects the config file (default ./llmbox.yaml); when that default is absent,
+// built-in defaults are used.
 //
 // @return *cobra.Command The configured root command, ready to Execute.
 //
@@ -104,6 +107,7 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(newSpokeCmd())
 
 	return rootCmd
 }
@@ -131,7 +135,11 @@ func loadConfig(path string, explicit bool) (*config.Config, error) {
 }
 
 // run wires up the Docker manager, session store, and HTTP server from the given
-// configuration, then serves until interrupted.
+// configuration, then serves until interrupted. The SIGINT/SIGTERM context is
+// established before the server is built so that, when cfg.Cluster.Enabled is
+// set, the cluster hub created via cluster.NewHub and attached with srv.SetHub
+// shares the server's lifetime; remote spokes then join at /spoke/connect while
+// boxes still default to the in-process "local" spoke.
 //
 // @arg parent Base context; serving stops when it (or a SIGINT/SIGTERM) fires.
 // @arg cfg The loaded configuration.
@@ -181,7 +189,19 @@ func run(parent context.Context, cfg *config.Config) error {
 		log.Print("activation auth is DISABLED: anyone with a box's auth-page URL can activate it; configure auth.google to require sign-in")
 	}
 
+	// Cancel background work on signal (or when the parent context fires).
+	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store, auth)
+
+	// Hub-and-spoke clustering: when enabled, accept spoke connections and let
+	// boxes be placed on remote spokes (boxes still default to the local spoke).
+	if cfg.Cluster.Enabled {
+		srv.SetHub(cluster.NewHub(ctx, store, nil, nil))
+		log.Printf("clustering enabled: spokes may join at %s/spoke/connect", cfg.PublicURL)
+	}
+
 	httpSrv := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: srv.Handler(srv.MCPServer(name, version)),
@@ -189,10 +209,6 @@ func run(parent context.Context, cfg *config.Config) error {
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      90 * time.Second,
 	}
-
-	// Cancel background work on signal (or when the parent context fires).
-	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	// Reload sessions saved before a restart, dropping any whose box is gone.
 	if n, err := srv.Restore(ctx); err != nil {

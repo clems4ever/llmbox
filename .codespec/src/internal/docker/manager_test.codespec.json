@@ -221,14 +221,14 @@
 		{
 			"function_name": "TestSubmitCodeReturnsSessionURL",
 			"documentation_hash": "81eacec0398c0a141694cc897ce01201bbd4b139f8f5f5b7c96ae41ef5bca77b",
-			"definition_hash": "3fb4906b9227d938684b4860e24bc4b4c400fec186d755eb65856cc0370b644a",
-			"reviewed_at": "2026-06-18T13:14:38.78080064Z"
+			"definition_hash": "18f779499bb5f052b6756809a4d80d47c553fd242280be5597f8f105004c2524",
+			"reviewed_at": "2026-06-19T20:02:09.125987924Z"
 		},
 		{
 			"function_name": "TestSubmitCodeAttachError",
 			"documentation_hash": "9ca12fefd0f755a87c4f1a5e4ab9be9c33cefce7ac116b53e59dd942d312e1d2",
-			"definition_hash": "623044217f380fc491eb272788ce1b639917742cc4f5408c530eb3b8eac4f830",
-			"reviewed_at": "2026-06-18T13:14:38.782313487Z"
+			"definition_hash": "b579036d2d25f1525525ffdd23b369466bd158a3b6e301102251295de648ce14",
+			"reviewed_at": "2026-06-19T20:02:09.129904506Z"
 		},
 		{
 			"function_name": "TestDestroyStopsThenRemoves",
@@ -355,6 +355,12 @@
 			"documentation_hash": "5bb06347d7bb85f9e5a8292904378c4ee5de613a72325fade60ec3f3a3416aa9",
 			"definition_hash": "a2dc702b310d3280e749cddd37d486ae092c67b1b414c2bcf26fc8f4c1deff80",
 			"reviewed_at": "2026-06-18T16:59:05.491837908Z"
+		},
+		{
+			"function_name": "TestSubmitCodeUnmanagedBox",
+			"documentation_hash": "bf17458e16f47c887d7939f1cf1f689f4b1398005413393d1f34434d87e9e196",
+			"definition_hash": "44a2c0bc2d409834629488ef149fa1f2504ba98fa5bbe52aaa0825dcd7d80ca6",
+			"reviewed_at": "2026-06-19T20:02:09.366409033Z"
 		}
 	]
 }

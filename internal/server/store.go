@@ -6,16 +6,22 @@ import (
 	"time"
 
 	bolt "go.etcd.io/bbolt"
+
+	"github.com/clems4ever/llmbox/internal/cluster"
 )
 
 // sessionsBucket is the bbolt bucket holding one JSON-encoded persistedSession
 // per auth token. loginSessionsBucket and loginFlowsBucket hold the activation
 // login state (see LoginStore): a signed-in user's session and the short-lived
-// in-flight OIDC handshake state, respectively.
+// in-flight OIDC handshake state, respectively. joinTokensBucket and spokesBucket
+// hold the cluster enrollment state (see cluster.Store): hashed one-time join
+// tokens and the per-spoke bearer credentials minted from them.
 var (
 	sessionsBucket      = []byte("sessions")
 	loginSessionsBucket = []byte("login_sessions")
 	loginFlowsBucket    = []byte("login_flows")
+	joinTokensBucket    = []byte("spoke_join_tokens")
+	spokesBucket        = []byte("spokes")
 )
 
 // loginSession is a completed activation login, keyed in the store by an opaque
@@ -49,6 +55,7 @@ type persistedSession struct {
 	HookState    map[string]string `json:"hook_state,omitempty"`
 	BoxID        string            `json:"box_id,omitempty"`
 	Description  string            `json:"description,omitempty"`
+	SpokeName    string            `json:"spoke_name,omitempty"`
 	Status       string            `json:"status"`
 	SessionURL   string            `json:"session_url,omitempty"`
 	Err          string            `json:"err,omitempty"`
@@ -69,6 +76,7 @@ type Store interface {
 	Close() error
 
 	LoginStore
+	cluster.Store
 }
 
 // LoginStore persists the activation login state across restarts: completed
@@ -182,6 +190,64 @@ func (noopStore) DeleteLoginSession(_ string) error { return nil }
 // @testcase TestServerWithoutStore checks the server works with a no-op store.
 func (noopStore) PurgeExpiredLogins(_ time.Time) error { return nil }
 
+// PutJoinToken discards the token.
+//
+// @arg _ The token hash key.
+// @arg _ The token record to (not) persist.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) PutJoinToken(_ string, _ cluster.JoinTokenRecord) error { return nil }
+
+// TakeJoinToken finds nothing.
+//
+// @arg _ The token hash key.
+// @return cluster.JoinTokenRecord The zero record.
+// @return bool Always false.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) TakeJoinToken(_ string) (cluster.JoinTokenRecord, bool, error) {
+	return cluster.JoinTokenRecord{}, false, nil
+}
+
+// PutSpoke discards the spoke.
+//
+// @arg _ The spoke name key.
+// @arg _ The spoke record to (not) persist.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) PutSpoke(_ string, _ cluster.SpokeRecord) error { return nil }
+
+// GetSpoke finds nothing.
+//
+// @arg _ The spoke name key.
+// @return cluster.SpokeRecord The zero record.
+// @return bool Always false.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) GetSpoke(_ string) (cluster.SpokeRecord, bool, error) {
+	return cluster.SpokeRecord{}, false, nil
+}
+
+// ListSpokes returns no spokes.
+//
+// @return []cluster.SpokeRecord Always nil.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) ListSpokes() ([]cluster.SpokeRecord, error) { return nil, nil }
+
+// DeleteSpoke does nothing.
+//
+// @arg _ The spoke name key.
+// @error error Always nil.
+//
+// @testcase TestServerWithoutStore checks the server works with a no-op store.
+func (noopStore) DeleteSpoke(_ string) error { return nil }
+
 // boltStore is a Store backed by a single bbolt database file.
 type boltStore struct {
 	db *bolt.DB
@@ -210,7 +276,7 @@ func openBoltStore(path string) (*boltStore, error) {
 		return nil, fmt.Errorf("opening session store %q: %w", path, err)
 	}
 	if err := db.Update(func(tx *bolt.Tx) error {
-		for _, b := range [][]byte{sessionsBucket, loginSessionsBucket, loginFlowsBucket} {
+		for _, b := range [][]byte{sessionsBucket, loginSessionsBucket, loginFlowsBucket, joinTokensBucket, spokesBucket} {
 			if _, berr := tx.CreateBucketIfNotExists(b); berr != nil {
 				return berr
 			}
@@ -423,5 +489,136 @@ func (b *boltStore) PurgeExpiredLogins(now time.Time) error {
 			}
 		}
 		return nil
+	})
+}
+
+// PutJoinToken stores a join token record (keyed by the hash of its secret) as
+// JSON.
+//
+// @arg hash The hex SHA-256 of the join token secret, used as the key.
+// @arg rec The join token record to persist.
+// @error error if encoding or the write transaction fails.
+//
+// @testcase TestClusterStoreJoinTokenRoundTrip stores and takes a join token.
+func (b *boltStore) PutJoinToken(hash string, rec cluster.JoinTokenRecord) error {
+	data, err := json.Marshal(rec)
+	if err != nil {
+		return fmt.Errorf("encoding join token: %w", err)
+	}
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(joinTokensBucket).Put([]byte(hash), data)
+	})
+}
+
+// TakeJoinToken returns and removes the join token for a hash in one
+// transaction, enforcing one-time use.
+//
+// @arg hash The hex SHA-256 of the presented join token secret.
+// @return cluster.JoinTokenRecord The decoded record when one matched.
+// @return bool True when a token matched, false otherwise.
+// @error error if the transaction or decoding fails.
+//
+// @testcase TestClusterStoreJoinTokenRoundTrip takes a token once and finds it gone after.
+func (b *boltStore) TakeJoinToken(hash string) (cluster.JoinTokenRecord, bool, error) {
+	var (
+		rec   cluster.JoinTokenRecord
+		found bool
+	)
+	err := b.db.Update(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(joinTokensBucket)
+		v := bkt.Get([]byte(hash))
+		if v == nil {
+			return nil
+		}
+		if derr := json.Unmarshal(v, &rec); derr != nil {
+			return fmt.Errorf("decoding join token: %w", derr)
+		}
+		found = true
+		return bkt.Delete([]byte(hash))
+	})
+	if err != nil {
+		return cluster.JoinTokenRecord{}, false, err
+	}
+	return rec, found, nil
+}
+
+// PutSpoke stores (creating or replacing) an enrolled spoke as JSON keyed by its
+// name.
+//
+// @arg name The spoke name key.
+// @arg rec The spoke record to persist.
+// @error error if encoding or the write transaction fails.
+//
+// @testcase TestClusterStoreSpokeRoundTrip stores and reads back a spoke.
+func (b *boltStore) PutSpoke(name string, rec cluster.SpokeRecord) error {
+	data, err := json.Marshal(rec)
+	if err != nil {
+		return fmt.Errorf("encoding spoke: %w", err)
+	}
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(spokesBucket).Put([]byte(name), data)
+	})
+}
+
+// GetSpoke returns the enrolled spoke for a name.
+//
+// @arg name The spoke name to look up.
+// @return cluster.SpokeRecord The decoded record when one matched.
+// @return bool True when a spoke matched, false otherwise.
+// @error error if the read transaction or decoding fails.
+//
+// @testcase TestClusterStoreSpokeRoundTrip reads back a stored spoke.
+func (b *boltStore) GetSpoke(name string) (cluster.SpokeRecord, bool, error) {
+	var (
+		rec   cluster.SpokeRecord
+		found bool
+	)
+	err := b.db.View(func(tx *bolt.Tx) error {
+		v := tx.Bucket(spokesBucket).Get([]byte(name))
+		if v == nil {
+			return nil
+		}
+		found = true
+		return json.Unmarshal(v, &rec)
+	})
+	if err != nil {
+		return cluster.SpokeRecord{}, false, err
+	}
+	return rec, found, nil
+}
+
+// ListSpokes returns every enrolled spoke.
+//
+// @return []cluster.SpokeRecord One entry per enrolled spoke.
+// @error error if a read transaction or decoding fails.
+//
+// @testcase TestClusterStoreSpokeRoundTrip lists the enrolled spokes.
+func (b *boltStore) ListSpokes() ([]cluster.SpokeRecord, error) {
+	var out []cluster.SpokeRecord
+	err := b.db.View(func(tx *bolt.Tx) error {
+		return tx.Bucket(spokesBucket).ForEach(func(_, v []byte) error {
+			var rec cluster.SpokeRecord
+			if derr := json.Unmarshal(v, &rec); derr != nil {
+				return fmt.Errorf("decoding spoke: %w", derr)
+			}
+			out = append(out, rec)
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DeleteSpoke removes an enrolled spoke; deleting a missing name is a no-op.
+//
+// @arg name The spoke name to delete.
+// @error error if the write transaction fails.
+//
+// @testcase TestClusterStoreSpokeRoundTrip deletes a spoke and confirms it is gone.
+func (b *boltStore) DeleteSpoke(name string) error {
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(spokesBucket).Delete([]byte(name))
 	})
 }

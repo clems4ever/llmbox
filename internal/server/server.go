@@ -15,24 +15,35 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
 )
 
-// boxManager is the behaviour Server needs from the Docker layer (real impl is
-// *docker.Manager; tests fake it).
-type boxManager interface {
-	CreateLLMBox(ctx context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error)
-	SubmitCode(ctx context.Context, id, code string) (sessionURL string, err error)
-	List(ctx context.Context) ([]docker.Box, error)
-	Destroy(ctx context.Context, idOrName string) error
-	Logs(ctx context.Context, idOrName string, tail int) (string, error)
-	Exec(ctx context.Context, idOrName string, cmd []string) (docker.ExecResult, error)
-	ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error)
+// localSpokeName is the registry name of the in-process spoke (the Docker
+// manager the server was built with). A box with no explicit spoke runs here, so
+// single-host deployments need no remote spoke.
+const localSpokeName = "local"
+
+// boxManager is the behaviour Server needs from a spoke's box layer. The local
+// implementation is *docker.Manager; a remote spoke is reached over the cluster
+// transport. Tests fake it. It is an alias of cluster.BoxManager so the same
+// interface is the cluster RPC surface.
+type boxManager = cluster.BoxManager
+
+// clusterHub is what Server needs from the cluster hub: resolving connected
+// remote spokes by name (for routing) and the HTTP handler spokes connect to.
+// The real implementation is *cluster.Hub; tests fake it. nil means clustering
+// is disabled (every box uses the local spoke).
+type clusterHub interface {
+	Spoke(name string) (boxManager, bool)
+	Spokes() map[string]boxManager
+	ConnectHandler(w http.ResponseWriter, r *http.Request)
 }
 
 // boxHooks is the behaviour Server needs from the hooks layer (real impl is
@@ -66,6 +77,11 @@ type session struct {
 	// so they need no locking.
 	BoxID       string
 	Description string
+
+	// SpokeName is the cluster spoke the box runs on ("local" for the in-process
+	// spoke). Set at creation and immutable, so it needs no locking; per-box verbs
+	// route to this spoke.
+	SpokeName string
 
 	mu          sync.Mutex
 	Status      string // "pending" | "ready" | "error"
@@ -102,6 +118,7 @@ func (s *session) persistLocked() persistedSession {
 		HookState:    s.HookState,
 		BoxID:        s.BoxID,
 		Description:  s.Description,
+		SpokeName:    s.SpokeName,
 		Status:       s.Status,
 		SessionURL:   s.SessionURL,
 		Err:          s.Err,
@@ -135,6 +152,7 @@ func sessionFromPersisted(ps persistedSession) *session {
 		HookState:    ps.HookState,
 		BoxID:        ps.BoxID,
 		Description:  ps.Description,
+		SpokeName:    ps.SpokeName,
 		Status:       ps.Status,
 		SessionURL:   ps.SessionURL,
 		Err:          ps.Err,
@@ -152,6 +170,11 @@ type Server struct {
 
 	mu      sync.Mutex
 	byToken map[string]*session
+
+	// hub holds the connected remote spokes (nil when clustering is not enabled).
+	// The in-process mgr is always the "local" spoke; remote spokes are resolved
+	// through the hub by name. Set once at startup via SetHub before serving.
+	hub clusterHub
 
 	// auth gates box activation behind provider sign-in (Google, …). nil leaves
 	// activation unauthenticated (no provider configured).
@@ -205,38 +228,110 @@ func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration
 	}
 }
 
-// Restore loads persisted sessions into the registry and reconciles them with
-// Docker: sessions whose box no longer exists are dropped (and deleted from the
-// store) so a stale token can't linger. It returns the number of sessions
-// restored. Call it once at startup, before serving.
+// SetHub attaches the cluster hub holding connected remote spokes. Call it once
+// at startup, before serving, when clustering is enabled. Without a hub the
+// server runs single-host: every box uses the in-process "local" spoke.
 //
-// @arg ctx Context for the Docker list used to reconcile.
+// @arg hub The cluster hub resolving remote spokes by name.
+//
+// @testcase TestCreateBoxRoutesToSpoke routes a box to a remote spoke via the hub.
+func (s *Server) SetHub(hub clusterHub) { s.hub = hub }
+
+// spoke resolves a spoke name to its box manager. An empty name or "local"
+// returns the in-process manager; any other name is looked up among the
+// connected remote spokes.
+//
+// @arg name The spoke name ("" or "local" for the in-process spoke).
+// @return boxManager The resolved spoke's box manager.
+// @error error if a named remote spoke is not currently connected.
+//
+// @testcase TestCreateBoxRoutesToSpoke resolves a connected remote spoke.
+// @testcase TestCreateBoxUnknownSpoke errors when the named spoke is not connected.
+func (s *Server) spoke(name string) (boxManager, error) {
+	if name == "" || name == localSpokeName {
+		return s.mgr, nil
+	}
+	if s.hub != nil {
+		if bm, ok := s.hub.Spoke(name); ok {
+			return bm, nil
+		}
+	}
+	return nil, fmt.Errorf("spoke %q is not connected", name)
+}
+
+// allSpokes returns every spoke to fan a cluster-wide operation (list, reap)
+// across: the in-process "local" spoke plus each connected remote spoke.
+//
+// @return map[string]boxManager The local spoke plus all connected remote spokes, keyed by name.
+//
+// @testcase TestListFansOutAcrossSpokes aggregates boxes from every spoke.
+func (s *Server) allSpokes() map[string]boxManager {
+	out := map[string]boxManager{localSpokeName: s.mgr}
+	if s.hub != nil {
+		for name, bm := range s.hub.Spokes() {
+			out[name] = bm
+		}
+	}
+	return out
+}
+
+// Restore loads persisted sessions into the registry and reconciles them with
+// the spokes: a session whose box no longer exists on its (reachable) spoke is
+// dropped (and deleted from the store) so a stale token can't linger. A session
+// whose spoke is not currently connected is kept — the box may still be alive,
+// we just can't verify it yet. It returns the number of sessions restored. Call
+// it once at startup, before serving.
+//
+// @arg ctx Context for the spoke listings used to reconcile.
 // @return int The number of sessions restored into the registry.
-// @error error if the store cannot be read or boxes cannot be listed.
+// @error error if the store cannot be read or the local spoke cannot be listed.
 //
 // @testcase TestRestoreLoadsAndReconciles restores live sessions and drops dead ones.
+// @testcase TestRestoreKeepsDisconnectedSpokeSessions keeps a session whose spoke is offline.
 func (s *Server) Restore(ctx context.Context) (int, error) {
 	saved, err := s.store.LoadAll()
 	if err != nil {
 		return 0, fmt.Errorf("loading sessions: %w", err)
 	}
-	boxes, err := s.mgr.List(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("listing boxes to reconcile sessions: %w", err)
+
+	// List each reachable spoke. The local spoke must succeed; a remote spoke that
+	// errors is treated as unreachable (its sessions are kept, not dropped).
+	boxesBySpoke := map[string][]docker.Box{}
+	for name, bm := range s.allSpokes() {
+		boxes, err := bm.List(ctx)
+		if err != nil {
+			if name == localSpokeName {
+				return 0, fmt.Errorf("listing boxes to reconcile sessions: %w", err)
+			}
+			s.logger().Warn("listing spoke to reconcile sessions failed; keeping its sessions", "spoke", name, "err", err)
+			continue
+		}
+		boxesBySpoke[name] = boxes
 	}
-	// List returns short (12-char) container IDs; a session stores the full one.
-	isAlive := func(containerID string) bool {
+
+	// reachable reports whether we could list the session's spoke; alive reports
+	// whether the box is present there. List returns short (12-char) container IDs;
+	// a session stores the full one.
+	reconcile := func(spokeName, containerID string) (reachable, alive bool) {
+		boxes, ok := boxesBySpoke[spokeName]
+		if !ok {
+			return false, false
+		}
 		for _, b := range boxes {
 			if strings.HasPrefix(containerID, b.ContainerID) {
-				return true
+				return true, true
 			}
 		}
-		return false
+		return true, false
 	}
 
 	s.mu.Lock()
 	for _, ps := range saved {
-		if !isAlive(ps.ContainerID) {
+		spokeName := ps.SpokeName
+		if spokeName == "" {
+			spokeName = localSpokeName
+		}
+		if reachable, alive := reconcile(spokeName, ps.ContainerID); reachable && !alive {
 			if err := s.store.Delete(ps.Token); err != nil {
 				s.logger().Warn("failed to delete stale session during restore", "box", ps.BoxID, "err", err)
 			}
@@ -255,18 +350,30 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 // records their opaque state on the session; that state is replayed to the
 // box.destroy hooks if box creation later fails so nothing is left dangling. It
 // returns the session so callers can build the auth page URL. opts carries the
-// optional image, box ID, and description.
+// optional image, box ID, description, and the spoke to place the box on (empty
+// means the local in-process spoke).
 //
 // @arg ctx Context for the box creation.
-// @arg opts The optional image, box ID, and description for the box.
+// @arg opts The optional image, box ID, description, and target spoke for the box.
 // @return *session The registered auth session for the new box.
-// @error error if a box.create hook fails, the box cannot be created, or a session token cannot be generated.
+// @error error if the target spoke is not connected, a box.create hook fails, the box cannot be created, or a session token cannot be generated.
 //
 // @testcase TestCreateBoxRegistersSession checks the session is registered with box ID/description.
 // @testcase TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
 // @testcase TestCreateBoxRunsCreateHooks runs the hooks, injects their files, and persists their state.
 // @testcase TestCreateBoxRunsDestroyHooksOnCreateFailure replays hook state when box creation fails.
+// @testcase TestCreateBoxRoutesToSpoke creates the box on the named remote spoke.
+// @testcase TestCreateBoxUnknownSpoke errors when the named spoke is not connected.
 func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
+	spokeName := opts.SpokeName
+	if spokeName == "" {
+		spokeName = localSpokeName
+	}
+	mgr, err := s.spoke(spokeName)
+	if err != nil {
+		return nil, err
+	}
+
 	box := hooks.BoxInfo{Image: opts.Image, BoxID: opts.BoxID, Description: opts.Description}
 	var hookState map[string]string
 	if s.hooks != nil {
@@ -289,7 +396,7 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 		}
 	}
 
-	id, authorizeURL, err := s.mgr.CreateLLMBox(ctx, opts)
+	id, authorizeURL, err := mgr.CreateLLMBox(ctx, opts)
 	if err != nil {
 		s.runDestroyHooks(box, hookState)
 		return nil, err
@@ -297,7 +404,7 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 	tok, err := newToken()
 	if err != nil {
 		// Best effort: don't leave the box or hook state dangling if we can't track it.
-		if derr := s.mgr.Destroy(context.Background(), id); derr != nil {
+		if derr := mgr.Destroy(context.Background(), id); derr != nil {
 			s.logger().Warn("failed to destroy untrackable box", "container", id, "err", derr)
 		}
 		s.runDestroyHooks(box, hookState)
@@ -312,6 +419,7 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 		Status:       "pending",
 		BoxID:        opts.BoxID,
 		Description:  opts.Description,
+		SpokeName:    spokeName,
 	}
 	s.mu.Lock()
 	s.byToken[tok] = sess
@@ -389,7 +497,7 @@ func (s *Server) lookupByBoxID(boxID string) *session {
 // @arg ctx Context for the code submission.
 // @arg tok The session token identifying the box.
 // @arg code The OAuth code pasted by the user.
-// @error error if the session is unknown, the code is empty, or login fails.
+// @error error if the session is unknown, the code is empty, its spoke is not connected, or login fails.
 //
 // @testcase TestSubmitCodeSuccess marks the session ready on success.
 // @testcase TestSubmitCodeFailureRecorded records the error on failure.
@@ -403,8 +511,12 @@ func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
 	if strings.TrimSpace(code) == "" {
 		return fmt.Errorf("the code is empty")
 	}
+	mgr, err := s.spoke(sess.SpokeName)
+	if err != nil {
+		return err
+	}
 
-	url, err := s.mgr.SubmitCode(ctx, sess.ContainerID, code)
+	url, err := mgr.SubmitCode(ctx, sess.ContainerID, code)
 	sess.mu.Lock()
 	if err != nil {
 		sess.Status = "error"
@@ -423,15 +535,39 @@ func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
 	return err
 }
 
-// ListBoxes returns all managed boxes.
+// ListBoxes returns all managed boxes across every spoke, each tagged with the
+// spoke it runs on. The local spoke must list successfully; a connected remote
+// spoke that errors is logged and skipped so one bad spoke doesn't fail the
+// whole listing.
 //
 // @arg ctx Context for the list request.
-// @return []docker.Box The boxes managed by this server.
-// @error error if listing boxes fails.
+// @return []docker.Box The boxes managed by this server, tagged with their spoke.
+// @error error if the local spoke cannot be listed.
 //
 // @testcase TestMCPToolsRegisteredAndCreate exercises the server's box wiring.
+// @testcase TestListFansOutAcrossSpokes aggregates and tags boxes from every spoke.
 func (s *Server) ListBoxes(ctx context.Context) ([]docker.Box, error) {
-	return s.mgr.List(ctx)
+	out, err := s.mgr.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i := range out {
+		out[i].Spoke = localSpokeName
+	}
+	if s.hub != nil {
+		for name, bm := range s.hub.Spokes() {
+			boxes, err := bm.List(ctx)
+			if err != nil {
+				s.logger().Warn("listing spoke failed; skipping it", "spoke", name, "err", err)
+				continue
+			}
+			for i := range boxes {
+				boxes[i].Spoke = name
+			}
+			out = append(out, boxes...)
+		}
+	}
+	return out, nil
 }
 
 // BoxLogs returns the recent console output of the box with the given box ID.
@@ -443,7 +579,7 @@ func (s *Server) ListBoxes(ctx context.Context) ([]docker.Box, error) {
 // @arg boxID The box ID of the box to read logs from.
 // @arg tail The maximum number of trailing log lines to return; the manager applies a default when non-positive.
 // @return string The box's recent console output.
-// @error error if no box has that box ID, or the logs cannot be read.
+// @error error if no box has that box ID, its spoke is not connected, or the logs cannot be read.
 //
 // @testcase TestBoxLogsByBoxID returns a box's logs looked up by box ID.
 func (s *Server) BoxLogs(ctx context.Context, boxID string, tail int) (string, error) {
@@ -451,7 +587,11 @@ func (s *Server) BoxLogs(ctx context.Context, boxID string, tail int) (string, e
 	if sess == nil {
 		return "", fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
 	}
-	return s.mgr.Logs(ctx, sess.ContainerID, tail)
+	mgr, err := s.spoke(sess.SpokeName)
+	if err != nil {
+		return "", err
+	}
+	return mgr.Logs(ctx, sess.ContainerID, tail)
 }
 
 // BoxExec runs a shell command inside the box with the given box ID and returns
@@ -463,7 +603,7 @@ func (s *Server) BoxLogs(ctx context.Context, boxID string, tail int) (string, e
 // @arg boxID The box ID of the box to run the command in.
 // @arg command The shell command line to run inside the box.
 // @return docker.ExecResult The command's stdout, stderr, and exit code.
-// @error error if the command is empty, no box has that box ID, or the command cannot be run.
+// @error error if the command is empty, no box has that box ID, its spoke is not connected, or the command cannot be run.
 //
 // @testcase TestBoxExecByBoxID runs a command in a box looked up by box ID.
 func (s *Server) BoxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error) {
@@ -474,19 +614,39 @@ func (s *Server) BoxExec(ctx context.Context, boxID, command string) (docker.Exe
 	if sess == nil {
 		return docker.ExecResult{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
 	}
-	return s.mgr.Exec(ctx, sess.ContainerID, []string{"/bin/sh", "-c", command})
+	mgr, err := s.spoke(sess.SpokeName)
+	if err != nil {
+		return docker.ExecResult{}, err
+	}
+	return mgr.Exec(ctx, sess.ContainerID, []string{"/bin/sh", "-c", command})
 }
 
 // DestroyBox destroys a box and forgets any session pointing at it.
 //
 // @arg ctx Context for the destroy request.
 // @arg idOrName The ID or name identifying the box to destroy.
-// @error error if the box cannot be destroyed.
+// @error error if the box's spoke is not connected, or the box cannot be destroyed.
 //
 // @testcase TestDestroyForgetsSession checks the session is forgotten after destroy.
 // @testcase TestDestroyRunsDestroyHooks checks the box's hook state is replayed to the destroy hooks.
+// @testcase TestDestroyRoutesToSpoke destroys a box on the spoke its session names.
 func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
-	if err := s.mgr.Destroy(ctx, idOrName); err != nil {
+	// Route to the spoke the matching session names; default to the local spoke
+	// when no session matches (e.g. a raw container ID with no tracked session).
+	mgr := s.mgr
+	var spokeErr error
+	s.mu.Lock()
+	for _, sess := range s.byToken {
+		if strings.HasPrefix(sess.ContainerID, idOrName) || strings.HasPrefix(idOrName, sess.ContainerID) {
+			mgr, spokeErr = s.spoke(sess.SpokeName)
+			break
+		}
+	}
+	s.mu.Unlock()
+	if spokeErr != nil {
+		return spokeErr
+	}
+	if err := mgr.Destroy(ctx, idOrName); err != nil {
 		return err
 	}
 	s.mu.Lock()
@@ -541,13 +701,7 @@ func (s *Server) ReapLoop(ctx context.Context, every time.Duration, log func(str
 			if err := s.store.PurgeExpiredLogins(time.Now()); err != nil {
 				s.logger().Warn("purging expired login sessions", "err", err)
 			}
-			reaped, err := s.mgr.ReapOrphans(ctx, s.authTTL)
-			if err != nil {
-				if log != nil {
-					log(fmt.Sprintf("reaper: %v", err))
-				}
-				continue
-			}
+			reaped := s.reapAllSpokes(ctx, log)
 			if len(reaped) > 0 {
 				s.pruneSessions(reaped)
 				if log != nil {
@@ -556,6 +710,30 @@ func (s *Server) ReapLoop(ctx context.Context, every time.Duration, log func(str
 			}
 		}
 	}
+}
+
+// reapAllSpokes reaps orphaned boxes on every spoke (local plus each connected
+// remote spoke) and returns the combined short IDs of the reaped boxes. A
+// spoke's reap error is reported via log (if set) and does not stop the others.
+//
+// @arg ctx Context for the reap requests.
+// @arg log Optional sink for per-spoke reaper errors; may be nil.
+// @return []string The combined short IDs of boxes reaped across all spokes.
+//
+// @testcase TestReapFansOutAcrossSpokes reaps orphans on every spoke.
+func (s *Server) reapAllSpokes(ctx context.Context, log func(string)) []string {
+	var reaped []string
+	for name, bm := range s.allSpokes() {
+		ids, err := bm.ReapOrphans(ctx, s.authTTL)
+		if err != nil {
+			if log != nil {
+				log(fmt.Sprintf("reaper: spoke %q: %v", name, err))
+			}
+			continue
+		}
+		reaped = append(reaped, ids...)
+	}
+	return reaped
 }
 
 // pruneSessions drops sessions whose box was reaped.

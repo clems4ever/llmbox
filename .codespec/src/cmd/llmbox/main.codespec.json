@@ -8,15 +8,15 @@
 		},
 		{
 			"function_name": "run",
-			"documentation_hash": "95748f167d94d102bcecb6d57209b4ee48a92f8d5b046f03cfd186f68efce465",
-			"definition_hash": "41f3fa6d07fe7425e252835818a99ffaf0a80e32faa4ee60c45cdda29ec046b7",
-			"reviewed_at": "2026-06-18T18:20:29.605447402Z"
+			"documentation_hash": "683b43cec1dc25bec34bebf67fff854c39103ecae154964d5aad3fb103bda3dd",
+			"definition_hash": "46d24b64615b3003e2e2a79effc943b878ef407c89c56ef3b82605d789e4537f",
+			"reviewed_at": "2026-06-19T19:45:40.032826786Z"
 		},
 		{
 			"function_name": "newRootCmd",
-			"documentation_hash": "2840084cdcd0c85fb836fd58d813b4627b38f7a5b6c22be394e0540530f3cff2",
-			"definition_hash": "9b2d15662959b236d18a2fd2b099c66c2632fb9db102239f3ad483d4639d37ea",
-			"reviewed_at": "2026-06-18T16:33:14.65856407Z"
+			"documentation_hash": "7223512e5cdf5dd3e7c2b16a4fae20cd1d41ce21b1b963b44b5b3570ff6b2459",
+			"definition_hash": "652786de6e3b3072447da8d7e21cf6cd5af7b63d105644d704010a0102370de1",
+			"reviewed_at": "2026-06-19T19:45:40.021903335Z"
 		},
 		{
 			"function_name": "loadConfig",

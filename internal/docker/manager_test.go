@@ -464,7 +464,12 @@ func TestCreateLLMBoxPullFailure(t *testing.T) {
 // TestSubmitCodeReturnsSessionURL checks the code is written and the session URL returned.
 func TestSubmitCodeReturnsSessionURL(t *testing.T) {
 	managerEnd, testEnd := net.Pipe()
-	f := &fakeDocker{attachConn: managerEnd}
+	f := &fakeDocker{
+		attachConn: managerEnd,
+		listResult: []container.Summary{
+			{ID: "abcdef0123456789", Names: []string{"/llmbox-pending-abcdef012345"}},
+		},
+	}
 	m := newTestManager(f)
 
 	const sessionURL = "https://claude.ai/code/session/abc123"
@@ -495,10 +500,34 @@ func TestSubmitCodeReturnsSessionURL(t *testing.T) {
 
 // TestSubmitCodeAttachError checks SubmitCode errors when attaching fails.
 func TestSubmitCodeAttachError(t *testing.T) {
-	f := &fakeDocker{attachErr: errors.New("no such container")}
+	f := &fakeDocker{
+		attachErr: errors.New("no such container"),
+		listResult: []container.Summary{
+			{ID: "abcdef0123456789", Names: []string{"/llmbox-pending-abcdef012345"}},
+		},
+	}
 	m := newTestManager(f)
-	if _, err := m.SubmitCode(context.Background(), "id", "code"); err == nil {
+	if _, err := m.SubmitCode(context.Background(), "abcdef012345", "code"); err == nil {
 		t.Fatal("expected error when attach fails")
+	}
+}
+
+// TestSubmitCodeUnmanagedBox checks SubmitCode refuses a container that is not a
+// managed box: it must resolve through findManaged first, so it never attaches
+// to (or writes stdin into) an arbitrary host container. attachConn is nil, so
+// reaching the attach would panic — the clean error proves it did not.
+func TestSubmitCodeUnmanagedBox(t *testing.T) {
+	f := &fakeDocker{listResult: nil} // no managed boxes
+	m := newTestManager(f)
+	_, err := m.SubmitCode(context.Background(), "deadbeefcafe", "code")
+	if err == nil {
+		t.Fatal("expected error for an unmanaged container")
+	}
+	if !strings.Contains(err.Error(), "no managed box matches") {
+		t.Errorf("err = %v, want a no-managed-box error", err)
+	}
+	if len(f.renames) != 0 {
+		t.Errorf("an unmanaged container must not be renamed, got %v", f.renames)
 	}
 }
 

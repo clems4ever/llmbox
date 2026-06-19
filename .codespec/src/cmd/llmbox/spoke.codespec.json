@@ -1,0 +1,40 @@
+{
+	"functions": [
+		{
+			"function_name": "newSpokeCmd",
+			"documentation_hash": "ba0ba0eb7ca2ec6e345f2c5c321e485849df9509bc0dfce4e2587490beafdc65",
+			"definition_hash": "68b41112bddc7e59610ec39051757f3437bb8c01c2af5e54ccfd6358200198ee",
+			"reviewed_at": "2026-06-19T19:47:37.793545222Z"
+		},
+		{
+			"function_name": "newSpokeTokenCmd",
+			"documentation_hash": "62db1f4feb1a5ff2d2670e9de6406fc0cef322730966523f715c32826c485dd6",
+			"definition_hash": "0503c341294b7f2acd89c354cdedd343c7007324e4ec230783d19f8e35b14426",
+			"reviewed_at": "2026-06-19T19:47:37.793753566Z"
+		},
+		{
+			"function_name": "createJoinToken",
+			"documentation_hash": "f26be5560370942c14826e78608f855649ad9b8cbc1c5a34e206b9ab5b7d1cd9",
+			"definition_hash": "d4044c4557b95f46bfa05374ed50932a040bfa0f580da8777e2cee701ef312a7",
+			"reviewed_at": "2026-06-19T19:47:37.793910671Z"
+		},
+		{
+			"function_name": "runSpoke",
+			"documentation_hash": "f6b5a64cf46283aa148105dfceac05b94182687263b4251246ec8d3e954240cc",
+			"definition_hash": "228b4393a0b9589c2343795f62b6c68cb518620dbbb7231a17718a3279b1e087",
+			"reviewed_at": "2026-06-19T19:47:37.794066424Z"
+		},
+		{
+			"function_name": "loadSpokeCreds",
+			"documentation_hash": "edf60fcf254708db72fd183ae457b5310840a58282aa4df5fbaa50d4cb963acf",
+			"definition_hash": "26467a41f663ab84dbff6d92b1474f72e0f8a733f77d0f497abbb809f6a9c694",
+			"reviewed_at": "2026-06-19T19:47:37.794218174Z"
+		},
+		{
+			"function_name": "saveSpokeCreds",
+			"documentation_hash": "59c3e4b6a25159ef0d6977df61cee0f08c5002ca7fd1cdde3731e32c36eeb22f",
+			"definition_hash": "6c7f49be4f1a5a6664f756d4971e10768a6330a7e588ab571228d3a4fde58c86",
+			"reviewed_at": "2026-06-19T19:47:37.794376739Z"
+		}
+	]
+}

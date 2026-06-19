@@ -3,9 +3,9 @@
 		{
 			"function_name": "Handler",
 			"receiver": "Server",
-			"documentation_hash": "b2632f9b7d55a1e8c2a5ebc0941393be195435d63636628c10e5f3cf0309ca7a",
-			"definition_hash": "9517af7513b38b594a9633d1ab4808562b1d05a183718812240c190d73268e6d",
-			"reviewed_at": "2026-06-18T18:20:29.616535115Z"
+			"documentation_hash": "f09b7748a40719222e352e6c7b76b40a9ec23ba673bdbf4562dc78b347ec8445",
+			"definition_hash": "6846513d1ce63ee2e98466adc0df39ad376889d674bffb002444080d1805f79c",
+			"reviewed_at": "2026-06-19T19:46:06.055133573Z"
 		},
 		{
 			"function_name": "handleAuthPage",

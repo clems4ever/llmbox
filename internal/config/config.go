@@ -57,16 +57,26 @@ func (d *Duration) UnmarshalYAML(value *yaml.Node) error {
 // Config is the parsed llmbox configuration. Field semantics mirror the former
 // LLMBOX_* environment variables; see the README's Configuration section.
 type Config struct {
-	HTTPAddr    string     `yaml:"http_addr"`
-	PublicURL   string     `yaml:"public_url"`
-	ClaudeImage string     `yaml:"claude_image"`
-	ClaudeBin   string     `yaml:"claude_bin"`
-	RemoteArgs  string     `yaml:"remote_args"`
-	AuthTTL     Duration   `yaml:"auth_ttl"`
-	StateFile   string     `yaml:"state_file"`
-	Hooks       []string   `yaml:"hooks"`
-	BoxPeers    []string   `yaml:"box_peers"`
-	Auth        AuthConfig `yaml:"auth"`
+	HTTPAddr    string        `yaml:"http_addr"`
+	PublicURL   string        `yaml:"public_url"`
+	ClaudeImage string        `yaml:"claude_image"`
+	ClaudeBin   string        `yaml:"claude_bin"`
+	RemoteArgs  string        `yaml:"remote_args"`
+	AuthTTL     Duration      `yaml:"auth_ttl"`
+	StateFile   string        `yaml:"state_file"`
+	Hooks       []string      `yaml:"hooks"`
+	BoxPeers    []string      `yaml:"box_peers"`
+	Auth        AuthConfig    `yaml:"auth"`
+	Cluster     ClusterConfig `yaml:"cluster"`
+}
+
+// ClusterConfig enables hub-and-spoke clustering on the hub. When enabled, the
+// server exposes the /spoke/connect endpoint so remote spokes (started with
+// `llmbox spoke`) can join and run boxes; boxes still default to the in-process
+// "local" spoke. The `llmbox spoke` command has its own flags and does not read
+// this block.
+type ClusterConfig struct {
+	Enabled bool `yaml:"enabled"`
 }
 
 // AuthConfig configures who may activate a box. When a provider is enabled, the

@@ -37,8 +37,8 @@
 		{
 			"function_name": "openBoltStore",
 			"documentation_hash": "22e4ed75f71a5853320a2629aac5f56ca8b71d44fba103e2358fb355e2bb63da",
-			"definition_hash": "42a454d1a6837e1f486f2cc2d729f6b679ba9bcd7539a6bab1f77c6ee330e099",
-			"reviewed_at": "2026-06-18T18:20:29.654814081Z"
+			"definition_hash": "27df2eee3f03122c870f98150b34eb727857e9e7579606de84ce988625883e70",
+			"reviewed_at": "2026-06-19T19:47:04.456091348Z"
 		},
 		{
 			"function_name": "Save",
@@ -151,6 +151,90 @@
 			"documentation_hash": "2b34a8d5a9821d6a6da651a9ada9b9edf7705b6a9d0d12d655ba4fe9d40ae2e4",
 			"definition_hash": "8534873eaa3c3fb933c76815414eb6ccd2cc9b20e73a90085feef8881ba21a29",
 			"reviewed_at": "2026-06-18T18:20:29.670103469Z"
+		},
+		{
+			"function_name": "PutJoinToken",
+			"receiver": "noopStore",
+			"documentation_hash": "90753a584ba140e9ed7c9bbe4d27809b30ecce6e0c8b351496fe1e18c340c267",
+			"definition_hash": "ca880a91db0b79e9bac6fdea21279e35d194181dc23f6afde1edd1f7706af72c",
+			"reviewed_at": "2026-06-19T19:47:04.447046073Z"
+		},
+		{
+			"function_name": "TakeJoinToken",
+			"receiver": "noopStore",
+			"documentation_hash": "b5d219e2e45ff7487f67eefec072fd94f4d99721412b5baeba79fbd5afc54131",
+			"definition_hash": "5b5d88426eb62458fec858fa4e8c4173bc6e50c97cf6d1aa5d4b0d8dc1a1f237",
+			"reviewed_at": "2026-06-19T19:47:04.449116288Z"
+		},
+		{
+			"function_name": "PutSpoke",
+			"receiver": "noopStore",
+			"documentation_hash": "ce590423b5e913c8f63902a8b969bc949e7acb45b4c0f4f129889c87639aca5d",
+			"definition_hash": "48b5dba1d4b310f2ce068b11c6d9ada46db2226300a503b8b9f6dec72c80f92a",
+			"reviewed_at": "2026-06-19T19:47:04.450287429Z"
+		},
+		{
+			"function_name": "GetSpoke",
+			"receiver": "noopStore",
+			"documentation_hash": "2e40fd24ebcbc20ec5fe0faf97d32c462cebd589571d43d861ca7af73a10b544",
+			"definition_hash": "c825753d99087a4edb5b8d0c63be6f37876236e5a91e51be45d13b7a1d6190ed",
+			"reviewed_at": "2026-06-19T19:47:04.451925247Z"
+		},
+		{
+			"function_name": "ListSpokes",
+			"receiver": "noopStore",
+			"documentation_hash": "3702a01f128f33d4370bcbde9891670f5cd012a60c845c79d62db69415d69518",
+			"definition_hash": "ad9ad80fede802aa0d266ac5beeb0ae592b35be2a34538450f9105deba3524ad",
+			"reviewed_at": "2026-06-19T19:47:04.453413384Z"
+		},
+		{
+			"function_name": "DeleteSpoke",
+			"receiver": "noopStore",
+			"documentation_hash": "ebcce3f3fe84e6c9bf0cfb6ef3f9eb8e39d9206979ee642cea3eb162d943204a",
+			"definition_hash": "c9f60522aa683f3779f34404a032f976fb1820756b87a317dfc8f18b6ff6864a",
+			"reviewed_at": "2026-06-19T19:47:04.454565963Z"
+		},
+		{
+			"function_name": "PutJoinToken",
+			"receiver": "boltStore",
+			"documentation_hash": "0c056a58b1e324c1bd6d5d52a9b29f5bf70c05135e82cbbc69f406c3a14f26ee",
+			"definition_hash": "1f3ba1fdf62736e5ca5849920ebdee87c49835f067c219dee35c9d1afd2ed416",
+			"reviewed_at": "2026-06-19T19:47:04.457830062Z"
+		},
+		{
+			"function_name": "TakeJoinToken",
+			"receiver": "boltStore",
+			"documentation_hash": "41a722df794748b83a88addbd7dbc39ebc937ca6635eb956e1965692718851d3",
+			"definition_hash": "d0a0a1a0194724212ec8629c29234239988ea9547e426ccd4be01ee7d1603662",
+			"reviewed_at": "2026-06-19T19:47:04.459716757Z"
+		},
+		{
+			"function_name": "PutSpoke",
+			"receiver": "boltStore",
+			"documentation_hash": "315133fd74a182a5208c13592fccb1ccab536246c06ec16249d5e865d56e01b0",
+			"definition_hash": "64c9fffda400594ebac00bdc2364a57e58420538d85883ba1ebcd429389bb1b7",
+			"reviewed_at": "2026-06-19T19:47:04.462286834Z"
+		},
+		{
+			"function_name": "GetSpoke",
+			"receiver": "boltStore",
+			"documentation_hash": "b08731771ebd1c8f202bfe8daee0da4f235c052380d625b19688d1c1c1a4d668",
+			"definition_hash": "d14c724afafb9d805cda21a7ba0ed2243806b88a4d07bb1fd289b0664b1bcd5f",
+			"reviewed_at": "2026-06-19T19:47:04.464973456Z"
+		},
+		{
+			"function_name": "ListSpokes",
+			"receiver": "boltStore",
+			"documentation_hash": "e01fe2c3b7bbb1c542d844cdaf751b359a148b9081a4ea9279c4cb026339ab1f",
+			"definition_hash": "aa36bd83ce616c619a75d6267453cd295bde4913e368fd362204c9a7aeaba044",
+			"reviewed_at": "2026-06-19T19:47:04.468573999Z"
+		},
+		{
+			"function_name": "DeleteSpoke",
+			"receiver": "boltStore",
+			"documentation_hash": "5cbbdd940b04e8564d1df20afe90e717aca5f481af0cc5e50207d70d09122328",
+			"definition_hash": "6940a3d7d06cf9f78053d80e65f5479f79c866f68beed0c54808d20ac71f5942",
+			"reviewed_at": "2026-06-19T19:47:04.471396677Z"
 		}
 	]
 }

@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "TestClusterStoreJoinTokenRoundTrip",
+			"documentation_hash": "b54459c1c2645d98d1fa75bc91734c9dc8fd2f1f31ec602a01585e48df06c9be",
+			"definition_hash": "cd0da30b34b47cae4fce4d1cda1f0320c53a1c68001161615ed83b1ae979a1c4",
+			"reviewed_at": "2026-06-19T19:53:15.407240825Z"
+		},
+		{
+			"function_name": "TestClusterStoreSpokeRoundTrip",
+			"documentation_hash": "4872e49e896babe2ea523888829e1d376df43b520b2532ed01a77b669cf184c0",
+			"definition_hash": "2233a17ba00cfa6b85d36a864302a20c16b9d1dda3fa97f541369fb6bffe5afd",
+			"reviewed_at": "2026-06-19T19:53:15.407723841Z"
+		}
+	]
+}

@@ -26,6 +26,16 @@ auth_ttl: "5m"
 # bbolt file persisting the auth-session registry across restarts.
 state_file: "llmbox-sessions.db"
 
+# Hub-and-spoke clustering. When enabled, this server (the hub) exposes a
+# /spoke/connect endpoint that remote spokes join over a WebSocket, and boxes can
+# be placed on a spoke by passing its name to create_llmbox's "spoke" argument.
+# Boxes with no spoke run on this host's own Docker daemon (the "local" spoke), so
+# a single-host setup needs nothing here. To add a spoke:
+#   1. on the hub:   llmbox spoke token create --name worker-1   # prints a one-time token
+#   2. on the spoke: llmbox spoke --hub wss://<hub>/spoke/connect --token <token>
+# cluster:
+#   enabled: true
+
 # Optional box lifecycle hooks: external executables run at box.create/destroy
 # (JSON over stdin/stdout, per the hookproto contract). A hook may inject files
 # into each box and persist opaque state — how integrations like granular plug

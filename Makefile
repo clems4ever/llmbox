@@ -77,6 +77,10 @@ test-integration: ## Run integration tests (needs Docker + a Claude binary; see 
 test-e2e: ## Run the end-to-end workflow test (needs Chrome + chromedriver; see e2e/).
 	go test -tags e2e ./e2e/...
 
+.PHONY: test-e2e-cluster
+test-e2e-cluster: ## Run the hub-and-spoke clustering e2e test (no browser needed; see e2e/cluster/).
+	go test -tags e2e ./e2e/cluster/...
+
 .PHONY: cover
 cover: ## Run tests with coverage and print the total.
 	go test -covermode=atomic -coverprofile=$(COVERPROFILE) ./...

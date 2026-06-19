@@ -191,6 +191,7 @@ type Box struct {
 	Name        string `json:"name" jsonschema:"the container name"`
 	BoxID       string `json:"box_id,omitempty" jsonschema:"the box ID the caller assigned, if any (also set as the container hostname)"`
 	Description string `json:"description,omitempty" jsonschema:"the caller-supplied description label, if any"`
+	Spoke       string `json:"spoke,omitempty" jsonschema:"the cluster spoke the box runs on; 'local' for the in-process spoke"`
 	Image       string `json:"image" jsonschema:"the image the box runs"`
 	State       string `json:"state" jsonschema:"the container state, e.g. running or exited"`
 	Status      string `json:"status" jsonschema:"a human readable status string"`
@@ -217,6 +218,10 @@ type CreateOptions struct {
 	// Description is a free-form label shown by list/get to help the caller tell
 	// boxes apart. It has no effect on the box itself.
 	Description string
+	// SpokeName selects which cluster spoke the box is created on (empty or
+	// "local" means the in-process spoke). It is routing metadata used by the
+	// server's cluster layer; the Docker manager itself ignores it.
+	SpokeName string
 	// Files are written into the box's filesystem after it is created but before
 	// it starts, so they are present when the entrypoint runs. Used to inject
 	// per-box secrets (e.g. a granular subject token) without baking them into
@@ -700,14 +705,24 @@ var sessionURLRe = regexp.MustCompile(`https://claude\.(?:ai|com)/[A-Za-z0-9/_?=
 // box printed it (and any tail of output captured, for diagnostics).
 //
 // @arg ctx Context for the Docker attach call.
-// @arg id The container ID of the pending box.
+// @arg idOrName The ID or name identifying the pending box.
 // @arg code The OAuth code to write to the box's login prompt.
 // @return sessionURL The remote-control session URL printed once login completes.
-// @error error if attaching fails, the login does not complete, or the box cannot be renamed to ready.
+// @error error if no managed box matches, attaching fails, the login does not complete, or the box cannot be renamed to ready.
 //
 // @testcase TestSubmitCodeReturnsSessionURL writes the code and returns the session URL.
 // @testcase TestSubmitCodeAttachError fails when attaching to the box fails.
-func (m *Manager) SubmitCode(ctx context.Context, id, code string) (sessionURL string, err error) {
+// @testcase TestSubmitCodeUnmanagedBox refuses a container that is not a managed box.
+func (m *Manager) SubmitCode(ctx context.Context, idOrName, code string) (sessionURL string, err error) {
+	// Resolve to a managed box first: like destroy/logs/exec, this must never act
+	// on a container that is not one of ours, no matter what ID/name is passed in
+	// (a spoke must not be coercible into attaching to an arbitrary host container).
+	b, err := m.findManaged(ctx, idOrName)
+	if err != nil {
+		return "", err
+	}
+	id := b.ContainerID
+
 	hj, err := m.cli.ContainerAttach(ctx, id, container.AttachOptions{
 		Stream: true, Stdin: true, Stdout: true, Stderr: true,
 	})

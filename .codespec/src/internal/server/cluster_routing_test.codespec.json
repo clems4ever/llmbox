@@ -1,0 +1,67 @@
+{
+	"functions": [
+		{
+			"function_name": "TestRestoreKeepsDisconnectedSpokeSessions",
+			"documentation_hash": "22f5d173200da5775e886ce3195343eb89d9138263857fe5e66987455e8454b7",
+			"definition_hash": "7eb99fef1745bc46c446f75df5ffbdb0dca73a92716002cfe403d0523af076a1",
+			"reviewed_at": "2026-06-19T19:51:53.953076644Z"
+		},
+		{
+			"function_name": "TestCreateBoxRoutesToSpoke",
+			"documentation_hash": "f3ef3636a0c47df8becb3c2b69325697dc573c5122fa48759e840398c338e589",
+			"definition_hash": "a8e1ddfb9316145427932d5ebdfee63ad6ac86a7f8928b0fe388abcee3635d27",
+			"reviewed_at": "2026-06-19T19:51:53.911201287Z"
+		},
+		{
+			"function_name": "TestCreateBoxUnknownSpoke",
+			"documentation_hash": "75c9b631cf1ff59f2cc2edbda05614c7b82b09b1307d82e2412950bf252bfa1a",
+			"definition_hash": "bbb0f6c7992cc4939f81ae7d3c93bbe1733f822715e0bb66282af34aef9b70a9",
+			"reviewed_at": "2026-06-19T19:51:53.91618878Z"
+		},
+		{
+			"function_name": "TestCreateBoxDefaultsToLocalSpoke",
+			"documentation_hash": "6716b88424d386abdd08ce7f7b2ab953aebb1bdf020a035c038d08502f426af5",
+			"definition_hash": "cd666cb277b5f7efa7e7e5c32b9af8e906f32820a1c83e0382107c0a61cf20e4",
+			"reviewed_at": "2026-06-19T19:51:53.923920976Z"
+		},
+		{
+			"function_name": "TestListFansOutAcrossSpokes",
+			"documentation_hash": "8393a920927eb5095fe21ac621cd1c38e3695579cd8345ae209262554d97b8a9",
+			"definition_hash": "5d8360dc6fd9a52c4bd5d5e7a1d54c96491a23d3f7881a2e0e714077dc9baceb",
+			"reviewed_at": "2026-06-19T19:51:53.926986627Z"
+		},
+		{
+			"function_name": "TestReapFansOutAcrossSpokes",
+			"documentation_hash": "902b1eecdaee39326ebb55497645287dce6a5748d82f5fcc3e2ed98ae2f967e6",
+			"definition_hash": "8f3ea3397b8e50f298243acf08144b0f17ae9ba4edf371554fa445032e1b2da7",
+			"reviewed_at": "2026-06-19T19:51:53.939190911Z"
+		},
+		{
+			"function_name": "TestDestroyRoutesToSpoke",
+			"documentation_hash": "5f5db8479f01713668a71f310aac664e4aec497eae25fb6b1a525d32e16a4782",
+			"definition_hash": "2ded7801a35ad341950a2f0f060a12fefb6514b94894b6115a509345bdbe863b",
+			"reviewed_at": "2026-06-19T19:51:53.947656977Z"
+		},
+		{
+			"function_name": "Spoke",
+			"receiver": "fakeHub",
+			"documentation_hash": "9baa35cde7c83512bfc1b910d8c93d7a1ea25051f4647d2b05d14cf6cacbc2d3",
+			"definition_hash": "39193a270e8fdb25f1b8786ae69b899894f08d387e007cf5797f63dee43eddb0",
+			"reviewed_at": "2026-06-19T19:52:37.075568461Z"
+		},
+		{
+			"function_name": "Spokes",
+			"receiver": "fakeHub",
+			"documentation_hash": "9df46274c865a9510647792c8070147132fecfe3f441adc5f393eb2ff27b4050",
+			"definition_hash": "c5218023dfaca6064a7d596a19bb2ef82bee96de1b76709227bd22914fd3766d",
+			"reviewed_at": "2026-06-19T19:52:37.084800875Z"
+		},
+		{
+			"function_name": "ConnectHandler",
+			"receiver": "fakeHub",
+			"documentation_hash": "95973e8ee49b48ab06ab84e1c75140c8ad16af60214a35b8ef306954c6a22e29",
+			"definition_hash": "8b7bee4f4510dd62bda82a786b7b61fdf1f75bb921e652dc3a64029c422e5662",
+			"reviewed_at": "2026-06-19T19:52:37.093563434Z"
+		}
+	]
+}
