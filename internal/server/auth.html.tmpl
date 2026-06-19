@@ -40,12 +40,16 @@
   .brand b { font-size: 1.05rem; letter-spacing: -.01em; }
   h1 { font-size: 1.4rem; line-height: 1.25; margin: 0 0 .35rem; letter-spacing: -.02em; }
   .lead { color: var(--muted); margin: 0 0 1.5rem; }
-  .step { display: flex; gap: .85rem; padding: 1rem 0; border-top: 1px solid var(--line); }
+  .step { padding: 1rem 0; border-top: 1px solid var(--line); }
+  .step-head { display: flex; align-items: center; gap: .85rem; margin-bottom: .5rem; }
   .step .n {
     flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent);
     color: #fff; font-size: .85rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
   }
-  .step h2 { font-size: .98rem; margin: .15rem 0 .35rem; }
+  .step h2 { font-size: .98rem; margin: 0; }
+  /* Indent the body so it lines up under the title, past the number; phones
+     remove this (see the media query) so it sits flush with the number. */
+  .step-body { margin-left: calc(1.6rem + .85rem); }
   .step p { margin: 0 0 .6rem; color: var(--muted); font-size: .92rem; }
   .btn-link {
     display: inline-block; padding: .6rem 1.1rem; background: var(--accent); color: #fff;
@@ -79,7 +83,10 @@
   .result a { color: var(--accent-strong); }
   .url { word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
   /* On phones, drop the floating-card framing and fill the viewport: no side
-     gutters, border, radius, or shadow, so the content uses the whole screen. */
+     gutters, border, radius, or shadow, so the content uses the whole screen.
+     Also un-indent the step body so the description and inputs line up flush with
+     the number and title above them (and with the heading), instead of sitting in
+     an indented column that looks misaligned on a full-width screen. */
   @media (max-width: 30rem) {
     body { padding: 0; align-items: stretch; }
     .card {
@@ -87,6 +94,7 @@
       border: 0; border-radius: 0; box-shadow: none;
       padding: 1.75rem 1.25rem;
     }
+    .step-body { margin-left: 0; }
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
@@ -124,18 +132,22 @@
   {{end}}
 
   <div class="step">
-    <div class="n">1</div>
-    <div>
+    <div class="step-head">
+      <div class="n">1</div>
       <h2>Sign in with Claude</h2>
+    </div>
+    <div class="step-body">
       <p>Open the Claude sign-in page, approve access, then copy the code it shows you.</p>
       <a class="btn-link" href="{{.AuthorizeURL}}" target="_blank" rel="noopener noreferrer">Sign in with Claude →</a>
     </div>
   </div>
 
   <div class="step">
-    <div class="n">2</div>
-    <div style="flex:1">
+    <div class="step-head">
+      <div class="n">2</div>
       <h2>Paste the code</h2>
+    </div>
+    <div class="step-body">
       <p>Paste the code from the previous step to activate your sandbox.</p>
       <form id="auth-form" method="post" action="/auth/{{.Token}}" autocomplete="off">
         {{if .AuthEnabled}}<input type="hidden" name="csrf" value="{{.CSRF}}">{{end}}
