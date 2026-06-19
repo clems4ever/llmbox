@@ -16,13 +16,16 @@
     --line: #e7e5e0;
     --ok: #1a7f37;
     --err: #b42318;
+    --info: #3a4cc4;
     --ok-bg: #eaf6ec;
     --err-bg: #fdeceb;
+    --info-bg: #eef0fd;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1a1916; --card: #242220; --ink: #ececec; --muted: #a1a1aa;
       --line: #38352f; --ok-bg: #16271a; --err-bg: #2a1614;
+      --info: #aab8ff; --info-bg: #20243a;
     }
   }
   * { box-sizing: border-box; }
@@ -81,6 +84,16 @@
   }
   form.submitting .spinner { display: inline-block; }
   .note { color: var(--muted); font-size: .82rem; margin: 0; text-align: justify; }
+  /* A subtle info callout for meta-information (e.g. the privacy note), so it
+     reads as secondary to the numbered instructions: smaller, tinted box, info
+     colour, and a leading info icon. */
+  .callout {
+    display: flex; gap: .5rem; align-items: flex-start; margin: 0;
+    padding: .6rem .7rem; border-radius: 8px;
+    background: var(--info-bg); color: var(--info);
+    font-size: .78rem; line-height: 1.5;
+  }
+  .callout svg { flex: none; width: 1rem; height: 1rem; margin-top: .12rem; }
   .activating { display: none; align-items: center; gap: .6rem; color: var(--muted); font-size: .9rem; }
   form.submitting ~ .activating { display: flex; }
   .activating .spinner { display: inline-block; border-color: rgba(127,127,127,.35); border-top-color: var(--accent); }
@@ -165,7 +178,10 @@
         <span class="spinner" aria-hidden="true"></span>
         Contacting Claude and starting your box — this can take up to a minute.
       </div>
-      <p class="note">Your code goes straight to this server and into your private sandbox — it is never sent to the chatbot.</p>
+      <p class="callout">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+        <span>Your code goes straight to this server and into your private sandbox — it is never sent to the chatbot.</span>
+      </p>
     </div>
   </div>
 {{end}}
