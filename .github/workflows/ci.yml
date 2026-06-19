@@ -110,10 +110,12 @@ jobs:
           if-no-files-found: ignore
 
       - name: Publish auth-page screenshots
-        # Mirror the coverage-badge step: on pushes to main, commit the freshly
-        # captured screenshots back so the README (which references them by
-        # relative path) always renders the current UI. [skip ci] avoids a loop.
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # Mirror the coverage-badge step: on pushes to main (and manual
+        # workflow_dispatch runs on main), commit the freshly captured
+        # screenshots back so the README (which references them by relative path)
+        # always renders the current UI. workflow_dispatch lets the images be
+        # regenerated on demand without a code push. [skip ci] avoids a loop.
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
           if ! git status --porcelain -- .github/screenshots | grep -q .; then
