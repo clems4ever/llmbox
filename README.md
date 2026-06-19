@@ -14,103 +14,16 @@ Each box is a container running Claude Code in remote-control mode, authenticate
 by the end user. Built with the official
 [Go SDK](https://github.com/modelcontextprotocol/go-sdk).
 
-## The auth secret never touches the chatbot
-
-The OAuth code exchanges for a full-scope account token, so it must never enter
-the model's context. This server is split accordingly — one process, two
-front-ends on the same HTTP port:
-
-| Path            | Audience | Carries |
-|-----------------|----------|---------|
-| `/` (root)      | the chatbot (MCP over streamable HTTP) | box IDs + the **auth page URL** only |
-| `/auth/{token}` | the human, in a browser | the **OAuth code** (browser → this server → container stdin) |
-
-The code travels from the user's browser to the box's `claude auth login`
-process; it is never an MCP input or output and is never logged.
-
-## Flow
-
 ```
-chat: "create an llmbox"
-  └─ create_llmbox ──▶ starts a box parked at `claude auth login`,
-                       captures its OAuth authorize URL,
-                       returns  https://YOUR_HOST/auth/<token>   (+ auth_token)
-
-user opens that URL ──▶ "Sign in with Claude" (their account) ──▶ copies the code
-                   ──▶ pastes it into the page ──▶ server feeds it to the box
-
-box finishes login ──▶ `claude remote-control` starts ──▶ session URL
-  └─ get_llmbox(box_id) ──▶ returns the session URL once ready
+"create an llmbox"  ──▶  auth URL  ──▶  you sign in with Claude  ──▶  session URL
 ```
 
-Boxes that are never authenticated are destroyed after `auth_ttl`
-(default 5 minutes) — see [Orphan cleanup](#orphan-cleanup).
+The OAuth code exchanges for a full-scope account token, so it **never** enters
+the model's context: the chatbot only ever sees the box ID and the auth-page URL,
+while the code travels browser → server → container out of band. See
+[Architecture](docs/architecture.md) for the full design.
 
-### The activation page
-
-This is what the user sees at the auth-page URL — paste the code to activate, and
-the box reports ready with its session URL. The page is responsive, so on a phone
-it drops the card framing and fills the screen. These images are **captured by the
-end-to-end test** (headless Chrome via WebDriver) and refreshed by CI **on the
-pull request** that changes the UI — committed straight into the PR's diff — so
-they always reflect the current UI and stay reviewable; see [Tested](#tested).
-
-| Activate | Ready | On mobile |
-|----------|-------|-----------|
-| ![The llmbox activation page](.github/screenshots/auth-page.png) | ![The activated llmbox page showing the session URL](.github/screenshots/auth-ready.png) | ![The llmbox activation page on a phone-sized screen](.github/screenshots/auth-page-mobile.png) |
-
-## MCP tools
-
-| Tool             | Arguments | Returns |
-|------------------|-----------|---------|
-| `create_llmbox`  | `image?`, `box_id?`, `description?` | `box_id`, `container_id`, `auth_url`, `auth_token`, `status`, `instructions` |
-| `get_llmbox`     | `box_id` | `status` (pending/ready/error), `box_id`, `description`, `session_url` when ready |
-| `list_llmboxes`  | – | the managed boxes (container_id, name, box_id, description, image, state, phase, created) |
-| `destroy_llmbox` | `box_id` | the destroyed box's box ID |
-| `get_llmbox_logs` | `box_id`, `tail?` | `box_id`, `logs` (the box's recent, ANSI-stripped console output) |
-| `exec_llmbox` | `box_id`, `command` | `box_id`, `stdout`, `stderr`, `exit_code` |
-
-`box_id` and `description` on `create_llmbox` are optional. When set, `box_id`
-is the identifier you use to reference the box afterwards and is also applied as
-the box's container hostname (so it shows up as the box's name in claude.ai/code);
-it **must be unique** across boxes — a duplicate is rejected with a clear error so
-the caller can pick another. Both are surfaced again by `get_llmbox` and
-`list_llmboxes`. `get_llmbox` is keyed by `box_id` (case-insensitive), so set one
-at create time if you want to poll a box's status; boxes created without a box ID
-can still be seen via `list_llmboxes`. `get_llmbox_logs` is likewise keyed by
-`box_id` and returns the box's recent console output (ANSI-stripped), bounded to
-the last `tail` lines (a sensible default applies when `tail` is omitted).
-`exec_llmbox` is also keyed by `box_id`: it runs `command` inside the box via
-`/bin/sh -c` and returns
-its `stdout`, `stderr`, and `exit_code` (a non-zero exit is reported in the result,
-not as a tool error; each stream is capped to keep the payload bounded). Destroying
-a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removing it.
-
-## Components
-
-| Path                 | What it is |
-|----------------------|------------|
-| `cmd/llmbox`         | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
-| `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
-| `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
-| `Dockerfile`         | Image for **this server** (`llmbox`). It bakes in the standalone Claude binary, which the server injects into each box at creation. |
-| `Dockerfile.box`     | The default per-box base image (`llmbox-box`): `debian:bookworm-slim` plus `ca-certificates` and `util-linux`. Intentionally minimal; layer your own image on top for more tooling. |
-
-Boxes run on a plain base image (`claude_image`, default
-`ghcr.io/clems4ever/llmbox-box`): the server **injects** the standalone Claude
-binary and a small `~/.claude.json` seed into each box at creation, and runs it as
-root with `HOME=/root` and a `/workspace` working directory — so nothing
-Claude-specific needs to be baked into the base image. Any glibc image with
-`/bin/sh`, `util-linux` (for `script`), and CA certificates works; the default
-just adds the CA bundle that plain `debian:bookworm-slim` omits (without it,
-HTTPS calls from inside a box fail with "certificate signed by unknown
-authority").
-
-## Running
-
-The server drives the Docker daemon, so it needs the Docker socket. The image
-runs as a non-root user, which must be allowed to use the socket via
-`--group-add` (the socket's group, e.g. `docker`):
+## Quick start
 
 ```bash
 docker build -t llmbox .
@@ -126,22 +39,29 @@ docker run -d --name llmbox \
   llmbox --config /etc/llmbox/llmbox.yaml
 ```
 
-Or use [`docker-compose.yml`](docker-compose.yml) (`docker compose up --build`),
-which wires up the Docker socket, the docker group, and a persisted session
-volume — see [Session persistence](#session-persistence) for the one-time
-`chown` the mounted volume needs.
+Then add the server's root URL (`https://boxes.example.com/`, streamable HTTP) as
+a remote MCP server in your client. Full details — Docker socket permissions,
+`docker compose`, TLS — are in [Running & configuration](docs/configuration.md).
 
-Put it behind TLS in production: the auth page receives the OAuth code, and the
-auth URL — though it carries a 256-bit unguessable token — should not travel in
-clear text.
+## MCP tools
 
-### Connecting a chatbot
+`create_llmbox`, `get_llmbox`, `list_llmboxes`, `destroy_llmbox`,
+`get_llmbox_logs`, `exec_llmbox`. See [MCP tools](docs/mcp-tools.md) for
+arguments and return values.
 
-`create_llmbox` etc. are served at the root, `https://boxes.example.com/`
-(streamable HTTP). Add that as a remote MCP server in your client.
+## Documentation
 
-## Configuration
+| Doc | What's in it |
+|-----|--------------|
+| [Architecture](docs/architecture.md) | The auth-secret split, the activation flow, the activation page, and the code components. |
+| [MCP tools](docs/mcp-tools.md) | Full reference for every tool's arguments and results. |
+| [Running & configuration](docs/configuration.md) | Running the server, connecting a chatbot, and the YAML config reference. |
+| [Authenticating activation](docs/authentication.md) | Gating activation behind a sign-in provider (OIDC) so a leaked token can't hijack a box. |
+| [Box lifecycle hooks](docs/hooks.md) | Injecting per-box secrets/files via `box.create`/`box.destroy` hooks, plus box networking and isolation. |
+| [Operations](docs/operations.md) | Session persistence, box credentials across restarts, and orphan cleanup. |
+| [Development](docs/development.md) | Building, CI, and the unit / integration / end-to-end test suites. |
 
+<<<<<<< HEAD
 llmbox reads a single **YAML config file**, selected with `--config <path>`
 (default `./llmbox.yaml`). When the default file is absent, the built-in defaults
 below are used; an explicitly named missing or invalid file is a hard error.
@@ -435,6 +355,9 @@ sticky comment previewing the changed images inline, so the
 and the change is easy to review together with the code that caused it.
 
 ## Status / caveats
+=======
+## Status & caveats
+>>>>>>> 2071b4659d8e550574300dcbbe7b2713b5c805cc
 
 - The create → authorize-URL → auth-page path is verified end-to-end (including a
   real container and the live HTTP/MCP stack). The final **code → session URL**
@@ -444,7 +367,7 @@ and the change is easy to review together with the code that caused it.
   if your Claude version's prompts differ.
 - Each box consumes a session on the **end user's** Claude subscription. That is
   the intended model; be deliberate about who you let create boxes.
-- [Activation auth](#authenticating-activation) gates *activation* (closing the
+- [Activation auth](docs/authentication.md) gates *activation* (closing the
   leaked-token hijack), but box **creation** over MCP is still unauthenticated, so
   a caller can create boxes (a DoS bounded by the un-authenticated reaper TTL).
   Authenticating MCP clients per-user, and binding a box to the specific
