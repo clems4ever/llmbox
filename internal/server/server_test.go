@@ -442,6 +442,30 @@ func TestGetByBoxID(t *testing.T) {
 	}
 }
 
+// TestListLlmboxesReturnsBoxID checks list_llmboxes surfaces each box's box ID
+// (the hostname the user sees) along with its description in the tool output.
+func TestListLlmboxesReturnsBoxID(t *testing.T) {
+	f := &fakeMgr{listResult: []docker.Box{
+		{ContainerID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
+		{ContainerID: "0123456789abcdef"},
+	}}
+	s := newTestServer(f)
+
+	_, out, err := s.toolList(context.Background(), nil, struct{}{})
+	if err != nil {
+		t.Fatalf("toolList: %v", err)
+	}
+	if len(out.Boxes) != 2 {
+		t.Fatalf("got %d boxes, want 2", len(out.Boxes))
+	}
+	if out.Boxes[0].BoxID != "web-box" || out.Boxes[0].Description != "front-end work" {
+		t.Errorf("box0 box ID/description = %q/%q, want web-box/front-end work", out.Boxes[0].BoxID, out.Boxes[0].Description)
+	}
+	if out.Boxes[1].BoxID != "" {
+		t.Errorf("box1 box ID = %q, want empty", out.Boxes[1].BoxID)
+	}
+}
+
 // TestBoxLogsByBoxID checks get_llmbox_logs resolves a box by box ID,
 // forwards the box ID and tail to the manager, and errors for empty or unknown
 // box IDs.

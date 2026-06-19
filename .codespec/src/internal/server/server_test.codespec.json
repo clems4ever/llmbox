@@ -188,6 +188,12 @@
 			"documentation_hash": "189552c88ab8b45b817d55192d98c6d03598ed729f218b834879baf583860757",
 			"definition_hash": "feeb6298e8c070d89e118f67d17484256d5f7303c16eec8282cb119edbe0d758",
 			"reviewed_at": "2026-06-18T16:59:05.52278645Z"
+		},
+		{
+			"function_name": "TestListLlmboxesReturnsBoxID",
+			"documentation_hash": "ff474275e7950468a75fe2abd7f0e09d9ec57cbbe152dcd920802224b7b8c5fb",
+			"definition_hash": "dadbaecffe06c49dac31182b454e09269708d1d328d0c7dbb0435ce78ac34f84",
+			"reviewed_at": "2026-06-19T13:25:54.79429169Z"
 		}
 	]
 }

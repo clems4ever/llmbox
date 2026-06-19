@@ -57,7 +57,7 @@ func (s *Server) MCPServer(name, version string) *mcp.Server {
 
 type createInput struct {
 	Image       string `json:"image,omitempty" jsonschema:"optional image to launch; defaults to the configured Claude image"`
-	BoxID       string `json:"box_id,omitempty" jsonschema:"optional box ID to assign; used to reference the box later (get/destroy/logs/exec) and shown as its name in claude.ai/code. Must be a valid hostname and unique across boxes (creation fails if another box already uses it)"`
+	BoxID       string `json:"box_id,omitempty" jsonschema:"optional box ID to assign; used to reference the box later (get/destroy/logs/exec) and used as the box's hostname, which is the name the user sees in claude.ai/code. Pick a unique, human-readable string that conveys what the box is for (e.g. 'refactor-auth-service'), since it is what identifies the box to the user. Must be a valid hostname (lowercase letters, digits and hyphens) and unique across boxes (creation fails if another box already uses it)"`
 	Description string `json:"description,omitempty" jsonschema:"optional human-readable description shown in list and get to tell boxes apart"`
 }
 
@@ -156,6 +156,7 @@ type listOutput struct {
 // @error error if listing boxes fails.
 //
 // @testcase TestMCPToolsRegisteredAndCreate checks the list_llmboxes tool is registered.
+// @testcase TestListLlmboxesReturnsBoxID checks the output carries each box's box ID and description.
 func (s *Server) toolList(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, listOutput, error) {
 	boxes, err := s.ListBoxes(ctx)
 	if err != nil {

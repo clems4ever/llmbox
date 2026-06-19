@@ -24,9 +24,9 @@
 		{
 			"function_name": "toolList",
 			"receiver": "Server",
-			"documentation_hash": "8e86e7eeeb9e26088ec7496497899f380a2ec7bbbbb267ededede12fed0e7b01",
+			"documentation_hash": "ec76050f93c833ca154c6d46e7aabdf2754f1884b800fdee4c89e4faceb702e6",
 			"definition_hash": "6e56b163fef2697708eee6579ac75495daf139f6de5773326b610385bab1e5bb",
-			"reviewed_at": "2026-06-18T15:15:04.950824667Z"
+			"reviewed_at": "2026-06-19T13:25:40.374367301Z"
 		},
 		{
 			"function_name": "toolDestroy",
