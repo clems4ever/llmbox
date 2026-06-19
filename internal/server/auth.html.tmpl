@@ -16,13 +16,16 @@
     --line: #e7e5e0;
     --ok: #1a7f37;
     --err: #b42318;
+    --info: #3a4cc4;
     --ok-bg: #eaf6ec;
     --err-bg: #fdeceb;
+    --info-bg: #eef0fd;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1a1916; --card: #242220; --ink: #ececec; --muted: #a1a1aa;
       --line: #38352f; --ok-bg: #16271a; --err-bg: #2a1614;
+      --info: #aab8ff; --info-bg: #20243a;
     }
   }
   * { box-sizing: border-box; }
@@ -39,26 +42,37 @@
   .brand .logo { width: 1.7rem; height: 1.7rem; flex: none; display: block; }
   .brand b { font-size: 1.05rem; letter-spacing: -.01em; }
   h1 { font-size: 1.4rem; line-height: 1.25; margin: 0 0 .35rem; letter-spacing: -.02em; }
-  .lead { color: var(--muted); margin: 0 0 1.5rem; }
-  .step { display: flex; gap: .85rem; padding: 1rem 0; border-top: 1px solid var(--line); }
+  .lead { color: var(--muted); margin: 0 0 1.5rem; text-align: justify; }
+  .step { padding: 1rem 0; border-top: 1px solid var(--line); }
+  /* One column gap drives every vertical space inside a step (header→body and
+     between body elements), so the title, text, button, input, and note are all
+     separated by the same amount — uniform spacing, no per-element margins. */
+  .step-head { display: flex; align-items: center; gap: .85rem; margin-bottom: 1rem; }
   .step .n {
     flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent);
     color: #fff; font-size: .85rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
   }
-  .step h2 { font-size: .98rem; margin: .15rem 0 .35rem; }
-  .step p { margin: 0 0 .6rem; color: var(--muted); font-size: .92rem; }
+  .step h2 { font-size: .98rem; margin: 0; }
+  .step-body { display: flex; flex-direction: column; gap: 1rem; }
+  /* The body sits flush with the number and title above it (and the heading),
+     on every screen size — no indented column. */
+  .step p { margin: 0; color: var(--muted); font-size: .92rem; text-align: justify; }
+  /* Centre the sign-in call-to-action in its step rather than hugging the left. */
+  .step-body .btn-link { align-self: center; }
   .btn-link {
     display: inline-block; padding: .6rem 1.1rem; background: var(--accent); color: #fff;
     text-decoration: none; border-radius: 8px; font-weight: 600; font-size: .92rem;
   }
   .btn-link:hover { background: var(--accent-strong); }
+  /* Same gap as .step-body, so the input→button spacing matches everything else. */
+  form { display: flex; flex-direction: column; gap: 1rem; }
   input[type=text] {
     width: 100%; padding: .7rem .8rem; font-size: 1rem; border: 1px solid var(--line);
     border-radius: 8px; background: var(--bg); color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
   button {
-    margin-top: .8rem; width: 100%; padding: .7rem 1.2rem; font-size: 1rem; font-weight: 600;
+    width: 100%; padding: .7rem 1.2rem; font-size: 1rem; font-weight: 600;
     color: #fff; background: var(--accent); border: 0; border-radius: 8px; cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
   }
@@ -69,8 +83,17 @@
     border-top-color: #fff; border-radius: 50%; display: none; animation: spin .7s linear infinite;
   }
   form.submitting .spinner { display: inline-block; }
-  .note { color: var(--muted); font-size: .82rem; margin: .9rem 0 0; }
-  .activating { display: none; align-items: center; gap: .6rem; margin-top: 1rem; color: var(--muted); font-size: .9rem; }
+  .note { color: var(--muted); font-size: .82rem; margin: 0; text-align: justify; }
+  /* A subtle info callout for meta-information (e.g. the privacy note), so it
+     reads as secondary to the numbered instructions: smaller, tinted box, info
+     colour. Scoped under .step-body so it beats the `.step p` rule (which is more
+     specific than a bare `.callout` and would otherwise override size/colour). */
+  .step-body .callout {
+    margin: 0; padding: .6rem .7rem; border-radius: 8px;
+    background: var(--info-bg); color: var(--info);
+    font-size: .72rem; line-height: 1.5;
+  }
+  .activating { display: none; align-items: center; gap: .6rem; color: var(--muted); font-size: .9rem; }
   form.submitting ~ .activating { display: flex; }
   .activating .spinner { display: inline-block; border-color: rgba(127,127,127,.35); border-top-color: var(--accent); }
   .banner { padding: .8rem 1rem; border-radius: 10px; font-size: .92rem; margin-bottom: 1.25rem; }
@@ -78,6 +101,16 @@
   .banner.err { background: var(--err-bg); color: var(--err); }
   .result a { color: var(--accent-strong); }
   .url { word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
+  /* On phones, drop the floating-card framing and fill the viewport: no side
+     gutters, border, radius, or shadow, so the content uses the whole screen. */
+  @media (max-width: 30rem) {
+    body { padding: 0; align-items: stretch; }
+    .card {
+      max-width: none; min-height: 100vh;
+      border: 0; border-radius: 0; box-shadow: none;
+      padding: 1.75rem 1.25rem;
+    }
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
@@ -114,18 +147,22 @@
   {{end}}
 
   <div class="step">
-    <div class="n">1</div>
-    <div>
+    <div class="step-head">
+      <div class="n">1</div>
       <h2>Sign in with Claude</h2>
+    </div>
+    <div class="step-body">
       <p>Open the Claude sign-in page, approve access, then copy the code it shows you.</p>
       <a class="btn-link" href="{{.AuthorizeURL}}" target="_blank" rel="noopener noreferrer">Sign in with Claude →</a>
     </div>
   </div>
 
   <div class="step">
-    <div class="n">2</div>
-    <div style="flex:1">
+    <div class="step-head">
+      <div class="n">2</div>
       <h2>Paste the code</h2>
+    </div>
+    <div class="step-body">
       <p>Paste the code from the previous step to activate your sandbox.</p>
       <form id="auth-form" method="post" action="/auth/{{.Token}}" autocomplete="off">
         {{if .AuthEnabled}}<input type="hidden" name="csrf" value="{{.CSRF}}">{{end}}
@@ -140,7 +177,7 @@
         <span class="spinner" aria-hidden="true"></span>
         Contacting Claude and starting your box — this can take up to a minute.
       </div>
-      <p class="note">Your code goes straight to this server and into your private sandbox — it is never sent to the chatbot.</p>
+      <p class="callout">Your code goes straight to this server and into your private sandbox — it is never sent to the chatbot.</p>
     </div>
   </div>
 {{end}}

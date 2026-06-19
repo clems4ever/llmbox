@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   test:
@@ -75,6 +76,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # On pull requests, check out the PR's head branch itself (not the
+          # detached merge ref) so the refreshed screenshots can be committed
+          # back onto it. github.head_ref is empty on push events, where checkout
+          # falls back to the pushed ref.
+          ref: ${{ github.head_ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -130,23 +137,66 @@ jobs:
           path: .github/screenshots/*.png
           if-no-files-found: ignore
 
-      - name: Publish auth-page screenshots
-        # Mirror the coverage-badge step: on pushes to main (and manual
-        # workflow_dispatch runs on main), commit the freshly captured
-        # screenshots back so the README (which references them by relative path)
-        # always renders the current UI. workflow_dispatch lets the images be
-        # regenerated on demand without a code push. [skip ci] avoids a loop.
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+      - name: Refresh screenshots on the PR branch and post a preview comment
+        # Capture happens in the e2e test above. When the screenshots changed we
+        # commit them back onto the PR branch (so they land in the PR diff and get
+        # reviewed alongside the UI change) and post/update a sticky comment that
+        # previews the changed images inline, so a reviewer sees the new UI without
+        # opening the binary files — rather than committing straight to main.
+        #
+        # Same-repo PRs only: fork PRs get a read-only GITHUB_TOKEN and cannot push
+        # or comment, so we skip this for them (the e2e test still runs and gates
+        # the PR). [skip ci] on the bot's own commit avoids re-triggering CI.
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          if ! git status --porcelain -- .github/screenshots | grep -q .; then
+          changed=$(git status --porcelain -- .github/screenshots | awk '{print $NF}')
+          if [ -z "$changed" ]; then
             echo "auth-page screenshots unchanged"
             exit 0
           fi
+          echo "changed screenshots:"; echo "$changed"
+
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/screenshots/*.png
-          git commit -m "ci: update auth-page screenshots [skip ci]"
-          # Rebase onto any commits that landed since checkout, then push to main.
-          git pull --rebase --autostash origin main
-          git push origin HEAD:main
+          git commit -m "ci: refresh auth-page screenshots [skip ci]"
+          # Rebase onto anything pushed to the PR branch since checkout, then push.
+          git pull --rebase --autostash origin "${{ github.head_ref }}"
+          git push origin "HEAD:${{ github.head_ref }}"
+          sha=$(git rev-parse HEAD)
+
+          # Build a sticky preview comment. Images are pinned to the new commit
+          # SHA so the comment always shows exactly what was committed, and each
+          # links to the file on the branch.
+          repo="${{ github.repository }}"
+          marker="<!-- auth-screenshot-preview -->"
+          {
+            echo "$marker"
+            echo "### 📸 Auth-page screenshots updated"
+            echo
+            echo "The e2e test regenerated these from this PR's UI (commit \`${sha:0:7}\`):"
+            echo
+            for f in $changed; do
+              name=$(basename "$f")
+              echo "**$name**"
+              echo
+              echo "[![$name](https://raw.githubusercontent.com/$repo/$sha/.github/screenshots/$name)](https://github.com/$repo/blob/$sha/.github/screenshots/$name)"
+              echo
+            done
+          } > /tmp/screenshot-comment.md
+
+          pr="${{ github.event.pull_request.number }}"
+          id=$(gh api "repos/$repo/issues/$pr/comments" --paginate \
+                 --jq ".[] | select(.body | contains(\"$marker\")) | .id" | head -n1 || true)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$repo/issues/comments/$id" -F body=@/tmp/screenshot-comment.md >/dev/null
+            echo "updated screenshot preview comment $id"
+          else
+            gh api -X POST "repos/$repo/issues/$pr/comments" -F body=@/tmp/screenshot-comment.md >/dev/null
+            echo "created screenshot preview comment"
+          fi
