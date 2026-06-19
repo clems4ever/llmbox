@@ -425,9 +425,10 @@ When `$LLMBOX_E2E_SCREENSHOT_DIR` is set, the test also saves PNG screenshots of
 the auth page (`auth-page.png`, `auth-ready.png`, and a phone-sized
 `auth-page-mobile.png`) to that directory. CI sets it
 to [`.github/screenshots/`](.github/screenshots) and, **on pull requests** (from
-this repo), commits the refreshed images straight onto the PR branch, so the
+this repo), commits the refreshed images straight onto the PR branch and posts a
+sticky comment previewing the changed images inline, so the
 [activation page](#the-activation-page) shown above always matches the live UI
-and the change is reviewed together with the code that caused it.
+and the change is easy to review together with the code that caused it.
 
 ## Status / caveats
 
