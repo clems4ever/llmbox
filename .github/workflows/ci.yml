@@ -88,12 +88,33 @@ jobs:
         with:
           install-chromedriver: true
 
-      - name: Pin Chrome and ChromeDriver for the test
+      - name: Pin and verify Chrome and ChromeDriver for the test
         # The runner image preinstalls its own chromedriver (via $CHROMEWEBDRIVER);
         # override both so the test uses the matched pair this action installed.
+        #
+        # Prefer the action's outputs, but fall back to $PATH (the action also
+        # installs both there) so an empty/renamed output does not silently leave
+        # CHROMEWEBDRIVER as "." — which made findChromeDriver() fail, the e2e
+        # test t.Skip, and the screenshot/README refresh never happen while CI
+        # stayed green. Fail fast with the resolved paths if either is missing.
         run: |
-          echo "CHROME_BIN=${{ steps.setup-chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
-          echo "CHROMEWEBDRIVER=$(dirname '${{ steps.setup-chrome.outputs.chromedriver-path }}')" >> "$GITHUB_ENV"
+          set -euo pipefail
+          chrome='${{ steps.setup-chrome.outputs.chrome-path }}'
+          driver='${{ steps.setup-chrome.outputs.chromedriver-path }}'
+          [ -n "$chrome" ] || chrome="$(command -v google-chrome || command -v chrome || true)"
+          [ -n "$driver" ] || driver="$(command -v chromedriver || true)"
+          if [ -z "$chrome" ] || [ ! -x "$chrome" ]; then
+            echo "::error::Chrome not found (chrome-path='${{ steps.setup-chrome.outputs.chrome-path }}', resolved='$chrome')"
+            exit 1
+          fi
+          if [ -z "$driver" ] || [ ! -x "$driver" ]; then
+            echo "::error::ChromeDriver not found (chromedriver-path='${{ steps.setup-chrome.outputs.chromedriver-path }}', resolved='$driver')"
+            exit 1
+          fi
+          echo "CHROME_BIN=$chrome" >> "$GITHUB_ENV"
+          echo "CHROMEWEBDRIVER=$(dirname "$driver")" >> "$GITHUB_ENV"
+          "$chrome" --version
+          "$driver" --version
 
       - name: Run end-to-end workflow test
         run: make test-e2e
