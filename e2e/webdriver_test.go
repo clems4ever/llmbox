@@ -22,18 +22,22 @@ type browser struct {
 	wd      selenium.WebDriver
 }
 
-// newBrowser starts ChromeDriver and a headless Chrome session. When no
-// chromedriver is available it skips the test rather than failing, so the suite
-// is runnable locally without a browser while still exercising the UI in CI,
-// where Chrome and ChromeDriver are installed.
+// newBrowser starts ChromeDriver and a headless Chrome session. A missing
+// chromedriver is fatal, never skipped: the e2e suite is opt-in (it only builds
+// under `-tags e2e`, i.e. `make test-e2e`), so if you asked to run it and the
+// browser is not there, that is a failure to surface — not a green no-op that
+// silently leaves the README screenshots stale.
 //
-// @arg t The test, used for fatal errors, skipping, and cleanup.
+// @arg t The test, used for fatal errors and cleanup.
 // @return *browser A ready browser whose session drives the auth UI.
 func newBrowser(t *testing.T) *browser {
 	t.Helper()
 	driver := findChromeDriver()
 	if driver == "" {
-		t.Skip("chromedriver not found; set CHROMEWEBDRIVER or install chromedriver to run the e2e UI test")
+		t.Fatal("chromedriver not found: the e2e suite needs Chrome + ChromeDriver. " +
+			"Set $CHROMEWEBDRIVER (or put chromedriver on $PATH) and ensure Chrome is " +
+			"installed. This suite is opt-in via `-tags e2e` / `make test-e2e`, so a " +
+			"missing browser is a failure, not a skip.")
 	}
 
 	port, err := freePort()
