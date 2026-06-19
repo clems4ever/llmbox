@@ -22,25 +22,22 @@ type browser struct {
 	wd      selenium.WebDriver
 }
 
-// newBrowser starts ChromeDriver and a headless Chrome session. When no
-// chromedriver is available it normally skips the test rather than failing, so
-// the suite is runnable locally without a browser. But when the run was asked to
-// capture screenshots ($LLMBOX_E2E_SCREENSHOT_DIR is set, as CI does), a missing
-// browser is fatal instead: skipping there would silently leave the README's
-// screenshots stale or absent while the job still went green.
+// newBrowser starts ChromeDriver and a headless Chrome session. A missing
+// chromedriver is fatal, never skipped: the e2e suite is opt-in (it only builds
+// under `-tags e2e`, i.e. `make test-e2e`), so if you asked to run it and the
+// browser is not there, that is a failure to surface — not a green no-op that
+// silently leaves the README screenshots stale.
 //
-// @arg t The test, used for fatal errors, skipping, and cleanup.
+// @arg t The test, used for fatal errors and cleanup.
 // @return *browser A ready browser whose session drives the auth UI.
 func newBrowser(t *testing.T) *browser {
 	t.Helper()
 	driver := findChromeDriver()
 	if driver == "" {
-		if os.Getenv("LLMBOX_E2E_SCREENSHOT_DIR") != "" {
-			t.Fatal("chromedriver not found, but $LLMBOX_E2E_SCREENSHOT_DIR is set: " +
-				"this run was asked to capture the README screenshots yet no browser " +
-				"is available — fix the Chrome/ChromeDriver setup rather than skipping")
-		}
-		t.Skip("chromedriver not found; set CHROMEWEBDRIVER or install chromedriver to run the e2e UI test")
+		t.Fatal("chromedriver not found: the e2e suite needs Chrome + ChromeDriver. " +
+			"Set $CHROMEWEBDRIVER (or put chromedriver on $PATH) and ensure Chrome is " +
+			"installed. This suite is opt-in via `-tags e2e` / `make test-e2e`, so a " +
+			"missing browser is a failure, not a skip.")
 	}
 
 	port, err := freePort()
