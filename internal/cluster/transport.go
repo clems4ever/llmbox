@@ -8,11 +8,13 @@ import (
 	"github.com/coder/websocket/wsjson"
 )
 
-// maxFrameBytes bounds a single decoded frame. Exec caps each of stdout/stderr
-// at 64KB and logs/inject-files can be sizeable, so this is set generously above
-// the Docker layer's own caps; it exists to stop a peer from forcing unbounded
-// allocation.
-const maxFrameBytes = 8 << 20 // 8 MiB
+// maxFrameBytes bounds a single decoded frame. A create request injects files
+// into the box, and those can include CLI binaries: a multi-megabyte executable
+// becomes ~33% larger again once base64-encoded into JSON, so several tens of
+// megabytes in one frame is normal. This is set generously above that so such
+// payloads are not truncated; it exists only to stop a peer from forcing
+// unbounded allocation.
+const maxFrameBytes = 64 << 20 // 64 MiB
 
 // transport is one full-duplex framed connection between a hub and a spoke. It
 // abstracts the WebSocket so the hub-side remoteSpoke and the spoke-side
@@ -38,6 +40,7 @@ type wsTransport struct {
 // @return *wsTransport A transport reading and writing JSON frames over conn.
 //
 // @testcase TestWSTransportRoundTrip sends and receives a frame over a loopback websocket.
+// @testcase TestWSTransportLargeFrame round-trips a frame above the old 8 MiB read limit.
 func newWSTransport(conn *websocket.Conn) *wsTransport {
 	conn.SetReadLimit(maxFrameBytes)
 	return &wsTransport{conn: conn}
@@ -50,6 +53,7 @@ func newWSTransport(conn *websocket.Conn) *wsTransport {
 // @error error if the websocket write fails.
 //
 // @testcase TestWSTransportRoundTrip sends a frame the peer reads back.
+// @testcase TestWSTransportLargeFrame sends a frame larger than the old read limit.
 func (t *wsTransport) Send(ctx context.Context, f frame) error {
 	t.writeMu.Lock()
 	defer t.writeMu.Unlock()
@@ -63,6 +67,7 @@ func (t *wsTransport) Send(ctx context.Context, f frame) error {
 // @error error if the websocket read or JSON decode fails (including a clean close).
 //
 // @testcase TestWSTransportRoundTrip receives the frame the peer sent.
+// @testcase TestWSTransportLargeFrame receives a frame larger than the old read limit.
 func (t *wsTransport) Recv(ctx context.Context) (frame, error) {
 	var f frame
 	if err := wsjson.Read(ctx, t.conn, &f); err != nil {

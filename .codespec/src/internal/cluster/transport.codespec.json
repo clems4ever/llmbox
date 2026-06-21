@@ -1,0 +1,31 @@
+{
+	"functions": [
+		{
+			"function_name": "newWSTransport",
+			"documentation_hash": "6a913decee09b72f05094ff2f54ec79da8776cfe28a934c4073fce143f4be7a0",
+			"definition_hash": "de7a4e9baf41c0c1329494cf18a344daf4348c9f9285d1c5208df4aec733a6c0",
+			"reviewed_at": "2026-06-21T14:22:58.116754721Z"
+		},
+		{
+			"function_name": "Send",
+			"receiver": "wsTransport",
+			"documentation_hash": "9d8d8638e87da6e260bf05d191e8d631f322416e7570a2c419349c2311899b9c",
+			"definition_hash": "a7a9c6d0378f3f235124cfc321da185aff7f2f2dbf6c8e6e80bd0d8879324fe4",
+			"reviewed_at": "2026-06-21T14:22:58.12515125Z"
+		},
+		{
+			"function_name": "Recv",
+			"receiver": "wsTransport",
+			"documentation_hash": "125e315a63e87730610a68b085a543f7642389dca73c0843a770f1af3bf08127",
+			"definition_hash": "7ab5a7dd9b0a97afb5216e04c0630fd199623262cc284436ea1eb09ff024d312",
+			"reviewed_at": "2026-06-21T14:22:58.132924642Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "wsTransport",
+			"documentation_hash": "2577d56dbb66f2783231afe206228335c8346915de94a243bc65158559278def",
+			"definition_hash": "b788544260a15c1bf5a7623980762448fd10fe3d6bbea8c94bba2a05566ec483",
+			"reviewed_at": "2026-06-21T14:22:58.139773127Z"
+		}
+	]
+}
