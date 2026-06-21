@@ -186,10 +186,12 @@ func enrollWithJoinToken(store Store, token string, now time.Time) (name, creden
 		return "", "", err
 	}
 	if !found {
-		return "", "", errEnrollRejected
+		// Either the token was never minted in this store, or it was already
+		// consumed by a prior enrollment (join tokens are one-time use).
+		return "", "", fmt.Errorf("%w: join token unknown or already used", errEnrollRejected)
 	}
 	if now.After(rec.ExpiresAt) {
-		return "", "", errEnrollRejected
+		return "", "", fmt.Errorf("%w: join token for spoke %q expired at %s", errEnrollRejected, rec.Name, rec.ExpiresAt.Format(time.RFC3339))
 	}
 	credential, err = newSecret()
 	if err != nil {
@@ -211,14 +213,17 @@ func enrollWithJoinToken(store Store, token string, now time.Time) (name, creden
 // @testcase TestReconnectChecksCredential accepts the right credential and rejects a wrong one.
 func reconnect(store Store, req enrollReq) error {
 	if req.Name == "" || req.Credential == "" {
-		return errEnrollRejected
+		return fmt.Errorf("%w: reconnect missing name or credential", errEnrollRejected)
 	}
 	rec, found, err := store.GetSpoke(req.Name)
 	if err != nil {
 		return err
 	}
-	if !found || !sameHash(req.Credential, rec.CredentialHash) {
-		return errEnrollRejected
+	if !found {
+		return fmt.Errorf("%w: reconnect for unknown spoke %q (not enrolled in this store)", errEnrollRejected, req.Name)
+	}
+	if !sameHash(req.Credential, rec.CredentialHash) {
+		return fmt.Errorf("%w: credential mismatch for spoke %q", errEnrollRejected, req.Name)
 	}
 	return nil
 }

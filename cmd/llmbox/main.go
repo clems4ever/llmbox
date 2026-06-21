@@ -128,6 +128,12 @@ func newRootCmd() *cobra.Command {
 func loadConfig(path string, explicit bool) (*config.Config, error) {
 	if !explicit {
 		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			// Falling back to built-in defaults silently has bitten operators:
+			// a command run without the hub's config (e.g. `spoke token create`
+			// via docker exec) ends up using DefaultStateFile, a different store
+			// than the running hub, so its tokens are never seen. Make the
+			// fallback visible.
+			fmt.Fprintf(os.Stderr, "warning: no config file at %q; using built-in defaults (state_file %q)\n", path, config.DefaultStateFile)
 			return config.Default(), nil
 		}
 	}

@@ -189,7 +189,10 @@ func createJoinToken(out io.Writer, cfg *config.Config, spokeName string, ttl ti
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Join token for spoke %q (valid %s, one-time use):\n\n  %s\n\nStart the spoke with:\n\n  llmbox spoke --hub wss://<hub>/spoke/connect --token %s\n", spokeName, ttl, token, token)
+	// Show the state file the token landed in: a token is only honored by a hub
+	// reading this exact same store, so a mismatch here (e.g. defaults used
+	// because no config was found) is the usual cause of "enrollment rejected".
+	fmt.Fprintf(out, "Join token for spoke %q (valid %s, one-time use):\n\n  %s\n\nWritten to state file: %s\n(the running hub must use this same state_file, or it will reject the token)\n\nStart the spoke with:\n\n  llmbox spoke --hub wss://<hub>/spoke/connect --token %s\n", spokeName, ttl, token, cfg.StateFile, token)
 	return nil
 }
 

@@ -96,10 +96,13 @@ func (h *Hub) ConnectHandler(w http.ResponseWriter, r *http.Request) {
 
 	name, err := h.enroll(r.Context(), tr)
 	if err != nil {
-		// Tell the spoke why (vaguely) then close; do not leak the failure mode.
+		// Tell the spoke why (vaguely) then close; do not leak the failure mode
+		// over the wire. The server-side log carries the real reason so an
+		// operator can diagnose without the rejection being self-describing to
+		// an attacker.
 		_ = tr.Send(r.Context(), frame{Type: frameErr, Error: errEnrollRejected.Error()})
 		_ = tr.Close()
-		h.log.Warn("spoke enrollment rejected", "err", err)
+		h.log.Warn("spoke enrollment rejected", "remote", r.RemoteAddr, "reason", err)
 		return
 	}
 
