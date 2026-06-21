@@ -11,15 +11,15 @@
 			"function_name": "handleAuthPage",
 			"receiver": "Server",
 			"documentation_hash": "47b4e80bb483527e9e00167d9e18b3a5f20ccb5e433430b13e09c5cc7d22a821",
-			"definition_hash": "f098333c98d7c7fa7006a2ad2902226b9f7cb727fa6b69be095246e75f66af27",
-			"reviewed_at": "2026-06-21T13:23:33.262884033Z"
+			"definition_hash": "165435e079849283efdc7304441b5c504fbe360a96feef538cc1bf1b84a1387d",
+			"reviewed_at": "2026-06-21T19:09:12.558456395Z"
 		},
 		{
 			"function_name": "handleAuthSubmit",
 			"receiver": "Server",
 			"documentation_hash": "f45e9f0d45ebd585cefa5df03feee1bf0a9a1c1c4621657abf03b9fd4661ff1e",
-			"definition_hash": "1708731232047143b03fd2c5f42149d181007dc3918af3cb2ae4b7f13b07815e",
-			"reviewed_at": "2026-06-21T13:23:33.263490681Z"
+			"definition_hash": "28bdb5ed1fe53ac6932ffef35e9d58222a506b110bc7342819713c2c76e06ff2",
+			"reviewed_at": "2026-06-21T19:09:12.559230246Z"
 		},
 		{
 			"function_name": "render",

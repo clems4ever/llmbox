@@ -1,13 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "CreateLLMBox",
-			"receiver": "fakeMgr",
-			"documentation_hash": "7eea840785529e97ca5fa003dfa3a70b1ea9f318bbc321725c6064959e1684db",
-			"definition_hash": "b697273aa97d6080adf1bf5bd18ebf21ec8ca1d7e1deeaa191f17f3393ae7625",
-			"reviewed_at": "2026-06-18T13:16:44.072303821Z"
-		},
-		{
 			"function_name": "SubmitCode",
 			"receiver": "fakeMgr",
 			"documentation_hash": "501e58ecdea5350d32ecd8f0e45cc7bff2ea26474e19fdeabc71e8749ba3f7f2",
@@ -207,6 +200,12 @@
 			"documentation_hash": "acefce74c58dd6d4d280532ecbaeab6e4034cfe14b448a7a8f28f12b56521004",
 			"definition_hash": "da0ed833034e5541d6acd6c486e6634de6f46a6411d53dddc20e54938d772d7b",
 			"reviewed_at": "2026-06-19T20:04:57.632337739Z"
+		},
+		{
+			"function_name": "TestAuthPageShowsBoxAndSpoke",
+			"documentation_hash": "01c007d008dc96c06d63dfc4db0c607f833d52160aeed95f522318f03f25c725",
+			"definition_hash": "07ac7bf452e1f472e5d1b4b046c32b099e398b3fcf31ac3a31fdd4921ef115d4",
+			"reviewed_at": "2026-06-21T19:09:12.574715437Z"
 		}
 	]
 }

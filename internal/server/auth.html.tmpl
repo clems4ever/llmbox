@@ -41,6 +41,11 @@
   .brand { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.25rem; }
   .brand .logo { width: 1.7rem; height: 1.7rem; flex: none; display: block; }
   .brand b { font-size: 1.05rem; letter-spacing: -.01em; }
+  .boxmeta {
+    margin: 0 0 1.25rem; padding: .45rem .7rem; border-radius: 8px;
+    background: var(--info-bg); color: var(--info); font-size: .82rem;
+  }
+  .boxmeta b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
   h1 { font-size: 1.4rem; line-height: 1.25; margin: 0 0 .35rem; letter-spacing: -.02em; }
   .lead { color: var(--muted); margin: 0 0 1.5rem; text-align: justify; }
   .step { padding: 1rem 0; border-top: 1px solid var(--line); }
@@ -117,6 +122,8 @@
 <body>
 <main class="card">
   <div class="brand"><img class="logo" src="/favicon.svg" width="27" height="27" alt=""><b>llmbox</b></div>
+
+{{if .BoxID}}<p class="boxmeta">Box <b>{{.BoxID}}</b>{{if .Spoke}} · spoke <b>{{.Spoke}}</b>{{end}}</p>{{end}}
 
 {{if and .AuthEnabled (not .LoggedIn)}}
   {{if .NotAuthorized}}

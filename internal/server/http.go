@@ -105,6 +105,8 @@ func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 		Status:       status,
 		SessionURL:   sessionURL,
 		Error:        errMsg,
+		BoxID:        sess.BoxID,
+		Spoke:        sess.SpokeName,
 	}
 	// When activation auth is enabled, gate the whole page behind sign-in: an
 	// unauthenticated visitor (e.g. someone who only has the leaked token) sees
@@ -184,6 +186,8 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 		Status:       status,
 		SessionURL:   sessionURL,
 		Error:        errMsg,
+		BoxID:        sess.BoxID,
+		Spoke:        sess.SpokeName,
 		AuthEnabled:  s.auth != nil,
 		LoggedIn:     s.auth == nil || email != "",
 		Email:        email,
@@ -196,6 +200,11 @@ type authPageData struct {
 	Status       string
 	SessionURL   string
 	Error        string
+
+	// BoxID and Spoke identify which box (and which cluster spoke it runs on)
+	// this activation page is for, shown so the user can tell boxes apart.
+	BoxID string
+	Spoke string
 
 	// Activation-auth fields. AuthEnabled is true when a provider is configured;
 	// when so and LoggedIn is false, the template shows only the sign-in buttons.

@@ -362,6 +362,26 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 	}
 }
 
+// TestAuthPageShowsBoxAndSpoke checks the activation page names the box and the
+// spoke it runs on, so the user can tell which box they are activating.
+func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
+	s := newTestServer(&fakeMgr{createID: "id1", createURL: "https://c", submitURL: "https://s"})
+	sess, _ := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "refactor-auth"})
+	h := s.Handler(s.MCPServer("test", "v0"))
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/"+sess.Token, nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "refactor-auth") {
+		t.Error("box id missing from activation page")
+	}
+	if !strings.Contains(body, "spoke <b>local</b>") {
+		t.Error("spoke name missing from activation page")
+	}
+}
+
 // TestAuthPageUnknownToken checks the auth page 404s for an unknown token.
 func TestAuthPageUnknownToken(t *testing.T) {
 	s := newTestServer(&fakeMgr{})
