@@ -222,8 +222,35 @@ func TestAdminCreateSpokeMintsToken(t *testing.T) {
 	if err != nil || len(tokens) != 1 || tokens[0].Name != "edge-1" {
 		t.Fatalf("tokens = %+v err=%v, want one for edge-1", tokens, err)
 	}
-	if !strings.Contains(rec.Body.String(), "wss://boxes.example.com/spoke/connect") {
-		t.Error("result page missing spoke-connect command")
+	body := rec.Body.String()
+	for _, want := range []string{"docker run", "--group-add", "/var/run/docker.sock", "wss://boxes.example.com/spoke/connect"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("result page missing %q in the spoke command", want)
+		}
+	}
+}
+
+// TestAdminDashboardShowsActivationURL checks a pending box's activation URL is
+// shown in the dashboard table, so it survives a page refresh.
+func TestAdminDashboardShowsActivationURL(t *testing.T) {
+	s, f, st := newAdminServer(t)
+	f.listResult = []docker.Box{{ContainerID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
+	sess, err := s.CreateBox(t.Context(), docker.CreateOptions{BoxID: "foo"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := s.Handler(s.MCPServer("t", "v"))
+
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	req.AddCookie(signIn(t, st, true, false))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if want := s.AuthPageURL(sess.Token); !strings.Contains(rec.Body.String(), want) {
+		t.Errorf("dashboard missing activation URL %q", want)
 	}
 }
 

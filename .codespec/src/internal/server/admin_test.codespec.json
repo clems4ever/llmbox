@@ -57,8 +57,8 @@
 		{
 			"function_name": "TestAdminCreateSpokeMintsToken",
 			"documentation_hash": "2c07f0c86d07eb05661528725f462c5d5ed6a67f471a66cdfde1c93565099518",
-			"definition_hash": "24bf796012fa615c71a19c86d048b17ee8e11b0a7479b1f21ca47505b33b4b1a",
-			"reviewed_at": "2026-06-21T13:32:40.460906342Z"
+			"definition_hash": "bc087240816fb9f729c4c580a042a5646e3c2acffe789c91f9ab03364d004832",
+			"reviewed_at": "2026-06-21T18:29:19.492389478Z"
 		},
 		{
 			"function_name": "TestAdminDropSpokeRemovesAndKicks",
@@ -101,6 +101,12 @@
 			"documentation_hash": "04215cb4d5c8153a289d94022c6e90136a9b0781927487d0078be6b22e84b255",
 			"definition_hash": "cc0ee1f55c4e6b38df5f01354d0d27bfb20012d504effa40268ed08c5829c8da",
 			"reviewed_at": "2026-06-21T13:32:40.483963138Z"
+		},
+		{
+			"function_name": "TestAdminDashboardShowsActivationURL",
+			"documentation_hash": "306ab681b602d622d2c198322495f04d566763dc098fbb3b36156d2024d7ada8",
+			"definition_hash": "56b2546f72b9863536d0acec2ffec283a7eb98faa046de48a000adb84a8bd1b0",
+			"reviewed_at": "2026-06-21T18:29:19.4928393Z"
 		}
 	]
 }

@@ -18,8 +18,8 @@
 			"function_name": "adminDashboard",
 			"receiver": "Server",
 			"documentation_hash": "98837fe4f193d291be7463599a66299f9fe6221d93dcb799bbeb01c8416a7d38",
-			"definition_hash": "4137cd3dea32f43681640da30743400c4cff64d81ac5cf358fe3fbc99637b603",
-			"reviewed_at": "2026-06-21T13:24:14.203093524Z"
+			"definition_hash": "1f4223a1e5847ab497d86cef0d411b49c84cdef6437d39ca35e5e5805aaba04d",
+			"reviewed_at": "2026-06-21T18:29:19.490677291Z"
 		},
 		{
 			"function_name": "toAdminTokens",
@@ -44,8 +44,8 @@
 			"function_name": "handleAdminCreateSpoke",
 			"receiver": "Server",
 			"documentation_hash": "59987d607664a15d5c532f78d0f6cb691563b11b0ec7d49f9ea0b4b24111f172",
-			"definition_hash": "aef55478487caf8918b1aec01cb94c6b977ffd6927b9e90babfb3d776ed69c0d",
-			"reviewed_at": "2026-06-21T13:24:14.208463445Z"
+			"definition_hash": "ef2e231104940564a9a15223b08a54713bc214da2f98bc6d7ef5140df305ef11",
+			"reviewed_at": "2026-06-21T18:29:19.491114384Z"
 		},
 		{
 			"function_name": "handleAdminDropSpoke",
@@ -95,6 +95,13 @@
 			"documentation_hash": "f058810ddfd58b701ab35a526ee28dd6130dfb5a9f10983afe8d562f0d73b917",
 			"definition_hash": "aa590af380d35c4b27ab584eb555d35c985b29898f65603c97938c4eb44496bc",
 			"reviewed_at": "2026-06-21T13:24:14.216475255Z"
+		},
+		{
+			"function_name": "spokeRunCommand",
+			"receiver": "Server",
+			"documentation_hash": "90315a730b6af16e44b92f0f6ca7e4fad71f174f6241b47a5b868c8648c62e3d",
+			"definition_hash": "88a880823a6464df7aa6980785e9f020f253ea80d36a1173aa8d38003c6d6a64",
+			"reviewed_at": "2026-06-21T18:29:19.491804806Z"
 		}
 	]
 }

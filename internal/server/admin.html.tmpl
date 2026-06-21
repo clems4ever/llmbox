@@ -84,6 +84,12 @@
   .result .label { font-size: .76rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin: .6rem 0 .2rem; }
   .result .val { word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88rem; }
   .result a { color: var(--accent-strong); }
+  pre.cmd {
+    margin: .2rem 0 0; padding: .7rem .8rem; border-radius: 8px; overflow-x: auto;
+    background: var(--bg); border: 1px solid var(--line); color: var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; line-height: 1.5;
+    white-space: pre; -moz-tab-size: 2; tab-size: 2;
+  }
   .note { color: var(--muted); font-size: .82rem; margin: .4rem 0 0; }
 </style>
 </head>
@@ -121,8 +127,8 @@
     <div class="label">Token</div>
     <div class="val">{{.NewSpoke.Token}}</div>
     <div class="label">Start the spoke with</div>
-    <div class="val">{{.NewSpoke.Command}}</div>
-    <p class="note">Persist the spoke's <span class="mono">--state</span> file (e.g. a mounted volume) so it can reconnect without this one-time token.</p>
+    <pre class="cmd">{{.NewSpoke.Command}}</pre>
+    <p class="note">Runs the spoke as a daemon with a persistent state volume (so it reconnects without this one-time token) and grants the Docker socket's group (the spoke runs as a non-root user). Adjust the image tag to match your deployment.</p>
   </div>
   {{end}}
 
@@ -194,7 +200,7 @@
   <div class="card">
     <h2>Boxes</h2>
     <table>
-      <thead><tr><th>Box ID</th><th>Spoke</th><th>Image</th><th>State</th><th>Phase</th><th>Created</th><th></th></tr></thead>
+      <thead><tr><th>Box ID</th><th>Spoke</th><th>Image</th><th>State</th><th>Phase</th><th>Created</th><th>Activation</th><th></th></tr></thead>
       <tbody>
       {{range .Boxes}}
         <tr>
@@ -205,6 +211,11 @@
           <td>{{if eq .Phase "ready"}}<span class="pill on">ready</span>{{else}}<span class="pill muted">{{.Phase}}</span>{{end}}</td>
           <td class="mono">{{.Created}}</td>
           <td>
+            {{if .AuthURL}}<a href="{{.AuthURL}}" target="_blank" rel="noopener noreferrer">Activate</a>
+            {{else if .SessionURL}}<a href="{{.SessionURL}}" target="_blank" rel="noopener noreferrer">Open</a>
+            {{else}}<span class="empty">—</span>{{end}}
+          </td>
+          <td>
             <form class="inline" method="post" action="/admin/boxes/delete" onsubmit="return confirm('Remove box {{.BoxID}}?')">
               <input type="hidden" name="csrf" value="{{$.CSRF}}">
               <input type="hidden" name="box_id" value="{{.BoxID}}">
@@ -213,7 +224,7 @@
           </td>
         </tr>
       {{else}}
-        <tr><td colspan="7" class="empty">No boxes.</td></tr>
+        <tr><td colspan="8" class="empty">No boxes.</td></tr>
       {{end}}
       </tbody>
     </table>

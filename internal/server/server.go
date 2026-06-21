@@ -183,6 +183,10 @@ type Server struct {
 	// activation unauthenticated (no provider configured).
 	auth *Authenticator
 
+	// spokeImage is the llmbox image named in the admin UI's ready-to-run spoke
+	// command; empty falls back to a built-in default. Display-only.
+	spokeImage string
+
 	// log records best-effort failures (persistence, cleanup, destroy hooks) that
 	// are not propagated to the caller; nil falls back to slog.Default().
 	log *slog.Logger
@@ -239,6 +243,14 @@ func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration
 //
 // @testcase TestCreateBoxRoutesToSpoke routes a box to a remote spoke via the hub.
 func (s *Server) SetHub(hub clusterHub) { s.hub = hub }
+
+// SetSpokeImage sets the llmbox image named in the admin UI's ready-to-run spoke
+// command. It is display-only and does not affect how spokes run.
+//
+// @arg image The container image (e.g. ghcr.io/clems4ever/granular-llmbox:0.0.6).
+//
+// @testcase TestAdminCreateSpokeMintsToken shows the configured image in the command.
+func (s *Server) SetSpokeImage(image string) { s.spokeImage = image }
 
 // spoke resolves a spoke name to its box manager. An empty name or "local"
 // returns the in-process manager; any other name is looked up among the

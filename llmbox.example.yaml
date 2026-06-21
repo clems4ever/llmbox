@@ -35,6 +35,10 @@ state_file: "llmbox-sessions.db"
 #   2. on the spoke: llmbox spoke --hub wss://<hub>/spoke/connect --token <token>
 # cluster:
 #   enabled: true
+#   # Image shown in the admin UI's ready-to-run `docker run … spoke …` command.
+#   # Display-only (it does not change how spokes run); set it to the image/tag
+#   # your spokes actually use. Defaults to ghcr.io/clems4ever/granular-llmbox:latest.
+#   spoke_image: "ghcr.io/clems4ever/granular-llmbox:0.0.6"
 
 # Spoke settings — read only by the `llmbox spoke` command (the hub ignores
 # this block). allowed_images restricts which explicit images this spoke will

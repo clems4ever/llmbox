@@ -171,6 +171,13 @@
 			"documentation_hash": "5ee204fb6ff12f0907d1d57e4331b3416166c2b249bb988f613fe448d9a66fd7",
 			"definition_hash": "6f5456a36f62a8cf228484cfbf5d1f8750fbe6320a5083a89b9794f4c970b534",
 			"reviewed_at": "2026-06-19T20:37:11.47226761Z"
+		},
+		{
+			"function_name": "SetSpokeImage",
+			"receiver": "Server",
+			"documentation_hash": "a61fe90cece522d88aa36c42e049b8b9b245fbe5db95254366f966c4a870073f",
+			"definition_hash": "23e56f207c2146774e24dd09724896047f0603b470dc54299e3b224e32a0495f",
+			"reviewed_at": "2026-06-21T18:29:19.49342911Z"
 		}
 	]
 }
