@@ -1,0 +1,59 @@
+{
+	"functions": [
+		{
+			"function_name": "NewHub",
+			"documentation_hash": "a80ce97bfc448c979396379ed1090f82795e81407ce12467e1d7e82e0edc89f6",
+			"definition_hash": "be85533b017d42f8e757309577d17ea58dea60d580799c5e50c1f406bd12b97c",
+			"reviewed_at": "2026-06-21T13:23:33.250378996Z"
+		},
+		{
+			"function_name": "Spoke",
+			"receiver": "Hub",
+			"documentation_hash": "3e012757879ad129734f8615a01f6c3ef158d0e4cf719915be8adf9087db465f",
+			"definition_hash": "707bc7df9e55d54c513df694e0d62736c2dc6c856f2e701c2ee94eebf91098e6",
+			"reviewed_at": "2026-06-21T13:23:33.251127144Z"
+		},
+		{
+			"function_name": "Spokes",
+			"receiver": "Hub",
+			"documentation_hash": "fd64f70aa81745dc7b7ff3cdec41832e68d96572c599054096828bc940b26c38",
+			"definition_hash": "aff49f4931da53ab78a98d59c4f63f361cd441e511b1c273816d9263dd0d9520",
+			"reviewed_at": "2026-06-21T13:23:33.251811282Z"
+		},
+		{
+			"function_name": "ConnectHandler",
+			"receiver": "Hub",
+			"documentation_hash": "133a710c889e05b9a243f4fed118736db23ee8c184a2e58b226cb43ef990ce89",
+			"definition_hash": "69f41d39603b3b174e5ca7fc3aad6d5c252ac98f6e9cb344ef467bbebbee999b",
+			"reviewed_at": "2026-06-21T13:23:33.252681614Z"
+		},
+		{
+			"function_name": "enroll",
+			"receiver": "Hub",
+			"documentation_hash": "e465f1cdcf03d3dea02098477331cccfc52e4ca61c628fc80424bd122a28a8c1",
+			"definition_hash": "76f54d2c2a6e883fff599224bd7f8b72657fb2726a3a86fbe5d5bb1e454745ad",
+			"reviewed_at": "2026-06-21T13:23:33.254467044Z"
+		},
+		{
+			"function_name": "register",
+			"receiver": "Hub",
+			"documentation_hash": "25c127d66f56694d87b1cf2a6949b8edfd8dfcc30ef5e2890f5389b47a9f5c1f",
+			"definition_hash": "c688972894a918bf0ac1beade8af9f1ddfd4b48d193f3659bd8199a3588cb4f6",
+			"reviewed_at": "2026-06-21T13:23:33.255280042Z"
+		},
+		{
+			"function_name": "Disconnect",
+			"receiver": "Hub",
+			"documentation_hash": "3985e260d0591b5ca7db4c41748aef01602181f40c524bdf0ed4fcbbb31d1895",
+			"definition_hash": "d3b143788ec848bf836a424429adcaf437505e8e1d41d2bd13016bc7ac922b39",
+			"reviewed_at": "2026-06-21T13:23:33.256058755Z"
+		},
+		{
+			"function_name": "unregister",
+			"receiver": "Hub",
+			"documentation_hash": "7d7afe7440021417916459932c1b732681df685e0b747b54f456af5a6dae23bc",
+			"definition_hash": "1fe8f1d3985f58aca8d5d581a944674ce61dce90cba85e273137bf60759f46d9",
+			"reviewed_at": "2026-06-21T13:23:33.256836442Z"
+		}
+	]
+}

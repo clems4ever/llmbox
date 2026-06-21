@@ -113,9 +113,12 @@ func newRootCmd() *cobra.Command {
 }
 
 // loadConfig loads the YAML config at path. When the path was not given
-// explicitly on the command line and the default file is absent, it returns the
-// built-in defaults so llmbox runs without a config file; an explicitly named
-// missing or invalid file is an error.
+// explicitly on the command line and the default file is absent, it prints a
+// warning to stderr and returns the built-in defaults so llmbox runs without a
+// config file; an explicitly named missing or invalid file is an error. The
+// warning exists because a silent default state_file is a common cause of a
+// command (e.g. `spoke token create`) writing to a different store than the
+// running hub reads.
 //
 // @arg path The config file path.
 // @arg explicit Whether --config was set on the command line.

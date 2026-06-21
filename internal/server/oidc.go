@@ -99,6 +99,11 @@ type Authenticator struct {
 	providers  map[string]*provider
 	order      []string // provider names in config order, for stable button order
 	sessionTTL time.Duration
+
+	// adminEmails is the lower-cased set of identities allowed into the admin UI.
+	// Empty (nil) means the admin UI is disabled. This is independent of any
+	// provider's box-activation allow rule.
+	adminEmails map[string]bool
 }
 
 // providerButton is one sign-in option rendered on the activation page.
@@ -119,8 +124,9 @@ type providerButton struct {
 // @testcase TestNewAuthenticatorDisabled returns nil when no provider is enabled.
 func NewAuthenticator(ctx context.Context, cfg config.AuthConfig) (*Authenticator, error) {
 	a := &Authenticator{
-		providers:  map[string]*provider{},
-		sessionTTL: time.Duration(cfg.SessionTTL),
+		providers:   map[string]*provider{},
+		sessionTTL:  time.Duration(cfg.SessionTTL),
+		adminEmails: lowerSet(cfg.Admin.Emails),
 	}
 	if cfg.Google.Enabled {
 		oidcProvider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
@@ -185,6 +191,74 @@ func (a *Authenticator) buttons(token string) []providerButton {
 	return out
 }
 
+// AdminEnabled reports whether the admin UI is enabled (an admin allow-list is
+// configured). It is false on a nil Authenticator.
+//
+// @return bool True when at least one admin email is configured.
+//
+// @testcase TestAdminAllowlist reports enabled only when emails are configured.
+func (a *Authenticator) AdminEnabled() bool {
+	return a != nil && len(a.adminEmails) > 0
+}
+
+// isAdmin reports whether the (case-insensitive) email is on the admin
+// allow-list. It is false on a nil Authenticator or empty list.
+//
+// @arg email The signed-in identity's email.
+// @return bool True when the email may use the admin UI.
+//
+// @testcase TestAdminAllowlist admits listed emails (any case) and rejects others.
+func (a *Authenticator) isAdmin(email string) bool {
+	if a == nil || email == "" {
+		return false
+	}
+	return a.adminEmails[strings.ToLower(strings.TrimSpace(email))]
+}
+
+// adminButtons returns the sign-in buttons for the admin UI, each returning to
+// returnTo (a local path) after sign-in rather than to a box activation page.
+//
+// @arg returnTo The local path to return to after sign-in (e.g. "/admin").
+// @return []providerButton One button per enabled provider, in config order.
+//
+// @testcase TestAdminButtonsReturnPath builds login links carrying the return path.
+func (a *Authenticator) adminButtons(returnTo string) []providerButton {
+	if a == nil {
+		return nil
+	}
+	out := make([]providerButton, 0, len(a.order))
+	for _, name := range a.order {
+		out = append(out, providerButton{
+			Label:     a.providers[name].label,
+			LoginPath: "/auth/" + name + "/login?return=" + url.QueryEscape(returnTo),
+		})
+	}
+	return out
+}
+
+// safeReturnPath returns p when it is a safe local path to redirect to after
+// sign-in (an absolute path that is not protocol-relative), or "" otherwise. It
+// blocks open redirects: only same-origin paths beginning with a single "/" are
+// allowed, and any path with a scheme, host, or backslash is rejected.
+//
+// @arg p The candidate return path from the login request.
+// @return string The path when safe, or "" when it must not be used.
+//
+// @testcase TestSafeReturnPath accepts local paths and rejects absolute/protocol-relative ones.
+func safeReturnPath(p string) string {
+	if p == "" || p[0] != '/' || strings.HasPrefix(p, "//") || strings.HasPrefix(p, "/\\") {
+		return ""
+	}
+	if strings.ContainsAny(p, "\\") {
+		return ""
+	}
+	// Reject anything that parses to a non-empty scheme or host (defence in depth).
+	if u, err := url.Parse(p); err != nil || u.Scheme != "" || u.Host != "" {
+		return ""
+	}
+	return p
+}
+
 // oidcVerifier adapts *oidc.IDTokenVerifier to idTokenVerifier, checking the
 // nonce and extracting the claims llmbox cares about.
 type oidcVerifier struct{ v *oidc.IDTokenVerifier }
@@ -218,12 +292,15 @@ func (o oidcVerifier) verify(ctx context.Context, rawIDToken, nonce string) (idC
 }
 
 // handleProviderLogin begins an OIDC handshake: it persists fresh state (PKCE
-// verifier + nonce + the box token to return to) and redirects to the provider.
+// verifier + nonce + where to return) and redirects to the provider. The return
+// target is either a box activation token (?token=, the activation flow) or a
+// safe local path (?return=, the admin flow); exactly one is required.
 //
 // @arg w The response writer (redirected to the provider).
-// @arg r The request carrying {provider} and the box token query parameter.
+// @arg r The request carrying {provider} and either a token or return query param.
 //
 // @testcase TestProviderLoginRedirects redirects to the provider with state.
+// @testcase TestProviderLoginReturnPath accepts a safe return path for the admin flow.
 func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
 	p, ok := s.auth.provider(r.PathValue("provider"))
 	if !ok {
@@ -231,8 +308,9 @@ func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := r.URL.Query().Get("token")
-	if token == "" {
-		http.Error(w, "missing box token", http.StatusBadRequest)
+	returnTo := safeReturnPath(r.URL.Query().Get("return"))
+	if token == "" && returnTo == "" {
+		http.Error(w, "missing box token or return path", http.StatusBadRequest)
 		return
 	}
 	state, err1 := randToken(32)
@@ -246,6 +324,7 @@ func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
 	flow := loginFlow{
 		Provider:    p.name,
 		ReturnToken: token,
+		ReturnTo:    returnTo,
 		Nonce:       nonce,
 		Verifier:    verifier,
 		ExpiresAt:   time.Now().Add(flowTTL),
@@ -260,14 +339,17 @@ func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleProviderCallback completes an OIDC handshake: it consumes the stored
-// flow, exchanges the code, verifies the ID token, authorizes the identity, and
-// on success creates a login session and redirects back to the box's auth page.
+// flow, exchanges the code, verifies the ID token, and on success creates a login
+// session recording the identity's box-activation and admin capabilities, then
+// redirects to the flow's return target (a box auth page or the admin UI). It
+// rejects only an identity with neither capability.
 //
-// @arg w The response writer (redirected to the box auth page on success).
+// @arg w The response writer (redirected to the return target on success).
 // @arg r The request carrying {provider}, the code, and the state parameter.
 //
 // @testcase TestProviderCallbackActivates signs in an allowed identity and sets the cookie.
-// @testcase TestProviderCallbackRejectsUnauthorized 403s an identity outside the allow rule.
+// @testcase TestProviderCallbackRejectsUnauthorized 403s an identity in neither allow rule.
+// @testcase TestProviderCallbackAdminOnly signs in an admin who cannot activate boxes.
 func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) {
 	p, ok := s.auth.provider(r.PathValue("provider"))
 	if !ok {
@@ -306,9 +388,16 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "sign-in failed", http.StatusBadGateway)
 		return
 	}
-	if !p.authorize(claims) {
-		s.logger().Info("activation denied for unauthorized identity", "provider", p.name, "email", claims.Email)
-		http.Error(w, fmt.Sprintf("Signed in as %s, but that account is not authorized to activate boxes here.", claims.Email), http.StatusForbidden)
+	// A sign-in confers two independent capabilities: activating boxes (the
+	// provider's allow rule) and using the admin UI (the admin allow-list). The
+	// session records both so each surface enforces its own gate. We reject only
+	// when the identity has neither capability — an admin who cannot activate
+	// boxes (or vice versa) is still allowed to sign in for what they can do.
+	canActivate := p.authorize(claims)
+	isAdmin := s.auth.isAdmin(claims.Email)
+	if !canActivate && !isAdmin {
+		s.logger().Info("sign-in denied for unauthorized identity", "provider", p.name, "email", claims.Email)
+		http.Error(w, fmt.Sprintf("Signed in as %s, but that account is not authorized here.", claims.Email), http.StatusForbidden)
 		return
 	}
 
@@ -325,20 +414,28 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 		Provider:  p.name,
 		CSRF:      csrf,
 		ExpiresAt: expires,
+		Activate:  canActivate,
+		Admin:     isAdmin,
 	}); err != nil {
 		s.logger().Error("saving login session", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name:     loginCookie,
-		Value:    id,
-		Path:     "/auth",
+		Name:  loginCookie,
+		Value: id,
+		// Scoped to the whole site so the cookie reaches both the activation pages
+		// under /auth and the admin UI under /admin.
+		Path:     "/",
 		Expires:  expires,
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
+	if flow.ReturnTo != "" {
+		http.Redirect(w, r, flow.ReturnTo, http.StatusFound)
+		return
+	}
 	http.Redirect(w, r, "/auth/"+url.PathEscape(flow.ReturnToken), http.StatusFound)
 }
 

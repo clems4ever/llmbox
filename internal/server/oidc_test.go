@@ -250,8 +250,8 @@ func TestActivationGatedByLogin(t *testing.T) {
 		t.Fatal("SubmitCode should not run without a login session")
 	}
 
-	// Seed a login session and post with the right CSRF.
-	if err := st.SaveLoginSession("SID", loginSession{Email: "alice@corp.com", CSRF: "CSRF", ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+	// Seed a login session (authorized to activate) and post with the right CSRF.
+	if err := st.SaveLoginSession("SID", loginSession{Email: "alice@corp.com", CSRF: "CSRF", ExpiresAt: time.Now().Add(time.Hour), Activate: true}); err != nil {
 		t.Fatal(err)
 	}
 	cookie := &http.Cookie{Name: loginCookie, Value: "SID"}

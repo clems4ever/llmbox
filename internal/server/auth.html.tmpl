@@ -119,6 +119,11 @@
   <div class="brand"><img class="logo" src="/favicon.svg" width="27" height="27" alt=""><b>llmbox</b></div>
 
 {{if and .AuthEnabled (not .LoggedIn)}}
+  {{if .NotAuthorized}}
+  <h1>Not authorized to activate</h1>
+  <div class="banner err">You're signed in as {{.Email}}, but that account isn't authorized to activate boxes here.</div>
+  <p class="note">If this is a mistake, ask an administrator to add your address to the activation allow-list.</p>
+  {{else}}
   <h1>Sign in to activate</h1>
   <p class="lead">Activating this box requires signing in first, so only you — the person who requested it — can connect it to a Claude account.</p>
   {{range .Providers}}
@@ -127,6 +132,7 @@
     <div class="banner err">No sign-in providers are configured, so this box cannot be activated.</div>
   {{end}}
   <p class="note">You'll be returned here once you're signed in.</p>
+  {{end}}
 {{else}}
 {{if eq .Status "ready"}}
   <div class="banner ok"><strong>Your llmbox is ready.</strong></div>

@@ -33,14 +33,14 @@
 		{
 			"function_name": "enrollWithJoinToken",
 			"documentation_hash": "55661ef83930f7870ec60303496c9ca44be6a3b69f567fbba7dc5d73ffe40624",
-			"definition_hash": "64f5c171f198bf358d5bf2dd9f82a8c3a604e824a6c3235c0d69d21bdeae8b50",
-			"reviewed_at": "2026-06-19T20:34:04.993863402Z"
+			"definition_hash": "fea0c2f842a1970c535d98edfd484e278bf2163a5d8eeeb1fe7f7380a7c2d645",
+			"reviewed_at": "2026-06-21T13:23:33.258397287Z"
 		},
 		{
 			"function_name": "reconnect",
 			"documentation_hash": "a7212ff898d6bb615b5c24611ae3fcdc805367081a55758d20b9ebdfb751c15a",
-			"definition_hash": "c09bd365322b0d5fc04622933127ae10232cceb19f34d57502c276e67fd39ad7",
-			"reviewed_at": "2026-06-19T20:34:04.995273468Z"
+			"definition_hash": "9d5336bd314f30410a0855ced8d39765a3e7a606748bad6ecebb4958762fd11f",
+			"reviewed_at": "2026-06-21T13:23:33.259227255Z"
 		}
 	]
 }

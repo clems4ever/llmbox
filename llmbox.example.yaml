@@ -75,3 +75,7 @@ state_file: "llmbox-sessions.db"
 #     # redirect_url defaults to {public_url}/auth/google/callback
 #     allowed_domains: ["your-company.com"]   # Google Workspace domain(s)
 #     allowed_emails: []                       # or specific addresses
+#   # Identities allowed into the admin web UI (/admin) to manage spokes and
+#   # boxes. Independent of the activation allow rule above. Empty disables /admin.
+#   admin:
+#     emails: ["you@your-company.com"]

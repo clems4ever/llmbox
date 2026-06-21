@@ -44,6 +44,9 @@ type clusterHub interface {
 	Spoke(name string) (boxManager, bool)
 	Spokes() map[string]boxManager
 	ConnectHandler(w http.ResponseWriter, r *http.Request)
+	// Disconnect force-closes a named spoke's live connection (used when an admin
+	// drops a spoke); a no-op when the spoke is not connected.
+	Disconnect(name string)
 }
 
 // boxHooks is the behaviour Server needs from the hooks layer (real impl is

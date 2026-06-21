@@ -71,6 +71,24 @@ box_peers:
 	}
 }
 
+// TestLoadAdminEmails checks the auth.admin.emails allow-list is parsed.
+func TestLoadAdminEmails(t *testing.T) {
+	c, err := Load(write(t, `public_url: "https://x"
+auth:
+  admin:
+    emails:
+      - "you@corp.com"
+      - "boss@corp.com"
+`))
+	if err != nil {
+		t.Fatalf("Load = %v", err)
+	}
+	got := c.Auth.Admin.Emails
+	if len(got) != 2 || got[0] != "you@corp.com" || got[1] != "boss@corp.com" {
+		t.Errorf("admin emails = %v", got)
+	}
+}
+
 // TestLoadAppliesDefaults checks unset fields fall back to defaults.
 func TestLoadAppliesDefaults(t *testing.T) {
 	c, err := Load(write(t, "public_url: \"https://x\"\n"))

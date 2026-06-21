@@ -3,23 +3,23 @@
 		{
 			"function_name": "Handler",
 			"receiver": "Server",
-			"documentation_hash": "f09b7748a40719222e352e6c7b76b40a9ec23ba673bdbf4562dc78b347ec8445",
-			"definition_hash": "6846513d1ce63ee2e98466adc0df39ad376889d674bffb002444080d1805f79c",
-			"reviewed_at": "2026-06-19T19:46:06.055133573Z"
+			"documentation_hash": "90e4c3d3ac7452aea322287b65b689f2c8e8b3e893107e28a3ff2bf6a269c40e",
+			"definition_hash": "5cb8d3d66f70267f9bcda2f8eb8b4bbf68eaf336be83d57ddc0d16e386c22f98",
+			"reviewed_at": "2026-06-21T13:23:33.262226289Z"
 		},
 		{
 			"function_name": "handleAuthPage",
 			"receiver": "Server",
 			"documentation_hash": "47b4e80bb483527e9e00167d9e18b3a5f20ccb5e433430b13e09c5cc7d22a821",
-			"definition_hash": "01b6edb8e6ea27adcbe5f20a96efe3273a69fd52e038f5485d2b2f080206913a",
-			"reviewed_at": "2026-06-18T18:20:29.617339015Z"
+			"definition_hash": "f098333c98d7c7fa7006a2ad2902226b9f7cb727fa6b69be095246e75f66af27",
+			"reviewed_at": "2026-06-21T13:23:33.262884033Z"
 		},
 		{
 			"function_name": "handleAuthSubmit",
 			"receiver": "Server",
 			"documentation_hash": "f45e9f0d45ebd585cefa5df03feee1bf0a9a1c1c4621657abf03b9fd4661ff1e",
-			"definition_hash": "214d5ef3107e84fd99b0a01c304be70daed0ab76192ff295e6275dafc3f24ce2",
-			"reviewed_at": "2026-06-18T18:20:29.618027071Z"
+			"definition_hash": "1708731232047143b03fd2c5f42149d181007dc3918af3cb2ae4b7f13b07815e",
+			"reviewed_at": "2026-06-21T13:23:33.263490681Z"
 		},
 		{
 			"function_name": "render",

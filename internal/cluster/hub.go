@@ -175,6 +175,24 @@ func (h *Hub) register(name string, rs *remoteSpoke) {
 	}
 }
 
+// Disconnect force-closes the live connection for a named spoke, if any, so the
+// spoke is dropped immediately (e.g. after an admin revokes its enrollment). The
+// read loop tears down and unregisters the connection as a result; disconnecting
+// an unknown or already-gone spoke is a no-op. It does not delete the spoke's
+// enrolled record — the caller does that so the spoke cannot simply reconnect.
+//
+// @arg name The spoke name whose live connection should be closed.
+//
+// @testcase TestHubDisconnectClosesConnection closes a connected spoke's link.
+func (h *Hub) Disconnect(name string) {
+	h.mu.Lock()
+	rs := h.spokes[name]
+	h.mu.Unlock()
+	if rs != nil {
+		_ = rs.Close()
+	}
+}
+
 // unregister removes a spoke only if it is still the registered one (a newer
 // reconnect must not be evicted by an older connection's teardown).
 //

@@ -16,8 +16,8 @@
 		{
 			"function_name": "NewAuthenticator",
 			"documentation_hash": "b4d8f52b789a8ea0438902623fa0cc34b1ad4a7a97bd8664c0c74ed7c5663613",
-			"definition_hash": "70d723f92050e9215b94e1892f95d0a3bc1dc0e94ecf65053602d50211f9d278",
-			"reviewed_at": "2026-06-18T18:20:44.668621054Z"
+			"definition_hash": "80e50b7f54a91d8488c3c85f23357041dcd3c41c59a27a0d9d4b3451eb1dcc6b",
+			"reviewed_at": "2026-06-21T13:23:33.264504252Z"
 		},
 		{
 			"function_name": "provider",
@@ -43,16 +43,16 @@
 		{
 			"function_name": "handleProviderLogin",
 			"receiver": "Server",
-			"documentation_hash": "fdadce89e03bdfc9e68b06fe1d3b5a7cb51c1e7b7d5641960d632a96f89bcc84",
-			"definition_hash": "b2ff097d935f8b18ecf54534ddf12e6dc86553d764e4f2b3654621e88c26a5c5",
-			"reviewed_at": "2026-06-18T18:20:44.673341164Z"
+			"documentation_hash": "60edac6a20c16ecfa3d8a99d0bb966760fbe581afd22cdd823fa1047ef39497e",
+			"definition_hash": "8f8e781f59134c95e4fe14382c575dcf047745450b4192883e6f27483be1a3a6",
+			"reviewed_at": "2026-06-21T13:23:33.271438287Z"
 		},
 		{
 			"function_name": "handleProviderCallback",
 			"receiver": "Server",
-			"documentation_hash": "781578edb87969a938edfeca4014107697240a513f47bfd38f560360fad4c0b1",
-			"definition_hash": "03a423e8c618076976e6bb997d80a684e0de1d6cd7117adf8de865e01ba6f273",
-			"reviewed_at": "2026-06-18T18:20:44.675379821Z"
+			"documentation_hash": "345a4d547d81191ee038a9027b9249a787c922d9d1c014ed4ef3ba047ce2ea0b",
+			"definition_hash": "6c6a94abd8d9ab7f12378f310cf05721590fe84988882d79b6d204c8e9acf825",
+			"reviewed_at": "2026-06-21T13:23:33.272849595Z"
 		},
 		{
 			"function_name": "currentLogin",
@@ -72,6 +72,33 @@
 			"documentation_hash": "c377b834a539d07b0c21dbda74cc7457cc2e29c6a9c88c656c14bcbb73578389",
 			"definition_hash": "d529be2beeba1897d20ca9b4d1b68ba7d6c5ef24282d8d8e88880a7c66992557",
 			"reviewed_at": "2026-06-18T18:20:44.680115197Z"
+		},
+		{
+			"function_name": "AdminEnabled",
+			"receiver": "Authenticator",
+			"documentation_hash": "f3325df745424d44d6c88a25817ca2c1e22c03ac88326a3414743900beb1a666",
+			"definition_hash": "1424b7bab5ecc08eddfddf4176bd65b8975d74c5e0d5d77a27d103c086dfdf63",
+			"reviewed_at": "2026-06-21T13:23:33.266394117Z"
+		},
+		{
+			"function_name": "isAdmin",
+			"receiver": "Authenticator",
+			"documentation_hash": "46b941ef6fca1b2ab3382840761b01b9681526c3dfd79a057b003ae501c99b32",
+			"definition_hash": "683f5a339e38c538728ec4e782ffd8c0c06c7b9497db3330cf5cf11ea104c1a1",
+			"reviewed_at": "2026-06-21T13:23:33.267407481Z"
+		},
+		{
+			"function_name": "adminButtons",
+			"receiver": "Authenticator",
+			"documentation_hash": "9ca26c8d282b31fdd6d6567724dd5e8797aef9ee7f0aaf38aa2a54685d346365",
+			"definition_hash": "ae979f2d792b488077660c4a3cfedafec11bba7fe24894a22c32cb01403c9847",
+			"reviewed_at": "2026-06-21T13:23:33.268427014Z"
+		},
+		{
+			"function_name": "safeReturnPath",
+			"documentation_hash": "d09d224cca260e9bbddeec4dd3228ad78c1a9829e0cdd3e8ab39163fb370a675",
+			"definition_hash": "0b10a60925e4089dc491079620b185f6a2279c52b3701a6b053488eab8b7c968",
+			"reviewed_at": "2026-06-21T13:23:33.269588904Z"
 		}
 	]
 }

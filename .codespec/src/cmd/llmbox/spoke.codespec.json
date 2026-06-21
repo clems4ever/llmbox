@@ -15,8 +15,8 @@
 		{
 			"function_name": "createJoinToken",
 			"documentation_hash": "f26be5560370942c14826e78608f855649ad9b8cbc1c5a34e206b9ab5b7d1cd9",
-			"definition_hash": "d4044c4557b95f46bfa05374ed50932a040bfa0f580da8777e2cee701ef312a7",
-			"reviewed_at": "2026-06-19T19:47:37.793910671Z"
+			"definition_hash": "487e5554ad8c4d5530c92f4437074509f064e9472445bd1307b909423004d94c",
+			"reviewed_at": "2026-06-21T13:23:33.249363618Z"
 		},
 		{
 			"function_name": "runSpoke",

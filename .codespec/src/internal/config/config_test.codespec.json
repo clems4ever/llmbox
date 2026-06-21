@@ -77,6 +77,12 @@
 			"documentation_hash": "0568aae507e0be6c854ca70d49b4a89f48d4ec35d33b202501541eac0d39f882",
 			"definition_hash": "23e110ad1126a7119a68fc88585e008f26ffe93cdc4e795daa7258e4998bb879",
 			"reviewed_at": "2026-06-18T18:20:29.615753796Z"
+		},
+		{
+			"function_name": "TestLoadAdminEmails",
+			"documentation_hash": "b2ea71bf59f8056c3d598c8de7360ffa4006d4db12c426c7fdbc9d0b7d586515",
+			"definition_hash": "5902e26589bbf555455bab5a7a3e376d4df65c1aa39ed3a0e4f18b92cf11ecbb",
+			"reviewed_at": "2026-06-21T13:23:33.260020926Z"
 		}
 	]
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/subtle"
 	_ "embed"
+	"fmt"
 	"html/template"
 	"net/http"
 
@@ -12,7 +13,9 @@ import (
 // Handler builds the HTTP handler serving the MCP endpoint (at the root), the
 // auth web pages (at /auth/{token}), a /healthz probe, and the server favicon.
 // When clustering is enabled (a hub was set), it also serves the spoke
-// connection endpoint at /spoke/connect. mcpServer is reused across sessions.
+// connection endpoint at /spoke/connect, and when an admin allow-list is
+// configured it serves the admin UI at /admin. mcpServer is reused across
+// sessions.
 //
 // @arg mcpServer The MCP server shared across all requests to the root endpoint.
 // @return http.Handler A mux routing the MCP, auth, health, and favicon endpoints.
@@ -42,6 +45,12 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	if s.auth != nil {
 		mux.HandleFunc("GET /auth/{provider}/login", s.handleProviderLogin)
 		mux.HandleFunc("GET /auth/{provider}/callback", s.handleProviderCallback)
+	}
+
+	// Admin web UI (only when an admin allow-list is configured): manage cluster
+	// spokes and boxes through the running hub process.
+	if s.auth.AdminEnabled() {
+		s.registerAdminRoutes(mux)
 	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -90,10 +99,17 @@ func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 	// only the sign-in buttons, never the activation form or the session URL.
 	if s.auth != nil {
 		data.AuthEnabled = true
-		if ls, ok := s.currentLogin(r); ok {
+		// Only a session authorized to activate boxes unlocks the activation form;
+		// a signed-in admin who isn't a box-activator is told so rather than shown
+		// the form (and an unauthenticated visitor sees only the sign-in buttons).
+		if ls, ok := s.currentLogin(r); ok && ls.Activate {
 			data.LoggedIn = true
 			data.Email = ls.Email
 			data.CSRF = ls.CSRF
+		} else if ok {
+			data.Email = ls.Email
+			data.NotAuthorized = true
+			data.Providers = s.auth.buttons(sess.Token)
 		} else {
 			data.Providers = s.auth.buttons(sess.Token)
 		}
@@ -128,6 +144,10 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 		ls, ok := s.currentLogin(r)
 		if !ok {
 			http.Error(w, "Please sign in to activate this box.", http.StatusUnauthorized)
+			return
+		}
+		if !ls.Activate {
+			http.Error(w, fmt.Sprintf("Signed in as %s, but that account is not authorized to activate boxes here.", ls.Email), http.StatusForbidden)
 			return
 		}
 		if subtle.ConstantTimeCompare([]byte(r.PostFormValue("csrf")), []byte(ls.CSRF)) != 1 {
@@ -167,11 +187,15 @@ type authPageData struct {
 
 	// Activation-auth fields. AuthEnabled is true when a provider is configured;
 	// when so and LoggedIn is false, the template shows only the sign-in buttons.
-	AuthEnabled bool
-	LoggedIn    bool
-	Email       string
-	CSRF        string
-	Providers   []providerButton
+	// NotAuthorized is true when the visitor is signed in but not allowed to
+	// activate boxes (e.g. an admin-only identity), so the page explains that
+	// instead of offering the activation form.
+	AuthEnabled   bool
+	LoggedIn      bool
+	NotAuthorized bool
+	Email         string
+	CSRF          string
+	Providers     []providerButton
 }
 
 // render writes the auth page for data, with no-store caching since the page

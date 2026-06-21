@@ -80,6 +80,13 @@
 			"documentation_hash": "a362766fbf7a6929e6057a5a86ea4a836a04b90e2cff18e331cb38782da4490e",
 			"definition_hash": "9eb9af750b73c359b53c360793405dcc46f23c73034d18996cb12f5ed2679269",
 			"reviewed_at": "2026-06-19T20:33:53.198094233Z"
+		},
+		{
+			"function_name": "Disconnect",
+			"receiver": "fakeHub",
+			"documentation_hash": "6c6a1adac2f55da98172fee8548cde34a83d1d44b2f1b02d7876229478fc9434",
+			"definition_hash": "e63fc58bd4649da73ee8f699c2b39c7f103a035fbc12795c211870b7176e2064",
+			"reviewed_at": "2026-06-21T13:23:33.26131891Z"
 		}
 	]
 }

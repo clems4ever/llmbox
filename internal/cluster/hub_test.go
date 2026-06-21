@@ -88,6 +88,28 @@ func TestHubRejectsBadEnrollment(t *testing.T) {
 	}
 }
 
+// TestHubDisconnectClosesConnection checks Disconnect force-closes a connected
+// spoke's link, and is a no-op for an unknown spoke.
+func TestHubDisconnectClosesConnection(t *testing.T) {
+	hub := NewHub(context.Background(), newMemStore(), nil, nil)
+
+	hubEnd, _ := newPipe()
+	rs := newRemoteSpoke("edge", hubEnd)
+	hub.register("edge", rs)
+
+	hub.Disconnect("ghost") // unknown: must not panic or affect edge
+	if _, ok := hub.Spoke("edge"); !ok {
+		t.Fatal("disconnecting an unknown spoke evicted edge")
+	}
+
+	hub.Disconnect("edge")
+	select {
+	case <-rs.Done():
+	case <-time.After(time.Second):
+		t.Fatal("Disconnect did not close the connection")
+	}
+}
+
 // TestHubReconnectSupersedes is a package test.
 func TestHubReconnectSupersedes(t *testing.T) {
 	hub := NewHub(context.Background(), newMemStore(), nil, nil)

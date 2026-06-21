@@ -97,6 +97,15 @@ type SpokeConfig struct {
 type AuthConfig struct {
 	SessionTTL Duration     `yaml:"session_ttl"`
 	Google     GoogleConfig `yaml:"google"`
+	Admin      AdminConfig  `yaml:"admin"`
+}
+
+// AdminConfig lists the signed-in identities allowed to use the admin web UI
+// (/admin) for managing spokes and boxes. It is independent of the box-activation
+// allow rule: an admin email need not be allowed to activate boxes, and vice
+// versa. When Emails is empty the admin UI is disabled entirely.
+type AdminConfig struct {
+	Emails []string `yaml:"emails"`
 }
 
 // GoogleConfig configures Sign in with Google (OIDC) for box activation. A

@@ -1,0 +1,106 @@
+{
+	"functions": [
+		{
+			"function_name": "newAdminServer",
+			"documentation_hash": "0b92a67bc94fd0898ae235fd61feab0f751fe0dc127229d924b42c4184d38339",
+			"definition_hash": "00b95031103621d4ff21ac76317ef1cd430a708aa2c25e3d2774be18d3f2f1f4",
+			"reviewed_at": "2026-06-21T13:24:31.9344774Z"
+		},
+		{
+			"function_name": "signIn",
+			"documentation_hash": "06dbe717776b9276b78682cdb90dd421479f1c0c3c1b3e50c05763dd8ce15008",
+			"definition_hash": "4ae8e2aac41c690f61321e8932492f649989a801deead8dc6ac8324f877e63bf",
+			"reviewed_at": "2026-06-21T13:24:31.935323227Z"
+		},
+		{
+			"function_name": "TestAdminAllowlist",
+			"documentation_hash": "e619cca80e99e13097f4e2942e683cf2dad05633d8ada074ef42a14268ed943c",
+			"definition_hash": "fa0246ca1d946057f63f52b0e3fcaed9d121f8c9941770bbf0beeafae70f2b7d",
+			"reviewed_at": "2026-06-21T13:32:40.428176761Z"
+		},
+		{
+			"function_name": "TestAdminButtonsReturnPath",
+			"documentation_hash": "30d04dfc771958f8b492d6aaab200965b8849744f778b5bdec8157b3e9bf71ab",
+			"definition_hash": "d5eaddbaaccf1e4f713c12e842e06ac04d790a312f41dd02c4fe12484dc6c8c9",
+			"reviewed_at": "2026-06-21T13:32:40.437226077Z"
+		},
+		{
+			"function_name": "TestSafeReturnPath",
+			"documentation_hash": "4fc6a5e0337e525f2989f28f066a5f2c2764f4ae462625e4002ec9e9f23ce2e3",
+			"definition_hash": "2b6997a7c1c31be561f0a3650acee0f29791363d549d8d47e91f7f67cfd79f9d",
+			"reviewed_at": "2026-06-21T13:32:40.44658841Z"
+		},
+		{
+			"function_name": "TestProviderLoginReturnPath",
+			"documentation_hash": "93dc5db44cfe9921e7c94699f187284717e69aa4965ad631d7f88ca77860962b",
+			"definition_hash": "7c5cb74dc70fdb6116a60975492ec393a7a4e262a5bd414d250221f93b30fbe0",
+			"reviewed_at": "2026-06-21T13:32:40.451137113Z"
+		},
+		{
+			"function_name": "TestProviderCallbackAdminOnly",
+			"documentation_hash": "fe34ea89266250a67be3aee58d8e606096b73d79c69a7304b51f1e06f2032e27",
+			"definition_hash": "0b739accb619cd4b39a7482b1feac25a705831fb6c4c4c8cb60aa3f113cd7fa2",
+			"reviewed_at": "2026-06-21T13:32:40.454052914Z"
+		},
+		{
+			"function_name": "TestAdminDashboardGate",
+			"documentation_hash": "f0b1ce0e1b52e04a09c6af427df4b7144f31e6f399f1ce94329af4f18a97fa63",
+			"definition_hash": "459825f3105d511866a563e980c4dae8e7d509ccd979dbf5000e347915139755",
+			"reviewed_at": "2026-06-21T13:32:40.456280626Z"
+		},
+		{
+			"function_name": "TestAdminActionsRequireAdminAndCSRF",
+			"documentation_hash": "1f0458208bcd720a85a652e927b2ef4d7e9f4c9b5564c71aa6544b29f9a952b1",
+			"definition_hash": "39f8f64ab758fea1a613c3446e4ba60b9b5335e5b317573a2a351fb405bd12b8",
+			"reviewed_at": "2026-06-21T13:32:40.458325562Z"
+		},
+		{
+			"function_name": "TestAdminCreateSpokeMintsToken",
+			"documentation_hash": "2c07f0c86d07eb05661528725f462c5d5ed6a67f471a66cdfde1c93565099518",
+			"definition_hash": "24bf796012fa615c71a19c86d048b17ee8e11b0a7479b1f21ca47505b33b4b1a",
+			"reviewed_at": "2026-06-21T13:32:40.460906342Z"
+		},
+		{
+			"function_name": "TestAdminDropSpokeRemovesAndKicks",
+			"documentation_hash": "7febcd39b90498ef487a8bb76eefe30e8432080a56171c0caf17bf3177fa6eab",
+			"definition_hash": "564af1ba938c97eb9a9b25cae387d01017a0480d7c3a94c033c05f75d2d167ac",
+			"reviewed_at": "2026-06-21T13:32:40.464123325Z"
+		},
+		{
+			"function_name": "TestAdminRevokeToken",
+			"documentation_hash": "06e7eebb7c8c7d250a4fffe0dee7c91cd68fce7eddc85159fd689f8102ece4e0",
+			"definition_hash": "1e18649c5620336e79ad6a8ae4b6ab42c0cd06a41b236792fd4705eca46974ec",
+			"reviewed_at": "2026-06-21T13:32:40.467185824Z"
+		},
+		{
+			"function_name": "TestAdminCreateBox",
+			"documentation_hash": "6dbcb5b3155860e79e4eb365edfac90e1fca490ba1f779e1daf40db9ff5368f3",
+			"definition_hash": "f227c684b1d57d2a8b3a69cc9c4de62a2086cc50f0726b3e32b99adc57df5dcc",
+			"reviewed_at": "2026-06-21T13:32:40.47230632Z"
+		},
+		{
+			"function_name": "TestAdminDeleteBox",
+			"documentation_hash": "0eeef66f7a99433f7c7c7987e408e1c44ba61825b32b59d8d35c687f09d67780",
+			"definition_hash": "8f8308d73a6cf5275f6cc154f3237f70f28a65a6f1f654a44d77b9f3be3e3b63",
+			"reviewed_at": "2026-06-21T13:32:40.476140041Z"
+		},
+		{
+			"function_name": "TestToAdminTokens",
+			"documentation_hash": "916be9a7904c3855f878f008b56f0ec4f02e5b4ce9424348ae807c2abacaa37b",
+			"definition_hash": "cf496135e6dd6e29a69a99ade3fdff17354574745902fdf3017b69b9c7d4d152",
+			"reviewed_at": "2026-06-21T13:32:40.478818844Z"
+		},
+		{
+			"function_name": "TestToAdminBoxes",
+			"documentation_hash": "c2bae2f5dcaa007b25fd683a2b2cbc941d02e7af45afc4b180bb229d6030a97a",
+			"definition_hash": "8a0d4dd49d9ff41d0d7a3ab223d57982364c9fc7f612d3b177ccd935676915e7",
+			"reviewed_at": "2026-06-21T13:32:40.48128355Z"
+		},
+		{
+			"function_name": "TestSpokeConnectURL",
+			"documentation_hash": "04215cb4d5c8153a289d94022c6e90136a9b0781927487d0078be6b22e84b255",
+			"definition_hash": "cc0ee1f55c4e6b38df5f01354d0d27bfb20012d504effa40268ed08c5829c8da",
+			"reviewed_at": "2026-06-21T13:32:40.483963138Z"
+		}
+	]
+}

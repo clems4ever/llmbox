@@ -58,8 +58,8 @@
 		{
 			"function_name": "TestActivationGatedByLogin",
 			"documentation_hash": "fa49343c911c73f938e0d5789ca32237e72a340b9e80faf40de09649a58f1c4f",
-			"definition_hash": "2f0f73468fa901012b4bbd23deeb9e09c311aa211152be0621cc43b1ed41b7d6",
-			"reviewed_at": "2026-06-18T18:20:53.994027558Z"
+			"definition_hash": "b9ffb3eeabc33dec1ba7e996d206f3178064427112ef1dca91b42efee171b27f",
+			"reviewed_at": "2026-06-21T13:23:33.274066184Z"
 		}
 	]
 }

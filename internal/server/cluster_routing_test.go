@@ -13,7 +13,8 @@ import (
 
 // fakeHub is a stand-in for *cluster.Hub: a fixed set of connected spokes.
 type fakeHub struct {
-	spokes map[string]boxManager
+	spokes       map[string]boxManager
+	disconnected []string // names passed to Disconnect, for assertions
 }
 
 // Spoke returns the connected spoke with the given name.
@@ -27,6 +28,9 @@ func (h *fakeHub) Spokes() map[string]boxManager { return h.spokes }
 
 // ConnectHandler is a no-op; tests inject spokes directly.
 func (h *fakeHub) ConnectHandler(http.ResponseWriter, *http.Request) {}
+
+// Disconnect records the name so tests can assert a spoke was kicked.
+func (h *fakeHub) Disconnect(name string) { h.disconnected = append(h.disconnected, name) }
 
 // TestCreateBoxRoutesToSpoke checks a box with a spoke name is created on that
 // connected remote spoke, not the local one, and the session records the spoke.

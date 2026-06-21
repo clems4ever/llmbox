@@ -1,0 +1,100 @@
+{
+	"functions": [
+		{
+			"function_name": "registerAdminRoutes",
+			"receiver": "Server",
+			"documentation_hash": "5d0fd1d0e760908f9f9d90e8fbd996f0f1bc7ad8d6b7425099b1fac98dbab1bf",
+			"definition_hash": "9ed9a18804b2b98b1c14e912e422bf9745d3f4bc51b4fca656511e881029b848",
+			"reviewed_at": "2026-06-21T13:24:14.199956993Z"
+		},
+		{
+			"function_name": "handleAdmin",
+			"receiver": "Server",
+			"documentation_hash": "34f7af7b5b8e3a927ca6f6bd1686d04fb6359c1575678c0cd063ab69b40bcda9",
+			"definition_hash": "bfdc0268fa49e3ef1b32fa191e33a42991851139da3b85e3510d87550612c3ed",
+			"reviewed_at": "2026-06-21T13:24:14.201009405Z"
+		},
+		{
+			"function_name": "adminDashboard",
+			"receiver": "Server",
+			"documentation_hash": "98837fe4f193d291be7463599a66299f9fe6221d93dcb799bbeb01c8416a7d38",
+			"definition_hash": "4137cd3dea32f43681640da30743400c4cff64d81ac5cf358fe3fbc99637b603",
+			"reviewed_at": "2026-06-21T13:24:14.203093524Z"
+		},
+		{
+			"function_name": "toAdminTokens",
+			"documentation_hash": "4e27090e1f4b3e456d8cd26b05b5d52ed734c2add86ef2fbd86da0d08d2d71a9",
+			"definition_hash": "bb2555b1e3e1a7bce0f3ed29bbc3dcf442d2aaf4278c61bed374626e39c00b33",
+			"reviewed_at": "2026-06-21T13:24:14.204537123Z"
+		},
+		{
+			"function_name": "toAdminBoxes",
+			"documentation_hash": "a9f6ccd440feedd219a80ca54ff81d7e36bceeeac34861d4d235463f55e584ba",
+			"definition_hash": "98b7a17c1158e431c276e95df0898fdc8fd17230b1f61003f278627ab34f0b7b",
+			"reviewed_at": "2026-06-21T13:24:14.205817449Z"
+		},
+		{
+			"function_name": "requireAdminPost",
+			"receiver": "Server",
+			"documentation_hash": "39c51812289e8e15b1113ac1c7d5f6cfa0296a1633f58b1427e52909017952dd",
+			"definition_hash": "6112481908a8daad84c85ed26671719a03fa15ebf3fe4454125b53a569e2fc64",
+			"reviewed_at": "2026-06-21T13:24:14.207082369Z"
+		},
+		{
+			"function_name": "handleAdminCreateSpoke",
+			"receiver": "Server",
+			"documentation_hash": "59987d607664a15d5c532f78d0f6cb691563b11b0ec7d49f9ea0b4b24111f172",
+			"definition_hash": "aef55478487caf8918b1aec01cb94c6b977ffd6927b9e90babfb3d776ed69c0d",
+			"reviewed_at": "2026-06-21T13:24:14.208463445Z"
+		},
+		{
+			"function_name": "handleAdminDropSpoke",
+			"receiver": "Server",
+			"documentation_hash": "a78aad089bbc70b8a1b5f9eef6da456caec14d3e3dc26d9d132f0761242ec124",
+			"definition_hash": "e53509fa05ddb8f99f55172157a6b3b204ac30f7205870a9803f0e12e498f68d",
+			"reviewed_at": "2026-06-21T13:24:14.2107168Z"
+		},
+		{
+			"function_name": "handleAdminRevokeToken",
+			"receiver": "Server",
+			"documentation_hash": "7b0cce2ed6968f13478efaaa1fe3423a426e20528505dcaab90e895508f303e1",
+			"definition_hash": "41989759674e694dc08e8b6280c4b06c495eb3a10cb75cd90815fb274adc2091",
+			"reviewed_at": "2026-06-21T13:24:14.212035074Z"
+		},
+		{
+			"function_name": "handleAdminCreateBox",
+			"receiver": "Server",
+			"documentation_hash": "6274e5d307e4afe343ad90e6631155948eb200df3c8cd8b6d90c98b74c31210e",
+			"definition_hash": "27cbe7c85bd830b7e1e08c2474d90fe6142926a3b5965610a359153020ffa4e4",
+			"reviewed_at": "2026-06-21T13:24:14.213210584Z"
+		},
+		{
+			"function_name": "handleAdminDeleteBox",
+			"receiver": "Server",
+			"documentation_hash": "c628a9b56a6cb239bc73bbdbd61cd22bd90beefe976103311d6e38ad973f33fd",
+			"definition_hash": "b19739c7034a5ee24ca8939b86c580168d33183bbdcb3aa711888b8a4e303f17",
+			"reviewed_at": "2026-06-21T13:24:14.214349368Z"
+		},
+		{
+			"function_name": "redirectAdmin",
+			"receiver": "Server",
+			"documentation_hash": "817c79d00b7ca878d1aee1d7ea3532828e2d4b9fc297614b85eda0469750f98f",
+			"definition_hash": "ab1633ad62d94d16e01aeaec25de0fb4729aca02d5efc9bf3608f7bdb5a1341d",
+			"reviewed_at": "2026-06-21T13:24:14.215410231Z"
+		},
+		{
+			"function_name": "spokeConnectURL",
+			"receiver": "Server",
+			"documentation_hash": "9425bf85cf7eb7054a9fc96ae4450973e0f158ed2f83fbcf34afa23ed35b907a",
+			"definition_hash": "ea808da306877a69548332a70582d9c1ce6b61b03a1d2bfd9f2d0eb8523684e0",
+			"reviewed_at": "2026-06-21T13:24:14.216014534Z"
+		},
+		{
+			"function_name": "renderAdmin",
+			"receiver": "Server",
+			"documentation_hash": "f058810ddfd58b701ab35a526ee28dd6130dfb5a9f10983afe8d562f0d73b917",
+			"definition_hash": "aa590af380d35c4b27ab584eb555d35c985b29898f65603c97938c4eb44496bc",
+			"reviewed_at": "2026-06-21T13:24:14.216475255Z"
+		}
+	]
+}

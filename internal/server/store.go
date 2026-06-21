@@ -32,6 +32,13 @@ type loginSession struct {
 	Provider  string    `json:"provider"`
 	CSRF      string    `json:"csrf"`
 	ExpiresAt time.Time `json:"expires_at"`
+
+	// Activate reports whether this identity may activate boxes (i.e. it passed
+	// the provider's box-activation allow rule). Admin reports whether it may use
+	// the admin UI. The two capabilities are independent and both decided once at
+	// sign-in, so each surface can enforce its own gate from the stored session.
+	Activate bool `json:"activate"`
+	Admin    bool `json:"admin"`
 }
 
 // loginFlow is the short-lived state of an in-flight OIDC handshake, keyed in the
@@ -39,6 +46,7 @@ type loginSession struct {
 type loginFlow struct {
 	Provider    string    `json:"provider"`
 	ReturnToken string    `json:"return_token"`
+	ReturnTo    string    `json:"return_to"`
 	Nonce       string    `json:"nonce"`
 	Verifier    string    `json:"verifier"`
 	ExpiresAt   time.Time `json:"expires_at"`

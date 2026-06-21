@@ -20,9 +20,9 @@
 		},
 		{
 			"function_name": "loadConfig",
-			"documentation_hash": "9c8e09bd71bba0d88351a086729892baa7eec091bd5333cdb5d04c7ab944ca9e",
-			"definition_hash": "3477fbbfd62fc2e497119dab5832a1f0eea14bbef627ecc1c733962c71491ed6",
-			"reviewed_at": "2026-06-18T16:33:14.659921195Z"
+			"documentation_hash": "025fff6c1469117c5a58aff90fba10e011b5281237c97ef6407dfa913f1cdc08",
+			"definition_hash": "d4b743be1ac062d63ad147e1877a119ffc00e7dcaabf499584b0767ecba6e8e9",
+			"reviewed_at": "2026-06-21T13:21:34.398607349Z"
 		}
 	]
 }
