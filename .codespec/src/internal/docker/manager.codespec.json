@@ -46,13 +46,6 @@
 			"reviewed_at": "2026-06-18T16:59:05.427274662Z"
 		},
 		{
-			"function_name": "CreateLLMBox",
-			"receiver": "Manager",
-			"documentation_hash": "65de0a062e6b65216bb1f3a0191ecd6fc163e0c7f9675d81704f365ff7b18306",
-			"definition_hash": "5c7b31382e5322af16380d92b83373edcaaaa6ebf3a9bb441fbe7f53256db432",
-			"reviewed_at": "2026-06-18T17:12:11.780654188Z"
-		},
-		{
 			"function_name": "injectFiles",
 			"receiver": "Manager",
 			"documentation_hash": "8fc9cd6447aa61b5c376390dd0ad8ce568646d994d15faa139e06474872c64ab",
@@ -175,9 +168,22 @@
 		{
 			"function_name": "Create",
 			"receiver": "Manager",
-			"documentation_hash": "9cd25fa3ee962fac4396d7124c9672c798ac6cc026a164160547de9dc230e159",
-			"definition_hash": "6458db07a0e5b6d3d5db8eb1c1cf20b07bf6885d256fa17d8747f49b8d3f6fe3",
-			"reviewed_at": "2026-06-19T20:04:57.534488238Z"
+			"documentation_hash": "24fdb72d149476e530894055da91419e110e8c8f490b3bf05be581f67c50e3c1",
+			"definition_hash": "aa5b60934fe1f0af88265f177ac7d25fec8307c831f372145af4b09c771dd6a2",
+			"reviewed_at": "2026-06-21T14:39:24.34987794Z"
+		},
+		{
+			"function_name": "SetBoxLimits",
+			"receiver": "Manager",
+			"documentation_hash": "8e11b5942c09b3f766a5c46e063cdd3dbc7afdaabcf1c45102ca0f12fe7a0fca",
+			"definition_hash": "30e7f08b120054a11504ecad8ac1bc6198890cb8a8e77eaf68562670f32accc3",
+			"reviewed_at": "2026-06-21T14:39:24.341956948Z"
+		},
+		{
+			"function_name": "ValidBoxID",
+			"documentation_hash": "d3db639a781a38e72f17e6114ad8939ccbadd68ef7aebd76e1a086895df8db71",
+			"definition_hash": "7ef3cfd6a334edf1c575a37acfb975be3ad3106078ef3aebf8533c5b5f845c02",
+			"reviewed_at": "2026-06-21T14:39:24.346693066Z"
 		}
 	]
 }

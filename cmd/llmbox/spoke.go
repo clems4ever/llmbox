@@ -311,6 +311,7 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 	if err != nil {
 		return err
 	}
+	mgr.SetBoxLimits(boxLimits(cfg.Box))
 	defer func() {
 		if err := mgr.Close(); err != nil {
 			log.Printf("closing docker manager: %v", err)

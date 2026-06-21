@@ -82,6 +82,15 @@ func (h *Hub) Spokes() map[string]BoxManager {
 // handshake, registers the spoke, and serves verb requests over the connection
 // until it drops or the hub's context is cancelled.
 //
+// SECURITY — like the spoke dialer (see WebSocketDialer), this endpoint relies on
+// the DEPLOYMENT for transport security. The route is unauthenticated until the
+// enrollment frame arrives (the handshake IS the auth), so it must be served over
+// TLS (terminate wss:// at a trusted reverse proxy in front of the hub) so the
+// join token / bearer credential a spoke presents are not exposed on the wire.
+// The credential is compared timing-safely against a stored hash, but it is a
+// static bearer secret: protect it in transit and at rest, and revoke a spoke if
+// it may have leaked.
+//
 // @arg w The response writer (upgraded to a WebSocket).
 // @arg r The upgrade request.
 //

@@ -143,16 +143,34 @@ func loadConfig(path string, explicit bool) (*config.Config, error) {
 	return config.Load(path)
 }
 
-// run wires up the Docker manager, session store, and HTTP server from the given
-// configuration, then serves until interrupted. The SIGINT/SIGTERM context is
-// established before the server is built so that, when cfg.Cluster.Enabled is
-// set, the cluster hub created via cluster.NewHub and attached with srv.SetHub
-// shares the server's lifetime; remote spokes then join at /spoke/connect while
-// boxes still default to the in-process "local" spoke.
+// boxLimits converts the YAML box block into the docker manager's BoxLimits,
+// translating the operator-friendly units (mebibytes, fractional CPUs) into the
+// raw byte / nano-CPU counts the Docker API expects. A zero field stays zero
+// (unlimited) so the conversion preserves "no limit" semantics.
 //
-// @arg parent Base context; serving stops when it (or a SIGINT/SIGTERM) fires.
-// @arg cfg The loaded configuration.
-// @error error if the manager, the store, or the HTTP server fails.
+// @arg b The box resource configuration from the YAML config.
+// @return docker.BoxLimits The equivalent per-box caps and max-box ceiling.
+//
+// @testcase TestBoxLimitsConvertsUnits converts mebibytes and CPUs to bytes and nano-CPUs.
+func boxLimits(b config.BoxConfig) docker.BoxLimits {
+	return docker.BoxLimits{
+		MemoryBytes: int64(b.MemoryMB) * 1024 * 1024,
+		NanoCPUs:    int64(b.CPUs * 1e9),
+		PidsLimit:   b.PidsLimit,
+		MaxBoxes:    b.MaxBoxes,
+	}
+}
+
+// run assembles and serves the llmbox hub from cfg: it builds the Docker manager
+// (applying the configured per-box resource limits), opens the session store,
+// sets up optional lifecycle hooks and activation auth, optionally enables
+// hub-and-spoke clustering, restores persisted sessions, starts the orphan
+// reaper, and serves the combined MCP + auth HTTP handler until the parent
+// context is cancelled (SIGINT/SIGTERM) at which point it shuts down gracefully.
+//
+// @arg parent The parent context whose cancellation (or a termination signal) triggers graceful shutdown.
+// @arg cfg The resolved configuration driving the manager, store, auth, clustering, and HTTP server.
+// @error error if the manager, store, or authenticator cannot be built, a state directory cannot be created, or the HTTP server fails for a reason other than a clean shutdown.
 //
 // @testcase TestNewRootCmd covers the command that loads cfg and calls run.
 func run(parent context.Context, cfg *config.Config) error {
@@ -162,6 +180,7 @@ func run(parent context.Context, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
+	mgr.SetBoxLimits(boxLimits(cfg.Box))
 	defer func() {
 		if err := mgr.Close(); err != nil {
 			log.Printf("closing docker manager: %v", err)

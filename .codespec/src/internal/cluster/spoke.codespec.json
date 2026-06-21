@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "WebSocketDialer",
-			"documentation_hash": "58788d99bba2523752c4d0ae3fe8ff2c8c8f797091d56069fbe075fc9c109794",
+			"documentation_hash": "f75ffdac29b17b6a4561543b98f17bdaadb3b6c244615f1163bd8d02df146541",
 			"definition_hash": "47bb88c59c8bf41f80f7ea8220a18bd2f3784ae327707c902b5843242b8113d6",
-			"reviewed_at": "2026-06-19T20:33:59.793122179Z"
+			"reviewed_at": "2026-06-21T14:39:24.336713866Z"
 		},
 		{
 			"function_name": "Run",

@@ -11,8 +11,8 @@
 			"function_name": "ContainerCreate",
 			"receiver": "fakeDocker",
 			"documentation_hash": "0a99f096a6b2482af124ef30b25f82fee6acf11a743b0d345b697b160895958c",
-			"definition_hash": "46f086e7a60235df262f5b36ccfae2bfe832796240945de7b4617f12bffa93eb",
-			"reviewed_at": "2026-06-18T13:14:37.05310484Z"
+			"definition_hash": "a4dd01fa24c657cbf56cf9ebbef2e4817019a73c7fac4808b84eeb3d064f27d0",
+			"reviewed_at": "2026-06-21T14:39:24.352578854Z"
 		},
 		{
 			"function_name": "ImagePull",
@@ -195,30 +195,6 @@
 			"reviewed_at": "2026-06-18T16:59:05.474972018Z"
 		},
 		{
-			"function_name": "TestCreateLLMBoxCapturesURL",
-			"documentation_hash": "dd24bf73bd03fa882fcec7cd0e1ded07ae899c20313cbec56eea79eded2cba36",
-			"definition_hash": "77fa993f37cb9b67cf6cc69d773f32bf07c4502e87c636de50eea37bfad41375",
-			"reviewed_at": "2026-06-18T16:59:05.483997656Z"
-		},
-		{
-			"function_name": "TestCreateLLMBoxCleansUpOnStartFailure",
-			"documentation_hash": "490c6d9c249102acba45d58a9b90f78fde90039ccc3214a3e056702f7adcc28e",
-			"definition_hash": "1654a5b584506c93668019dd4603289554ec734ed1cd6b57783dd7ca0977394d",
-			"reviewed_at": "2026-06-18T13:14:38.32693629Z"
-		},
-		{
-			"function_name": "TestCreateLLMBoxPullsMissingImage",
-			"documentation_hash": "b24fa55cb8141914910462449a7c40b3dbd92b65268f042206d823096aa5a103",
-			"definition_hash": "e803e72d0aa1dd9a1225b20f4cf157cebd9d90df749b2f8c98cc495ae6f95c1b",
-			"reviewed_at": "2026-06-18T13:14:38.331345158Z"
-		},
-		{
-			"function_name": "TestCreateLLMBoxPullFailure",
-			"documentation_hash": "d2e7464535cabb9d14ca9e615937ce26c21678d08c95b1a0abb1823164a5654e",
-			"definition_hash": "4e9a29d1e659af19d6433dde7003c6ea9c4134d4f08883069a26afdadc7dc2c1",
-			"reviewed_at": "2026-06-18T13:14:38.779337418Z"
-		},
-		{
 			"function_name": "TestSubmitCodeReturnsSessionURL",
 			"documentation_hash": "81eacec0398c0a141694cc897ce01201bbd4b139f8f5f5b7c96ae41ef5bca77b",
 			"definition_hash": "18f779499bb5f052b6756809a4d80d47c553fd242280be5597f8f105004c2524",
@@ -315,12 +291,6 @@
 			"reviewed_at": "2026-06-18T13:14:40.879543925Z"
 		},
 		{
-			"function_name": "TestCreateLLMBoxInjectsFiles",
-			"documentation_hash": "c1a8c7e5f0a3d83b1ac110ef3cb896f6410258beeccf841bbddefdf302aa7376",
-			"definition_hash": "e197fc450bcd95a19d9d693382651c53b9f4ee97e21319beb13b7b8fbedf4e0c",
-			"reviewed_at": "2026-06-18T13:14:40.881062132Z"
-		},
-		{
 			"function_name": "TestTarFilesCreatesParentDirs",
 			"documentation_hash": "10ea61a06166bbe3a94299609e1166f234d2b076550789367c9e72e3e23b5312",
 			"definition_hash": "d84270e995d204164fb62a5d79c88321d7af9c5d5ffffc6e51c02953141fe096",
@@ -333,28 +303,10 @@
 			"reviewed_at": "2026-06-18T15:04:15.84131089Z"
 		},
 		{
-			"function_name": "TestCreateLLMBoxInjectsClaude",
-			"documentation_hash": "861fb75dfeb01c54e0c71a6a1ff711e89573077618fc235e9dd2658c8b681ec7",
-			"definition_hash": "8f449559c259cc2186d1ef05e7128369c6f0bb7d2aaa8759c1c2633981ca8850",
-			"reviewed_at": "2026-06-18T15:04:15.876730565Z"
-		},
-		{
 			"function_name": "slicesContains",
 			"documentation_hash": "c9fefd6276dc52d23f4f781754daa9997877b7ca2cd25f9c2909bc62de9edad9",
 			"definition_hash": "fdcf3e2bcac10804152341fa257eda82e17cc84ef11b7217cac02f616d0448e9",
 			"reviewed_at": "2026-06-18T15:04:15.88667718Z"
-		},
-		{
-			"function_name": "TestCreateLLMBoxMissingClaudeBinary",
-			"documentation_hash": "6585a2fe44a68e11fc9817f691b35ab2ca87b0519ee654418db121d001bd6e24",
-			"definition_hash": "46c5a583de5ba0f6586b373d92b860f9e77d5817b8ce6a638df4b940424273c6",
-			"reviewed_at": "2026-06-18T15:04:15.894931062Z"
-		},
-		{
-			"function_name": "TestCreateLLMBoxRejectsDuplicateBoxID",
-			"documentation_hash": "5bb06347d7bb85f9e5a8292904378c4ee5de613a72325fade60ec3f3a3416aa9",
-			"definition_hash": "a2dc702b310d3280e749cddd37d486ae092c67b1b414c2bcf26fc8f4c1deff80",
-			"reviewed_at": "2026-06-18T16:59:05.491837908Z"
 		},
 		{
 			"function_name": "TestSubmitCodeUnmanagedBox",
@@ -377,8 +329,8 @@
 		{
 			"function_name": "TestCreateRejectsDuplicateBoxID",
 			"documentation_hash": "440d856858943be4827340cf622a93e5e84424fbd420b7d1c2cb6d6607241554",
-			"definition_hash": "b885523f97a37e0b183485cc6f46b93678800c963a30bb33486ad0a7a62578fe",
-			"reviewed_at": "2026-06-19T20:04:57.583271578Z"
+			"definition_hash": "8d9bc6f1ef3304ed250bcca57fe797c24a0082d2c94fd9d868ea673d36af4d45",
+			"reviewed_at": "2026-06-21T14:39:24.360674068Z"
 		},
 		{
 			"function_name": "TestCreatePullsMissingImage",
@@ -409,6 +361,30 @@
 			"documentation_hash": "36d96b590f2bc6fc9060715bfd19395e1289ea9629aeb2c190335a71119815a9",
 			"definition_hash": "57a0e705266436284cb2078a3409e9663943921802ecd52d097e98be3cd1e56c",
 			"reviewed_at": "2026-06-19T20:04:57.625183756Z"
+		},
+		{
+			"function_name": "TestValidBoxID",
+			"documentation_hash": "f2a18872f404552a253619c37196677fe4b84854ffd3b2d23b3551ffec9492d1",
+			"definition_hash": "337f061d8a3639b0a71105d404794d11e1484115ecceea6e0dac2e9f117c4464",
+			"reviewed_at": "2026-06-21T14:39:24.371141909Z"
+		},
+		{
+			"function_name": "TestCreateRejectsBadBoxID",
+			"documentation_hash": "302fc23219ab2cefab0927cd7c0f7be3e93b064f3643772a86c0e893188ebebb",
+			"definition_hash": "59de5a97379ecfe8752d9e2224ea1000fc95024c4ca6c722d7c35d95491203d9",
+			"reviewed_at": "2026-06-21T14:39:24.377162065Z"
+		},
+		{
+			"function_name": "TestCreateAppliesBoxLimits",
+			"documentation_hash": "8bf5fba386715f029a5caaf1e12a94b893f00b6307e486c9f780a9f07ad43fba",
+			"definition_hash": "e78a94e0cde224867af45b5c124ce28cd8b0d333a26822193460fa634f0dba7c",
+			"reviewed_at": "2026-06-21T14:39:24.381014479Z"
+		},
+		{
+			"function_name": "TestCreateRejectsOverMaxBoxes",
+			"documentation_hash": "39d71ada4338637bb0c739ddd9fd425f8da9d7f5b613f12bd59c0d22aef6c153",
+			"definition_hash": "56f3534928c3bf98661581c01d91c77c3d0e2b75da948758461c0d90af4406dd",
+			"reviewed_at": "2026-06-21T14:39:24.385830489Z"
 		}
 	]
 }

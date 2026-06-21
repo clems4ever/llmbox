@@ -23,8 +23,8 @@
 			"function_name": "applyDefaults",
 			"receiver": "Config",
 			"documentation_hash": "8b2b783cab0251051380f21c9a225addb076330e17f56b4879faf34098a23f9c",
-			"definition_hash": "b1a8eda1179b83986a6be01d0cfb944e5fd79dff99ce629f99f7fe54d383f67b",
-			"reviewed_at": "2026-06-18T18:20:29.611626957Z"
+			"definition_hash": "e2ff090828285c75ad13d8928466024a209dbb5ffac4da723eda936460188d3c",
+			"reviewed_at": "2026-06-21T14:39:24.337915842Z"
 		},
 		{
 			"function_name": "resolveSecrets",

@@ -23,6 +23,12 @@
 			"documentation_hash": "df6de5dadb55b43b74931a056500f18dc1d2e26d5951ea52b9fe3d6c565a2d61",
 			"definition_hash": "32c4135c0b86bde3ba365750df52aed99feee36a452c9288327170ab8b012f26",
 			"reviewed_at": "2026-06-18T16:33:14.662123375Z"
+		},
+		{
+			"function_name": "TestBoxLimitsConvertsUnits",
+			"documentation_hash": "69900a0d9891becae5aed1ff2ed9771a417d289a1b38088504c586c9d18e2c54",
+			"definition_hash": "85a33fbe773b5ecb88b17fa22b8ab525fd161cf7f35887d048205928c70b2525",
+			"reviewed_at": "2026-06-21T14:38:47.433679304Z"
 		}
 	]
 }

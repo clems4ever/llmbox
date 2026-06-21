@@ -28,6 +28,18 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 
 	// MCP is served at the root. The more specific routes below take precedence
 	// over this catch-all (Go's ServeMux matches the most specific pattern).
+	//
+	// SECURITY — the MCP endpoint is intentionally UNAUTHENTICATED here. The MCP
+	// tools (create/get/list/destroy/logs/exec) carry no caller identity and bind
+	// boxes to no owner: any client that can reach this handler can act on ANY box
+	// by its box_id (including exec'ing into a box another user activated). This is
+	// by design — llmbox is meant to run behind an authenticating reverse proxy
+	// (e.g. oauth2-proxy / an API gateway with mTLS) that performs authn/authz on
+	// every request before it reaches this mux, AND in front of a trusted set of
+	// callers. Do NOT expose this port directly to untrusted networks. The OIDC
+	// activation flow below (/auth) only gates who can bind a Claude account to a
+	// box; it does NOT protect the MCP verbs. If per-user box isolation is ever
+	// required, authenticate here and bind each box to an owner identity.
 	mcpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return mcpServer }, nil)
 	mux.Handle("/", mcpHandler)
 

@@ -59,6 +59,19 @@ state_file: "llmbox-sessions.db"
 #   - granular-github
 #   - granular-as
 
+# Per-box resource caps and a ceiling on concurrent boxes. These bound resource
+# exhaustion (CPU/memory/PID fork-bombs, unbounded box counts) by a caller that
+# can reach the create/exec MCP tools — the MCP endpoint is unauthenticated by
+# design and meant to sit behind an authenticating proxy, so these are the host's
+# last line of defence. memory_mb/cpus/pids_limit default to the finite values
+# below when unset; set one high to effectively lift it. max_boxes is unlimited
+# unless set.
+# box:
+#   memory_mb: 4096     # hard memory limit per box (MiB)
+#   cpus: 2             # CPU quota per box (fractional CPUs allowed)
+#   pids_limit: 4096    # max processes/threads per box (blunts fork bombs)
+#   max_boxes: 0        # max concurrent boxes (0 = unlimited)
+
 # Activation authentication. Without this, anyone who obtains a box's auth-page
 # URL (which is relayed through the chatbot) can activate the box with their own
 # account. Enable a provider to require the person activating a box to sign in

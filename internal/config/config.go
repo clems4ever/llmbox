@@ -27,6 +27,13 @@ const (
 	// DefaultSessionTTL is how long an activation login session stays valid when
 	// auth.session_ttl is unset.
 	DefaultSessionTTL = time.Hour
+
+	// Default per-box resource caps applied when the box block is unset. They are
+	// generous (a box runs Claude Code and its builds) but finite, so a single box
+	// cannot exhaust the host's memory/CPU/PIDs. Set box.* to 0 to lift a cap.
+	DefaultBoxMemoryMB  = 4096
+	DefaultBoxCPUs      = 2.0
+	DefaultBoxPidsLimit = 4096
 )
 
 // Duration is a time.Duration that unmarshals from a Go duration string (e.g.
@@ -69,6 +76,24 @@ type Config struct {
 	Auth        AuthConfig    `yaml:"auth"`
 	Cluster     ClusterConfig `yaml:"cluster"`
 	Spoke       SpokeConfig   `yaml:"spoke"`
+	Box         BoxConfig     `yaml:"box"`
+}
+
+// BoxConfig caps the resources each box may consume and how many boxes may run
+// at once. The limits bound resource-exhaustion (CPU/memory/PID fork-bombs,
+// unbounded box counts) by a caller that can reach the by-design-unauthenticated
+// create/exec path (see the MCP endpoint comment in internal/server/http.go).
+// memory_mb/cpus/pids_limit default to finite values when left unset (set a high
+// value to effectively lift one); max_boxes is unlimited (0) unless set.
+type BoxConfig struct {
+	// MemoryMB is the hard memory limit per box in mebibytes (0 = unlimited).
+	MemoryMB int `yaml:"memory_mb"`
+	// CPUs is the fractional CPU quota per box, e.g. 1.5 (0 = unlimited).
+	CPUs float64 `yaml:"cpus"`
+	// PidsLimit caps processes/threads per box, blunting fork bombs (0 = unlimited).
+	PidsLimit int64 `yaml:"pids_limit"`
+	// MaxBoxes caps how many boxes may run at once (0 = unlimited).
+	MaxBoxes int `yaml:"max_boxes"`
 }
 
 // ClusterConfig enables hub-and-spoke clustering on the hub. When enabled, the
@@ -258,5 +283,16 @@ func (c *Config) applyDefaults() {
 	// Default each enabled provider's redirect URL from the public URL.
 	if c.Auth.Google.Enabled && c.Auth.Google.RedirectURL == "" {
 		c.Auth.Google.RedirectURL = strings.TrimRight(c.PublicURL, "/") + "/auth/google/callback"
+	}
+	// Apply finite per-box resource caps when unset so boxes are bounded out of
+	// the box (max_boxes stays unlimited unless explicitly set).
+	if c.Box.MemoryMB == 0 {
+		c.Box.MemoryMB = DefaultBoxMemoryMB
+	}
+	if c.Box.CPUs == 0 {
+		c.Box.CPUs = DefaultBoxCPUs
+	}
+	if c.Box.PidsLimit == 0 {
+		c.Box.PidsLimit = DefaultBoxPidsLimit
 	}
 }

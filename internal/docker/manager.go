@@ -167,6 +167,11 @@ type Manager struct {
 	// two concurrent creates can't both pass the check with the same box ID.
 	createMu sync.Mutex
 
+	// limits caps each box's resources and the total number of concurrent boxes,
+	// bounding resource-exhaustion by a caller that reaches the (by-design
+	// unauthenticated) create path. The zero value imposes no limits.
+	limits BoxLimits
+
 	// log records best-effort failures (cleanup, network teardown, etc.) that are
 	// not propagated to the caller; nil falls back to slog.Default() via logger().
 	log *slog.Logger
@@ -239,6 +244,59 @@ type InjectFile struct {
 	Mode    int64
 	UID     int
 	GID     int
+}
+
+// BoxLimits caps the resources a single box container may consume and the total
+// number of concurrent boxes a Manager will run. It bounds resource-exhaustion
+// (CPU/memory/PID fork-bombs, unbounded box counts) by a caller that can reach
+// the by-design-unauthenticated create/exec path. A zero field means "no limit"
+// for that dimension, so the zero BoxLimits preserves the original unbounded
+// behaviour for a deployment that opts out.
+type BoxLimits struct {
+	// MemoryBytes is the hard memory limit per box, in bytes (0 = unlimited).
+	MemoryBytes int64
+	// NanoCPUs is the CPU quota per box in units of 1e-9 CPUs, i.e. 1_000_000_000
+	// is one full CPU (0 = unlimited).
+	NanoCPUs int64
+	// PidsLimit caps the number of processes/threads in a box, blunting fork
+	// bombs (0 = unlimited).
+	PidsLimit int64
+	// MaxBoxes caps how many managed boxes may exist at once; Create rejects a new
+	// box once the count is reached (0 = unlimited).
+	MaxBoxes int
+}
+
+// SetBoxLimits sets the per-box resource caps and the max concurrent-box count
+// applied by Create. It is called once at startup after NewManager (kept off the
+// constructor so existing callers and tests are unaffected); the zero BoxLimits
+// leaves every dimension unlimited.
+//
+// @arg l The resource and count limits to enforce on subsequently created boxes.
+//
+// @testcase TestCreateAppliesBoxLimits sets limits and checks they reach the host config.
+// @testcase TestCreateRejectsOverMaxBoxes rejects a create once MaxBoxes is reached.
+func (m *Manager) SetBoxLimits(l BoxLimits) { m.limits = l }
+
+// boxIDRe is the canonical box-id format: a single DNS hostname label (1-63
+// chars of lowercase letters, digits, or hyphens, not starting or ending with a
+// hyphen). The box ID is interpolated into the container entrypoint and applied
+// as the container hostname, so it must carry no shell metacharacters; this is
+// the authoritative definition the cluster admission policy also enforces.
+var boxIDRe = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
+// ValidBoxID reports whether id is a well-formed box ID (a single DNS hostname
+// label). It is the single source of truth for box-id validation: Create calls
+// it so the local box-creation path validates inputs exactly as the cluster
+// admission policy does on the remote path, rather than relying on the Docker
+// daemon's implicit hostname check to reject a malformed (and potentially
+// shell-injecting) box ID.
+//
+// @arg id The candidate box ID.
+// @return bool True when id is a valid 1-63 char lowercase hostname label.
+//
+// @testcase TestValidBoxID accepts well-formed ids and rejects malformed ones.
+func ValidBoxID(id string) bool {
+	return boxIDRe.MatchString(id)
 }
 
 // NewManager creates a Manager using Docker configuration from the environment.
@@ -388,31 +446,46 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // left running, parked at the "paste code" prompt, ready for SubmitCode.
 // opts.BoxID is applied as the container hostname, and opts.BoxID/opts.Description
 // are persisted as labels so List can report them. A non-empty opts.BoxID must be
-// unique across managed boxes; the create is rejected otherwise. If the image is
-// not present locally, it is pulled and the create is retried once. Any opts.Files
-// are written into the box after creation but before it starts.
+// a valid hostname label (see ValidBoxID) and unique across managed boxes; the
+// create is rejected otherwise. If the image is not present locally, it is pulled
+// and the create is retried once. Any opts.Files are written into the box after
+// creation but before it starts.
 //
 // The standalone Claude binary and a ~/.claude.json seed are always injected,
 // the box is forced to run as root with HOME=boxHome and WorkingDir=boxWorkdir,
 // and a node-free entrypoint is used — so the box runs on any plain glibc image
-// without Claude (or Node) baked in. When opts.BoxID is set (and the remote
-// args don't already specify --name), the pre-created first session is named
-// "<box-id>-default" so it is identifiable in claude.ai/code.
+// without Claude (or Node) baked in. The configured BoxLimits cap the box's
+// memory/CPU/PIDs and the total box count, and the box runs with
+// no-new-privileges. When opts.BoxID is set (and the remote args don't already
+// specify --name), the pre-created first session is named "<box-id>-default" so
+// it is identifiable in claude.ai/code.
 //
 // @arg ctx Context for the Docker create/start/attach calls.
 // @arg opts The caller-controlled image, box ID, description, and files for the box.
 // @return id The full container ID of the created box.
 // @return authorizeURL The OAuth authorize URL captured from the box's login output.
-// @error error if opts.BoxID is already in use, the claude binary cannot be read, the image cannot be pulled, or the box cannot be created, files injected, started, or its authorize URL captured.
+// @error error if opts.BoxID is malformed or already in use, the max-box ceiling is reached, the claude binary cannot be read, the image cannot be pulled, or the box cannot be created, files injected, started, or its authorize URL captured.
 //
 // @testcase TestCreateCapturesURL captures the authorize URL and sets box-id/description labels.
 // @testcase TestCreateCleansUpOnStartFailure removes the container when start fails.
 // @testcase TestCreateRejectsDuplicateBoxID rejects a box ID already in use.
+// @testcase TestCreateRejectsBadBoxID rejects a malformed box ID before creating a container.
+// @testcase TestCreateAppliesBoxLimits applies the configured resource caps and no-new-privileges.
+// @testcase TestCreateRejectsOverMaxBoxes rejects a create once the box ceiling is reached.
 // @testcase TestCreatePullsMissingImage pulls the image then retries when it is absent.
 // @testcase TestCreateInjectsFiles copies injected files into the box before start.
 // @testcase TestCreateInjectsClaude injects the binary and seed and forces root/HOME/WorkingDir.
 // @testcase TestCreateMissingClaudeBinary fails when the claude binary is unreadable.
 func (m *Manager) Create(ctx context.Context, opts CreateOptions) (id, authorizeURL string, err error) {
+	// Validate the box ID at the boundary, on EVERY path (local and remote-spoke):
+	// it is interpolated into the /bin/sh -c entrypoint below and used as the
+	// container hostname, so a malformed value must be rejected here rather than
+	// left for the Docker daemon's implicit hostname check to (maybe) catch. An
+	// empty box ID is allowed (Docker auto-names the host and no --name is added).
+	if opts.BoxID != "" && !ValidBoxID(opts.BoxID) {
+		return "", "", fmt.Errorf("invalid box id %q: must be 1-63 chars of lowercase letters, digits, or hyphens (not starting or ending with a hyphen)", opts.BoxID)
+	}
+
 	image := opts.Image
 	if image == "" {
 		image = m.defaultImage
@@ -469,18 +542,24 @@ func (m *Manager) Create(ctx context.Context, opts CreateOptions) (id, authorize
 	)
 
 	// Reserve the box ID atomically: under one lock, reject the create if an
-	// existing box already uses it, then create the container (which carries the
-	// box-id label, so a concurrent create will see it). The slow login / URL
-	// capture below runs unlocked.
+	// existing box already uses it (or the max-box ceiling is reached), then
+	// create the container (which carries the box-id label, so a concurrent create
+	// will see it). The slow login / URL capture below runs unlocked.
 	m.createMu.Lock()
-	if opts.BoxID != "" {
+	if opts.BoxID != "" || m.limits.MaxBoxes > 0 {
 		boxes, lerr := m.List(ctx)
 		if lerr != nil {
 			m.createMu.Unlock()
 			return "", "", fmt.Errorf("checking box ID uniqueness: %w", lerr)
 		}
+		// Cap the number of concurrent boxes so the unauthenticated create path
+		// cannot be used to spawn containers without bound.
+		if m.limits.MaxBoxes > 0 && len(boxes) >= m.limits.MaxBoxes {
+			m.createMu.Unlock()
+			return "", "", fmt.Errorf("box limit reached (%d boxes already running); destroy a box before creating another", m.limits.MaxBoxes)
+		}
 		for _, b := range boxes {
-			if strings.EqualFold(b.BoxID, opts.BoxID) {
+			if opts.BoxID != "" && strings.EqualFold(b.BoxID, opts.BoxID) {
 				m.createMu.Unlock()
 				return "", "", fmt.Errorf("box ID %q is already used by container %s; choose a different box ID", opts.BoxID, b.ContainerID)
 			}
@@ -505,6 +584,23 @@ func (m *Manager) Create(ctx context.Context, opts CreateOptions) (id, authorize
 		// Start the PTY wide so the authorize URL prints unwrapped.
 		ConsoleSize:   [2]uint{ttyHeight, ttyWidth},
 		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyDisabled},
+		// The box runs as root (see cfg.User above) so injected files land in
+		// known writable paths; no-new-privileges keeps that root from escalating
+		// further via setuid binaries inside the image, shrinking the blast radius
+		// of a compromised box.
+		SecurityOpt: []string{"no-new-privileges"},
+	}
+	// Apply the configured resource caps (each defaults to 0 = unlimited). These
+	// bound a single box's CPU, memory, and PID usage so a fork/memory bomb in one
+	// box (reachable via the unauthenticated exec path) cannot exhaust the host.
+	if m.limits.MemoryBytes > 0 {
+		hostCfg.Memory = m.limits.MemoryBytes
+	}
+	if m.limits.NanoCPUs > 0 {
+		hostCfg.NanoCPUs = m.limits.NanoCPUs
+	}
+	if m.limits.PidsLimit > 0 {
+		hostCfg.PidsLimit = &m.limits.PidsLimit
 	}
 
 	resp, err := m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")

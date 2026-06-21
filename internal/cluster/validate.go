@@ -2,17 +2,9 @@ package cluster
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/clems4ever/llmbox/internal/docker"
 )
-
-// boxIDRe is the box-id format a spoke accepts: a single DNS hostname label
-// (1-63 chars of lowercase letters, digits, or hyphens, not starting or ending
-// with a hyphen). It mirrors what create_llmbox documents and what Docker
-// accepts as a hostname, so the spoke can reject a malformed id before touching
-// Docker.
-var boxIDRe = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 
 // ValidationPolicy is the spoke-side admission policy applied to box-creation
 // requests arriving over the wire — defense-in-depth on top of the verb
@@ -36,7 +28,7 @@ type ValidationPolicy struct {
 // @testcase TestValidateCreateImageAllowlist allows listed images and rejects others.
 // @testcase TestValidateCreateAllowsEmptyImage treats an empty image as the spoke default.
 func (p ValidationPolicy) validateCreate(opts docker.CreateOptions) error {
-	if !boxIDRe.MatchString(opts.BoxID) {
+	if !docker.ValidBoxID(opts.BoxID) {
 		return fmt.Errorf("invalid box id %q: must be 1-63 chars of lowercase letters, digits, or hyphens (not starting or ending with a hyphen)", opts.BoxID)
 	}
 	if opts.Image != "" && len(p.AllowedImages) > 0 {

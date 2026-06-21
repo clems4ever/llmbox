@@ -28,6 +28,18 @@ type Dialer func(ctx context.Context) (transport, error)
 
 // WebSocketDialer dials the hub's spoke-connect URL over a WebSocket.
 //
+// SECURITY — transport confidentiality and integrity are the DEPLOYMENT's
+// responsibility, not this code's. The enrollment handshake sends the one-time
+// join token and then the long-lived bearer credential in the first frames, and
+// every box verb (including the user's code and session details) flows over this
+// socket. Use wss:// in production and terminate TLS at a trusted reverse proxy
+// in front of the hub; a ws:// URL sends the credential and all traffic in
+// cleartext and MUST only be used on a fully trusted network (e.g. loopback or a
+// private mesh). This dialer accepts whichever scheme the operator passes — it
+// does not (and cannot) verify the link is encrypted. The bearer credential is a
+// static secret presented verbatim on every reconnect, so anyone who captures it
+// (on the wire or at rest) can impersonate this spoke until it is revoked.
+//
 // @arg url The hub's spoke-connect URL (ws:// or wss://).
 // @return Dialer A dialer that opens a WebSocket transport to that URL.
 //

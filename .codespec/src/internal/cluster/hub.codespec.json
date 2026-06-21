@@ -23,9 +23,9 @@
 		{
 			"function_name": "ConnectHandler",
 			"receiver": "Hub",
-			"documentation_hash": "133a710c889e05b9a243f4fed118736db23ee8c184a2e58b226cb43ef990ce89",
+			"documentation_hash": "f1f7cfa7321e0442752110a324670346481e515c46a2e267bb9f5730079184a9",
 			"definition_hash": "69f41d39603b3b174e5ca7fc3aad6d5c252ac98f6e9cb344ef467bbebbee999b",
-			"reviewed_at": "2026-06-21T13:23:33.252681614Z"
+			"reviewed_at": "2026-06-21T14:39:24.336051404Z"
 		},
 		{
 			"function_name": "enroll",

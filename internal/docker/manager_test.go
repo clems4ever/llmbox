@@ -60,14 +60,15 @@ type fakeDocker struct {
 	// error until ImagePull has been called, simulating a missing local image.
 	createNotFoundUntilPull bool
 
-	createConfig *container.Config
-	createCalls  int
-	started      []string
-	renames      [][2]string // {id, newName}
-	resizes      []string
-	stopped      []string
-	removed      []string
-	pulled       []string
+	createConfig     *container.Config
+	createHostConfig *container.HostConfig
+	createCalls      int
+	started          []string
+	renames          [][2]string // {id, newName}
+	resizes          []string
+	stopped          []string
+	removed          []string
+	pulled           []string
 
 	copyErr     error
 	copyToCalls []copyToCall // recorded CopyToContainer invocations
@@ -93,8 +94,9 @@ func (f *fakeDocker) ContainerList(_ context.Context, _ container.ListOptions) (
 
 // ContainerCreate records the requested config and returns the canned response,
 // or an image-not-found error until ImagePull is called when so configured.
-func (f *fakeDocker) ContainerCreate(_ context.Context, config *container.Config, _ *container.HostConfig, _ *network.NetworkingConfig, _ *ocispec.Platform, _ string) (container.CreateResponse, error) {
+func (f *fakeDocker) ContainerCreate(_ context.Context, config *container.Config, hostConfig *container.HostConfig, _ *network.NetworkingConfig, _ *ocispec.Platform, _ string) (container.CreateResponse, error) {
 	f.createConfig = config
+	f.createHostConfig = hostConfig
 	f.createCalls++
 	if f.createNotFoundUntilPull && len(f.pulled) == 0 {
 		return container.CreateResponse{}, fmt.Errorf("no such image: %w", cerrdefs.ErrNotFound)
@@ -398,21 +400,108 @@ func TestCreateCleansUpOnStartFailure(t *testing.T) {
 // TestCreateRejectsDuplicateBoxID checks a create is refused (and no
 // container made) when another box already uses the requested box ID.
 func TestCreateRejectsDuplicateBoxID(t *testing.T) {
+	// The stored label is upper-cased so the (valid, lowercase) requested ID still
+	// exercises the case-insensitive collision check rather than format validation.
 	f := &fakeDocker{listResult: []container.Summary{
-		{ID: "existing0000aaaa", Names: []string{"/llmbox-existing0000"}, Labels: map[string]string{BoxIDLabel: "dup-host"}},
+		{ID: "existing0000aaaa", Names: []string{"/llmbox-existing0000"}, Labels: map[string]string{BoxIDLabel: "DUP-HOST"}},
 	}}
 	m := newTestManager(f)
 
-	// Case-insensitive: "DUP-HOST" must still collide with "dup-host".
-	_, _, err := m.Create(context.Background(), CreateOptions{BoxID: "DUP-HOST"})
+	_, _, err := m.Create(context.Background(), CreateOptions{BoxID: "dup-host"})
 	if err == nil {
 		t.Fatal("expected error for duplicate box ID")
 	}
-	if !strings.Contains(err.Error(), "dup-host") && !strings.Contains(err.Error(), "DUP-HOST") {
-		t.Errorf("error should name the conflicting box ID: %v", err)
+	if !strings.Contains(err.Error(), "already used") {
+		t.Errorf("error should report the duplicate: %v", err)
 	}
 	if f.createConfig != nil {
 		t.Error("no container should be created when the box ID conflicts")
+	}
+}
+
+// TestValidBoxID checks the box-id validator accepts well-formed hostname labels
+// and rejects malformed ones (uppercase, shell metacharacters, leading/trailing
+// hyphens, over-length, empty).
+func TestValidBoxID(t *testing.T) {
+	for _, id := range []string{"a", "my-box", "refactor-auth-service", "b1", strings.Repeat("a", 63)} {
+		if !ValidBoxID(id) {
+			t.Errorf("ValidBoxID(%q) = false, want true", id)
+		}
+	}
+	for _, id := range []string{"", "UPPER", "has space", `x"; rm -rf /`, "-lead", "trail-", "a/b", strings.Repeat("a", 64)} {
+		if ValidBoxID(id) {
+			t.Errorf("ValidBoxID(%q) = true, want false", id)
+		}
+	}
+}
+
+// TestCreateRejectsBadBoxID checks Create refuses a malformed box ID (which would
+// otherwise be interpolated into the entrypoint) before creating any container.
+func TestCreateRejectsBadBoxID(t *testing.T) {
+	f := &fakeDocker{createResp: container.CreateResponse{ID: "neverused000000"}}
+	m := newTestManager(f)
+	if _, _, err := m.Create(context.Background(), CreateOptions{BoxID: `x"; touch /pwned; "`}); err == nil {
+		t.Fatal("expected error for malformed box ID")
+	}
+	if f.createConfig != nil {
+		t.Error("no container should be created for a malformed box ID")
+	}
+}
+
+// TestCreateAppliesBoxLimits checks the configured per-box resource caps and the
+// no-new-privileges hardening reach the container host config.
+func TestCreateAppliesBoxLimits(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn: managerEnd,
+	}
+	m := newTestManager(f)
+	m.SetBoxLimits(BoxLimits{MemoryBytes: 512 << 20, NanoCPUs: 1_500_000_000, PidsLimit: 256})
+
+	go func() {
+		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
+	}()
+
+	if _, _, err := m.Create(context.Background(), CreateOptions{BoxID: "limited-box"}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	hc := f.createHostConfig
+	if hc == nil {
+		t.Fatal("no host config captured")
+	}
+	if hc.Memory != 512<<20 {
+		t.Errorf("Memory = %d, want %d", hc.Memory, 512<<20)
+	}
+	if hc.NanoCPUs != 1_500_000_000 {
+		t.Errorf("NanoCPUs = %d, want 1500000000", hc.NanoCPUs)
+	}
+	if hc.PidsLimit == nil || *hc.PidsLimit != 256 {
+		t.Errorf("PidsLimit = %v, want 256", hc.PidsLimit)
+	}
+	if len(hc.SecurityOpt) != 1 || hc.SecurityOpt[0] != "no-new-privileges" {
+		t.Errorf("SecurityOpt = %v, want [no-new-privileges]", hc.SecurityOpt)
+	}
+}
+
+// TestCreateRejectsOverMaxBoxes checks Create refuses a new box once the
+// configured max-box ceiling is already reached, creating no container.
+func TestCreateRejectsOverMaxBoxes(t *testing.T) {
+	f := &fakeDocker{listResult: []container.Summary{
+		{ID: "running00000aaaa", Names: []string{"/llmbox-running00000"}, Labels: map[string]string{BoxIDLabel: "running-box"}},
+	}}
+	m := newTestManager(f)
+	m.SetBoxLimits(BoxLimits{MaxBoxes: 1})
+
+	_, _, err := m.Create(context.Background(), CreateOptions{BoxID: "one-too-many"})
+	if err == nil {
+		t.Fatal("expected error when the box ceiling is reached")
+	}
+	if !strings.Contains(err.Error(), "box limit reached") {
+		t.Errorf("error should report the ceiling: %v", err)
+	}
+	if f.createConfig != nil {
+		t.Error("no container should be created over the box ceiling")
 	}
 }
 
