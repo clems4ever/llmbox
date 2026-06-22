@@ -39,7 +39,7 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 	rs := startSpoke(t, fake)
 	ctx := context.Background()
 
-	id, url, err := rs.Create(ctx, docker.CreateOptions{BoxID: "b1", SpokeName: "s"})
+	id, url, err := rs.Create(ctx, docker.CreateOptions{BoxID: "b1", Image: "img:1", SpokeName: "s"})
 	if err != nil || id != "cid" || url != "https://auth" {
 		t.Fatalf("Create = (%q,%q,%v)", id, url, err)
 	}

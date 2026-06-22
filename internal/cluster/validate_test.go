@@ -19,7 +19,7 @@ func TestValidateCreateRejectsBadBoxID(t *testing.T) {
 	}
 	good := []string{"b1", "refactor-auth", "a", strings.Repeat("a", 63)}
 	for _, id := range good {
-		if err := p.validateCreate(docker.CreateOptions{BoxID: id}); err != nil {
+		if err := p.validateCreate(docker.CreateOptions{BoxID: id, Image: "img:1"}); err != nil {
 			t.Errorf("box id %q should be accepted, got %v", id, err)
 		}
 	}
@@ -36,13 +36,13 @@ func TestValidateCreateImageAllowlist(t *testing.T) {
 	}
 }
 
-// TestValidateCreateAllowsEmptyImage is a package test.
-func TestValidateCreateAllowsEmptyImage(t *testing.T) {
-	// An empty image means the spoke's own default, which is always allowed even
-	// when an allowlist is set.
-	p := ValidationPolicy{AllowedImages: []string{"good:1"}}
-	if err := p.validateCreate(docker.CreateOptions{BoxID: "b1", Image: ""}); err != nil {
-		t.Errorf("empty image should be allowed (spoke default): %v", err)
+// TestValidateCreateRejectsEmptyImage is a package test.
+func TestValidateCreateRejectsEmptyImage(t *testing.T) {
+	// A spoke has no default image of its own, so a create that names none is
+	// rejected — the hub must always send an explicit image.
+	p := ValidationPolicy{}
+	if err := p.validateCreate(docker.CreateOptions{BoxID: "b1", Image: ""}); err == nil {
+		t.Error("empty image should be rejected (spokes have no default)")
 	}
 }
 

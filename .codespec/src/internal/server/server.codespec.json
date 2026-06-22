@@ -44,8 +44,8 @@
 			"function_name": "CreateBox",
 			"receiver": "Server",
 			"documentation_hash": "52e368dc3a2a5ad7504307b7493aa00ae82821f63a6559bf73f7b5f47e1d4b57",
-			"definition_hash": "4fc3af824440da0e9836413ac50f9f2a19cd2a7098f1220d310dae8a4c88eb73",
-			"reviewed_at": "2026-06-22T10:34:35.969522784Z"
+			"definition_hash": "5a85b8f7502e5b3c2e21559c95e7c5eed7e61cdaaa2839e676aa2bf7e58609ae",
+			"reviewed_at": "2026-06-22T13:02:30.212929196Z"
 		},
 		{
 			"function_name": "runDestroyHooks",
@@ -182,9 +182,9 @@
 		{
 			"function_name": "SetBoxImage",
 			"receiver": "Server",
-			"documentation_hash": "0b3bb85c8980b6f6eae888aff595a9a44179f1acb936e624baee7fdc987c0d04",
+			"documentation_hash": "b30e462b055679d6215d3e04c386f8db480ab9d11dd8b66750a08994d3c8b491",
 			"definition_hash": "6d8890eb264da682c3a12f0c7dc0ed52383dffc7b93cf67feacd4e38420fd531",
-			"reviewed_at": "2026-06-22T10:34:35.960482776Z"
+			"reviewed_at": "2026-06-22T13:02:30.202038196Z"
 		}
 	]
 }

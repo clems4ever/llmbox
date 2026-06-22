@@ -187,10 +187,10 @@ type Server struct {
 	// command; empty falls back to a built-in default. Display-only.
 	spokeImage string
 
-	// boxImage is the per-box image (the hub's claude_image) stamped onto a
-	// creation request that names none, so the box image is resolved on the hub
-	// and remote spokes stay config-free. Empty leaves the choice to the spoke's
-	// own manager default.
+	// boxImage is the hub's resolved per-box image (claude_image, or the built-in
+	// default when that is unset) stamped onto every creation request that names
+	// none. The box image is resolved here on the hub so remote spokes stay
+	// config-free and hold no default of their own.
 	boxImage string
 
 	// log records best-effort failures (persistence, cleanup, destroy hooks) that
@@ -258,11 +258,12 @@ func (s *Server) SetHub(hub clusterHub) { s.hub = hub }
 // @testcase TestAdminCreateSpokeMintsToken shows the configured image in the command.
 func (s *Server) SetSpokeImage(image string) { s.spokeImage = image }
 
-// SetBoxImage sets the per-box image (the hub's claude_image) the server stamps
-// onto a creation request that names none. Resolving the image on the hub keeps
-// remote spokes config-free: the spoke launches exactly the image it is sent.
+// SetBoxImage sets the hub's resolved per-box image (claude_image, or the
+// built-in default when unset) that the server stamps onto a creation request
+// naming none. Resolving the image on the hub keeps remote spokes config-free
+// and defaultless: the spoke launches exactly the image it is sent.
 //
-// @arg image The per-box container image (e.g. ghcr.io/clems4ever/granular-llmbox-box:latest).
+// @arg image The resolved per-box container image (e.g. ghcr.io/clems4ever/granular-llmbox-box:latest); never empty in practice.
 //
 // @testcase TestCreateBoxDefaultsImageToBoxImage stamps the configured image onto an imageless request.
 func (s *Server) SetBoxImage(image string) { s.boxImage = image }
@@ -434,8 +435,10 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 // @testcase TestCreateBoxDefaultsImageToBoxImage stamps the hub's box image when the request names none.
 // @testcase TestCreateBoxKeepsExplicitImage leaves a request's explicit image untouched.
 func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
-	// Resolve the box image on the hub so remote spokes stay config-free: a
-	// request that names no image inherits the hub's configured claude_image.
+	// Resolve the box image on the hub so remote spokes stay config-free and
+	// defaultless: a request that names no image inherits the hub's resolved box
+	// image (claude_image, or the built-in default). Spokes reject an imageless
+	// create, so this is the only place a default is ever applied.
 	if opts.Image == "" {
 		opts.Image = s.boxImage
 	}

@@ -9,8 +9,8 @@
 		{
 			"function_name": "TestRemoteSpokeRoundTrip",
 			"documentation_hash": "fba263705900b40995c133edd5e51a53bc47f935305eb47f3ae4620060576cb7",
-			"definition_hash": "32e97c6f4baf077f8e30005e336c3dbe46488096913bc66fbce030292ca0f07e",
-			"reviewed_at": "2026-06-19T20:33:58.629943812Z"
+			"definition_hash": "c93df2e34f7375cd3f7682a30478451203217162f971a520edece7a7b8adba00",
+			"reviewed_at": "2026-06-22T13:01:42.145575014Z"
 		},
 		{
 			"function_name": "TestRemoteSpokeVerbError",

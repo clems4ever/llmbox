@@ -308,7 +308,11 @@ func shortID(id string) string {
 //
 // @testcase TestRunSpokeRequiresTokenOrCreds errors when neither a token nor saved credentials are available.
 func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePath string) error {
-	mgr, err := docker.NewManager(cfg.ClaudeImage, cfg.RemoteArgs, cfg.ClaudeBin, cfg.BoxPeers)
+	// A spoke holds no box image of its own: the hub resolves the image (its own
+	// default included) and sends it with every create, and validateCreate rejects
+	// any create that arrives without one. Pass no default here so nothing local
+	// can stand in for what the hub sends.
+	mgr, err := docker.NewManager("", cfg.RemoteArgs, cfg.ClaudeBin, cfg.BoxPeers)
 	if err != nil {
 		return err
 	}

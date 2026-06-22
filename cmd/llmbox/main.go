@@ -176,7 +176,16 @@ func boxLimits(b config.BoxConfig) docker.BoxLimits {
 func run(parent context.Context, cfg *config.Config) error {
 	authTTL := time.Duration(cfg.AuthTTL)
 
-	mgr, err := docker.NewManager(cfg.ClaudeImage, cfg.RemoteArgs, cfg.ClaudeBin, cfg.BoxPeers)
+	// Resolve the per-box image once, here on the hub: an unset claude_image falls
+	// back to the built-in default at this single point, so every box-creation
+	// request carries an explicit image. Spokes are config-free and supply none of
+	// their own — the hub is the only source of the box image, default included.
+	boxImage := cfg.ClaudeImage
+	if boxImage == "" {
+		boxImage = docker.DefaultImage
+	}
+
+	mgr, err := docker.NewManager(boxImage, cfg.RemoteArgs, cfg.ClaudeBin, cfg.BoxPeers)
 	if err != nil {
 		return err
 	}
@@ -223,7 +232,7 @@ func run(parent context.Context, cfg *config.Config) error {
 
 	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store, auth)
 	srv.SetSpokeImage(cfg.Cluster.SpokeImage)
-	srv.SetBoxImage(cfg.ClaudeImage)
+	srv.SetBoxImage(boxImage)
 
 	// Hub-and-spoke clustering: when enabled, accept spoke connections and let
 	// boxes be placed on remote spokes (boxes still default to the local spoke).
