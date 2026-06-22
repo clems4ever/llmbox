@@ -60,6 +60,10 @@ func TestClusterEndToEnd(t *testing.T) {
 	hub := cluster.NewHub(ctx, store, nil, nil)
 	srv := server.New(localMgr, nil, "http://placeholder", 5*time.Minute, store, nil)
 	srv.SetHub(hub)
+	// The hub is the sole source of the box image: it stamps this onto every
+	// create so config-free spokes (which hold no default of their own) launch
+	// exactly what they are sent.
+	srv.SetBoxImage("box:e2e")
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -107,6 +111,10 @@ func TestClusterEndToEnd(t *testing.T) {
 	}
 	if localMgr.creates() != 0 {
 		t.Errorf("local spoke creates = %d, want 0 (box should not run locally)", localMgr.creates())
+	}
+	// The spoke launched the image the hub resolved and sent, not one of its own.
+	if got := edgeMgr.image(); got != "box:e2e" {
+		t.Errorf("edge spoke create image = %q, want box:e2e (hub-resolved)", got)
 	}
 
 	// list_llmboxes shows the box tagged with its spoke.
@@ -160,6 +168,7 @@ type fakeSpokeMgr struct {
 	boxes       map[string]string // containerID -> boxID
 	createCount int
 	execCount   int
+	gotImage    string // image of the most recent create, as received from the hub
 }
 
 // newFakeSpokeMgr builds an empty simulated spoke box manager.
@@ -174,7 +183,15 @@ func (m *fakeSpokeMgr) Create(_ context.Context, opts docker.CreateOptions) (str
 	id := randHex(20)
 	m.boxes[id] = opts.BoxID
 	m.createCount++
+	m.gotImage = opts.Image
 	return id, "https://auth.example/", nil
+}
+
+// image returns the image of the most recent create call, under the lock.
+func (m *fakeSpokeMgr) image() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.gotImage
 }
 
 // SubmitCode simulates a completed activation, returning a session URL.

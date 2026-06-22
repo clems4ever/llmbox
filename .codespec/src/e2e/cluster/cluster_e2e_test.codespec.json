@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestClusterEndToEnd",
 			"documentation_hash": "23fcc25d19c4f7e34061cdbfb319ef7f44f81ebee6329d0d15e49719b40f43ad",
-			"definition_hash": "854296c7f50d05e56d9864772d185cb3b20fbba3772cf5fe4f21c4722f9852dc",
-			"reviewed_at": "2026-06-19T20:31:47.086672678Z"
+			"definition_hash": "0193019436de54f98cf9a50efea6f7e0453711b4c9b800888c3419e7e32f9de1",
+			"reviewed_at": "2026-06-22T14:06:49.91418936Z"
 		},
 		{
 			"function_name": "newFakeSpokeMgr",
@@ -16,8 +16,8 @@
 			"function_name": "Create",
 			"receiver": "fakeSpokeMgr",
 			"documentation_hash": "e91be58eb99529e3bc7566f716b14c7abd79e4d26d54846d176d6fea38d69022",
-			"definition_hash": "b62dd9c74e41e4cd71a354ebe9e0a352ceacc818357113165dcbb864ff5db94e",
-			"reviewed_at": "2026-06-19T20:31:49.972477389Z"
+			"definition_hash": "f74d719e9fc3eff6ae90024159e910d0fe2cda26206631409056637170e6ba55",
+			"reviewed_at": "2026-06-22T14:06:49.92676097Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -136,6 +136,13 @@
 			"documentation_hash": "e1cb0767179cb9ce64eaf36f4e88a6607c6f202eb94f82b2c955f2c92e3b620c",
 			"definition_hash": "afdd757cd808edd1d05b9ba534fa6876bdcf48ac6651ced6e9e6e636ba38fb00",
 			"reviewed_at": "2026-06-19T20:32:09.894714289Z"
+		},
+		{
+			"function_name": "image",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "7c480ed542ed7713af7fc1e6c289ae24f513e7bb9a408ec8625cde8ab99da3d9",
+			"definition_hash": "663c8e94fca0bff2b694fe8f35279434a94baf79d6cb840921f771a67aaf2357",
+			"reviewed_at": "2026-06-22T14:06:42.743198429Z"
 		}
 	]
 }
