@@ -99,9 +99,9 @@
 		{
 			"function_name": "DestroyBox",
 			"receiver": "Server",
-			"documentation_hash": "6df426c004b239b118b6e656d76606c73b80ec6bf972ef51b9e3d11f981cb83c",
-			"definition_hash": "0c14d3bd824e9e66e135d3ab41d17bce6be6bdddd21550b2b2254a6f98d45490",
-			"reviewed_at": "2026-06-19T19:47:04.440281139Z"
+			"documentation_hash": "38ec917af1fec8008349679df5062c2542fc905ee16012c6fb4285c82af0fdec",
+			"definition_hash": "a4d6a5a331de682b16d3d03fb53b43182b54e3554c7ff77ae15460d23140c19e",
+			"reviewed_at": "2026-06-22T19:40:17.766500574Z"
 		},
 		{
 			"function_name": "ReapLoop",
@@ -185,6 +185,12 @@
 			"documentation_hash": "b30e462b055679d6215d3e04c386f8db480ab9d11dd8b66750a08994d3c8b491",
 			"definition_hash": "6d8890eb264da682c3a12f0c7dc0ed52383dffc7b93cf67feacd4e38420fd531",
 			"reviewed_at": "2026-06-22T13:02:30.202038196Z"
+		},
+		{
+			"function_name": "boxMatchesSession",
+			"documentation_hash": "a5d78f01cba29bf4b7484d21488d0f5282a0965ff9ce45e1afd81c6b534bc6e2",
+			"definition_hash": "912246c74cf52c74853d482d036187510d86510d18c120ecd0ebbd0b10f24643",
+			"reviewed_at": "2026-06-22T19:40:17.753483189Z"
 		}
 	]
 }

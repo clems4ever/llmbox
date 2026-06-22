@@ -484,6 +484,99 @@ func TestCreateAppliesBoxLimits(t *testing.T) {
 	}
 }
 
+// TestSetBoxGPUsParsesSpec checks the docker --gpus-style spec parses into the
+// right device requests and that malformed specs are rejected.
+func TestSetBoxGPUsParsesSpec(t *testing.T) {
+	gpuCaps := [][]string{{"gpu"}}
+
+	t.Run("empty attaches none", func(t *testing.T) {
+		m := newTestManager(&fakeDocker{})
+		if err := m.SetBoxGPUs(""); err != nil {
+			t.Fatalf("SetBoxGPUs: %v", err)
+		}
+		if m.boxGPUs != nil {
+			t.Errorf("boxGPUs = %v, want nil", m.boxGPUs)
+		}
+	})
+
+	cases := []struct {
+		spec      string
+		wantCount int
+		wantIDs   []string
+	}{
+		{"all", -1, nil},
+		{"2", 2, nil},
+		{"device=0,1", 0, []string{"0", "1"}},
+		{"0,1", 0, []string{"0", "1"}},
+		{"GPU-abc", 0, []string{"GPU-abc"}},
+	}
+	for _, c := range cases {
+		t.Run(c.spec, func(t *testing.T) {
+			m := newTestManager(&fakeDocker{})
+			if err := m.SetBoxGPUs(c.spec); err != nil {
+				t.Fatalf("SetBoxGPUs(%q): %v", c.spec, err)
+			}
+			if len(m.boxGPUs) != 1 {
+				t.Fatalf("boxGPUs = %v, want one request", m.boxGPUs)
+			}
+			r := m.boxGPUs[0]
+			if r.Count != c.wantCount {
+				t.Errorf("Count = %d, want %d", r.Count, c.wantCount)
+			}
+			if !reflect.DeepEqual(r.DeviceIDs, c.wantIDs) {
+				t.Errorf("DeviceIDs = %v, want %v", r.DeviceIDs, c.wantIDs)
+			}
+			if !reflect.DeepEqual(r.Capabilities, gpuCaps) {
+				t.Errorf("Capabilities = %v, want %v", r.Capabilities, gpuCaps)
+			}
+		})
+	}
+
+	for _, bad := range []string{"0", "-1"} {
+		t.Run("rejects "+bad, func(t *testing.T) {
+			m := newTestManager(&fakeDocker{})
+			if err := m.SetBoxGPUs(bad); err == nil {
+				t.Errorf("SetBoxGPUs(%q) = nil, want error", bad)
+			}
+		})
+	}
+}
+
+// TestCreateAppliesBoxGPUs checks the spoke's configured GPUs reach the box's
+// host config as Docker device requests.
+func TestCreateAppliesBoxGPUs(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn: managerEnd,
+	}
+	m := newTestManager(f)
+	if err := m.SetBoxGPUs("all"); err != nil {
+		t.Fatalf("SetBoxGPUs: %v", err)
+	}
+
+	go func() {
+		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
+	}()
+
+	if _, _, err := m.Create(context.Background(), CreateOptions{BoxID: "gpu-box"}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	hc := f.createHostConfig
+	if hc == nil {
+		t.Fatal("no host config captured")
+	}
+	if len(hc.DeviceRequests) != 1 {
+		t.Fatalf("DeviceRequests = %v, want one", hc.DeviceRequests)
+	}
+	if hc.DeviceRequests[0].Count != -1 {
+		t.Errorf("DeviceRequests[0].Count = %d, want -1 (all)", hc.DeviceRequests[0].Count)
+	}
+	if !reflect.DeepEqual(hc.DeviceRequests[0].Capabilities, [][]string{{"gpu"}}) {
+		t.Errorf("DeviceRequests[0].Capabilities = %v, want [[gpu]]", hc.DeviceRequests[0].Capabilities)
+	}
+}
+
 // TestCreateRejectsOverMaxBoxes checks Create refuses a new box once the
 // configured max-box ceiling is already reached, creating no container.
 func TestCreateRejectsOverMaxBoxes(t *testing.T) {

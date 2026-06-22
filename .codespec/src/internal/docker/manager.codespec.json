@@ -168,9 +168,9 @@
 		{
 			"function_name": "Create",
 			"receiver": "Manager",
-			"documentation_hash": "24fdb72d149476e530894055da91419e110e8c8f490b3bf05be581f67c50e3c1",
-			"definition_hash": "aa5b60934fe1f0af88265f177ac7d25fec8307c831f372145af4b09c771dd6a2",
-			"reviewed_at": "2026-06-21T14:39:24.34987794Z"
+			"documentation_hash": "899682051659ac67c5bf4778acf32fadd548940b8994bf819ca6967a19cfc516",
+			"definition_hash": "2c4e30a994f7cbdb935fffe65afe8ac40800126aa9e3b260303c33b64900a367",
+			"reviewed_at": "2026-06-22T19:23:35.755724953Z"
 		},
 		{
 			"function_name": "SetBoxLimits",
@@ -184,6 +184,25 @@
 			"documentation_hash": "d3db639a781a38e72f17e6114ad8939ccbadd68ef7aebd76e1a086895df8db71",
 			"definition_hash": "7ef3cfd6a334edf1c575a37acfb975be3ad3106078ef3aebf8533c5b5f845c02",
 			"reviewed_at": "2026-06-21T14:39:24.346693066Z"
+		},
+		{
+			"function_name": "SetBoxGPUs",
+			"receiver": "Manager",
+			"documentation_hash": "6eda4dcd5153efeaec5d2792935d6c1f0374fbaa28ea6f4eac0c3013e8e25f02",
+			"definition_hash": "02ffb3a8bca86b9de66c2d0ee1b5c50f8505e3105ee33a673faff3f196f0437e",
+			"reviewed_at": "2026-06-22T19:23:35.708237324Z"
+		},
+		{
+			"function_name": "parseGPUs",
+			"documentation_hash": "58276955ac29d984e68a364e04bb31df78c5c1222cfd657fed5395aa0fae8cd5",
+			"definition_hash": "e829f09d8ca1c867c86fd6b8d6596512d5a194e762e6e12e9682844758622f29",
+			"reviewed_at": "2026-06-22T19:23:35.726187621Z"
+		},
+		{
+			"function_name": "splitGPUList",
+			"documentation_hash": "da4288aa008809c04f7c226d1b57c7f6f62289b5d42cdaf946023496c0f8e5c8",
+			"definition_hash": "e4040b0a73e047636eda0160a68e0502ffb0c4055818f2ac83c72047a1f88f41",
+			"reviewed_at": "2026-06-22T19:23:35.741514934Z"
 		}
 	]
 }

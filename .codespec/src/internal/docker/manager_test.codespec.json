@@ -385,6 +385,18 @@
 			"documentation_hash": "39d71ada4338637bb0c739ddd9fd425f8da9d7f5b613f12bd59c0d22aef6c153",
 			"definition_hash": "56f3534928c3bf98661581c01d91c77c3d0e2b75da948758461c0d90af4406dd",
 			"reviewed_at": "2026-06-21T14:39:24.385830489Z"
+		},
+		{
+			"function_name": "TestSetBoxGPUsParsesSpec",
+			"documentation_hash": "db5ee43062ab660ecca00540f0de6b01d4fd8f95c398979aa542534aa9f8d7c8",
+			"definition_hash": "e2e305f7356e59a9d4cb26886c1fb71b82a77245c00539d788392ff835127dd5",
+			"reviewed_at": "2026-06-22T19:23:51.900056897Z"
+		},
+		{
+			"function_name": "TestCreateAppliesBoxGPUs",
+			"documentation_hash": "9c1a1f06472a0d78ea97bb31862c3907c542c53de5b76d95136e1ebe2c0b1bda",
+			"definition_hash": "601e7f8fc9252c2c5f2ce3be3fb191bed3d85cfea30399934ac1c83e7d6db26a",
+			"reviewed_at": "2026-06-22T19:23:51.916118706Z"
 		}
 	]
 }

@@ -172,6 +172,12 @@ type Manager struct {
 	// unauthenticated) create path. The zero value imposes no limits.
 	limits BoxLimits
 
+	// boxGPUs are the GPU device requests attached to every box this manager
+	// launches (the Docker equivalent of `docker run --gpus …`). It is a
+	// machine-local concern set per spoke from its --box-gpus flag, so only a
+	// spoke whose host has GPUs exposes them. nil/empty attaches no GPU.
+	boxGPUs []container.DeviceRequest
+
 	// log records best-effort failures (cleanup, network teardown, etc.) that are
 	// not propagated to the caller; nil falls back to slog.Default() via logger().
 	log *slog.Logger
@@ -276,6 +282,80 @@ type BoxLimits struct {
 // @testcase TestCreateAppliesBoxLimits sets limits and checks they reach the host config.
 // @testcase TestCreateRejectsOverMaxBoxes rejects a create once MaxBoxes is reached.
 func (m *Manager) SetBoxLimits(l BoxLimits) { m.limits = l }
+
+// SetBoxGPUs configures the GPUs attached to every box this manager launches,
+// from a spec in the style of `docker run --gpus`: "" attaches none, "all"
+// attaches every GPU, a positive integer attaches that many, and a
+// comma-separated list (optionally "device="-prefixed) selects GPUs by id/index.
+// It is a machine-local setting a spoke sets from its --box-gpus flag.
+//
+// @arg spec The GPU spec: "", "all", a positive count, or a device list like "device=0,1".
+// @error error if the spec is malformed (e.g. a non-positive or non-numeric count).
+//
+// @testcase TestSetBoxGPUsParsesSpec accepts all/count/device-list specs and rejects bad ones.
+// @testcase TestCreateAppliesBoxGPUs sets GPUs and checks the device request reaches the host config.
+func (m *Manager) SetBoxGPUs(spec string) error {
+	reqs, err := parseGPUs(spec)
+	if err != nil {
+		return err
+	}
+	m.boxGPUs = reqs
+	return nil
+}
+
+// parseGPUs turns a `docker run --gpus`-style spec into Docker device requests.
+//
+// @arg spec The GPU spec: "", "all", a positive count, or a device list like "device=0,1".
+// @return []container.DeviceRequest The device requests (nil when spec is empty).
+// @error error if the spec is malformed.
+//
+// @testcase TestSetBoxGPUsParsesSpec drives this through SetBoxGPUs.
+func parseGPUs(spec string) ([]container.DeviceRequest, error) {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return nil, nil
+	}
+	req := container.DeviceRequest{Capabilities: [][]string{{"gpu"}}}
+	switch {
+	case spec == "all":
+		req.Count = -1
+	case strings.HasPrefix(spec, "device="):
+		req.DeviceIDs = splitGPUList(strings.TrimPrefix(spec, "device="))
+	case !strings.Contains(spec, ","):
+		// A bare token is a count when numeric, otherwise a single device id.
+		if n, err := strconv.Atoi(spec); err == nil {
+			if n <= 0 {
+				return nil, fmt.Errorf("invalid --box-gpus count %q: must be a positive integer or \"all\"", spec)
+			}
+			req.Count = n
+		} else {
+			req.DeviceIDs = []string{spec}
+		}
+	default:
+		req.DeviceIDs = splitGPUList(spec)
+	}
+	if req.Count == 0 && len(req.DeviceIDs) == 0 {
+		return nil, fmt.Errorf("invalid --box-gpus %q: no GPUs selected", spec)
+	}
+	return []container.DeviceRequest{req}, nil
+}
+
+// splitGPUList splits a comma-separated GPU id list, trimming spaces and dropping
+// empty entries.
+//
+// @arg list A comma-separated list of GPU ids/indices.
+// @return []string The non-empty, space-trimmed entries.
+//
+// @testcase TestSetBoxGPUsParsesSpec exercises device-list parsing through SetBoxGPUs.
+func splitGPUList(list string) []string {
+	var ids []string
+	for _, p := range strings.Split(list, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			ids = append(ids, p)
+		}
+	}
+	return ids
+}
 
 // boxIDRe is the canonical box-id format: a single DNS hostname label (1-63
 // chars of lowercase letters, digits, or hyphens, not starting or ending with a
@@ -471,6 +551,7 @@ var authorizeURLRe = regexp.MustCompile(`https://claude\.com/cai/oauth/authorize
 // @testcase TestCreateRejectsDuplicateBoxID rejects a box ID already in use.
 // @testcase TestCreateRejectsBadBoxID rejects a malformed box ID before creating a container.
 // @testcase TestCreateAppliesBoxLimits applies the configured resource caps and no-new-privileges.
+// @testcase TestCreateAppliesBoxGPUs attaches the configured GPU device requests to the host config.
 // @testcase TestCreateRejectsOverMaxBoxes rejects a create once the box ceiling is reached.
 // @testcase TestCreatePullsMissingImage pulls the image then retries when it is absent.
 // @testcase TestCreateInjectsFiles copies injected files into the box before start.
@@ -601,6 +682,11 @@ func (m *Manager) Create(ctx context.Context, opts CreateOptions) (id, authorize
 	}
 	if m.limits.PidsLimit > 0 {
 		hostCfg.PidsLimit = &m.limits.PidsLimit
+	}
+	// Attach the spoke's configured GPUs (the `docker run --gpus` equivalent).
+	// Machine-local, so set only where the host actually has GPUs.
+	if len(m.boxGPUs) > 0 {
+		hostCfg.DeviceRequests = m.boxGPUs
 	}
 
 	resp, err := m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")

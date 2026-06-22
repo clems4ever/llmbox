@@ -49,6 +49,7 @@ func newSpokeCmd() *cobra.Command {
 		hubURL     string
 		token      string
 		statePath  string
+		boxGPUs    string
 	)
 	spokeCmd := &cobra.Command{
 		Use:           "spoke",
@@ -64,13 +65,14 @@ func newSpokeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runSpoke(cmd.Context(), cfg, hubURL, token, statePath)
+			return runSpoke(cmd.Context(), cfg, hubURL, token, statePath, boxGPUs)
 		},
 	}
 	spokeCmd.Flags().StringVarP(&configPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for Docker settings)")
 	spokeCmd.Flags().StringVar(&hubURL, "hub", "", "hub spoke-connect URL, e.g. wss://hub.example.com/spoke/connect")
 	spokeCmd.Flags().StringVar(&token, "token", "", "one-time join token (only needed for first enrollment)")
 	spokeCmd.Flags().StringVar(&statePath, "state", defaultSpokeStateFile, "file storing this spoke's issued credential")
+	spokeCmd.Flags().StringVar(&boxGPUs, "box-gpus", "", `GPUs to attach to every box on this spoke, like docker run --gpus (e.g. "all", "2", or "device=0,1"); empty attaches none`)
 
 	spokeCmd.AddCommand(newSpokeTokenCmd())
 	return spokeCmd
@@ -304,10 +306,12 @@ func shortID(id string) string {
 // @arg hubURL The hub's spoke-connect URL.
 // @arg token The one-time join token (required only for first enrollment).
 // @arg statePath The file storing this spoke's issued credential.
-// @error error if the Docker manager cannot be built, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
+// @arg boxGPUs The GPUs to attach to every box on this spoke (docker --gpus syntax; empty attaches none).
+// @error error if the Docker manager cannot be built, the GPU spec is malformed, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
 //
 // @testcase TestRunSpokeRequiresTokenOrCreds errors when neither a token nor saved credentials are available.
-func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePath string) error {
+// @testcase TestRunSpokeRejectsBadGPUs errors when the GPU spec is malformed.
+func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePath, boxGPUs string) error {
 	// A spoke holds no box image of its own: the hub resolves the image (its own
 	// default included) and sends it with every create, and validateCreate rejects
 	// any create that arrives without one. Pass no default here so nothing local
@@ -317,6 +321,10 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 		return err
 	}
 	mgr.SetBoxLimits(boxLimits(cfg.Box))
+	// GPUs are machine-local: attach the host's GPUs to every box this spoke runs.
+	if err := mgr.SetBoxGPUs(boxGPUs); err != nil {
+		return err
+	}
 	defer func() {
 		if err := mgr.Close(); err != nil {
 			log.Printf("closing docker manager: %v", err)

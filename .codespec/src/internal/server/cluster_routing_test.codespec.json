@@ -87,6 +87,12 @@
 			"documentation_hash": "6c6a1adac2f55da98172fee8548cde34a83d1d44b2f1b02d7876229478fc9434",
 			"definition_hash": "e63fc58bd4649da73ee8f699c2b39c7f103a035fbc12795c211870b7176e2064",
 			"reviewed_at": "2026-06-21T13:23:33.26131891Z"
+		},
+		{
+			"function_name": "TestDestroyBoxByBoxIDRoutesToSpoke",
+			"documentation_hash": "e621c13faf106c9bb2629bd45ac9c6e2366702793d782f934bf4f6ba36cfde2b",
+			"definition_hash": "3256a951be9fc376cbf4487793245aca9182526519ff9bd4c1f464437c8a56a9",
+			"reviewed_at": "2026-06-22T19:40:17.741979571Z"
 		}
 	]
 }

@@ -698,23 +698,49 @@ func (s *Server) BoxExec(ctx context.Context, boxID, command string) (docker.Exe
 	return mgr.Exec(ctx, sess.ContainerID, []string{"/bin/sh", "-c", command})
 }
 
+// boxMatchesSession reports whether idOrName identifies sess's box — by exact box
+// ID (what the admin UI sends) or by container-ID prefix in either direction (so
+// a short ID matches the full one, and vice versa). Used to route and clean up a
+// destroy regardless of which identifier the caller has.
+//
+// @arg sess The session to test.
+// @arg idOrName The box ID or container ID to match against.
+// @return bool Whether the identifier names this session's box.
+//
+// @testcase TestDestroyBoxByBoxIDRoutesToSpoke routes a box-ID destroy to the box's spoke.
+// @testcase TestDestroyRoutesToSpoke routes a container-ID destroy to the box's spoke.
+func boxMatchesSession(sess *session, idOrName string) bool {
+	if idOrName == "" {
+		return false
+	}
+	if sess.BoxID == idOrName {
+		return true
+	}
+	return sess.ContainerID != "" &&
+		(strings.HasPrefix(sess.ContainerID, idOrName) || strings.HasPrefix(idOrName, sess.ContainerID))
+}
+
 // DestroyBox destroys a box and forgets any session pointing at it.
 //
 // @arg ctx Context for the destroy request.
-// @arg idOrName The ID or name identifying the box to destroy.
+// @arg idOrName The box ID or container ID identifying the box to destroy.
 // @error error if the box's spoke is not connected, or the box cannot be destroyed.
 //
 // @testcase TestDestroyForgetsSession checks the session is forgotten after destroy.
 // @testcase TestDestroyRunsDestroyHooks checks the box's hook state is replayed to the destroy hooks.
 // @testcase TestDestroyRoutesToSpoke destroys a box on the spoke its session names.
+// @testcase TestDestroyBoxByBoxIDRoutesToSpoke destroys a remote box by its box ID.
 func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
 	// Route to the spoke the matching session names; default to the local spoke
 	// when no session matches (e.g. a raw container ID with no tracked session).
+	// idOrName may be a box ID (what the admin UI sends) or a container ID, so
+	// match on both — a box-ID-only match previously fell through to the local
+	// spoke and failed for boxes running on a remote spoke.
 	mgr := s.mgr
 	var spokeErr error
 	s.mu.Lock()
 	for _, sess := range s.byToken {
-		if strings.HasPrefix(sess.ContainerID, idOrName) || strings.HasPrefix(idOrName, sess.ContainerID) {
+		if boxMatchesSession(sess, idOrName) {
 			mgr, spokeErr = s.spoke(sess.SpokeName)
 			break
 		}
@@ -730,7 +756,7 @@ func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
 	var dropped []string
 	var torn []tornBox
 	for tok, sess := range s.byToken {
-		if strings.HasPrefix(sess.ContainerID, idOrName) || strings.HasPrefix(idOrName, sess.ContainerID) {
+		if boxMatchesSession(sess, idOrName) {
 			delete(s.byToken, tok)
 			dropped = append(dropped, tok)
 			torn = append(torn, tornBox{boxID: sess.BoxID, state: sess.HookState})

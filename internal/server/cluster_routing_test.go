@@ -144,6 +144,34 @@ func TestDestroyRoutesToSpoke(t *testing.T) {
 	}
 }
 
+// TestDestroyBoxByBoxIDRoutesToSpoke checks that destroying by BOX ID (what the
+// admin Remove button sends, not the container ID) routes to the box's spoke and
+// cleans up its session — it must not fall back to the local spoke.
+func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
+	local := &fakeMgr{}
+	edge := &fakeMgr{createID: "edge-id"}
+	s := newTestServer(local)
+	s.SetHub(&fakeHub{spokes: map[string]boxManager{"edge": edge}})
+
+	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	if err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+
+	if err := s.DestroyBox(context.Background(), "b1"); err != nil {
+		t.Fatalf("DestroyBox by box id: %v", err)
+	}
+	if len(edge.destroyed) != 1 || edge.destroyed[0] != "b1" {
+		t.Errorf("edge.destroyed = %v, want [b1] (routed to the box's spoke)", edge.destroyed)
+	}
+	if len(local.destroyed) != 0 {
+		t.Errorf("local.destroyed = %v, want none (must not fall back to local)", local.destroyed)
+	}
+	if s.lookup(sess.Token) != nil {
+		t.Error("session not removed after destroy by box id")
+	}
+}
+
 // TestSpokeStatusesReportsHealth checks SpokeStatuses returns the local spoke
 // plus each enrolled spoke, marking which are currently connected.
 func TestSpokeStatusesReportsHealth(t *testing.T) {
