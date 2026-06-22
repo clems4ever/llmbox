@@ -65,6 +65,12 @@
 			"documentation_hash": "ab9fdc92dc333bbda9e8bd8cc1f945bd97103f7a1733a906cd3a6133b584fc99",
 			"definition_hash": "6a33b7bf519b1bebdd998b06063910f171a3aee08e931862385be638b5763579",
 			"reviewed_at": "2026-06-19T20:23:20.581672127Z"
+		},
+		{
+			"function_name": "TestCheckStateWritable",
+			"documentation_hash": "2ec66bfd6e90dae0d29ccc6e51e2ddc0db024a9b0dfa16d506fd0b8990a75ff0",
+			"definition_hash": "0d03023148180040809aa27638295e275f438f9fdb65b191213162767f5fe0eb",
+			"reviewed_at": "2026-06-21T19:18:17.589968021Z"
 		}
 	]
 }

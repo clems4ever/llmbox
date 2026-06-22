@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sort"
 	"strings"
 	"syscall"
@@ -303,7 +304,7 @@ func shortID(id string) string {
 // @arg hubURL The hub's spoke-connect URL.
 // @arg token The one-time join token (required only for first enrollment).
 // @arg statePath The file storing this spoke's issued credential.
-// @error error if the Docker manager cannot be built, no credential or token is available, or enrollment is rejected.
+// @error error if the Docker manager cannot be built, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
 //
 // @testcase TestRunSpokeRequiresTokenOrCreds errors when neither a token nor saved credentials are available.
 func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePath string) error {
@@ -324,6 +325,16 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 	}
 	if creds == nil && token == "" {
 		return fmt.Errorf("a --token is required for first enrollment (no saved credentials at %s)", statePath)
+	}
+	// First enrollment consumes the one-time join token and the hub then mints a
+	// credential the spoke MUST persist. If the state path is not writable we would
+	// burn the token, fail to save, and reconnect-loop presenting the now-dead
+	// token. Verify writability up front so a misconfigured state location fails
+	// fast without spending the token.
+	if creds == nil {
+		if err := checkStateWritable(statePath); err != nil {
+			return err
+		}
 	}
 
 	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
@@ -360,6 +371,32 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 			backoff *= 2
 		}
 	}
+}
+
+// checkStateWritable verifies the spoke can persist its credential at path before
+// it enrolls. A first enrollment consumes the one-time join token, so a state
+// location the process cannot write (e.g. a container volume owned by root while
+// llmbox runs as the distroless nonroot user) must fail here rather than after the
+// token is already spent. It creates the parent directory and probes it with a
+// temporary file, removing the probe before returning.
+//
+// @arg path The credential file path the spoke will write on enrollment.
+// @error error if the parent directory cannot be created or is not writable.
+//
+// @testcase TestCheckStateWritable accepts a writable directory and rejects a read-only one.
+func checkStateWritable(path string) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("creating spoke state directory %s: %w", dir, err)
+	}
+	probe, err := os.CreateTemp(dir, ".llmbox-spoke-*.probe")
+	if err != nil {
+		return fmt.Errorf("spoke state path %s is not writable (if running in a container, ensure the mounted state volume is writable by the llmbox user): %w", path, err)
+	}
+	name := probe.Name()
+	_ = probe.Close()
+	_ = os.Remove(name)
+	return nil
 }
 
 // loadSpokeCreds reads the spoke's saved credentials from path. A missing file

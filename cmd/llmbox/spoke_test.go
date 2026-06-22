@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -198,6 +199,33 @@ func TestSpokeCredsRoundTrip(t *testing.T) {
 	got, err := loadSpokeCreds(path)
 	if err != nil || got == nil || *got != want {
 		t.Fatalf("loadSpokeCreds = (%+v,%v), want %+v", got, err, want)
+	}
+}
+
+// TestCheckStateWritable checks the pre-enrollment probe accepts a writable state
+// directory and rejects a read-only one, so a non-writable state location fails
+// fast instead of burning the one-time join token on an unsavable enrollment.
+func TestCheckStateWritable(t *testing.T) {
+	// Writable: a fresh temp dir, and a nested path whose parent does not exist yet.
+	dir := t.TempDir()
+	if err := checkStateWritable(filepath.Join(dir, "spoke.json")); err != nil {
+		t.Fatalf("checkStateWritable(writable) = %v, want nil", err)
+	}
+	if err := checkStateWritable(filepath.Join(dir, "sub", "spoke.json")); err != nil {
+		t.Fatalf("checkStateWritable(creatable subdir) = %v, want nil", err)
+	}
+
+	// Read-only: a 0500 directory the probe cannot create a file in. (Skipped when
+	// the test runs as root, which bypasses the permission bits.)
+	if os.Geteuid() == 0 {
+		t.Skip("running as root bypasses directory permissions")
+	}
+	ro := filepath.Join(dir, "readonly")
+	if err := os.Mkdir(ro, 0o500); err != nil {
+		t.Fatalf("mkdir read-only: %v", err)
+	}
+	if err := checkStateWritable(filepath.Join(ro, "spoke.json")); err == nil {
+		t.Fatal("checkStateWritable(read-only) = nil, want a not-writable error")
 	}
 }
 

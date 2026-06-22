@@ -20,9 +20,9 @@
 		},
 		{
 			"function_name": "runSpoke",
-			"documentation_hash": "f6b5a64cf46283aa148105dfceac05b94182687263b4251246ec8d3e954240cc",
-			"definition_hash": "ce19c9290bc6df27253bc6960c0ad89b33e0115bc43d5d8ba786df015c02f1e4",
-			"reviewed_at": "2026-06-21T14:39:24.334936047Z"
+			"documentation_hash": "ecb3778e6852636b517a0d8c69b66df175dd7b8d6e28d5b503adb844b3266d21",
+			"definition_hash": "93c668ee065e5d5ff4a4f38a6e33b83eca7dcc1784ed075ac16e6401bcb1ad08",
+			"reviewed_at": "2026-06-21T19:18:10.165137821Z"
 		},
 		{
 			"function_name": "loadSpokeCreds",
@@ -53,6 +53,12 @@
 			"documentation_hash": "361f729a46b7b00c279fbaac605200f846a5208a6151875cf479df0f763158ac",
 			"definition_hash": "76fd95af20b73f2f3c46dc33e3aa100d8e2eb6496b8c7836fba7cf4ee26b3728",
 			"reviewed_at": "2026-06-19T20:22:06.927142529Z"
+		},
+		{
+			"function_name": "checkStateWritable",
+			"documentation_hash": "cac1f2265b49e2a0c4c3a62a9cd4941aa2eeb9bf22eae7d76cd98b28b45abd3f",
+			"definition_hash": "0761b1a0f0c5c2c2671ebf5cd85c3074585f25cb2ebfd7787fec92f8e7eccd70",
+			"reviewed_at": "2026-06-21T19:18:10.178713971Z"
 		}
 	]
 }
