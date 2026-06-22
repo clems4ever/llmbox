@@ -187,6 +187,12 @@ type Server struct {
 	// command; empty falls back to a built-in default. Display-only.
 	spokeImage string
 
+	// boxImage is the per-box image (the hub's claude_image) stamped onto a
+	// creation request that names none, so the box image is resolved on the hub
+	// and remote spokes stay config-free. Empty leaves the choice to the spoke's
+	// own manager default.
+	boxImage string
+
 	// log records best-effort failures (persistence, cleanup, destroy hooks) that
 	// are not propagated to the caller; nil falls back to slog.Default().
 	log *slog.Logger
@@ -251,6 +257,15 @@ func (s *Server) SetHub(hub clusterHub) { s.hub = hub }
 //
 // @testcase TestAdminCreateSpokeMintsToken shows the configured image in the command.
 func (s *Server) SetSpokeImage(image string) { s.spokeImage = image }
+
+// SetBoxImage sets the per-box image (the hub's claude_image) the server stamps
+// onto a creation request that names none. Resolving the image on the hub keeps
+// remote spokes config-free: the spoke launches exactly the image it is sent.
+//
+// @arg image The per-box container image (e.g. ghcr.io/clems4ever/granular-llmbox-box:latest).
+//
+// @testcase TestCreateBoxDefaultsImageToBoxImage stamps the configured image onto an imageless request.
+func (s *Server) SetBoxImage(image string) { s.boxImage = image }
 
 // spoke resolves a spoke name to its box manager. An empty name or "local"
 // returns the in-process manager; any other name is looked up among the
@@ -416,7 +431,14 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 // @testcase TestCreateBoxRunsDestroyHooksOnCreateFailure replays hook state when box creation fails.
 // @testcase TestCreateBoxRoutesToSpoke creates the box on the named remote spoke.
 // @testcase TestCreateBoxUnknownSpoke errors when the named spoke is not connected.
+// @testcase TestCreateBoxDefaultsImageToBoxImage stamps the hub's box image when the request names none.
+// @testcase TestCreateBoxKeepsExplicitImage leaves a request's explicit image untouched.
 func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
+	// Resolve the box image on the hub so remote spokes stay config-free: a
+	// request that names no image inherits the hub's configured claude_image.
+	if opts.Image == "" {
+		opts.Image = s.boxImage
+	}
 	spokeName := opts.SpokeName
 	if spokeName == "" {
 		spokeName = localSpokeName

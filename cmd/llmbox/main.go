@@ -223,6 +223,7 @@ func run(parent context.Context, cfg *config.Config) error {
 
 	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store, auth)
 	srv.SetSpokeImage(cfg.Cluster.SpokeImage)
+	srv.SetBoxImage(cfg.ClaudeImage)
 
 	// Hub-and-spoke clustering: when enabled, accept spoke connections and let
 	// boxes be placed on remote spokes (boxes still default to the local spoke).

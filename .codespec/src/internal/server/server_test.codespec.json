@@ -206,6 +206,18 @@
 			"documentation_hash": "01c007d008dc96c06d63dfc4db0c607f833d52160aeed95f522318f03f25c725",
 			"definition_hash": "07ac7bf452e1f472e5d1b4b046c32b099e398b3fcf31ac3a31fdd4921ef115d4",
 			"reviewed_at": "2026-06-21T19:09:12.574715437Z"
+		},
+		{
+			"function_name": "TestCreateBoxDefaultsImageToBoxImage",
+			"documentation_hash": "ed9217dc454cd641cc225c4dc255fa2b985d6902d9f407c083e685d0b4219cff",
+			"definition_hash": "91c478b271ae6cfded947cb6e29f5bd3426fdfadc1bebf2be1d03a041632393b",
+			"reviewed_at": "2026-06-22T10:34:50.851778248Z"
+		},
+		{
+			"function_name": "TestCreateBoxKeepsExplicitImage",
+			"documentation_hash": "5ec9a3956176aa482267ecee6c5d90921ec53bd5835fa3051f77920714779f21",
+			"definition_hash": "20c5a984445602d7e664e2683ebc8c943031c2803d8f42b6296408ec9af1423a",
+			"reviewed_at": "2026-06-22T10:34:50.864112258Z"
 		}
 	]
 }
