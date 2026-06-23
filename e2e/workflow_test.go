@@ -91,7 +91,13 @@ func TestEndToEndWorkflow(t *testing.T) {
 	b := newBrowser(t) // skips the test if no chromedriver is available
 	t.Cleanup(b.close)
 	// When set (CI sets it), the run saves screenshots of the auth page here.
-	shotDir := os.Getenv("LLMBOX_E2E_SCREENSHOT_DIR")
+	// Resolve it against the module root so a relative path (as CI passes) lands
+	// at the repo-root .github/screenshots the workflow commits, not under e2e/
+	// where `go test` would otherwise put it.
+	shotDir, err := resolveScreenshotDir(os.Getenv("LLMBOX_E2E_SCREENSHOT_DIR"))
+	if err != nil {
+		t.Fatalf("resolving screenshot dir: %v", err)
+	}
 
 	// Open the activation page; it offers the "Sign in with Claude" link.
 	if err := b.wd.Get(authURL); err != nil {

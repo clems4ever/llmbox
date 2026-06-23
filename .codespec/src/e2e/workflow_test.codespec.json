@@ -1,0 +1,59 @@
+{
+	"functions": [
+		{
+			"function_name": "TestEndToEndWorkflow",
+			"documentation_hash": "c1998d3510cca65b445144277f76f2be838cd73df907053f068dd580567eff08",
+			"definition_hash": "390184fad79f1bc9f9adbaeb9cc18619f287b456299c2cdbef68124699c9a0cd",
+			"reviewed_at": "2026-06-23T09:09:28.587894121Z"
+		},
+		{
+			"function_name": "waitHealthy",
+			"documentation_hash": "00c7bd98365f0c1422a6b3a33e506bbb1d853108eef23f100d42fbe2636b467e",
+			"definition_hash": "57aa0e4066932708286ee88f21ea4646713b4a43811df9177a8d5c0b5d04f1d4",
+			"reviewed_at": "2026-06-23T09:09:28.589718916Z"
+		},
+		{
+			"function_name": "connectMCP",
+			"documentation_hash": "82e00aaea7e7057cb7ff9c510162f313f4c80adcbaccb8172a8d0a8e1e8e9da9",
+			"definition_hash": "8a74aa562d85d396c4128696bd748c56a9a168a185a1107f95f0fb038fe55bee",
+			"reviewed_at": "2026-06-23T09:09:28.590728049Z"
+		},
+		{
+			"function_name": "callTool",
+			"documentation_hash": "ccd198e91d0b03fa8f1d0c03a105f97065829e228322edf577a148ac0a842e6e",
+			"definition_hash": "dc2c78165876d5737e87d4f23a9da1de455de71ed9cd6813fa76270dd58e69b7",
+			"reviewed_at": "2026-06-23T09:09:28.591820036Z"
+		},
+		{
+			"function_name": "callToolRaw",
+			"documentation_hash": "5f71e7cd25d40e62049d0ac37d97047199b2603794d51869bd59d13e070994f8",
+			"definition_hash": "9cc571717037cf9b86502305fb1411da5de6d97b9acd12d8796812dc64dec7da",
+			"reviewed_at": "2026-06-23T09:09:28.592912148Z"
+		},
+		{
+			"function_name": "Error",
+			"receiver": "toolError",
+			"documentation_hash": "e1cb0767179cb9ce64eaf36f4e88a6607c6f202eb94f82b2c955f2c92e3b620c",
+			"definition_hash": "afdd757cd808edd1d05b9ba534fa6876bdcf48ac6651ced6e9e6e636ba38fb00",
+			"reviewed_at": "2026-06-23T09:09:28.594171291Z"
+		},
+		{
+			"function_name": "assertNoOAuthLeak",
+			"documentation_hash": "980f4c7c0adf791a990bab2fd5bf95a7543c7d3fdf73539b51b5e54892785a09",
+			"definition_hash": "74b349e8497746f283254ea37389874b2e0b5f5a702edeca3c837f77af168e1e",
+			"reviewed_at": "2026-06-23T09:09:28.595537161Z"
+		},
+		{
+			"function_name": "listMentionsReadyBox",
+			"documentation_hash": "b755eb60eb833466fcffae72e1d416e9fd568564c2bb6fad884234f823a736f1",
+			"definition_hash": "033f3e9534f3b5c0e0aad71d79f4451ddeb6ce9bdc7a034b27a2656e4f434556",
+			"reviewed_at": "2026-06-23T09:09:28.596990776Z"
+		},
+		{
+			"function_name": "by",
+			"documentation_hash": "5c0c8018824d1463ebdfbf01be4dea7e76a1157880b667be50cba045bf932be0",
+			"definition_hash": "a2fe1ebe291fb999593b65dfe41d424611bdb2f47af8b515f501be73b28fcab4",
+			"reviewed_at": "2026-06-23T09:09:28.598598941Z"
+		}
+	]
+}
