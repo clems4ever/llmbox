@@ -1,0 +1,75 @@
+{
+	"functions": [
+		{
+			"function_name": "newBrowser",
+			"documentation_hash": "1cc34f2756189502eaf1894c867a967930157b0964fda0ed39bf7d3e7cb3a54e",
+			"definition_hash": "87928d60678c8b39c73243fb8b52e845835c9d376e984ce419eed145be1b0339",
+			"reviewed_at": "2026-06-23T09:06:32.319187054Z"
+		},
+		{
+			"function_name": "close",
+			"receiver": "browser",
+			"documentation_hash": "24dea6bdcd9f83e6dad811263eab3e964a0081a22345a49619c4a59eaa58628a",
+			"definition_hash": "b2deab3cc6a822faafce01eb02c8d4b2c85ca3519ddf9a40b7689b32bdad660e",
+			"reviewed_at": "2026-06-23T09:06:32.320607769Z"
+		},
+		{
+			"function_name": "waitFor",
+			"receiver": "browser",
+			"documentation_hash": "a49175a59b82bc19bbfd30237bc8e330136c273797860cfc7b800a81f53cd781",
+			"definition_hash": "9b5a02c24f97923bc515239754e62eb844fd2e48a81d75414ac165d553d3d79a",
+			"reviewed_at": "2026-06-23T09:06:32.321755595Z"
+		},
+		{
+			"function_name": "resizeForScreenshot",
+			"receiver": "browser",
+			"documentation_hash": "1c05fe4c310daa3220f2bd98ad975e70c02cd56646960c4d94204200ef66a968",
+			"definition_hash": "8b1bee3e25c41ab12c41fce1b7700c75630586de3f60bc85b9bc1ae04066e02c",
+			"reviewed_at": "2026-06-23T09:06:32.322847321Z"
+		},
+		{
+			"function_name": "resizeForMobileScreenshot",
+			"receiver": "browser",
+			"documentation_hash": "1def6f2047fd1f9c3e5c5c05340a80a5739b05087d6dd8bb8acb616182ccf29e",
+			"definition_hash": "a134874818f93318bac9555c9f78edc9652a71c3a21f125026765f049f921b97",
+			"reviewed_at": "2026-06-23T09:06:32.323962604Z"
+		},
+		{
+			"function_name": "saveScreenshot",
+			"receiver": "browser",
+			"documentation_hash": "eadad3a793cdd47f9081b4a769194c9bcdc7adc86b284c4164aa7d92befea60c",
+			"definition_hash": "1d61c560cdbed3ae1353f778e29fa048a8c1aa2a99fdbbbd0f45c85f59ca581c",
+			"reviewed_at": "2026-06-23T09:06:32.325080365Z"
+		},
+		{
+			"function_name": "moduleRoot",
+			"documentation_hash": "3e01204e20f90412c39f351d033a93b5372638766cfa9cf4b30cab3c3a7a26a9",
+			"definition_hash": "e36cf4162db3cff78bad8cc8065e877eb08c28e3073b0db4200d0611e8d06f63",
+			"reviewed_at": "2026-06-23T09:06:32.3262044Z"
+		},
+		{
+			"function_name": "resolveScreenshotDir",
+			"documentation_hash": "5b0f7d1dac6a3d5294af392bc74a013202c5d30f91fd3e03c9b7cfa74875b9f9",
+			"definition_hash": "75d29c00e39793efbbdc4ddff82f8da4a8ba8e442608e252dd1c9745a3797ae3",
+			"reviewed_at": "2026-06-23T09:06:32.327451649Z"
+		},
+		{
+			"function_name": "findChromeDriver",
+			"documentation_hash": "1d0706070d2c738095e9eefa5ad9e9239f9f5386b975dc3c9efc2530807e09d6",
+			"definition_hash": "d2846d58b6a686d6b737a1eca221b5f87eb45c14622272e190a4f58ff49f1460",
+			"reviewed_at": "2026-06-23T09:06:32.328628361Z"
+		},
+		{
+			"function_name": "findChromeBinary",
+			"documentation_hash": "6fe7568c64da73972f9cda8bf9cac393395788cb9a7b1f51a48e8899ce7494b8",
+			"definition_hash": "37e7ca0b3bdbb3fbc0ad0fc1099b87db0d5ae084d225bf9c21b16ea549f0a66b",
+			"reviewed_at": "2026-06-23T09:06:32.329582764Z"
+		},
+		{
+			"function_name": "freePort",
+			"documentation_hash": "4cf48fb6b6c3ab508d181cbac034b0abe5f8ced4848e4d38cd52c17a1617de07",
+			"definition_hash": "8cd44c55c4d1f01b30602038ec0acf7fe0475bf4b98c6657d675e6e176d9af68",
+			"reviewed_at": "2026-06-23T09:06:48.291635669Z"
+		}
+	]
+}

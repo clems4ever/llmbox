@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -227,6 +228,80 @@ func TestAdminCreateSpokeMintsToken(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("result page missing %q in the spoke command", want)
 		}
+	}
+}
+
+// TestAdminActionJSON checks that admin actions answer an AJAX caller (Accept:
+// application/json) with a JSON result instead of an HTML render or redirect, so
+// the page updates in place and a dashboard refresh never resubmits a create.
+func TestAdminActionJSON(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	h := s.Handler(s.MCPServer("t", "v"))
+
+	jsonPost := func(path string, form url.Values) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Accept", "application/json")
+		req.AddCookie(signIn(t, st, true, false))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+
+	// Create-spoke returns the token/command as JSON (not an HTML result page).
+	rec := jsonPost("/admin/spokes", url.Values{"name": {"edge-1"}, "csrf": {"CSRF"}})
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "application/json") {
+		t.Fatalf("content-type = %q, want json (body %q)", ct, rec.Body.String())
+	}
+	var ok struct {
+		OK       bool `json:"ok"`
+		NewSpoke *struct {
+			Token   string `json:"token"`
+			Command string `json:"command"`
+		} `json:"newSpoke"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &ok); err != nil {
+		t.Fatalf("decode: %v (body %q)", err, rec.Body.String())
+	}
+	if !ok.OK || ok.NewSpoke == nil || ok.NewSpoke.Token == "" {
+		t.Fatalf("unexpected result %+v", ok)
+	}
+	if !strings.Contains(ok.NewSpoke.Command, "docker run") {
+		t.Errorf("command missing docker run: %q", ok.NewSpoke.Command)
+	}
+
+	// A validation failure comes back as ok:false with an error message.
+	rec = jsonPost("/admin/boxes", url.Values{"box_id": {""}, "csrf": {"CSRF"}})
+	var er struct {
+		OK  bool   `json:"ok"`
+		Err string `json:"err"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &er); err != nil {
+		t.Fatalf("decode err: %v (body %q)", err, rec.Body.String())
+	}
+	if er.OK || er.Err == "" {
+		t.Fatalf("want ok:false with an error, got %+v", er)
+	}
+}
+
+// TestAdminJSServed checks the progressive-enhancement script is served as
+// JavaScript at /admin.js.
+func TestAdminJSServed(t *testing.T) {
+	s, _, _ := newAdminServer(t)
+	h := s.Handler(s.MCPServer("t", "v"))
+
+	req := httptest.NewRequest(http.MethodGet, "/admin.js", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "javascript") {
+		t.Errorf("content-type = %q, want javascript", ct)
+	}
+	if !strings.Contains(rec.Body.String(), "addEventListener") {
+		t.Error("admin.js body missing expected script content")
 	}
 }
 

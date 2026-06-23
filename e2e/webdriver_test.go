@@ -163,6 +163,55 @@ func (b *browser) saveScreenshot(t *testing.T, dir, name string) {
 	t.Logf("wrote screenshot %s (%d bytes)", path, len(png))
 }
 
+// moduleRoot walks up from the current working directory to the directory that
+// holds go.mod. `go test` runs each package's tests with that package's source
+// directory as the working directory, so a relative screenshot path would
+// otherwise resolve under e2e/ rather than the repo root the CI workflow commits
+// and uploads — this anchors it back at the module root.
+//
+// @return string The module root directory (the one containing go.mod).
+// @error error if no go.mod is found between the working directory and the filesystem root.
+//
+// @testcase TestResolveScreenshotDir resolves a relative dir against the module root.
+func moduleRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("go.mod not found above working directory")
+		}
+		dir = parent
+	}
+}
+
+// resolveScreenshotDir resolves the configured screenshot output directory. An
+// empty or absolute dir is returned unchanged; a relative dir is resolved against
+// the module root rather than the test's working directory (which `go test` sets
+// to the package dir) so CI's LLMBOX_E2E_SCREENSHOT_DIR=.github/screenshots lands
+// at the repo-root path the workflow's commit/upload steps look at.
+//
+// @arg dir The configured screenshot directory (possibly empty, relative, or absolute).
+// @return string The resolved directory: empty in, empty out; absolute unchanged.
+// @error error if the module root cannot be located for a relative dir.
+//
+// @testcase TestResolveScreenshotDir resolves a relative dir against the module root.
+func resolveScreenshotDir(dir string) (string, error) {
+	if dir == "" || filepath.IsAbs(dir) {
+		return dir, nil
+	}
+	root, err := moduleRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, dir), nil
+}
+
 // findChromeDriver locates a chromedriver binary, honouring $CHROMEWEBDRIVER (the
 // directory GitHub-hosted runners expose) and falling back to the PATH. It
 // returns "" when none is found.

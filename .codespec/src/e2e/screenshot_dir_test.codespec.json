@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "TestResolveScreenshotDir",
+			"documentation_hash": "20adc4b8439c55326de87abb3e74876490af329b502dc89f1b33f452b8f7402b",
+			"definition_hash": "56042cecf72695c6457c5c348104f5c59ab74f5acd04dd9f8b72ca9281974b02",
+			"reviewed_at": "2026-06-23T09:09:28.599182744Z"
+		}
+	]
+}
