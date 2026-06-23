@@ -119,8 +119,9 @@
 {{else}}
   <h1>Cluster admin</h1>
 
-  {{if .Flash}}<div class="banner {{if .FlashOK}}ok{{else}}err{{end}}">{{.Flash}}</div>{{end}}
+  <div id="flash">{{if .Flash}}<div class="banner {{if .FlashOK}}ok{{else}}err{{end}}">{{.Flash}}</div>{{end}}</div>
 
+  <div id="results">
   {{if .NewSpoke}}
   <div class="result">
     <strong>Join token for spoke "{{.NewSpoke.Name}}" — one-time use, shown once.</strong>
@@ -139,8 +140,9 @@
     <div class="val"><a href="{{.NewBox.AuthURL}}" target="_blank" rel="noopener noreferrer">{{.NewBox.AuthURL}}</a></div>
   </div>
   {{end}}
+  </div>
 
-  <div class="card">
+  <div class="card" id="spokes-card">
     <h2>Spokes</h2>
     <table>
       <thead><tr><th>Name</th><th>Status</th><th>Enrolled</th><th></th></tr></thead>
@@ -197,7 +199,7 @@
     {{end}}
   </div>
 
-  <div class="card">
+  <div class="card" id="boxes-card">
     <h2>Boxes</h2>
     <table>
       <thead><tr><th>Box ID</th><th>Spoke</th><th>Image</th><th>State</th><th>Phase</th><th>Created</th><th>Activation</th><th></th></tr></thead>
@@ -243,6 +245,8 @@
       <button type="submit">Create box</button>
     </form>
   </div>
+
+  <script src="/admin.js" defer></script>
 {{end}}
 </div>
 </body>

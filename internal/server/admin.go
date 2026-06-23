@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/subtle"
 	_ "embed"
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -30,11 +31,26 @@ const defaultAdminTokenTTL = time.Hour
 // @testcase TestAdminDashboardGate drives the registered routes through the handler.
 func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin", s.handleAdmin)
+	mux.HandleFunc("GET /admin.js", s.handleAdminJS)
 	mux.HandleFunc("POST /admin/spokes", s.handleAdminCreateSpoke)
 	mux.HandleFunc("POST /admin/spokes/delete", s.handleAdminDropSpoke)
 	mux.HandleFunc("POST /admin/tokens/delete", s.handleAdminRevokeToken)
 	mux.HandleFunc("POST /admin/boxes", s.handleAdminCreateBox)
 	mux.HandleFunc("POST /admin/boxes/delete", s.handleAdminDeleteBox)
+}
+
+// handleAdminJS serves the admin page's progressive-enhancement script. It is a
+// static, secret-free asset (kept in its own file so its braces don't collide
+// with the HTML template's delimiters), so it needs no auth.
+//
+// @arg w The response writer.
+// @arg r The request (unused beyond routing).
+//
+// @testcase TestAdminJSServed serves the script with a javascript content type.
+func (s *Server) handleAdminJS(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	_, _ = w.Write([]byte(adminJS))
 }
 
 // adminToken is one outstanding join token rendered in the admin UI.
@@ -64,16 +80,16 @@ type adminBox struct {
 
 // newSpokeResult is the one-time output shown after minting a join token.
 type newSpokeResult struct {
-	Name    string
-	Token   string
-	Command string
+	Name    string `json:"name"`
+	Token   string `json:"token"`
+	Command string `json:"command"`
 }
 
 // newBoxResult is the one-time output shown after creating a box.
 type newBoxResult struct {
-	BoxID   string
-	Spoke   string
-	AuthURL string
+	BoxID   string `json:"boxId"`
+	Spoke   string `json:"spoke"`
+	AuthURL string `json:"authUrl"`
 }
 
 // adminPageData is the admin page template context.
@@ -302,12 +318,17 @@ func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) 
 		s.redirectAdmin(w, r, "", "creating token: "+err.Error())
 		return
 	}
-	data := s.adminDashboard(r, ls)
-	data.NewSpoke = &newSpokeResult{
+	res := &newSpokeResult{
 		Name:    name,
 		Token:   token,
 		Command: s.spokeRunCommand(name, token),
 	}
+	if wantsJSON(r) {
+		writeJSON(w, map[string]any{"ok": true, "newSpoke": res})
+		return
+	}
+	data := s.adminDashboard(r, ls)
+	data.NewSpoke = res
 	s.renderAdmin(w, data)
 }
 
@@ -430,12 +451,17 @@ func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
 		s.redirectAdmin(w, r, "", "creating box: "+err.Error())
 		return
 	}
-	data := s.adminDashboard(r, ls)
-	data.NewBox = &newBoxResult{
+	res := &newBoxResult{
 		BoxID:   sess.BoxID,
 		Spoke:   sess.SpokeName,
 		AuthURL: s.AuthPageURL(sess.Token),
 	}
+	if wantsJSON(r) {
+		writeJSON(w, map[string]any{"ok": true, "newBox": res})
+		return
+	}
+	data := s.adminDashboard(r, ls)
+	data.NewBox = res
 	s.renderAdmin(w, data)
 }
 
@@ -462,8 +488,10 @@ func (s *Server) handleAdminDeleteBox(w http.ResponseWriter, r *http.Request) {
 	s.redirectAdmin(w, r, "removed box "+boxID, "")
 }
 
-// redirectAdmin redirects back to the dashboard carrying a one-line flash message
-// (msg for success, err for failure) as a query parameter (post/redirect/get).
+// redirectAdmin reports an action's outcome back to the dashboard. For an AJAX
+// caller (Accept: application/json) it writes a small JSON result so the page can
+// update in place and a browser refresh never resubmits; for a plain form post it
+// falls back to post/redirect/get, carrying a one-line flash as a query param.
 //
 // @arg w The response writer.
 // @arg r The request being handled.
@@ -471,7 +499,12 @@ func (s *Server) handleAdminDeleteBox(w http.ResponseWriter, r *http.Request) {
 // @arg errMsg An error message, or "".
 //
 // @testcase TestAdminDropSpokeRemovesAndKicks follows the redirect after an action.
+// @testcase TestAdminActionJSON returns a JSON result to an AJAX caller.
 func (s *Server) redirectAdmin(w http.ResponseWriter, r *http.Request, msg, errMsg string) {
+	if wantsJSON(r) {
+		writeJSON(w, map[string]any{"ok": errMsg == "", "msg": msg, "err": errMsg})
+		return
+	}
 	u := "/admin"
 	if msg != "" {
 		u += "?msg=" + url.QueryEscape(msg)
@@ -479,6 +512,33 @@ func (s *Server) redirectAdmin(w http.ResponseWriter, r *http.Request, msg, errM
 		u += "?err=" + url.QueryEscape(errMsg)
 	}
 	http.Redirect(w, r, u, http.StatusSeeOther)
+}
+
+// wantsJSON reports whether the caller prefers a JSON response (the admin page's
+// AJAX requests set Accept: application/json), as opposed to a form-post browser
+// navigation that expects an HTML redirect.
+//
+// @arg r The request to inspect.
+// @return bool Whether a JSON response is preferred.
+//
+// @testcase TestAdminActionJSON drives the JSON branch via this check.
+func wantsJSON(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "application/json")
+}
+
+// writeJSON writes v as a JSON body with a 200 status. Action outcomes carry an
+// "ok" flag, so failures are reported in the body rather than via the status.
+//
+// @arg w The response writer.
+// @arg v The value to encode.
+//
+// @testcase TestAdminActionJSON decodes a body written here.
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		http.Error(w, "encoding response", http.StatusInternalServerError)
+	}
 }
 
 // spokeConnectURL is the WebSocket URL a spoke dials to join this hub, derived
@@ -520,3 +580,10 @@ var adminTmplSrc string
 
 // adminTmpl is the parsed admin page template.
 var adminTmpl = template.Must(template.New("admin").Parse(adminTmplSrc))
+
+// adminJS is the admin page's progressive-enhancement script, served at
+// /admin.js. It lives in its own file (not inlined in the template) so its JS
+// braces never collide with the html/template {{ }} delimiters.
+//
+//go:embed admin.js
+var adminJS string
