@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
-	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -39,7 +38,7 @@ func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/boxes/delete", s.handleAdminDeleteBox)
 }
 
-// handleAdminJS serves the admin page's progressive-enhancement script. It is a
+// handleAdminJS serves the admin page's client script. It is a
 // static, secret-free asset (kept in its own file so its braces don't collide
 // with the HTML template's delimiters), so it needs no auth.
 //
@@ -107,12 +106,6 @@ type adminPageData struct {
 	Tokens          []adminToken
 	Boxes           []adminBox
 	ConnectedSpokes []string
-
-	// Flash banner from a redirect (e.g. after a delete) and one-time results.
-	Flash    string
-	FlashOK  bool
-	NewSpoke *newSpokeResult
-	NewBox   *newBoxResult
 }
 
 // handleAdmin renders the admin dashboard for an authorized admin, the admin
@@ -134,13 +127,7 @@ func (s *Server) handleAdmin(w http.ResponseWriter, r *http.Request) {
 		s.renderAdmin(w, adminPageData{SignedIn: true, NotAdmin: true, Email: ls.Email})
 		return
 	}
-	data := s.adminDashboard(r, ls)
-	if msg := r.URL.Query().Get("msg"); msg != "" {
-		data.Flash, data.FlashOK = msg, true
-	} else if e := r.URL.Query().Get("err"); e != "" {
-		data.Flash, data.FlashOK = e, false
-	}
-	s.renderAdmin(w, data)
+	s.renderAdmin(w, s.adminDashboard(r, ls))
 }
 
 // adminDashboard builds the base dashboard data (spokes, tokens, boxes) for an
@@ -265,6 +252,7 @@ func toAdminBoxes(boxes []docker.Box) []adminBox {
 // @return bool True when the request may proceed.
 //
 // @testcase TestAdminActionsRequireAdminAndCSRF rejects non-admins and bad CSRF tokens.
+// @testcase TestAdminDeleteBox accepts the admin page's urlencoded fetch submit.
 func (s *Server) requireAdminPost(w http.ResponseWriter, r *http.Request) (loginSession, bool) {
 	ls, ok := s.currentLogin(r)
 	if !ok {
@@ -287,49 +275,41 @@ func (s *Server) requireAdminPost(w http.ResponseWriter, r *http.Request) (login
 }
 
 // handleAdminCreateSpoke mints a one-time join token for a named spoke and
-// renders the token and ready-to-run spoke command once. Because the token is
+// returns the token and ready-to-run spoke command as JSON. Because the token is
 // minted through the running hub, it lands in the very store the hub reads.
 //
-// @arg w The response writer the result page is rendered to.
+// @arg w The response writer the JSON result is written to.
 // @arg r The request carrying the spoke name and optional TTL.
 //
 // @testcase TestAdminCreateSpokeMintsToken mints a token in the server's own store.
 func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) {
-	ls, ok := s.requireAdminPost(w, r)
-	if !ok {
+	if _, ok := s.requireAdminPost(w, r); !ok {
 		return
 	}
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	if name == "" {
-		s.redirectAdmin(w, r, "", "spoke name is required")
+		writeResult(w, "", "spoke name is required")
 		return
 	}
 	ttl := defaultAdminTokenTTL
 	if v := strings.TrimSpace(r.PostFormValue("ttl")); v != "" {
 		d, err := time.ParseDuration(v)
 		if err != nil || d <= 0 {
-			s.redirectAdmin(w, r, "", "invalid TTL (use e.g. 1h, 30m)")
+			writeResult(w, "", "invalid TTL (use e.g. 1h, 30m)")
 			return
 		}
 		ttl = d
 	}
 	token, err := cluster.CreateJoinToken(s.store, name, ttl, time.Now())
 	if err != nil {
-		s.redirectAdmin(w, r, "", "creating token: "+err.Error())
+		writeResult(w, "", "creating token: "+err.Error())
 		return
 	}
-	res := &newSpokeResult{
+	writeJSON(w, map[string]any{"ok": true, "newSpoke": &newSpokeResult{
 		Name:    name,
 		Token:   token,
 		Command: s.spokeRunCommand(name, token),
-	}
-	if wantsJSON(r) {
-		writeJSON(w, map[string]any{"ok": true, "newSpoke": res})
-		return
-	}
-	data := s.adminDashboard(r, ls)
-	data.NewSpoke = res
-	s.renderAdmin(w, data)
+	}})
 }
 
 // defaultSpokeImage is the image named in the spoke command when none was
@@ -367,7 +347,7 @@ func (s *Server) spokeRunCommand(name, token string) string {
 // join tokens, then force-closes its live connection so it is dropped at once
 // and cannot reconnect.
 //
-// @arg w The response writer (redirected back to the dashboard).
+// @arg w The response writer the JSON result is written to.
 // @arg r The request carrying the spoke name.
 //
 // @testcase TestAdminDropSpokeRemovesAndKicks deletes the record and disconnects the live link.
@@ -378,11 +358,11 @@ func (s *Server) handleAdminDropSpoke(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	if name == "" {
-		s.redirectAdmin(w, r, "", "spoke name is required")
+		writeResult(w, "", "spoke name is required")
 		return
 	}
 	if err := s.store.DeleteSpoke(name); err != nil {
-		s.redirectAdmin(w, r, "", "dropping spoke: "+err.Error())
+		writeResult(w, "", "dropping spoke: "+err.Error())
 		return
 	}
 	// Revoke any outstanding join tokens for this spoke so it can't re-enroll.
@@ -398,12 +378,12 @@ func (s *Server) handleAdminDropSpoke(w http.ResponseWriter, r *http.Request) {
 	if s.hub != nil {
 		s.hub.Disconnect(name)
 	}
-	s.redirectAdmin(w, r, "dropped spoke "+name, "")
+	writeResult(w, "dropped spoke "+name, "")
 }
 
 // handleAdminRevokeToken deletes a single outstanding join token by its full ID.
 //
-// @arg w The response writer (redirected back to the dashboard).
+// @arg w The response writer the JSON result is written to.
 // @arg r The request carrying the token ID.
 //
 // @testcase TestAdminRevokeToken deletes the token by ID.
@@ -414,31 +394,30 @@ func (s *Server) handleAdminRevokeToken(w http.ResponseWriter, r *http.Request) 
 	}
 	id := strings.TrimSpace(r.PostFormValue("id"))
 	if id == "" {
-		s.redirectAdmin(w, r, "", "token id is required")
+		writeResult(w, "", "token id is required")
 		return
 	}
 	if err := s.store.DeleteJoinToken(id); err != nil {
-		s.redirectAdmin(w, r, "", "revoking token: "+err.Error())
+		writeResult(w, "", "revoking token: "+err.Error())
 		return
 	}
-	s.redirectAdmin(w, r, "revoked join token", "")
+	writeResult(w, "revoked join token", "")
 }
 
-// handleAdminCreateBox creates a box on the chosen spoke and renders its auth URL
-// once (the box still needs a user to complete activation).
+// handleAdminCreateBox creates a box on the chosen spoke and returns its auth URL
+// as JSON (the box still needs a user to complete activation).
 //
-// @arg w The response writer the result page is rendered to.
+// @arg w The response writer the JSON result is written to.
 // @arg r The request carrying the box ID, optional image/description, and spoke.
 //
 // @testcase TestAdminCreateBox creates a box on the requested spoke.
 func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
-	ls, ok := s.requireAdminPost(w, r)
-	if !ok {
+	if _, ok := s.requireAdminPost(w, r); !ok {
 		return
 	}
 	boxID := strings.TrimSpace(r.PostFormValue("box_id"))
 	if boxID == "" {
-		s.redirectAdmin(w, r, "", "box id is required")
+		writeResult(w, "", "box id is required")
 		return
 	}
 	sess, err := s.CreateBox(r.Context(), docker.CreateOptions{
@@ -448,26 +427,19 @@ func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
 		SpokeName:   strings.TrimSpace(r.PostFormValue("spoke")),
 	})
 	if err != nil {
-		s.redirectAdmin(w, r, "", "creating box: "+err.Error())
+		writeResult(w, "", "creating box: "+err.Error())
 		return
 	}
-	res := &newBoxResult{
+	writeJSON(w, map[string]any{"ok": true, "newBox": &newBoxResult{
 		BoxID:   sess.BoxID,
 		Spoke:   sess.SpokeName,
 		AuthURL: s.AuthPageURL(sess.Token),
-	}
-	if wantsJSON(r) {
-		writeJSON(w, map[string]any{"ok": true, "newBox": res})
-		return
-	}
-	data := s.adminDashboard(r, ls)
-	data.NewBox = res
-	s.renderAdmin(w, data)
+	}})
 }
 
 // handleAdminDeleteBox removes a box by its box ID.
 //
-// @arg w The response writer (redirected back to the dashboard).
+// @arg w The response writer the JSON result is written to.
 // @arg r The request carrying the box ID.
 //
 // @testcase TestAdminDeleteBox destroys the box by ID.
@@ -478,52 +450,29 @@ func (s *Server) handleAdminDeleteBox(w http.ResponseWriter, r *http.Request) {
 	}
 	boxID := strings.TrimSpace(r.PostFormValue("box_id"))
 	if boxID == "" {
-		s.redirectAdmin(w, r, "", "box id is required")
+		writeResult(w, "", "box id is required")
 		return
 	}
 	if err := s.DestroyBox(r.Context(), boxID); err != nil {
-		s.redirectAdmin(w, r, "", "removing box: "+err.Error())
+		writeResult(w, "", "removing box: "+err.Error())
 		return
 	}
-	s.redirectAdmin(w, r, "removed box "+boxID, "")
+	writeResult(w, "removed box "+boxID, "")
 }
 
-// redirectAdmin reports an action's outcome back to the dashboard. For an AJAX
-// caller (Accept: application/json) it writes a small JSON result so the page can
-// update in place and a browser refresh never resubmits; for a plain form post it
-// falls back to post/redirect/get, carrying a one-line flash as a query param.
+// writeResult reports an action's outcome to the admin page as a small
+// {ok,msg,err} JSON object. The page is driven entirely over fetch(), so this
+// is the only response shape an action produces — there is no non-JS redirect
+// fallback to keep in sync.
 //
-// @arg w The response writer.
-// @arg r The request being handled.
+// @arg w The response writer the JSON result is written to.
 // @arg msg A success message, or "".
 // @arg errMsg An error message, or "".
 //
-// @testcase TestAdminDropSpokeRemovesAndKicks follows the redirect after an action.
-// @testcase TestAdminActionJSON returns a JSON result to an AJAX caller.
-func (s *Server) redirectAdmin(w http.ResponseWriter, r *http.Request, msg, errMsg string) {
-	if wantsJSON(r) {
-		writeJSON(w, map[string]any{"ok": errMsg == "", "msg": msg, "err": errMsg})
-		return
-	}
-	u := "/admin"
-	if msg != "" {
-		u += "?msg=" + url.QueryEscape(msg)
-	} else if errMsg != "" {
-		u += "?err=" + url.QueryEscape(errMsg)
-	}
-	http.Redirect(w, r, u, http.StatusSeeOther)
-}
-
-// wantsJSON reports whether the caller prefers a JSON response (the admin page's
-// AJAX requests set Accept: application/json), as opposed to a form-post browser
-// navigation that expects an HTML redirect.
-//
-// @arg r The request to inspect.
-// @return bool Whether a JSON response is preferred.
-//
-// @testcase TestAdminActionJSON drives the JSON branch via this check.
-func wantsJSON(r *http.Request) bool {
-	return strings.Contains(r.Header.Get("Accept"), "application/json")
+// @testcase TestAdminDropSpokeRemovesAndKicks reads the ok result after an action.
+// @testcase TestAdminActionJSON reads an action's JSON result.
+func writeResult(w http.ResponseWriter, msg, errMsg string) {
+	writeJSON(w, map[string]any{"ok": errMsg == "", "msg": msg, "err": errMsg})
 }
 
 // writeJSON writes v as a JSON body with a 200 status. Action outcomes carry an
@@ -581,7 +530,7 @@ var adminTmplSrc string
 // adminTmpl is the parsed admin page template.
 var adminTmpl = template.Must(template.New("admin").Parse(adminTmplSrc))
 
-// adminJS is the admin page's progressive-enhancement script, served at
+// adminJS is the admin page's client script, served at
 // /admin.js. It lives in its own file (not inlined in the template) so its JS
 // braces never collide with the html/template {{ }} delimiters.
 //
