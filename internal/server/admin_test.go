@@ -14,6 +14,30 @@ import (
 	"github.com/clems4ever/llmbox/internal/docker"
 )
 
+// adminResult is the {ok,msg,err} JSON every admin action returns.
+type adminResult struct {
+	OK  bool   `json:"ok"`
+	Msg string `json:"msg"`
+	Err string `json:"err"`
+}
+
+// decodeAdminResult asserts a 200 JSON response and returns the decoded result.
+//
+// @arg t The test, failed on a non-200 status or a body that won't decode.
+// @arg rec The recorded response.
+// @return adminResult The decoded {ok,msg,err} result.
+func decodeAdminResult(t *testing.T, rec *httptest.ResponseRecorder) adminResult {
+	t.Helper()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d (body %q), want 200", rec.Code, strings.TrimSpace(rec.Body.String()))
+	}
+	var r adminResult
+	if err := json.Unmarshal(rec.Body.Bytes(), &r); err != nil {
+		t.Fatalf("decoding result: %v (body %q)", err, rec.Body.String())
+	}
+	return r
+}
+
 // newAdminServer builds an admin-enabled Server (admin@corp.com on the allow
 // list) backed by a real bbolt store and a fake box manager.
 func newAdminServer(t *testing.T) (*Server, *fakeMgr, Store) {
@@ -223,10 +247,21 @@ func TestAdminCreateSpokeMintsToken(t *testing.T) {
 	if err != nil || len(tokens) != 1 || tokens[0].Name != "edge-1" {
 		t.Fatalf("tokens = %+v err=%v, want one for edge-1", tokens, err)
 	}
-	body := rec.Body.String()
+	var got struct {
+		OK       bool `json:"ok"`
+		NewSpoke *struct {
+			Command string `json:"command"`
+		} `json:"newSpoke"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decoding result: %v (body %q)", err, rec.Body.String())
+	}
+	if !got.OK || got.NewSpoke == nil {
+		t.Fatalf("result = %+v, want ok with a newSpoke", got)
+	}
 	for _, want := range []string{"docker run", "--group-add", "/var/run/docker.sock", "wss://boxes.example.com/spoke/connect"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("result page missing %q in the spoke command", want)
+		if !strings.Contains(got.NewSpoke.Command, want) {
+			t.Errorf("spoke command missing %q: %q", want, got.NewSpoke.Command)
 		}
 	}
 }
@@ -284,8 +319,8 @@ func TestAdminActionJSON(t *testing.T) {
 	}
 }
 
-// TestAdminJSServed checks the progressive-enhancement script is served as
-// JavaScript at /admin.js.
+// TestAdminJSServed checks the admin client script is served as JavaScript at
+// /admin.js.
 func TestAdminJSServed(t *testing.T) {
 	s, _, _ := newAdminServer(t)
 	h := s.Handler(s.MCPServer("t", "v"))
@@ -349,8 +384,8 @@ func TestAdminDropSpokeRemovesAndKicks(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want 303", rec.Code)
+	if res := decodeAdminResult(t, rec); !res.OK || res.Err != "" {
+		t.Fatalf("result = %+v, want ok with no error", res)
 	}
 	if _, found, _ := st.GetSpoke("edge"); found {
 		t.Error("spoke record not deleted")
@@ -382,8 +417,8 @@ func TestAdminRevokeToken(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want 303", rec.Code)
+	if res := decodeAdminResult(t, rec); !res.OK || res.Err != "" {
+		t.Fatalf("result = %+v, want ok with no error", res)
 	}
 	if toks, _ := st.ListJoinTokens(); len(toks) != 0 {
 		t.Errorf("token not revoked: %+v", toks)
@@ -402,18 +437,28 @@ func TestAdminCreateBox(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d (body %q)", rec.Code, rec.Body.String())
+	var got struct {
+		OK     bool `json:"ok"`
+		NewBox *struct {
+			AuthURL string `json:"authUrl"`
+		} `json:"newBox"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decoding result: %v (body %q)", err, rec.Body.String())
+	}
+	if !got.OK || got.NewBox == nil {
+		t.Fatalf("result = %+v, want ok with a newBox", got)
 	}
 	if f.gotOpts.BoxID != "refactor-auth" {
 		t.Errorf("created box id = %q", f.gotOpts.BoxID)
 	}
-	if !strings.Contains(rec.Body.String(), "https://boxes.example.com/auth/") {
-		t.Error("result page missing activation URL")
+	if !strings.Contains(got.NewBox.AuthURL, "https://boxes.example.com/auth/") {
+		t.Errorf("newBox.authUrl = %q, want the activation URL", got.NewBox.AuthURL)
 	}
 }
 
-// TestAdminDeleteBox checks removing a box destroys it by box ID.
+// TestAdminDeleteBox checks removing a box answers with a JSON ok result and
+// destroys the box by ID — the path the admin page's urlencoded fetch takes.
 func TestAdminDeleteBox(t *testing.T) {
 	s, f, st := newAdminServer(t)
 	if _, err := s.CreateBox(t.Context(), docker.CreateOptions{BoxID: "foo"}); err != nil {
@@ -428,8 +473,8 @@ func TestAdminDeleteBox(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want 303", rec.Code)
+	if res := decodeAdminResult(t, rec); !res.OK || res.Err != "" {
+		t.Fatalf("result = %+v, want ok with no error", res)
 	}
 	if len(f.destroyed) != 1 || f.destroyed[0] != "foo" {
 		t.Errorf("destroyed = %v, want [foo]", f.destroyed)
