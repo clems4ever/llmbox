@@ -161,7 +161,7 @@ func (s *Server) adminDashboard(r *http.Request, ls loginSession) adminPageData 
 		data.Tokens = toAdminTokens(tokens, time.Now())
 	}
 
-	if boxes, err := s.ListBoxes(r.Context()); err != nil {
+	if boxes, err := s.listBoxes(r.Context()); err != nil {
 		s.logger().Warn("admin: listing boxes", "err", err)
 	} else {
 		rows := toAdminBoxes(boxes)
@@ -420,7 +420,7 @@ func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
 		writeResult(w, "", "box id is required")
 		return
 	}
-	sess, err := s.CreateBox(r.Context(), docker.CreateOptions{
+	sess, err := s.createBox(r.Context(), docker.CreateOptions{
 		BoxID:       boxID,
 		Image:       strings.TrimSpace(r.PostFormValue("image")),
 		Description: strings.TrimSpace(r.PostFormValue("description")),
@@ -453,7 +453,7 @@ func (s *Server) handleAdminDeleteBox(w http.ResponseWriter, r *http.Request) {
 		writeResult(w, "", "box id is required")
 		return
 	}
-	if err := s.DestroyBox(r.Context(), boxID); err != nil {
+	if err := s.destroyBox(r.Context(), boxID); err != nil {
 		writeResult(w, "", "removing box: "+err.Error())
 		return
 	}

@@ -40,7 +40,7 @@ func TestCreateBoxRoutesToSpoke(t *testing.T) {
 	s := newTestServer(local)
 	s.SetHub(&fakeHub{spokes: map[string]boxManager{"edge": edge}})
 
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestCreateBoxRoutesToSpoke(t *testing.T) {
 func TestCreateBoxUnknownSpoke(t *testing.T) {
 	s := newTestServer(&fakeMgr{})
 	s.SetHub(&fakeHub{spokes: map[string]boxManager{}})
-	if _, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "ghost"}); err == nil {
+	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "ghost"}); err == nil {
 		t.Fatal("expected error for unconnected spoke")
 	}
 }
@@ -71,7 +71,7 @@ func TestCreateBoxUnknownSpoke(t *testing.T) {
 func TestCreateBoxDefaultsToLocalSpoke(t *testing.T) {
 	local := &fakeMgr{createID: "local-id"}
 	s := newTestServer(local)
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "b1"})
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestListFansOutAcrossSpokes(t *testing.T) {
 	s := newTestServer(local)
 	s.SetHub(&fakeHub{spokes: map[string]boxManager{"edge": edge}})
 
-	boxes, err := s.ListBoxes(context.Background())
+	boxes, err := s.listBoxes(context.Background())
 	if err != nil {
 		t.Fatalf("ListBoxes: %v", err)
 	}
@@ -129,11 +129,11 @@ func TestDestroyRoutesToSpoke(t *testing.T) {
 	s := newTestServer(local)
 	s.SetHub(&fakeHub{spokes: map[string]boxManager{"edge": edge}})
 
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if err := s.DestroyBox(context.Background(), sess.ContainerID); err != nil {
+	if err := s.destroyBox(context.Background(), sess.ContainerID); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
 	}
 	if len(edge.destroyed) != 1 || edge.destroyed[0] != "edge-id" {
@@ -153,12 +153,12 @@ func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
 	s := newTestServer(local)
 	s.SetHub(&fakeHub{spokes: map[string]boxManager{"edge": edge}})
 
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
-	if err := s.DestroyBox(context.Background(), "b1"); err != nil {
+	if err := s.destroyBox(context.Background(), "b1"); err != nil {
 		t.Fatalf("DestroyBox by box id: %v", err)
 	}
 	if len(edge.destroyed) != 1 || edge.destroyed[0] != "b1" {

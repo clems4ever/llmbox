@@ -202,7 +202,7 @@ func TestProviderCallbackRejectsUnauthorized(t *testing.T) {
 // visitor sees the sign-in buttons and not the code-entry form.
 func TestAuthPageRequiresLogin(t *testing.T) {
 	s, _, _ := newAuthServer(t, googleTestProvider(t, idClaims{}, nil))
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestAuthPageRequiresLogin(t *testing.T) {
 // when both are present.
 func TestActivationGatedByLogin(t *testing.T) {
 	s, f, st := newAuthServer(t, googleTestProvider(t, idClaims{}, nil))
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
