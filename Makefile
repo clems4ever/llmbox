@@ -74,8 +74,8 @@ test-integration: ## Run integration tests (needs Docker + a Claude binary; see 
 	go test -tags integration ./...
 
 .PHONY: test-e2e
-test-e2e: ## Run the end-to-end workflow test (needs Chrome + chromedriver; see e2e/).
-	go test -tags e2e ./e2e/...
+test-e2e: ## Run the end-to-end browser tests (needs Chrome + chromedriver; see e2e/ and internal/server/admin_browser_e2e_test.go).
+	go test -tags e2e ./e2e/... ./internal/server/...
 
 .PHONY: test-e2e-cluster
 test-e2e-cluster: ## Run the hub-and-spoke clustering e2e test (no browser needed; see e2e/cluster/).

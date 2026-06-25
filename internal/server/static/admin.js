@@ -1,10 +1,10 @@
-// Progressive enhancement for the cluster admin page.
+// Client script for the cluster admin page.
 //
-// Without this script every form is a normal POST: the server falls back to
-// post/redirect/get for actions and renders a result page for spoke/box
-// creation. With it, forms submit over fetch() and the page updates in place,
-// so a browser refresh re-issues the GET and never resubmits a create. The
-// markup works unchanged with JavaScript disabled.
+// Every admin form is submitted over fetch() as application/x-www-form-urlencoded
+// and the server answers with a small JSON result; the page then updates in
+// place, so a browser refresh re-issues the GET and never resubmits an action.
+// The forms are plain <form> elements for markup and accessibility, but the
+// server speaks JSON only — this script is what drives the admin page.
 (function () {
   "use strict";
 
@@ -132,13 +132,17 @@
     fetch(action, {
       method: "POST",
       headers: { Accept: "application/json" },
-      body: new FormData(form),
+      // Send the fields as application/x-www-form-urlencoded (URLSearchParams sets
+      // that content type) so the server's r.ParseForm() reads them. A multipart
+      // FormData body would not be parsed by ParseForm and every field, including
+      // csrf, would arrive empty.
+      body: new URLSearchParams(new FormData(form)),
       credentials: "same-origin",
     })
       .then(function (resp) {
         var ct = resp.headers.get("Content-Type") || "";
         if (ct.indexOf("application/json") !== -1) return resp.json();
-        // Auth/CSRF failures come back as plain text with a 4xx status.
+        // Auth failures (e.g. an expired sign-in) come back as plain text 4xx.
         return resp.text().then(function (t) {
           return { ok: resp.ok, err: resp.ok ? "" : t.trim() || "HTTP " + resp.status };
         });

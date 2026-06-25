@@ -119,28 +119,9 @@
 {{else}}
   <h1>Cluster admin</h1>
 
-  <div id="flash">{{if .Flash}}<div class="banner {{if .FlashOK}}ok{{else}}err{{end}}">{{.Flash}}</div>{{end}}</div>
-
-  <div id="results">
-  {{if .NewSpoke}}
-  <div class="result">
-    <strong>Join token for spoke "{{.NewSpoke.Name}}" — one-time use, shown once.</strong>
-    <div class="label">Token</div>
-    <div class="val">{{.NewSpoke.Token}}</div>
-    <div class="label">Start the spoke with</div>
-    <pre class="cmd">{{.NewSpoke.Command}}</pre>
-    <p class="note">Runs the spoke as a daemon with a persistent state volume (so it reconnects without this one-time token) and grants the Docker socket's group (the spoke runs as a non-root user). Adjust the image tag to match your deployment.</p>
-  </div>
-  {{end}}
-
-  {{if .NewBox}}
-  <div class="result">
-    <strong>Box "{{.NewBox.BoxID}}" created on spoke "{{.NewBox.Spoke}}".</strong>
-    <div class="label">Activation URL (open to finish sign-in)</div>
-    <div class="val"><a href="{{.NewBox.AuthURL}}" target="_blank" rel="noopener noreferrer">{{.NewBox.AuthURL}}</a></div>
-  </div>
-  {{end}}
-  </div>
+  <!-- The flash banner and one-time create results are rendered by admin.js. -->
+  <div id="flash"></div>
+  <div id="results"></div>
 
   <div class="card" id="spokes-card">
     <h2>Spokes</h2>
