@@ -242,7 +242,7 @@ func (s *Server) render(w http.ResponseWriter, data authPageData) {
 // authTmplSrc is the auth page template, embedded into the binary at build time
 // from auth.html.tmpl so the server ships as a single self-contained executable.
 //
-//go:embed auth.html.tmpl
+//go:embed templates/auth.html.tmpl
 var authTmplSrc string
 
 // authTmpl is the parsed auth page template.
@@ -251,5 +251,5 @@ var authTmpl = template.Must(template.New("auth").Parse(authTmplSrc))
 // faviconSVG is the server favicon, embedded into the binary at build time from
 // favicon.svg and served at /favicon.ico and /favicon.svg.
 //
-//go:embed favicon.svg
+//go:embed static/favicon.svg
 var faviconSVG []byte

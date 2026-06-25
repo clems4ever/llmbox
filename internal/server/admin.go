@@ -524,7 +524,7 @@ func (s *Server) renderAdmin(w http.ResponseWriter, data adminPageData) {
 // adminTmplSrc is the admin page template, embedded at build time so the server
 // ships as a single self-contained executable.
 //
-//go:embed admin.html.tmpl
+//go:embed templates/admin.html.tmpl
 var adminTmplSrc string
 
 // adminTmpl is the parsed admin page template.
@@ -534,5 +534,5 @@ var adminTmpl = template.Must(template.New("admin").Parse(adminTmplSrc))
 // /admin.js. It lives in its own file (not inlined in the template) so its JS
 // braces never collide with the html/template {{ }} delimiters.
 //
-//go:embed admin.js
+//go:embed static/admin.js
 var adminJS string
