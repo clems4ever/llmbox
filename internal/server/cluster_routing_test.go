@@ -196,16 +196,16 @@ func TestSpokeStatusesLocalOnly(t *testing.T) {
 	}
 }
 
-// TestListSpokesTool checks the list_spokes MCP handler returns the spoke statuses.
+// TestListSpokesTool checks the MCP backend reports the spoke statuses.
 func TestListSpokesTool(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
-	_, out, err := s.toolListSpokes(context.Background(), nil, struct{}{})
+	spokes, err := s.MCPBackend().SpokeStatuses(context.Background())
 	if err != nil {
-		t.Fatalf("toolListSpokes: %v", err)
+		t.Fatalf("SpokeStatuses: %v", err)
 	}
-	if len(out.Spokes) != 1 || out.Spokes[0].Name != localSpokeName {
-		t.Fatalf("list_spokes output = %+v, want the local spoke", out.Spokes)
+	if len(spokes) != 1 || spokes[0].Name != localSpokeName {
+		t.Fatalf("spokes = %+v, want the local spoke", spokes)
 	}
 }
 

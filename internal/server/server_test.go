@@ -380,44 +380,42 @@ func TestFaviconServed(t *testing.T) {
 	}
 }
 
-// TestGetByBoxID checks get_llmbox resolves a box by box ID (case-insensitive)
-// and errors for an empty or unknown box ID.
+// TestGetByBoxID checks the MCP backend resolves a box by box ID
+// (case-insensitive), reflects its status changes, and misses an unknown box ID.
 func TestGetByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
+	b := s.MCPBackend()
 	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box", Description: "d"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
-	// Found, case-insensitive.
-	_, out, err := s.toolGet(context.Background(), nil, getInput{BoxID: "WEB-BOX"})
-	if err != nil {
-		t.Fatalf("toolGet: %v", err)
+	// Found, case-insensitive; the flattened session carries the box's state.
+	got, ok := b.LookupByBoxID("WEB-BOX")
+	if !ok {
+		t.Fatal("expected to find box by box ID")
 	}
-	if out.Status != "pending" || out.BoxID != "web-box" || out.Description != "d" {
-		t.Errorf("unexpected get output: %+v", out)
+	if got.Status != "pending" || got.BoxID != "web-box" || got.Description != "d" {
+		t.Errorf("unexpected lookup: %+v", got)
 	}
 
-	// Reflects status changes.
+	// Reflects status changes via snapshot.
 	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
-	if _, out, _ := s.toolGet(context.Background(), nil, getInput{BoxID: "web-box"}); out.Status != "ready" || out.SessionURL != "https://claude.ai/code/s/1" {
-		t.Errorf("expected ready with session URL, got %+v", out)
+	if got, _ := b.LookupByBoxID("web-box"); got.Status != "ready" || got.SessionURL != "https://claude.ai/code/s/1" {
+		t.Errorf("expected ready with session URL, got %+v", got)
 	}
 
-	// Empty and unknown box IDs error.
-	if _, _, err := s.toolGet(context.Background(), nil, getInput{BoxID: ""}); err == nil {
-		t.Error("expected error for empty box ID")
-	}
-	if _, _, err := s.toolGet(context.Background(), nil, getInput{BoxID: "nope"}); err == nil {
-		t.Error("expected error for unknown box ID")
+	// Unknown box IDs miss.
+	if _, ok := b.LookupByBoxID("nope"); ok {
+		t.Error("expected miss for unknown box ID")
 	}
 }
 
-// TestListLlmboxesReturnsBoxID checks list_llmboxes surfaces each box's box ID
-// (the hostname the user sees) along with its description in the tool output.
+// TestListLlmboxesReturnsBoxID checks the MCP backend's box listing surfaces
+// each box's box ID (the hostname the user sees) along with its description.
 func TestListLlmboxesReturnsBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: []docker.Box{
 		{ContainerID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
@@ -425,55 +423,52 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 	}}
 	s := newTestServer(f)
 
-	_, out, err := s.toolList(context.Background(), nil, struct{}{})
+	boxes, err := s.MCPBackend().ListBoxes(context.Background())
 	if err != nil {
-		t.Fatalf("toolList: %v", err)
+		t.Fatalf("ListBoxes: %v", err)
 	}
-	if len(out.Boxes) != 2 {
-		t.Fatalf("got %d boxes, want 2", len(out.Boxes))
+	if len(boxes) != 2 {
+		t.Fatalf("got %d boxes, want 2", len(boxes))
 	}
-	if out.Boxes[0].BoxID != "web-box" || out.Boxes[0].Description != "front-end work" {
-		t.Errorf("box0 box ID/description = %q/%q, want web-box/front-end work", out.Boxes[0].BoxID, out.Boxes[0].Description)
+	if boxes[0].BoxID != "web-box" || boxes[0].Description != "front-end work" {
+		t.Errorf("box0 box ID/description = %q/%q, want web-box/front-end work", boxes[0].BoxID, boxes[0].Description)
 	}
-	if out.Boxes[1].BoxID != "" {
-		t.Errorf("box1 box ID = %q, want empty", out.Boxes[1].BoxID)
+	if boxes[1].BoxID != "" {
+		t.Errorf("box1 box ID = %q, want empty", boxes[1].BoxID)
 	}
 }
 
-// TestBoxLogsByBoxID checks get_llmbox_logs resolves a box by box ID,
-// forwards the box ID and tail to the manager, and errors for empty or unknown
-// box IDs.
+// TestBoxLogsByBoxID checks the MCP backend resolves a box by box ID, forwards
+// the box ID and tail to the manager, and errors for an unknown box ID.
 func TestBoxLogsByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", LogsResult: "Ready\nlistening\n"}
 	s := newTestServer(f)
+	b := s.MCPBackend()
 	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
 	// Found, case-insensitive, with the tail forwarded to the manager.
-	_, out, err := s.toolLogs(context.Background(), nil, logsInput{BoxID: "WEB-BOX", Tail: 25})
+	logs, err := b.BoxLogs(context.Background(), "WEB-BOX", 25)
 	if err != nil {
-		t.Fatalf("toolLogs: %v", err)
+		t.Fatalf("BoxLogs: %v", err)
 	}
-	if out.BoxID != "WEB-BOX" || out.Logs != "Ready\nlistening\n" {
-		t.Errorf("unexpected logs output: %+v", out)
+	if logs != "Ready\nlistening\n" {
+		t.Errorf("unexpected logs: %q", logs)
 	}
 	if f.GotLogsID != "abcdef0123456789" || f.GotLogsN != 25 {
 		t.Errorf("manager got id=%q tail=%d, want abcdef0123456789/25", f.GotLogsID, f.GotLogsN)
 	}
 
-	// Empty and unknown box IDs error.
-	if _, _, err := s.toolLogs(context.Background(), nil, logsInput{BoxID: ""}); err == nil {
-		t.Error("expected error for empty box ID")
-	}
-	if _, _, err := s.toolLogs(context.Background(), nil, logsInput{BoxID: "nope"}); err == nil {
+	// Unknown box IDs error.
+	if _, err := b.BoxLogs(context.Background(), "nope", 0); err == nil {
 		t.Error("expected error for unknown box ID")
 	}
 }
 
-// TestBoxExecByBoxID checks exec_llmbox resolves a box by box ID, wraps the
-// command in /bin/sh -c, returns the captured output, and errors for empty or
-// unknown box IDs and an empty command.
+// TestBoxExecByBoxID checks the MCP backend resolves a box by box ID, wraps the
+// command in /bin/sh -c, returns the captured output, and errors for an unknown
+// box ID and an empty command.
 func TestBoxExecByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{
 		CreateID:   "abcdef0123456789",
@@ -481,17 +476,18 @@ func TestBoxExecByBoxID(t *testing.T) {
 		ExecResult: docker.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
 	}
 	s := newTestServer(f)
+	b := s.MCPBackend()
 	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
 	// Found, case-insensitive; command wrapped and box ID forwarded.
-	_, out, err := s.toolExec(context.Background(), nil, execInput{BoxID: "WEB-BOX", Command: "echo hi"})
+	res, err := b.BoxExec(context.Background(), "WEB-BOX", "echo hi")
 	if err != nil {
-		t.Fatalf("toolExec: %v", err)
+		t.Fatalf("BoxExec: %v", err)
 	}
-	if out.BoxID != "WEB-BOX" || out.Stdout != "hi\n" || out.ExitCode != 0 {
-		t.Errorf("unexpected exec output: %+v", out)
+	if res.Stdout != "hi\n" || res.ExitCode != 0 {
+		t.Errorf("unexpected exec result: %+v", res)
 	}
 	if f.GotExecID != "abcdef0123456789" {
 		t.Errorf("manager got box ID %q, want abcdef0123456789", f.GotExecID)
@@ -501,14 +497,11 @@ func TestBoxExecByBoxID(t *testing.T) {
 		t.Errorf("manager ran cmd %v, want %v", f.GotExecCmd, want)
 	}
 
-	// Empty/unknown box IDs and an empty command.error.
-	if _, _, err := s.toolExec(context.Background(), nil, execInput{BoxID: "", Command: "ls"}); err == nil {
-		t.Error("expected error for empty box ID")
-	}
-	if _, _, err := s.toolExec(context.Background(), nil, execInput{BoxID: "nope", Command: "ls"}); err == nil {
+	// An unknown box ID and an empty command error.
+	if _, err := b.BoxExec(context.Background(), "nope", "ls"); err == nil {
 		t.Error("expected error for unknown box ID")
 	}
-	if _, _, err := s.toolExec(context.Background(), nil, execInput{BoxID: "web-box", Command: "  "}); err == nil {
+	if _, err := b.BoxExec(context.Background(), "web-box", "  "); err == nil {
 		t.Error("expected error for empty command")
 	}
 }
@@ -558,9 +551,13 @@ func TestMCPToolsRegisteredAndCreate(t *testing.T) {
 func TestCreateRequiresBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
+	cs := connectMCP(t, s)
 
-	_, _, err := s.toolCreate(context.Background(), nil, createInput{Description: "no box id"})
-	if err == nil {
+	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "create_llmbox", Arguments: map[string]any{"description": "no box id"}})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	if !res.IsError {
 		t.Fatal("expected error for empty box ID")
 	}
 	if f.GotOpts.Description != "" {

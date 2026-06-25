@@ -3,58 +3,72 @@
 		{
 			"function_name": "MCPServer",
 			"receiver": "Server",
-			"documentation_hash": "9ebd5d97060918c977bfe5191b0e6aa383f8b8a0a9f87a053ae5abbea3636934",
-			"definition_hash": "1d186f79c57ea9654de7039fde5d7aa2b8045ea9466893a3563e27de61a37b9f",
-			"reviewed_at": "2026-06-19T20:33:53.200379449Z"
+			"documentation_hash": "5205cc5c4302c6b7702314e5ee478e86df362353b6d134c1f86fee33be09c2a6",
+			"definition_hash": "c0d950cd3281f8f051efd6e720ec5ab696313cf529932e0a60e5677f4f3ddc6e",
+			"reviewed_at": "2026-06-25T11:47:13.633207265Z"
 		},
 		{
-			"function_name": "toolCreate",
+			"function_name": "MCPBackend",
 			"receiver": "Server",
-			"documentation_hash": "1370922671ddeb85b0095e942727b4851497356b52709dbc1a63179f12b29c4b",
-			"definition_hash": "9947fdef2110ccaeb3921ca0510ce00a8a96110f36c4961ddf4e3f0b4cdb0d9f",
-			"reviewed_at": "2026-06-25T10:51:16.09461653Z"
+			"documentation_hash": "e6af8481e62f18b074fa1d17ba945773ece577ef55c2106bdae2ab3ec8eda1ff",
+			"definition_hash": "c10b93eb0039f1dcdaaf01878b3f052c52971071d166589480c669fba4caef22",
+			"reviewed_at": "2026-06-25T11:47:13.633940126Z"
 		},
 		{
-			"function_name": "toolGet",
-			"receiver": "Server",
-			"documentation_hash": "72220a942f738f8964ec7f0b46e855a84a6e0ff208bf900f7f13014d5a9a68bd",
-			"definition_hash": "097916240652fdd9f39e518b874a9a48a6ca37e40d5b637f978024ea26ff1e51",
-			"reviewed_at": "2026-06-18T16:59:05.497871765Z"
+			"function_name": "CreateBox",
+			"receiver": "mcpBackend",
+			"documentation_hash": "d2d90af9131217b88fb1b39b969ab03fc2002325f76f27455bd7a14b387e3271",
+			"definition_hash": "6d7c4b9cdacc17d656285758a2a66d660010645398bc3b7d93124d44b3a83a69",
+			"reviewed_at": "2026-06-25T11:47:13.634528551Z"
 		},
 		{
-			"function_name": "toolList",
-			"receiver": "Server",
-			"documentation_hash": "ec76050f93c833ca154c6d46e7aabdf2754f1884b800fdee4c89e4faceb702e6",
-			"definition_hash": "24e91acfc6c58bbe17bfda7b9e3c7cadb23e765b9ef6bbd54a22b490f99e5250",
-			"reviewed_at": "2026-06-25T10:51:16.094993449Z"
+			"function_name": "AuthPageURL",
+			"receiver": "mcpBackend",
+			"documentation_hash": "fca24108a0f89bb69290fddc53d6ed2f355354f5984adad807735df4522fb77e",
+			"definition_hash": "1ed668d378f89860e7bbf82b1025561c367e1d0f8ba8185ff4ef4fc9ece9afc4",
+			"reviewed_at": "2026-06-25T11:47:13.635102609Z"
 		},
 		{
-			"function_name": "toolDestroy",
-			"receiver": "Server",
-			"documentation_hash": "8a1c3d132417157ec71203a389350ee7c5b264b271cca091b5f406cc84f9376f",
-			"definition_hash": "4db36b0f6252eefd0b31eec7c7c856ec145bf05bd96d5b626fb150f37b3542cc",
-			"reviewed_at": "2026-06-25T10:51:16.095339638Z"
+			"function_name": "LookupByBoxID",
+			"receiver": "mcpBackend",
+			"documentation_hash": "bae9ba6dc67a6b51d072c6ce72b17fef105124154db7aa964a9781cc53063b56",
+			"definition_hash": "3831514b3804e01b63a2c6cfc614ddc4d5bd775b75121e69d360e9ce1d96d05d",
+			"reviewed_at": "2026-06-25T11:47:13.635864065Z"
 		},
 		{
-			"function_name": "toolLogs",
-			"receiver": "Server",
-			"documentation_hash": "c8f7ed3ae8e2973aa4ff44fc842d29a9cb58c706a93a5645b7b42633c517dad5",
-			"definition_hash": "0a79e64c98550c4e0fe4383264df8cbfe7e1157ba523f65b8b867dc0722e1c07",
-			"reviewed_at": "2026-06-25T10:51:16.095837354Z"
+			"function_name": "ListBoxes",
+			"receiver": "mcpBackend",
+			"documentation_hash": "27801c19797251b9c23ce066634e462e5bc5463292431275ec513a1664a2e1c8",
+			"definition_hash": "7691cfa9c22f2c10600d2da83f8b379c3feaa703cf34959c6fb2f6a4efcd92bf",
+			"reviewed_at": "2026-06-25T11:47:13.636544156Z"
 		},
 		{
-			"function_name": "toolExec",
-			"receiver": "Server",
-			"documentation_hash": "acf9e087a4fcbcaea5c5b02ce3747d8171aa7eca09e04b731240d4677ace1b36",
-			"definition_hash": "aa6e49774147df787fe8bf3163e7d54bc88eff0e7cf59ce9a8e54bf6d0ab5151",
-			"reviewed_at": "2026-06-25T10:51:16.096260124Z"
+			"function_name": "SpokeStatuses",
+			"receiver": "mcpBackend",
+			"documentation_hash": "9f1b88e69130a83c9295699e90fced84d86f998cda2f66e4142a1d7a7187aad9",
+			"definition_hash": "262c2cc8feeebf4118422d5e9929a9c333fd7f62ad0a1eb7f8cefce5890d38ee",
+			"reviewed_at": "2026-06-25T11:47:13.63666374Z"
 		},
 		{
-			"function_name": "toolListSpokes",
-			"receiver": "Server",
-			"documentation_hash": "27da93e6b3facaa09393d83e926e221cecf27f8a4682eff64204335b9ef7b340",
-			"definition_hash": "23a454bb15d3ad27e722c6850089f6d46089d3ab10f994c65db2c45c63ac24f7",
-			"reviewed_at": "2026-06-19T20:33:53.202703501Z"
+			"function_name": "DestroyBox",
+			"receiver": "mcpBackend",
+			"documentation_hash": "659c9f22ec8b57c5504aebb52ee38545c2155f11be18bb04b132e1a98e8d4e79",
+			"definition_hash": "752d978d025dcefb0786c263c9d05ab99e4ba57f19ffcd3183fab2f58431a097",
+			"reviewed_at": "2026-06-25T11:47:13.636875297Z"
+		},
+		{
+			"function_name": "BoxLogs",
+			"receiver": "mcpBackend",
+			"documentation_hash": "277644e4535920e5baad20b69f2769548d6933f46f26f7789a0d0022b9374d9c",
+			"definition_hash": "7f04f3202af4e8dc87c57d2e1f44c752da3ee84301fb784f923724d4f6102a43",
+			"reviewed_at": "2026-06-25T11:47:13.637209488Z"
+		},
+		{
+			"function_name": "BoxExec",
+			"receiver": "mcpBackend",
+			"documentation_hash": "5bc45136b7c9ad2d5a8cbb4c5586b489fd5900a982b36ff44da57b303a106ff2",
+			"definition_hash": "4e9aec8475421a7b515dce640de07684bf6e4b712cb49144eca76ddc53779828",
+			"reviewed_at": "2026-06-25T11:47:13.637433024Z"
 		}
 	]
 }
