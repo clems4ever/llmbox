@@ -1,0 +1,66 @@
+{
+	"functions": [
+		{
+			"function_name": "newFakeBoxManager",
+			"documentation_hash": "cad3fa9cde66c85e35402ecc1fdc371c655ca3db69110df615bd10b0c13f1522",
+			"definition_hash": "d56c5c19816db8041d99202ad2c2187f85ef8dd6093b7001eb110e49c6949f0c",
+			"reviewed_at": "2026-06-25T09:53:56.364031656Z"
+		},
+		{
+			"function_name": "Create",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "da7aa2de48bfeac6e550a379546f940cf7b02402e1a853b92f004608e19c6601",
+			"definition_hash": "b01568722bee291f544d7a537d0b84e90d63a51ab67b5b318c2636ed3540479c",
+			"reviewed_at": "2026-06-25T09:53:56.372859821Z"
+		},
+		{
+			"function_name": "SubmitCode",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "89ad0ff8608c5e23df7406f5496ecbbebd789ad740ac7c7aa1fdcf8d59ab8aa6",
+			"definition_hash": "f9dcebf826fbdf57ec523542cc95a5b7f11939ad3c76c05e18458c0b26ac52c5",
+			"reviewed_at": "2026-06-25T09:53:56.380599616Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "4f5412b39772c457d3457a707085c6f565d225f3ef3302b815b2a4035c77a710",
+			"definition_hash": "3410e92f2f6dcbfcdc03e032145848ab17c10185a3f97c8803546012dc4dd050",
+			"reviewed_at": "2026-06-25T09:53:56.388701214Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "856fe3c5ec3aafbd42e35dbb8643467bcb1c1cca0a70770f20538bbc1e5e49a4",
+			"definition_hash": "609efa4998d0384943ebb170c2b3cdc98aa9e8954b30d7f33c286302afcbd8d8",
+			"reviewed_at": "2026-06-25T09:53:56.397284979Z"
+		},
+		{
+			"function_name": "Logs",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "386bae34416baeea627e1d1cf836a61b62ef4a9488d25c149b77418f6c30324a",
+			"definition_hash": "7aec6a81e4f7897f8ef07a985454be8c0e24e984600978c1537f2dcd88a3c733",
+			"reviewed_at": "2026-06-25T09:53:56.400579009Z"
+		},
+		{
+			"function_name": "Exec",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "a151dd5e0185aef13b9084834e3ddd5c5490e92dd6917685a06fe0a1b39e4d36",
+			"definition_hash": "ac7789bf8ed40c290e04fa579017e350a83a64c4889fbf5762b78deba55e4910",
+			"reviewed_at": "2026-06-25T09:53:56.404927235Z"
+		},
+		{
+			"function_name": "ReapOrphans",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "5c706ad9a24625e429cc45ea4ac9f903e085aaeb10fbf398458cc1cf1f8addef",
+			"definition_hash": "1afe4f476d18a6c55569e313c7c8e32e9abc4d9b077cbfa6c4189483117776db",
+			"reviewed_at": "2026-06-25T09:53:56.409161921Z"
+		},
+		{
+			"function_name": "find",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "484aae03d3f962625076f968b95816b6e5df8a92dcc25cb9aefcc1ab059c565d",
+			"definition_hash": "8e7645723641311670061b3c82e11cd50c56a984229669c6d53589cc7579eb46",
+			"reviewed_at": "2026-06-25T09:53:56.419322195Z"
+		}
+	]
+}

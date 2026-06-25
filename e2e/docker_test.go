@@ -5,6 +5,8 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"io"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +23,8 @@ import (
 // Docker and the real Claude binary are simulated.
 type fakeBoxManager struct {
 	platform *fakeAnthropic
+
+	miscRand io.Reader
 
 	mu    sync.Mutex
 	boxes map[string]*fakeBox // keyed by full container ID
@@ -43,7 +47,11 @@ type fakeBox struct {
 // @arg platform The simulated Anthropic platform boxes authenticate against.
 // @return *fakeBoxManager A ready, empty simulated box manager.
 func newFakeBoxManager(platform *fakeAnthropic) *fakeBoxManager {
-	return &fakeBoxManager{platform: platform, boxes: map[string]*fakeBox{}}
+	return &fakeBoxManager{
+		miscRand: rand.New(rand.NewSource(100)),
+		platform: platform,
+		boxes:    map[string]*fakeBox{},
+	}
 }
 
 // Create simulates launching a box: it rejects a duplicate box ID, begins
@@ -69,7 +77,7 @@ func (m *fakeBoxManager) Create(_ context.Context, opts docker.CreateOptions) (i
 	if image == "" {
 		image = docker.DefaultImage
 	}
-	id = randHex(20)
+	id = randHex(m.miscRand, 20)
 	state, authorizeURL := m.platform.beginLogin()
 	m.boxes[id] = &fakeBox{
 		containerID: id,
