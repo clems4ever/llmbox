@@ -1,0 +1,65 @@
+{
+	"functions": [
+		{
+			"function_name": "NewServer",
+			"documentation_hash": "957a8c39c7ff98c7bf90c9e182e0c23df8b64993a30ac108eecf271ab7a7303e",
+			"definition_hash": "f46e189ce17ecbd0cd05fb141567749105d13672e7a82a43dd16ed8d19e5cfea",
+			"reviewed_at": "2026-06-25T11:48:49.497657451Z"
+		},
+		{
+			"function_name": "shortID",
+			"documentation_hash": "c3e85a1a85611dd1f8c13a210bfe5bb1e75b3e322155e01c3762fbd1b99cbdbc",
+			"definition_hash": "c4309d8ffed66c318298bd13fc20c16c1b3e4dad23f5af6cef8e85a3919a6814",
+			"reviewed_at": "2026-06-25T11:48:57.861510644Z"
+		},
+		{
+			"function_name": "toolCreate",
+			"receiver": "handlers",
+			"documentation_hash": "2229f1801ba1d79d0ffffcb8e7b940be601d2201d9237dae9397ce3e2b6977a9",
+			"definition_hash": "633d8edfde04ca06e4a352d064ca622578b49374cda6cd5fb90af30022fc47f3",
+			"reviewed_at": "2026-06-25T11:48:57.863987952Z"
+		},
+		{
+			"function_name": "toolGet",
+			"receiver": "handlers",
+			"documentation_hash": "9769a5fd425307bc6aa8d7b190b007d0df7200396cc26c9e2cbafcbca8d58453",
+			"definition_hash": "ebeb2410d6f52640697bace6c987a1cb6c71b7b2162f72566262f846afe5ddd4",
+			"reviewed_at": "2026-06-25T11:48:57.866355021Z"
+		},
+		{
+			"function_name": "toolList",
+			"receiver": "handlers",
+			"documentation_hash": "81d1e2420ac318d981bd46b8f4f1b001406a979e94f7e37f155c98cd00f8c850",
+			"definition_hash": "e86b11b203a1e7a587ebae06d7b6d8e68dc73f56a4663f261c2a6188ba57cfc7",
+			"reviewed_at": "2026-06-25T11:48:57.868959108Z"
+		},
+		{
+			"function_name": "toolListSpokes",
+			"receiver": "handlers",
+			"documentation_hash": "af205f286234253f5ab08cf8bb97aee3cb7b8163a246932d1120ae143df9e90a",
+			"definition_hash": "64c54fa2554e7ddfa7f93e973ff72f0d245575070e951e40492278607a54d94b",
+			"reviewed_at": "2026-06-25T11:48:57.871545431Z"
+		},
+		{
+			"function_name": "toolDestroy",
+			"receiver": "handlers",
+			"documentation_hash": "c03c22424604a1c229a1c962a2a34da722b3da3e914defc2669ab8269a2e4afd",
+			"definition_hash": "3094aa47502786b8809f32ef26dfefe39cc764b304cdf7fbda63dc841c14ec98",
+			"reviewed_at": "2026-06-25T11:48:57.874067644Z"
+		},
+		{
+			"function_name": "toolLogs",
+			"receiver": "handlers",
+			"documentation_hash": "f431f1852f05742fcc40f2acaf65790d27b6c4203875c14b6f0b0fca3596deca",
+			"definition_hash": "83510d07b744e5f5415030708291d9679271acb31bc59a78bad6a3f123cb7370",
+			"reviewed_at": "2026-06-25T11:48:57.877029724Z"
+		},
+		{
+			"function_name": "toolExec",
+			"receiver": "handlers",
+			"documentation_hash": "2922edee14903cc1dca5c03032086a35afd28386bd9ea2899d6751e031ddd853",
+			"definition_hash": "7458ef2cf0191e50aab252e4ed05b15b56bb60aced5731205ce8cabd323f5f1c",
+			"reviewed_at": "2026-06-25T11:48:57.878993341Z"
+		}
+	]
+}
