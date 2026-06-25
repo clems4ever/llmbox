@@ -1,19 +1,28 @@
 name: CI
 
-# Runs the Go test suite with coverage on every push and pull request. On pushes
-# to main it also regenerates the coverage badge (.github/badges/coverage.svg)
-# and commits it back to main — the README references it by relative path, so it
-# renders against whichever branch is being viewed. The commit carries [skip ci]
-# so it does not re-trigger this workflow. Integration tests (the //go:build
-# integration set, which need a Docker daemon and a real Claude binary) are
-# excluded here.
+# Runs the Go test suite with coverage on every push and pull request, then —
+# once the unit and e2e jobs are green — builds the container images (and pushes
+# them on non-PR events). Keeping tests and the image build in one workflow means
+# the suite runs once per event and `build-push` gates on it via `needs:`, rather
+# than each workflow re-running its own copy of the tests.
+#
+# On pushes to main the `test` job also regenerates the coverage badge
+# (.github/badges/coverage.svg) and commits it back to main — the README
+# references it by relative path, so it renders against whichever branch is being
+# viewed. The commit carries [skip ci] so it does not re-trigger this workflow.
+# Integration tests (the //go:build integration set, which need a Docker daemon
+# and a real Claude binary) are excluded here.
 #
 # The end-to-end workflow test (the //go:build e2e set) runs in its own `e2e`
 # job, kept separate from the fast unit suite: it drives the auth UI through a
 # real headless Chrome via WebDriver, simulating the Docker and Anthropic layers.
+#
+# Tag pushes (v*) skip the main-only badge/screenshot side effects but still run
+# tests and build-push, so a tagged release is never published untested.
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -21,6 +30,9 @@ on:
 permissions:
   contents: write
   pull-requests: write
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
   test:
@@ -200,3 +212,60 @@ jobs:
             gh api -X POST "repos/$repo/issues/$pr/comments" -F body=@/tmp/screenshot-comment.md >/dev/null
             echo "created screenshot preview comment"
           fi
+
+  # Build the images once the test and e2e jobs are green. Builds both images on
+  # every event but only logs in / pushes for non-PR events (branch, tag,
+  # dispatch); PRs build to validate the Dockerfiles without publishing.
+  build-push:
+    name: Build and push images
+    needs: [test, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: llmbox
+            dockerfile: Dockerfile
+          - name: llmbox-box
+            dockerfile: Dockerfile.box
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Only log in / push for non-PR events. PRs build but don't push.
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
