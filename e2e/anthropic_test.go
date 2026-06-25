@@ -123,7 +123,11 @@ func (a *fakeAnthropic) handleApprove(w http.ResponseWriter, r *http.Request) {
 	if ok && !login.approved {
 		login.approved = true
 		login.code = randHex(12)
-		login.sessionURL = "https://claude.ai/code/sessions/" + randHex(8)
+		// A fixed session URL keeps the activated ("ready") screenshot byte-stable
+		// across runs; a random suffix would otherwise rewrite auth-ready.png (and
+		// its CI preview comment) on every PR. The code above stays random because
+		// it never appears in a screenshot.
+		login.sessionURL = "https://claude.ai/code/sessions/e2edemosession"
 	}
 	var data consentData
 	if ok {
