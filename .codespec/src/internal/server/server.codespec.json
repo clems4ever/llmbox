@@ -191,6 +191,48 @@
 			"documentation_hash": "a5d78f01cba29bf4b7484d21488d0f5282a0965ff9ce45e1afd81c6b534bc6e2",
 			"definition_hash": "912246c74cf52c74853d482d036187510d86510d18c120ecd0ebbd0b10f24643",
 			"reviewed_at": "2026-06-22T19:40:17.753483189Z"
+		},
+		{
+			"function_name": "createBox",
+			"receiver": "Server",
+			"documentation_hash": "f1db9128c9e9c46b9e3d204adfbb6f45c0aefd6705404de9d79d83e60d29da40",
+			"definition_hash": "a243b47a538a29950229831cbc39a0f2c5c46b0fbc2acf3abfe85de32cacdfe7",
+			"reviewed_at": "2026-06-25T10:51:16.102379299Z"
+		},
+		{
+			"function_name": "submitCode",
+			"receiver": "Server",
+			"documentation_hash": "4b72df49f3888e81b914126321ba2629a3e629cc4b278780b4eaba4b424810fb",
+			"definition_hash": "7b0b6d384a5ce93ef1e69474772c893ca85744418c79b810ddcb87c8147f139a",
+			"reviewed_at": "2026-06-25T10:51:16.104304975Z"
+		},
+		{
+			"function_name": "listBoxes",
+			"receiver": "Server",
+			"documentation_hash": "eac34097fa9eec529671fee9267d4830eec79a68b61f340aea6d8e46b069c53f",
+			"definition_hash": "84370251f15fa5f824fdf22ea87efa2338f6f7e9cd50fb989078258af52f4785",
+			"reviewed_at": "2026-06-25T10:51:16.105691042Z"
+		},
+		{
+			"function_name": "boxLogs",
+			"receiver": "Server",
+			"documentation_hash": "d842b2d18aa390e1478e1aa5f06f76a7ae429f5b05bbe1990616701f22e0582a",
+			"definition_hash": "408e8492452d1aaaa89e8b32206045a3ded5c604cd22511ece4c452445f279af",
+			"reviewed_at": "2026-06-25T10:51:16.107118366Z"
+		},
+		{
+			"function_name": "boxExec",
+			"receiver": "Server",
+			"documentation_hash": "92a5a50a02dc1f01419571d25d1790433b41e078642022e2f4f1b04459d746cf",
+			"definition_hash": "a5b8dc48f76c5fa845fb6e16378fedb37c47d8a6314cddddb09df5f05ab4aad9",
+			"reviewed_at": "2026-06-25T10:51:16.109527068Z"
+		},
+		{
+			"function_name": "destroyBox",
+			"receiver": "Server",
+			"documentation_hash": "f119a80ef2fb65e46b855f161fddf4e910fac952913fd6098f619d865191e158",
+			"definition_hash": "c366a0a6f5ba0192de14c6347eb378d1c24fc43c3eed9056409461ace8033c68",
+			"reviewed_at": "2026-06-25T10:51:16.113278871Z"
 		}
 	]
 }

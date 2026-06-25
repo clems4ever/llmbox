@@ -51,15 +51,15 @@
 			"function_name": "handleProviderCallback",
 			"receiver": "Server",
 			"documentation_hash": "345a4d547d81191ee038a9027b9249a787c922d9d1c014ed4ef3ba047ce2ea0b",
-			"definition_hash": "6c6a94abd8d9ab7f12378f310cf05721590fe84988882d79b6d204c8e9acf825",
-			"reviewed_at": "2026-06-21T13:23:33.272849595Z"
+			"definition_hash": "1422d8f8e978f3a57c5dc0ce1379491c24b6c9d2d9d399e1b00b1b19e6673fc3",
+			"reviewed_at": "2026-06-25T10:51:16.09805936Z"
 		},
 		{
 			"function_name": "currentLogin",
 			"receiver": "Server",
-			"documentation_hash": "0792f9eccda1505b6562db6bc07719e23f480bc5d1f6ea1c400eca8579742df9",
-			"definition_hash": "f48e0e02fbb94ca3e61809149c5d61f07bf067aa134cbf71659bfab5a557dbe8",
-			"reviewed_at": "2026-06-18T18:20:44.677172406Z"
+			"documentation_hash": "f25b62497f9e37d000c0267809e20fac271f3780a06da233e24a1341d52b6e45",
+			"definition_hash": "81fa769d3d4310113c7f37a5c4106d5eedcdd8ca1f9049eea1e4fd01b0789480",
+			"reviewed_at": "2026-06-25T10:51:16.098969109Z"
 		},
 		{
 			"function_name": "randToken",
@@ -99,6 +99,12 @@
 			"documentation_hash": "d09d224cca260e9bbddeec4dd3228ad78c1a9829e0cdd3e8ab39163fb370a675",
 			"definition_hash": "0b10a60925e4089dc491079620b185f6a2279c52b3701a6b053488eab8b7c968",
 			"reviewed_at": "2026-06-21T13:23:33.269588904Z"
+		},
+		{
+			"function_name": "NewTestAuthenticator",
+			"documentation_hash": "f8ab7dfa5871fd31128763f934c24ed579c4d2781ca9be0938f2af36e5f0fee2",
+			"definition_hash": "96822e6db9f7889e28851315edac74886cf83df8a1842ada93b7cfde672bf0fb",
+			"reviewed_at": "2026-06-25T10:52:08.724805071Z"
 		}
 	]
 }

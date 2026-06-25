@@ -16,8 +16,8 @@
 		{
 			"function_name": "newAuthServer",
 			"documentation_hash": "d51219b0827572e17ee0829c312dafe86433e0c5240d35fdd94c1d0f4aa570e4",
-			"definition_hash": "c381d8c3d0e70e76dbe3e43de4427544945f6cd26b243f15a0bf692f0dbf0752",
-			"reviewed_at": "2026-06-18T18:20:53.984699736Z"
+			"definition_hash": "49e2ebc180bb11b7ee1a67697b2fbd5ceb8b4389109012c635165bc2218cec4e",
+			"reviewed_at": "2026-06-25T10:51:16.099524886Z"
 		},
 		{
 			"function_name": "TestAuthorize",
@@ -40,8 +40,8 @@
 		{
 			"function_name": "TestProviderCallbackActivates",
 			"documentation_hash": "be865bce82dcd31326b7b807c6d8d6fe84f9d9b29249936e722b51d0dff5cc91",
-			"definition_hash": "7b846e4e784a72c86435c2690a82b3519945fa31eaba2211f55e3bb5e3aaafc2",
-			"reviewed_at": "2026-06-18T18:20:53.989163143Z"
+			"definition_hash": "1ed8fede988e3296f5a038bc701e8d771fb1235ee96e3ede8d6b045a9cd07891",
+			"reviewed_at": "2026-06-25T10:51:16.100333927Z"
 		},
 		{
 			"function_name": "TestProviderCallbackRejectsUnauthorized",
@@ -52,14 +52,14 @@
 		{
 			"function_name": "TestAuthPageRequiresLogin",
 			"documentation_hash": "fbb8971e7c31b6217e7a1dccfc54e364ea92db72f30e8d1641442af558061cee",
-			"definition_hash": "9db9282f9006e090d2e566ee3a7bf99a04f9c308a4cd094d7634668b220ea4e8",
-			"reviewed_at": "2026-06-18T18:20:53.991884973Z"
+			"definition_hash": "a6d018a725084dbac3de5d2ee8c86d8c2812fb3ede43de1a881cd3d61ed02c2a",
+			"reviewed_at": "2026-06-25T10:51:16.100918178Z"
 		},
 		{
 			"function_name": "TestActivationGatedByLogin",
 			"documentation_hash": "fa49343c911c73f938e0d5789ca32237e72a340b9e80faf40de09649a58f1c4f",
-			"definition_hash": "b9ffb3eeabc33dec1ba7e996d206f3178064427112ef1dca91b42efee171b27f",
-			"reviewed_at": "2026-06-21T13:23:33.274066184Z"
+			"definition_hash": "9d9ef9068bfd51f6ef8ff000032921531da3f1a0624f4bf571f7d54529ba8451",
+			"reviewed_at": "2026-06-25T10:51:16.101413546Z"
 		}
 	]
 }

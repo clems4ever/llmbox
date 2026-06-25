@@ -15,20 +15,20 @@
 		{
 			"function_name": "TestServerWithoutStore",
 			"documentation_hash": "6bc7733415b602d67a13b3ec8211b33e778734eab341ec31b66dd1bd1e6fc240",
-			"definition_hash": "465adf387dea1ff64d937cb2a143ee0781410aba6c7625dfe683b049dc327fad",
-			"reviewed_at": "2026-06-18T18:20:29.670511894Z"
+			"definition_hash": "74abbed22ef11dd57a223dc188885c7bf2066e296d17bf6fe9ba68b91c52e31e",
+			"reviewed_at": "2026-06-25T10:54:41.76183495Z"
 		},
 		{
 			"function_name": "TestCreateBoxPersistsSession",
 			"documentation_hash": "781fc62fc14bdc6a69e716c28ac26eff1f4bd36aefe3d1832fcd961682a504e4",
-			"definition_hash": "11d4c21b8f83fba82483a79cd37c103e7ca56db88247c6999cca14b1b6988129",
-			"reviewed_at": "2026-06-18T18:20:29.670844409Z"
+			"definition_hash": "50040530fec9a2dbec0401deae143762680aa162450c736a7211453e83a0e757",
+			"reviewed_at": "2026-06-25T10:54:41.786410086Z"
 		},
 		{
 			"function_name": "TestRestoreLoadsAndReconciles",
 			"documentation_hash": "09b6be0bb0232ccd450cfd3824f2f6b7ff53378c8073fd3b55b090ef8fb4c357",
-			"definition_hash": "a402d492079cf0c75c9905a25efff09223a5d36ac6f466943fba9f32ef8e9ae6",
-			"reviewed_at": "2026-06-18T18:20:29.671190723Z"
+			"definition_hash": "4393560036f5693a231032f4bf06541944dfee856b203e01fbb1a1e6aed59ae2",
+			"reviewed_at": "2026-06-25T10:54:41.810164009Z"
 		},
 		{
 			"function_name": "TestLoginStoreFlowRoundTrip",
@@ -39,14 +39,14 @@
 		{
 			"function_name": "TestLoginStoreSessionRoundTrip",
 			"documentation_hash": "9a520d54c3124ef798b9649229eda0aed65b2caea4384d076fd255a2e344de1a",
-			"definition_hash": "72f6196eccf80d23c81748c786890d978a0b9cb703e7e710f31cf2fcc9a3b68d",
-			"reviewed_at": "2026-06-18T18:20:29.671832711Z"
+			"definition_hash": "44c8dde083b913f7bb9ed474b56494c5762759e6c30a1b7586af8e79a8b05ae5",
+			"reviewed_at": "2026-06-25T10:54:41.836049867Z"
 		},
 		{
 			"function_name": "TestLoginStorePurgeExpired",
 			"documentation_hash": "da0ea11ec990460c8ad68ecbbaeeb4c599a5c5038d417ee60cc3f3b3ac2cab4f",
-			"definition_hash": "a5c9e824c79c9f0e7fe5e991abf4a24045a757281186b3415c6a38f40c94483a",
-			"reviewed_at": "2026-06-18T18:20:29.67238365Z"
+			"definition_hash": "10b9d414d3e05001e1e4feca2b7d0365d22577a15a5f7c15339cd392f5a3f67c",
+			"reviewed_at": "2026-06-25T10:54:41.859512735Z"
 		}
 	]
 }

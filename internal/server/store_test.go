@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/testutils"
 )
 
 // TestBoltStoreRoundTrip checks a session survives save, reload, and close.
@@ -84,7 +85,7 @@ func TestBoltStoreDelete(t *testing.T) {
 
 // TestServerWithoutStore checks the server functions with a no-op store.
 func TestServerWithoutStore(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, noopStore{}, nil)
 	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
@@ -105,7 +106,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	}
 	defer st.Close()
 
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?z=1", submitURL: "https://claude.ai/code/s/1"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?z=1", SubmitURL: "https://claude.ai/code/s/1"}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
 
 	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "h", Description: "d"})
@@ -152,7 +153,7 @@ func TestRestoreLoadsAndReconciles(t *testing.T) {
 	}
 
 	// Docker only reports the live box (short 12-char ID).
-	f := &fakeMgr{listResult: []docker.Box{{ContainerID: "aaaaaaaaaaaa"}}}
+	f := &testutils.FakeMgr{ListResult: []docker.Box{{ContainerID: "aaaaaaaaaaaa"}}}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
 
 	n, err := s.Restore(context.Background())
@@ -210,7 +211,7 @@ func TestLoginStoreSessionRoundTrip(t *testing.T) {
 	}
 	defer st.Close()
 
-	want := loginSession{Email: "a@corp.com", Provider: "google", CSRF: "c", ExpiresAt: time.Unix(1700000000, 0).UTC()}
+	want := LoginSession{Email: "a@corp.com", Provider: "google", CSRF: "c", ExpiresAt: time.Unix(1700000000, 0).UTC()}
 	if err := st.SaveLoginSession("sid", want); err != nil {
 		t.Fatalf("SaveLoginSession: %v", err)
 	}
@@ -239,8 +240,8 @@ func TestLoginStorePurgeExpired(t *testing.T) {
 	defer st.Close()
 
 	now := time.Unix(1700000000, 0).UTC()
-	_ = st.SaveLoginSession("live", loginSession{Email: "a@corp.com", ExpiresAt: now.Add(time.Hour)})
-	_ = st.SaveLoginSession("dead", loginSession{Email: "b@corp.com", ExpiresAt: now.Add(-time.Hour)})
+	_ = st.SaveLoginSession("live", LoginSession{Email: "a@corp.com", ExpiresAt: now.Add(time.Hour)})
+	_ = st.SaveLoginSession("dead", LoginSession{Email: "b@corp.com", ExpiresAt: now.Add(-time.Hour)})
 	_ = st.SaveLoginFlow("liveflow", loginFlow{ExpiresAt: now.Add(time.Hour)})
 	_ = st.SaveLoginFlow("deadflow", loginFlow{ExpiresAt: now.Add(-time.Hour)})
 

@@ -18,8 +18,8 @@
 			"function_name": "adminDashboard",
 			"receiver": "Server",
 			"documentation_hash": "98837fe4f193d291be7463599a66299f9fe6221d93dcb799bbeb01c8416a7d38",
-			"definition_hash": "1f4223a1e5847ab497d86cef0d411b49c84cdef6437d39ca35e5e5805aaba04d",
-			"reviewed_at": "2026-06-21T18:29:19.490677291Z"
+			"definition_hash": "af367660ba4307addc4bf29b72248d46724a8f1a3002d27b883858fe2abf0b14",
+			"reviewed_at": "2026-06-25T10:50:51.586030504Z"
 		},
 		{
 			"function_name": "toAdminTokens",
@@ -36,9 +36,9 @@
 		{
 			"function_name": "requireAdminPost",
 			"receiver": "Server",
-			"documentation_hash": "144d5ef10835e34efbf9825a6159e6480b13d688962016c7896ebf401e6096fb",
-			"definition_hash": "6112481908a8daad84c85ed26671719a03fa15ebf3fe4454125b53a569e2fc64",
-			"reviewed_at": "2026-06-25T09:38:26.188084199Z"
+			"documentation_hash": "9cfd909c4e9afb0f87cbb637c23a29e51ca94173199bc2aee36a1eda72974246",
+			"definition_hash": "2bd16781045faa7823c5941ac9af2d6554fa7e78e54df0a9a77de1497d7d2523",
+			"reviewed_at": "2026-06-25T10:50:51.593110971Z"
 		},
 		{
 			"function_name": "handleAdminCreateSpoke",
@@ -65,22 +65,15 @@
 			"function_name": "handleAdminCreateBox",
 			"receiver": "Server",
 			"documentation_hash": "410774d8208112ca01a93cbd0543402253e03bef9c1efeecebbbb3e23c3779f8",
-			"definition_hash": "a8fb2693e09a41fd9e73ac9de11adcee41e3f589c1df865a029b65b02f76a702",
-			"reviewed_at": "2026-06-25T09:38:26.199186612Z"
+			"definition_hash": "ac161fddea8a9c5e056557dc5aef82db9e2b24a5de3e9c314c2863ef2470eded",
+			"reviewed_at": "2026-06-25T10:50:51.60247259Z"
 		},
 		{
 			"function_name": "handleAdminDeleteBox",
 			"receiver": "Server",
 			"documentation_hash": "31c291217827d2c8e8d920fa102a15c7cfc9fc784536f92383977279f45f7517",
-			"definition_hash": "3afa60b1036c9bd87e21a2d9c84b06262a2d674bab3eae86ed6f829e768b0fa6",
-			"reviewed_at": "2026-06-25T09:38:26.201822843Z"
-		},
-		{
-			"function_name": "redirectAdmin",
-			"receiver": "Server",
-			"documentation_hash": "1dfce2def4aee0b303c82e415e1b087f81b0f5a13ad132066968889621771d17",
-			"definition_hash": "ac020f7af620e3e488714636b0d183d5d9c967817fc0a10607e99944ce297363",
-			"reviewed_at": "2026-06-22T19:50:31.325189483Z"
+			"definition_hash": "6b97116553b5a4c2f108da1d848c3dd9f095b8a7f0edccbf1695f710ca24d71c",
+			"reviewed_at": "2026-06-25T10:50:51.61245611Z"
 		},
 		{
 			"function_name": "spokeConnectURL",
@@ -102,12 +95,6 @@
 			"documentation_hash": "90315a730b6af16e44b92f0f6ca7e4fad71f174f6241b47a5b868c8648c62e3d",
 			"definition_hash": "88a880823a6464df7aa6980785e9f020f253ea80d36a1173aa8d38003c6d6a64",
 			"reviewed_at": "2026-06-21T18:29:19.491804806Z"
-		},
-		{
-			"function_name": "wantsJSON",
-			"documentation_hash": "2c31e4a5831cabd27992d38c272cfb64a6d019d450fd8d7a7712de23b4eb22a2",
-			"definition_hash": "ba1f6f0cfda798399069201cd2be215a79887f550525961b731fe19392be094f",
-			"reviewed_at": "2026-06-22T19:50:31.334990878Z"
 		},
 		{
 			"function_name": "writeJSON",
