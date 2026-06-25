@@ -1,22 +1,10 @@
 {
 	"functions": [
 		{
-			"function_name": "TestBoltStoreRoundTrip",
-			"documentation_hash": "2aabd2b6a18cc2b2a75cc928efbe884f92045b42a6a2c64ff60e037c95e64600",
-			"definition_hash": "b6322471fd70478586e97614ed9cfc34a26de13ca805a2213df42a6a7e0b8b61",
-			"reviewed_at": "2026-06-18T16:59:05.524082178Z"
-		},
-		{
-			"function_name": "TestBoltStoreDelete",
-			"documentation_hash": "91768d260f6a0443a54ab229530c6c3180b3b5455d93671e86177cced0770bfd",
-			"definition_hash": "98244526c266fb040dbb14ef85d4570333d58f0726592c59e68f9d8e27f8db61",
-			"reviewed_at": "2026-06-18T16:59:05.524748821Z"
-		},
-		{
 			"function_name": "TestServerWithoutStore",
 			"documentation_hash": "6bc7733415b602d67a13b3ec8211b33e778734eab341ec31b66dd1bd1e6fc240",
-			"definition_hash": "74abbed22ef11dd57a223dc188885c7bf2066e296d17bf6fe9ba68b91c52e31e",
-			"reviewed_at": "2026-06-25T10:54:41.76183495Z"
+			"definition_hash": "04e0c67f2fc59d4ce85f5901441b187793f6c8ded456402c13c0d7bb642614d4",
+			"reviewed_at": "2026-06-25T12:21:35.454420812Z"
 		},
 		{
 			"function_name": "TestCreateBoxPersistsSession",
@@ -29,24 +17,6 @@
 			"documentation_hash": "09b6be0bb0232ccd450cfd3824f2f6b7ff53378c8073fd3b55b090ef8fb4c357",
 			"definition_hash": "4393560036f5693a231032f4bf06541944dfee856b203e01fbb1a1e6aed59ae2",
 			"reviewed_at": "2026-06-25T10:54:41.810164009Z"
-		},
-		{
-			"function_name": "TestLoginStoreFlowRoundTrip",
-			"documentation_hash": "99abf786b387519183f12337fd8d3978dce315359a52875116ed3522686c3050",
-			"definition_hash": "e1a1f42e89a355c255575605641e3a85fabb860e8c8d8c46207d5eb77ed2eb2b",
-			"reviewed_at": "2026-06-18T18:20:29.671511017Z"
-		},
-		{
-			"function_name": "TestLoginStoreSessionRoundTrip",
-			"documentation_hash": "9a520d54c3124ef798b9649229eda0aed65b2caea4384d076fd255a2e344de1a",
-			"definition_hash": "44c8dde083b913f7bb9ed474b56494c5762759e6c30a1b7586af8e79a8b05ae5",
-			"reviewed_at": "2026-06-25T10:54:41.836049867Z"
-		},
-		{
-			"function_name": "TestLoginStorePurgeExpired",
-			"documentation_hash": "da0ea11ec990460c8ad68ecbbaeeb4c599a5c5038d417ee60cc3f3b3ac2cab4f",
-			"definition_hash": "10b9d414d3e05001e1e4feca2b7d0365d22577a15a5f7c15339cd392f5a3f67c",
-			"reviewed_at": "2026-06-25T10:54:41.859512735Z"
 		}
 	]
 }

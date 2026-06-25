@@ -1,0 +1,130 @@
+{
+	"functions": [
+		{
+			"function_name": "Save",
+			"receiver": "NoopStore",
+			"documentation_hash": "8f6d0acb8055da378734f73214488dd3093ab5cdbb167a55cf12f6f3e5f21155",
+			"definition_hash": "c3b2b673491f83d55f04ec3c722d79ec2ede52da6944eac0b423e8d66fc0ad91",
+			"reviewed_at": "2026-06-25T12:22:55.629463042Z"
+		},
+		{
+			"function_name": "Delete",
+			"receiver": "NoopStore",
+			"documentation_hash": "6112ebe36734f1dbf46f43bf5673d4447f7461e13a2e7f73ab3143b232c33e50",
+			"definition_hash": "20342048169b1bd35f247ee48949de829d134a1584ff654b58322aac67a38d14",
+			"reviewed_at": "2026-06-25T12:22:55.639079787Z"
+		},
+		{
+			"function_name": "LoadAll",
+			"receiver": "NoopStore",
+			"documentation_hash": "3901e81e18235c7dbce4a1a2cc09b907476035a87d593207f9fc515366e7e9e4",
+			"definition_hash": "19e05b60dcb1fc362cc9ca926a35bece55760e140ba87886dca3b0da56d973c4",
+			"reviewed_at": "2026-06-25T12:22:55.647230677Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "NoopStore",
+			"documentation_hash": "8ab7d46d1ae3a69c0c57d7bbb216fff92f4dc2bdfe62fad63a1f1c9dc32345fd",
+			"definition_hash": "155b98a0c303a09decf55e6503e9d6a156b63e6c3d8b462b1f427110811a5025",
+			"reviewed_at": "2026-06-25T12:22:55.65146475Z"
+		},
+		{
+			"function_name": "SaveLoginFlow",
+			"receiver": "NoopStore",
+			"documentation_hash": "8746b109436e5bd12ea76adee45ea245640cc686b6c4a1ca0130fe9506c25876",
+			"definition_hash": "4ab1cf92679de5de721dcee765aa7a065794f9dd3882c4822801cb9f2fed60b7",
+			"reviewed_at": "2026-06-25T12:22:55.654343671Z"
+		},
+		{
+			"function_name": "TakeLoginFlow",
+			"receiver": "NoopStore",
+			"documentation_hash": "8708cf6fb11725342015491b1a3c4de19e27c3434678a6eaf085468eef11924d",
+			"definition_hash": "abfa9294e9835d1e91a4f34381dfb4e491ffa12552446e2d3a543ebc402b7863",
+			"reviewed_at": "2026-06-25T12:22:55.656652776Z"
+		},
+		{
+			"function_name": "SaveLoginSession",
+			"receiver": "NoopStore",
+			"documentation_hash": "e7f17924a228f1316309b4298a4a63df8724882daa48b2f18db31cfdfeac4b3e",
+			"definition_hash": "59913adf3368cedea76ea1582822aa8a75bb75116434f423b453d70b3ed0ad93",
+			"reviewed_at": "2026-06-25T12:22:55.658972718Z"
+		},
+		{
+			"function_name": "LoginSession",
+			"receiver": "NoopStore",
+			"documentation_hash": "490eb6d81ee05fb33f66da5e95cc83a752091c432d7d71c4f1f275093edd89bd",
+			"definition_hash": "16c09b87d831019051763de4f4a6901998ab0db4a3b528c6330d6d36e5c5140a",
+			"reviewed_at": "2026-06-25T12:22:55.661623766Z"
+		},
+		{
+			"function_name": "DeleteLoginSession",
+			"receiver": "NoopStore",
+			"documentation_hash": "dfd548eb90a93210885557fe41bca01bae0fd2d6ed4780b7494c04cc28235eca",
+			"definition_hash": "1520b40de5583e841cc6b8dd6b3f2d799c48a34624a379af5c955566d63c5f5d",
+			"reviewed_at": "2026-06-25T12:22:55.667292038Z"
+		},
+		{
+			"function_name": "PurgeExpiredLogins",
+			"receiver": "NoopStore",
+			"documentation_hash": "bc9d27a93d776b0f42912180ba500097564b87fd3ce947fd445a8d99559c9f6a",
+			"definition_hash": "7d5a6b850f995a82ad7f4f3e37b7823395244cd35e73e09be62c3f4e494d2504",
+			"reviewed_at": "2026-06-25T12:22:55.674639906Z"
+		},
+		{
+			"function_name": "PutJoinToken",
+			"receiver": "NoopStore",
+			"documentation_hash": "996c98268e3417770e50a1e454105aae6435ccd61a196443c850693683334675",
+			"definition_hash": "2ed34167a7073be6e7799b0b13b2a247d1da52f314f0212d9eb0fdc850756ccf",
+			"reviewed_at": "2026-06-25T12:22:55.683116668Z"
+		},
+		{
+			"function_name": "TakeJoinToken",
+			"receiver": "NoopStore",
+			"documentation_hash": "e218cc70daca09cee1e348c5edf6e1840db59f75a31336f1a3ac2c7508339935",
+			"definition_hash": "f08b633972b98f6fe386d1a96a7a03d93d95b91217e7e26306c912e59b23f6a5",
+			"reviewed_at": "2026-06-25T12:22:55.690773415Z"
+		},
+		{
+			"function_name": "ListJoinTokens",
+			"receiver": "NoopStore",
+			"documentation_hash": "d20d770ea5ed5cf289ae7c53f10acea8d7f00d3516709b412a767092f4374aca",
+			"definition_hash": "26afa477d9231fcbc0f7f9bad0f01550f81fb56115b9003ad69a37fb8519749c",
+			"reviewed_at": "2026-06-25T12:22:55.698877577Z"
+		},
+		{
+			"function_name": "DeleteJoinToken",
+			"receiver": "NoopStore",
+			"documentation_hash": "66efb31a7f53d7081c02861093978c0d57685db7ec4ecf275e96a5decbd70be0",
+			"definition_hash": "a60e17d430b280afcbbe7e85fa990a6bbbffa8243e32f60b5d61057aa8567b5e",
+			"reviewed_at": "2026-06-25T12:22:55.708526862Z"
+		},
+		{
+			"function_name": "PutSpoke",
+			"receiver": "NoopStore",
+			"documentation_hash": "b7b1c3921a1a86a4f77ee682993c6a9b1411d0c71db6cdbf7d056debdf75e68d",
+			"definition_hash": "4749a1b91873bd7f1f77e6f8cf6451068891508ee4cb81313c653fabd3194bcd",
+			"reviewed_at": "2026-06-25T12:22:55.718444751Z"
+		},
+		{
+			"function_name": "GetSpoke",
+			"receiver": "NoopStore",
+			"documentation_hash": "6f74c16da9c747757ae5daaa6357cf107994208ec13887b9a11b07332d1d8360",
+			"definition_hash": "29878bb3a86696bce78b67a63acba6dbbe9d1d2abb6229376cc932d38b8187a9",
+			"reviewed_at": "2026-06-25T12:22:55.726431128Z"
+		},
+		{
+			"function_name": "ListSpokes",
+			"receiver": "NoopStore",
+			"documentation_hash": "78bd96ee716254e1cecadac755a051a540d85ca8f633aabe78532f49ad9f947e",
+			"definition_hash": "99a206e15dae5f6d18d45649d7c7acc3d0aa0f6302f4eaffae49de1736fad1fb",
+			"reviewed_at": "2026-06-25T12:22:55.736654517Z"
+		},
+		{
+			"function_name": "DeleteSpoke",
+			"receiver": "NoopStore",
+			"documentation_hash": "fdb8a103bb590abab129623a32534441b78eef61d03fe20a2f67abdfc856c6fd",
+			"definition_hash": "1c0f0105856dc386ac10ec97f3773dd268ed403f4b87c2ad0070591f8f66b5b2",
+			"reviewed_at": "2026-06-25T12:22:55.74686075Z"
+		}
+	]
+}

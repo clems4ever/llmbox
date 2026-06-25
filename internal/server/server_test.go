@@ -20,7 +20,7 @@ import (
 // newTestServer builds a Server backed by the given fake manager and no-op store,
 // with hook integration disabled (nil hooks).
 func newTestServer(f *testutils.FakeMgr) *Server {
-	return New(f, nil, "https://boxes.example.com", 5*time.Minute, noopStore{}, nil)
+	return New(f, nil, "https://boxes.example.com", 5*time.Minute, testutils.NoopStore{}, nil)
 }
 
 // fakeHooks is a stand-in for *hooks.Runner that records create/destroy calls.
@@ -131,7 +131,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 			{Path: "/home/node/.granular/github.yaml", Content: []byte("base_url: \"http://gh\"\n"), Mode: 0o644, UID: 1000, GID: 1000},
 		},
 	}
-	s := New(f, h, "https://boxes.example.com", time.Minute, noopStore{}, nil)
+	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
 
 	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
@@ -170,7 +170,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 	f := &testutils.FakeMgr{CreateErr: errors.New("no image")}
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-doomed"}}
-	s := New(f, h, "https://boxes.example.com", time.Minute, noopStore{}, nil)
+	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
 
 	if _, err := s.createBox(context.Background(), docker.CreateOptions{}); err == nil {
 		t.Fatal("expected error")
@@ -185,7 +185,7 @@ func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 func TestDestroyRunsDestroyHooks(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-live"}}
-	s := New(f, h, "https://boxes.example.com", time.Minute, noopStore{}, nil)
+	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
 
 	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
