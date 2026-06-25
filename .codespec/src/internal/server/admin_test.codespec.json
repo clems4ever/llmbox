@@ -57,32 +57,32 @@
 		{
 			"function_name": "TestAdminCreateSpokeMintsToken",
 			"documentation_hash": "2c07f0c86d07eb05661528725f462c5d5ed6a67f471a66cdfde1c93565099518",
-			"definition_hash": "bc087240816fb9f729c4c580a042a5646e3c2acffe789c91f9ab03364d004832",
-			"reviewed_at": "2026-06-21T18:29:19.492389478Z"
+			"definition_hash": "ce5b729a78494a219d30132bfb3c3f2e3007ccbc24a59a790f275c8454b48474",
+			"reviewed_at": "2026-06-25T09:38:26.208284994Z"
 		},
 		{
 			"function_name": "TestAdminDropSpokeRemovesAndKicks",
 			"documentation_hash": "7febcd39b90498ef487a8bb76eefe30e8432080a56171c0caf17bf3177fa6eab",
-			"definition_hash": "564af1ba938c97eb9a9b25cae387d01017a0480d7c3a94c033c05f75d2d167ac",
-			"reviewed_at": "2026-06-21T13:32:40.464123325Z"
+			"definition_hash": "4981bf46350d95ca7c560aaebc6ea38e78cf7b9d387cb46b51a2d39cc27a0688",
+			"reviewed_at": "2026-06-25T09:38:26.211988517Z"
 		},
 		{
 			"function_name": "TestAdminRevokeToken",
 			"documentation_hash": "06e7eebb7c8c7d250a4fffe0dee7c91cd68fce7eddc85159fd689f8102ece4e0",
-			"definition_hash": "1e18649c5620336e79ad6a8ae4b6ab42c0cd06a41b236792fd4705eca46974ec",
-			"reviewed_at": "2026-06-21T13:32:40.467185824Z"
+			"definition_hash": "7f73e69a77fc22f4bc46a218156b53aba97a51d532c264cb9144568f4b3b58b2",
+			"reviewed_at": "2026-06-25T09:38:26.215354051Z"
 		},
 		{
 			"function_name": "TestAdminCreateBox",
 			"documentation_hash": "6dbcb5b3155860e79e4eb365edfac90e1fca490ba1f779e1daf40db9ff5368f3",
-			"definition_hash": "f227c684b1d57d2a8b3a69cc9c4de62a2086cc50f0726b3e32b99adc57df5dcc",
-			"reviewed_at": "2026-06-21T13:32:40.47230632Z"
+			"definition_hash": "9248f877d7df31f1bb665502389442bd41e430abace6954532c76da153069f3a",
+			"reviewed_at": "2026-06-25T09:38:26.2191159Z"
 		},
 		{
 			"function_name": "TestAdminDeleteBox",
-			"documentation_hash": "0eeef66f7a99433f7c7c7987e408e1c44ba61825b32b59d8d35c687f09d67780",
-			"definition_hash": "8f8308d73a6cf5275f6cc154f3237f70f28a65a6f1f654a44d77b9f3be3e3b63",
-			"reviewed_at": "2026-06-21T13:32:40.476140041Z"
+			"documentation_hash": "4777d21cd41d8c3af6ab4492e3d411d5b6250e49ebfac668346e0223cd18cadf",
+			"definition_hash": "0de5d9988e4fcbf4bdc07c8de1d274053b39200326473e8389317fffe7bf6589",
+			"reviewed_at": "2026-06-25T09:38:26.223719856Z"
 		},
 		{
 			"function_name": "TestToAdminTokens",
@@ -116,9 +116,15 @@
 		},
 		{
 			"function_name": "TestAdminJSServed",
-			"documentation_hash": "379fddee285ffaf7c2b668e0bdb6a396038576c9c479c062570e87f85391d603",
+			"documentation_hash": "4d7044f12f5cd3257abf9c2e08a66c275cb759a9620ca8604afb050834efd74a",
 			"definition_hash": "da2aa1509bd9a7cef8a662b3f69c975770daab85f73829d1d9ac447631dbaa39",
-			"reviewed_at": "2026-06-22T19:51:43.961962456Z"
+			"reviewed_at": "2026-06-25T09:38:26.209415921Z"
+		},
+		{
+			"function_name": "decodeAdminResult",
+			"documentation_hash": "a68e9651890de96f233dbf7557877d1e787d0482d33b953bf1f6a38990f473df",
+			"definition_hash": "1283b0a15e6681098907562fa7c5eec7b964a6a7fa846cf3f6334ba0e12b2980",
+			"reviewed_at": "2026-06-25T09:38:26.205878708Z"
 		}
 	]
 }
