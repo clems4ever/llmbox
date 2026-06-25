@@ -114,7 +114,7 @@ func TestNewAuthenticatorDisabled(t *testing.T) {
 // redirects to the provider with state and a PKCE challenge.
 func TestProviderLoginRedirects(t *testing.T) {
 	s, _, st := newAuthServer(t, googleTestProvider(t, idClaims{}, nil))
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/login?token=TOK", nil))
@@ -146,7 +146,7 @@ func TestProviderLoginRedirects(t *testing.T) {
 // session cookie and is redirected back to the box's auth page.
 func TestProviderCallbackActivates(t *testing.T) {
 	s, _, st := newAuthServer(t, googleTestProvider(t, idClaims{Email: "alice@corp.com", EmailVerified: true}, nil))
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	if err := st.SaveLoginFlow("STATE", loginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
@@ -183,7 +183,7 @@ func TestProviderCallbackActivates(t *testing.T) {
 // rule is refused with 403 and gets no login cookie.
 func TestProviderCallbackRejectsUnauthorized(t *testing.T) {
 	s, _, st := newAuthServer(t, googleTestProvider(t, idClaims{Email: "mallory@evil.com", EmailVerified: true}, nil))
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	if err := st.SaveLoginFlow("STATE", loginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
@@ -207,7 +207,7 @@ func TestAuthPageRequiresLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/"+sess.Token, nil))
@@ -230,7 +230,7 @@ func TestActivationGatedByLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	post := func(cookie *http.Cookie, form url.Values) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(http.MethodPost, "/auth/"+sess.Token, strings.NewReader(form.Encode()))

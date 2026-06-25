@@ -2,17 +2,21 @@
 // ("llmboxes") and lets an end user authenticate each one via OAuth in their
 // browser — never routing the OAuth secret through the chatbot.
 //
-// One process serves two things on the same HTTP port:
+// One process serves two things on two separate HTTP ports:
 //
-//	/              MCP (streamable HTTP) — a chatbot creates/lists/destroys boxes
-//	/auth/{token}  web page where the user pastes their OAuth code
+//	mcp_addr   /              MCP (streamable HTTP) — a chatbot creates/lists/destroys boxes
+//	http_addr  /auth/{token}  web page where the user pastes their OAuth code (+ admin UI, health)
+//
+// The MCP port is split out so it can sit behind its own authenticating reverse
+// proxy (e.g. oauth2-proxy), independently of the public UI/API port.
 //
 // Boxes that are never authenticated are destroyed after a TTL.
 //
 // Configuration is a YAML file (default ./llmbox.yaml, override with --config).
 // Every field is optional; unset fields fall back to built-in defaults:
 //
-//	http_addr:    ":8080"                  # listen address
+//	http_addr:    ":8080"                  # UI/API listen address
+//	mcp_addr:     ":8081"                  # MCP listen address (put behind an auth proxy)
 //	public_url:   "http://localhost:8080"  # external base URL for auth links
 //	claude_image: "ghcr.io/clems4ever/llmbox-box:latest"  # base image per box; any glibc image with a CA bundle works — Claude is injected, not baked in
 //	claude_bin:   "/opt/llmbox/claude"     # standalone Claude binary injected into each box
@@ -165,12 +169,13 @@ func boxLimits(b config.BoxConfig) docker.BoxLimits {
 // (applying the configured per-box resource limits), opens the session store,
 // sets up optional lifecycle hooks and activation auth, optionally enables
 // hub-and-spoke clustering, restores persisted sessions, starts the orphan
-// reaper, and serves the combined MCP + auth HTTP handler until the parent
-// context is cancelled (SIGINT/SIGTERM) at which point it shuts down gracefully.
+// reaper, and serves the MCP endpoint and the UI/API on their two separate ports
+// until the parent context is cancelled (SIGINT/SIGTERM) at which point both shut
+// down gracefully.
 //
 // @arg parent The parent context whose cancellation (or a termination signal) triggers graceful shutdown.
-// @arg cfg The resolved configuration driving the manager, store, auth, clustering, and HTTP server.
-// @error error if the manager, store, or authenticator cannot be built, a state directory cannot be created, or the HTTP server fails for a reason other than a clean shutdown.
+// @arg cfg The resolved configuration driving the manager, store, auth, clustering, and HTTP servers.
+// @error error if the manager, store, or authenticator cannot be built, a state directory cannot be created, or either HTTP server fails for a reason other than a clean shutdown.
 //
 // @testcase TestNewRootCmd covers the command that loads cfg and calls run.
 func run(parent context.Context, cfg *config.Config) error {
@@ -241,13 +246,22 @@ func run(parent context.Context, cfg *config.Config) error {
 		log.Printf("clustering enabled: spokes may join at %s/spoke/connect", cfg.PublicURL)
 	}
 
-	httpSrv := &http.Server{
-		Addr:    cfg.HTTPAddr,
-		Handler: srv.Handler(srv.MCPServer(name, version)),
+	// Two listeners: the MCP endpoint on its own port (meant to sit behind an auth
+	// proxy) and the UI/API (auth pages, admin, health) on the public port.
+	mcpSrv := &http.Server{
+		Addr:    cfg.MCPAddr,
+		Handler: srv.MCPHandler(srv.MCPServer(name, version)),
 		// SubmitCode blocks while the box logs in, so allow long requests.
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      90 * time.Second,
 	}
+	apiSrv := &http.Server{
+		Addr:              cfg.HTTPAddr,
+		Handler:           srv.APIHandler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      90 * time.Second,
+	}
+	servers := []*http.Server{mcpSrv, apiSrv}
 
 	// Reload sessions saved before a restart, dropping any whose box is gone.
 	if n, err := srv.Restore(ctx); err != nil {
@@ -262,14 +276,34 @@ func run(parent context.Context, cfg *config.Config) error {
 		<-ctx.Done()
 		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := httpSrv.Shutdown(shutCtx); err != nil {
-			log.Printf("graceful shutdown failed: %v", err)
+		for _, hs := range servers {
+			if err := hs.Shutdown(shutCtx); err != nil {
+				log.Printf("graceful shutdown failed for %s: %v", hs.Addr, err)
+			}
 		}
 	}()
 
-	log.Printf("%s %s listening on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.PublicURL, authTTL)
-	if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return err
+	log.Printf("%s %s listening: API on %s, MCP on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.MCPAddr, cfg.PublicURL, authTTL)
+
+	// Serve both ports. If either listener fails, cancel the context so the other
+	// is shut down too, and surface the first real error.
+	errCh := make(chan error, len(servers))
+	for _, hs := range servers {
+		go func(hs *http.Server) {
+			if err := hs.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				errCh <- fmt.Errorf("listening on %s: %w", hs.Addr, err)
+				return
+			}
+			errCh <- nil
+		}(hs)
 	}
-	return nil
+
+	var firstErr error
+	for range servers {
+		if err := <-errCh; err != nil && firstErr == nil {
+			firstErr = err
+			stop() // cancel ctx -> the goroutine above shuts both servers down
+		}
+	}
+	return firstErr
 }

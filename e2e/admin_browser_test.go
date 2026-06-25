@@ -35,7 +35,7 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 	}}
 	cookie := signIn(t, st, true, false) // admin session "SID" with CSRF "CSRF"
 
-	httpSrv := httptest.NewServer(s.Handler(s.MCPServer("t", "v")))
+	httpSrv := httptest.NewServer(s.APIHandler())
 	t.Cleanup(httpSrv.Close)
 
 	b := newBrowser(t)

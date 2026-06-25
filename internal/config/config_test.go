@@ -23,6 +23,9 @@ func TestDefault(t *testing.T) {
 	if c.HTTPAddr != DefaultHTTPAddr {
 		t.Errorf("HTTPAddr = %q, want %q", c.HTTPAddr, DefaultHTTPAddr)
 	}
+	if c.MCPAddr != DefaultMCPAddr {
+		t.Errorf("MCPAddr = %q, want %q", c.MCPAddr, DefaultMCPAddr)
+	}
 	if c.PublicURL != DefaultPublicURL {
 		t.Errorf("PublicURL = %q, want %q", c.PublicURL, DefaultPublicURL)
 	}
@@ -38,6 +41,7 @@ func TestDefault(t *testing.T) {
 func TestLoad(t *testing.T) {
 	path := write(t, `
 http_addr: ":9090"
+mcp_addr: ":9091"
 public_url: "https://boxes.example.com"
 claude_image: "ubuntu:24.04"
 claude_bin: "/usr/local/bin/claude"
@@ -54,8 +58,8 @@ box_peers:
 	if err != nil {
 		t.Fatalf("Load = %v", err)
 	}
-	if c.HTTPAddr != ":9090" || c.PublicURL != "https://boxes.example.com" {
-		t.Errorf("addr/url = %q / %q", c.HTTPAddr, c.PublicURL)
+	if c.HTTPAddr != ":9090" || c.MCPAddr != ":9091" || c.PublicURL != "https://boxes.example.com" {
+		t.Errorf("addr/url = %q / %q / %q", c.HTTPAddr, c.MCPAddr, c.PublicURL)
 	}
 	if c.ClaudeImage != "ubuntu:24.04" || c.ClaudeBin != "/usr/local/bin/claude" || c.RemoteArgs != "--spawn new-dir" {
 		t.Errorf("docker fields = %q / %q / %q", c.ClaudeImage, c.ClaudeBin, c.RemoteArgs)
@@ -97,6 +101,9 @@ func TestLoadAppliesDefaults(t *testing.T) {
 	}
 	if c.HTTPAddr != DefaultHTTPAddr {
 		t.Errorf("HTTPAddr = %q, want default", c.HTTPAddr)
+	}
+	if c.MCPAddr != DefaultMCPAddr {
+		t.Errorf("MCPAddr = %q, want default", c.MCPAddr)
 	}
 	if time.Duration(c.AuthTTL) != DefaultAuthTTL {
 		t.Errorf("AuthTTL = %v, want default", time.Duration(c.AuthTTL))

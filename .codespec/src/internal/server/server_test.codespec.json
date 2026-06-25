@@ -89,20 +89,20 @@
 		{
 			"function_name": "TestAuthPageRendersAndSubmits",
 			"documentation_hash": "0ef2991d53177aa86f422fa572c3382e75cd23fc9717ab20077b475bce4a3269",
-			"definition_hash": "02776a053095f3448ae8869311c377c8e8ee1e20ca1db114b16cc34d648a1182",
-			"reviewed_at": "2026-06-25T10:54:13.827624156Z"
+			"definition_hash": "32001ee2e61b5992caf294afccbfc6ff8ce2d6393149c0fb0266f81e90e32bac",
+			"reviewed_at": "2026-06-25T12:45:36.343778548Z"
 		},
 		{
 			"function_name": "TestAuthPageUnknownToken",
 			"documentation_hash": "418d8d64cd1bfc5be9f28aee0ff3893df69576c37c70c33282dec53186f01e46",
-			"definition_hash": "72391b8d392f95f87e505b397d728bbf2791fcb27a4ab7166adc979562121901",
-			"reviewed_at": "2026-06-25T10:54:13.870538884Z"
+			"definition_hash": "47897fe96d4703869dd43a265db196b97f6e0c0d94262823ada2ef05081bdd4f",
+			"reviewed_at": "2026-06-25T12:45:36.361493807Z"
 		},
 		{
 			"function_name": "TestHealthz",
 			"documentation_hash": "247416ae4bb81f94aa27deb6b4ca37849616ff9ad59081dd49bdd2e1d682456a",
-			"definition_hash": "cb6e59ad163c8dffe0df652619ea142693b165407a063c2702e92dc020527093",
-			"reviewed_at": "2026-06-25T10:54:13.89462785Z"
+			"definition_hash": "fe5565933f63822c3e295a429515a49c7b390afd24926e05175d83f4a94f0c6f",
+			"reviewed_at": "2026-06-25T12:45:36.367689218Z"
 		},
 		{
 			"function_name": "TestMCPToolsRegisteredAndCreate",
@@ -119,8 +119,8 @@
 		{
 			"function_name": "TestFaviconServed",
 			"documentation_hash": "df63e6203f21153f9f1d1617032682d62b4a43ddbba899bcb34f4088a40df13d",
-			"definition_hash": "318bf90576679e048511c5edd7c4d3d039d9f4c0d4752e3b79564789f8cfc137",
-			"reviewed_at": "2026-06-25T10:54:13.917098826Z"
+			"definition_hash": "baa997a895c317739245773fd5cb4b86a628939d4718ca8e683c70f346e9925e",
+			"reviewed_at": "2026-06-25T12:45:36.37721306Z"
 		},
 		{
 			"function_name": "TestGetByBoxID",
@@ -155,8 +155,8 @@
 		{
 			"function_name": "TestAuthPageShowsBoxAndSpoke",
 			"documentation_hash": "01c007d008dc96c06d63dfc4db0c607f833d52160aeed95f522318f03f25c725",
-			"definition_hash": "0673c1a110cccd79ee49d4596dbff81fd426c80da96d7438829669aedbd39a92",
-			"reviewed_at": "2026-06-25T10:54:13.843936345Z"
+			"definition_hash": "d6a3ab90c052c3160fbdb1bd6829da5f9b3f86102e8b7ef9bfbf6d335ad292eb",
+			"reviewed_at": "2026-06-25T12:45:36.35304882Z"
 		},
 		{
 			"function_name": "TestCreateBoxDefaultsImageToBoxImage",
@@ -169,6 +169,18 @@
 			"documentation_hash": "5ec9a3956176aa482267ecee6c5d90921ec53bd5835fa3051f77920714779f21",
 			"definition_hash": "8aa8827693d53ea07ba27bfdb2593c18f34bb725a59dd21661400db50a1bcb8b",
 			"reviewed_at": "2026-06-25T10:54:07.059374243Z"
+		},
+		{
+			"function_name": "TestAPIHandlerServesUINotMCP",
+			"documentation_hash": "6bbf6d80b0e8948e48271bf8120b12049145eb966e43cda955c32bb929389bf3",
+			"definition_hash": "ab53237a60f0011f26e688e496d6899d3bcbaa60651ac396c1b12ced97194f02",
+			"reviewed_at": "2026-06-25T12:41:58.153498235Z"
+		},
+		{
+			"function_name": "TestMCPHandlerServesOnlyMCP",
+			"documentation_hash": "55988713ce515fc03edfcccbe5b13eedf3301a7ee8ac06370152bf18c780b274",
+			"definition_hash": "f82394d2db0981f550a427b330ab3be71eb24865d2ab34e6714aa449e18013f4",
+			"reviewed_at": "2026-06-25T12:41:58.160507849Z"
 		}
 	]
 }

@@ -45,12 +45,17 @@ func TestEndToEndWorkflow(t *testing.T) {
 	t.Cleanup(platform.close)
 	mgr := newFakeBoxManager(platform)
 
-	// --- the real llmbox server on a real listener ---
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	// --- the real llmbox server on two real listeners (UI/API and MCP) ---
+	uiLn, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("listen: %v", err)
+		t.Fatalf("listen ui: %v", err)
 	}
-	base := "http://" + ln.Addr().String()
+	mcpLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen mcp: %v", err)
+	}
+	base := "http://" + uiLn.Addr().String()
+	mcpBase := "http://" + mcpLn.Addr().String()
 
 	store, err := server.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
 	if err != nil {
@@ -58,14 +63,18 @@ func TestEndToEndWorkflow(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 
+	// public_url is the UI/API base, so the auth links the user follows live there.
 	srv := server.New(mgr, nil, base, 5*time.Minute, store, nil)
-	httpSrv := &http.Server{Handler: srv.Handler(srv.MCPServer("llmbox", "e2e"))}
-	go func() { _ = httpSrv.Serve(ln) }()
-	t.Cleanup(func() { _ = httpSrv.Close() })
+	apiSrv := &http.Server{Handler: srv.APIHandler()}
+	mcpSrv := &http.Server{Handler: srv.MCPHandler(srv.MCPServer("llmbox", "e2e"))}
+	go func() { _ = apiSrv.Serve(uiLn) }()
+	go func() { _ = mcpSrv.Serve(mcpLn) }()
+	t.Cleanup(func() { _ = apiSrv.Close() })
+	t.Cleanup(func() { _ = mcpSrv.Close() })
 	waitHealthy(t, base)
 
-	// --- chatbot side: create the box over MCP ---
-	cs := connectMCP(t, base)
+	// --- chatbot side: create the box over MCP (on the MCP port) ---
+	cs := connectMCP(t, mcpBase)
 
 	createOut := callTool(t, cs, "create_llmbox", map[string]any{
 		"box_id":      "e2e-box",

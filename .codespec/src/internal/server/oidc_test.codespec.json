@@ -34,32 +34,32 @@
 		{
 			"function_name": "TestProviderLoginRedirects",
 			"documentation_hash": "ed380cc7dfa26526a63c8034fa2e4bbe3dc756163b86bc80eaa4eb97cfb69fd5",
-			"definition_hash": "9960cacc219b26a50c741f7c360d0f27489018c7a41b35650eb5ff8b719b45b2",
-			"reviewed_at": "2026-06-18T18:20:53.987979915Z"
+			"definition_hash": "8adb6dd3aa6a6e0bdf82f3439d8a8ccd170aa96c85026fce5d409fc9f5a884a9",
+			"reviewed_at": "2026-06-25T12:45:33.125539016Z"
 		},
 		{
 			"function_name": "TestProviderCallbackActivates",
 			"documentation_hash": "be865bce82dcd31326b7b807c6d8d6fe84f9d9b29249936e722b51d0dff5cc91",
-			"definition_hash": "1ed8fede988e3296f5a038bc701e8d771fb1235ee96e3ede8d6b045a9cd07891",
-			"reviewed_at": "2026-06-25T10:51:16.100333927Z"
+			"definition_hash": "032025f346e4f5ae2912c532b8311af69fae641299b2ac62a376357a62058aef",
+			"reviewed_at": "2026-06-25T12:45:33.138879287Z"
 		},
 		{
 			"function_name": "TestProviderCallbackRejectsUnauthorized",
 			"documentation_hash": "e3b315c661abc3e366db6ab1e230b2f287bde5f5a98d199b9974d8f6f2d8b6d6",
-			"definition_hash": "27a550bd0a8f9259a5a07469ffb24f9ccfcbba2caaa65d1543d520cc26c8adc7",
-			"reviewed_at": "2026-06-18T18:20:53.990561102Z"
+			"definition_hash": "0d5c319da7cf1cca40cf03133b42f7fde63f8496dc81fc6fb578aa37f915d751",
+			"reviewed_at": "2026-06-25T12:45:33.148462001Z"
 		},
 		{
 			"function_name": "TestAuthPageRequiresLogin",
 			"documentation_hash": "fbb8971e7c31b6217e7a1dccfc54e364ea92db72f30e8d1641442af558061cee",
-			"definition_hash": "a6d018a725084dbac3de5d2ee8c86d8c2812fb3ede43de1a881cd3d61ed02c2a",
-			"reviewed_at": "2026-06-25T10:51:16.100918178Z"
+			"definition_hash": "ee04893d2d10a5dd42b862948b2e50708908926431bb39b5961ea630fe4e2152",
+			"reviewed_at": "2026-06-25T12:45:33.159449015Z"
 		},
 		{
 			"function_name": "TestActivationGatedByLogin",
 			"documentation_hash": "fa49343c911c73f938e0d5789ca32237e72a340b9e80faf40de09649a58f1c4f",
-			"definition_hash": "9d9ef9068bfd51f6ef8ff000032921531da3f1a0624f4bf571f7d54529ba8451",
-			"reviewed_at": "2026-06-25T10:51:16.101413546Z"
+			"definition_hash": "846dd93d09941fcde1b2f5240f2be16114e0192761b7b7445bb61f8a3a522f7e",
+			"reviewed_at": "2026-06-25T12:45:33.169803225Z"
 		}
 	]
 }

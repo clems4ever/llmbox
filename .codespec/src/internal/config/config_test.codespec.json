@@ -9,20 +9,20 @@
 		{
 			"function_name": "TestDefault",
 			"documentation_hash": "510cdb5ceeaaf95ba8843427dd3831652c32f25ac1114a0f2d23a6e3c3bacfef",
-			"definition_hash": "2166df270c6174765f47b8b0cd089ff3515bf12df40e124b1bea5ff3d3e2456f",
-			"reviewed_at": "2026-06-18T16:34:58.558116369Z"
+			"definition_hash": "3c4599aa3322f8ecd26d41ca4ff79e393812e2d5f294f24e0c4f76104533340d",
+			"reviewed_at": "2026-06-25T12:41:53.441317017Z"
 		},
 		{
 			"function_name": "TestLoad",
 			"documentation_hash": "a99b8ef269ef1371f85d255c1bddc9aede16586adc848343e03823d7dacce5d9",
-			"definition_hash": "b54ad39c27ab831af1e2cfcff3b5916bfd881ab437a387d64fccd2163f618cad",
-			"reviewed_at": "2026-06-18T16:34:58.558373899Z"
+			"definition_hash": "8edf0495d070c2c6dfd5ec443ff1efdccbfee0dc347ba8d08f9bd04e24123cc7",
+			"reviewed_at": "2026-06-25T12:41:53.448411059Z"
 		},
 		{
 			"function_name": "TestLoadAppliesDefaults",
 			"documentation_hash": "60e0219e260c50503756f9bdd49ad0d61a6ffc9f58ac71255154c849e61a9383",
-			"definition_hash": "553c356ce4dc64262225438479e638ac3abfff465b365909692946911b9f4b2c",
-			"reviewed_at": "2026-06-18T16:34:58.558617254Z"
+			"definition_hash": "0879594048100f414f6f54cd3e7d9eb5d8a3879b4c88e44d213b9fdb82e9a4d0",
+			"reviewed_at": "2026-06-25T12:41:53.454749015Z"
 		},
 		{
 			"function_name": "TestLoadMissingFile",

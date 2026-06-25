@@ -1,13 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "Handler",
-			"receiver": "Server",
-			"documentation_hash": "90e4c3d3ac7452aea322287b65b689f2c8e8b3e893107e28a3ff2bf6a269c40e",
-			"definition_hash": "44e696c3cd47d547d38803fc310f307db26b5f3db94f3b2b05eb515b2e87e476",
-			"reviewed_at": "2026-06-21T14:39:24.388670748Z"
-		},
-		{
 			"function_name": "handleAuthPage",
 			"receiver": "Server",
 			"documentation_hash": "47b4e80bb483527e9e00167d9e18b3a5f20ccb5e433430b13e09c5cc7d22a821",
@@ -27,6 +20,34 @@
 			"documentation_hash": "b5fe0fd3cf94bb0eaaf62b47836317459960440f5bd46e0856e165d2a00d2077",
 			"definition_hash": "454a27e76becc7cce5018d9c6fc498269feb48e916ee2b2061076366c095de22",
 			"reviewed_at": "2026-06-18T17:12:11.811278136Z"
+		},
+		{
+			"function_name": "MCPHandler",
+			"receiver": "Server",
+			"documentation_hash": "c7f55bb94db976717a7357cf590d5e5bd495a13fb874b4a596f321d2481be5b6",
+			"definition_hash": "350929b26f82c75fb9753afc430a69e80f5aa569a267d21d7ae677f3890a9dc0",
+			"reviewed_at": "2026-06-25T12:41:39.3103771Z"
+		},
+		{
+			"function_name": "APIHandler",
+			"receiver": "Server",
+			"documentation_hash": "db31f468c8236bbe7b76a7dfd9758a315b89c8200c8fc6d28f23546c7f7ba4a9",
+			"definition_hash": "5d14026bd323b959a580db24bbf40a99ec587d8fec788b7c986dc10f7c5548ef",
+			"reviewed_at": "2026-06-25T12:41:39.319413109Z"
+		},
+		{
+			"function_name": "registerMCPRoute",
+			"receiver": "Server",
+			"documentation_hash": "dea4a75651d4d59bdcd44ac6b6d04b95953121a2c41b459eb2844cfc5936801a",
+			"definition_hash": "dfaec719e0e1fb257c33cf7bfc4ecbc9d8fdb8a1496a1081b674b1db6547afeb",
+			"reviewed_at": "2026-06-25T12:41:39.327981723Z"
+		},
+		{
+			"function_name": "registerAppRoutes",
+			"receiver": "Server",
+			"documentation_hash": "9b42222a915bf0c96e77c7424c07d421496ca49e80a6a3a22f6efe01ce99e1a2",
+			"definition_hash": "70cf8b9bc0786a93b9081b7295c1fb961b4403dd2782a6478c69e52504ef8174",
+			"reviewed_at": "2026-06-25T12:41:39.331261744Z"
 		}
 	]
 }
