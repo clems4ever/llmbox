@@ -6,19 +6,22 @@ name: CI
 # the suite runs once per event and `build-push` gates on it via `needs:`, rather
 # than each workflow re-running its own copy of the tests.
 #
-# On pushes to main the `test` job also regenerates the coverage badge
-# (.github/badges/coverage.svg) and commits it back to main — the README
-# references it by relative path, so it renders against whichever branch is being
-# viewed. The commit carries [skip ci] so it does not re-trigger this workflow.
-# Integration tests (the //go:build integration set, which need a Docker daemon
-# and a real Claude binary) are excluded here.
+# On pull requests the `test` job also regenerates the coverage badge
+# (.github/badges/coverage.svg) and commits it onto the PR branch — so it lands
+# in the PR diff and reaches main through the merge, rather than via a direct
+# push to main (which the branch-protection ruleset forbids). The README
+# references the badge by relative path, so it renders against whichever branch
+# is being viewed. The commit carries [skip ci] so it does not re-trigger this
+# workflow. Integration tests (the //go:build integration set, which need a
+# Docker daemon and a real Claude binary) are excluded here.
 #
 # The end-to-end workflow test (the //go:build e2e set) runs in its own `e2e`
 # job, kept separate from the fast unit suite: it drives the auth UI through a
 # real headless Chrome via WebDriver, simulating the Docker and Anthropic layers.
 #
-# Tag pushes (v*) skip the main-only badge/screenshot side effects but still run
-# tests and build-push, so a tagged release is never published untested.
+# Tag pushes (v*) and main pushes skip the PR-only badge/screenshot side effects
+# but still run tests and build-push, so a tagged release is never published
+# untested.
 on:
   push:
     branches: [main]
@@ -40,6 +43,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Check out the PR's head branch (not the detached merge ref) so the
+          # refreshed coverage badge can be committed back onto it. head_ref is
+          # empty on push events, where checkout falls back to the pushed ref.
+          ref: ${{ github.head_ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -56,8 +64,15 @@ jobs:
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
 
-      - name: Publish coverage badge
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Refresh coverage badge on the PR branch
+        # Regenerate the badge from this PR's coverage and commit it onto the PR
+        # branch (so it lands in the PR diff and reaches main through the merge)
+        # rather than pushing straight to main, which the branch-protection
+        # ruleset forbids. Same-repo PRs only: fork PRs get a read-only
+        # GITHUB_TOKEN and cannot push. [skip ci] avoids re-triggering CI.
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
         run: |
           set -euo pipefail
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/,"",$3); print $3}')
@@ -78,9 +93,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/badges/coverage.svg
           git commit -m "ci: update coverage badge (${pct}%) [skip ci]"
-          # Rebase onto any commits that landed since checkout, then push to main.
-          git pull --rebase --autostash origin main
-          git push origin HEAD:main
+          # Rebase onto anything pushed to the PR branch since checkout, then push.
+          git pull --rebase --autostash origin "${{ github.head_ref }}"
+          git push origin "HEAD:${{ github.head_ref }}"
 
   e2e:
     name: E2E (WebDriver)
