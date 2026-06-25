@@ -1,12 +1,13 @@
-//go:build e2e
+//aaljgo:build e2e
 
 package e2e
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"html/template"
+	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -20,6 +21,9 @@ import (
 // over httptest, so the workflow needs no network access to claude.com.
 type fakeAnthropic struct {
 	srv *httptest.Server
+
+	sessionRand io.Reader
+	miscRand    io.Reader
 
 	mu     sync.Mutex
 	logins map[string]*fakeLogin // keyed by the OAuth "state" parameter
@@ -39,7 +43,11 @@ type fakeLogin struct {
 //
 // @return *fakeAnthropic A running simulated Anthropic OAuth platform.
 func newFakeAnthropic() *fakeAnthropic {
-	a := &fakeAnthropic{logins: map[string]*fakeLogin{}}
+	a := &fakeAnthropic{
+		logins:      map[string]*fakeLogin{},
+		sessionRand: rand.New(rand.NewSource(0)),
+		miscRand:    rand.New(rand.NewSource(100)),
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /oauth/authorize", a.handleAuthorize)
 	mux.HandleFunc("POST /oauth/approve", a.handleApprove)
@@ -57,7 +65,7 @@ func (a *fakeAnthropic) close() { a.srv.Close() }
 // @return state The opaque OAuth state identifying this authorization.
 // @return authorizeURL The consent-page URL the user opens to approve access.
 func (a *fakeAnthropic) beginLogin() (state, authorizeURL string) {
-	state = randHex(16)
+	state = randHex(a.miscRand, 16)
 	a.mu.Lock()
 	a.logins[state] = &fakeLogin{}
 	a.mu.Unlock()
@@ -65,7 +73,7 @@ func (a *fakeAnthropic) beginLogin() (state, authorizeURL string) {
 	// this in-process platform instead of claude.com so the browser can reach it.
 	authorizeURL = fmt.Sprintf(
 		"%s/oauth/authorize?response_type=code&code_challenge=%s&code_challenge_method=S256&state=%s",
-		a.srv.URL, randHex(16), state,
+		a.srv.URL, randHex(a.miscRand, 16), state,
 	)
 	return state, authorizeURL
 }
@@ -122,12 +130,12 @@ func (a *fakeAnthropic) handleApprove(w http.ResponseWriter, r *http.Request) {
 	login, ok := a.logins[state]
 	if ok && !login.approved {
 		login.approved = true
-		login.code = randHex(12)
+		login.code = randHex(a.miscRand, 12)
 		// A fixed session URL keeps the activated ("ready") screenshot byte-stable
 		// across runs; a random suffix would otherwise rewrite auth-ready.png (and
 		// its CI preview comment) on every PR. The code above stays random because
 		// it never appears in a screenshot.
-		login.sessionURL = "https://claude.ai/code/sessions/e2edemosession"
+		login.sessionURL = "https://claude.ai/code/sessions/" + randHex(a.sessionRand, 8)
 	}
 	var data consentData
 	if ok {
@@ -177,9 +185,9 @@ var consentTmpl = template.Must(template.New("consent").Parse(`<!doctype html>
 //
 // @arg n The number of random bytes to generate.
 // @return string The hex encoding of n random bytes.
-func randHex(n int) string {
+func randHex(r io.Reader, n int) string {
 	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
+	if _, err := r.Read(b); err != nil {
 		panic(err)
 	}
 	return hex.EncodeToString(b)
