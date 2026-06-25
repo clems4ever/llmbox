@@ -14,6 +14,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -412,7 +413,7 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 	return n, nil
 }
 
-// CreateBox launches a new box and registers an auth session for it. When box
+// createBox launches a new box and registers an auth session for it. When box
 // hooks are configured, it first runs the box.create hooks, injects the files
 // they return (e.g. a granular hook's subject token, config, and CLIs), and
 // records their opaque state on the session; that state is replayed to the
@@ -434,7 +435,7 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 // @testcase TestCreateBoxUnknownSpoke errors when the named spoke is not connected.
 // @testcase TestCreateBoxDefaultsImageToBoxImage stamps the hub's box image when the request names none.
 // @testcase TestCreateBoxKeepsExplicitImage leaves a request's explicit image untouched.
-func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
+func (s *Server) createBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
 	// Resolve the box image on the hub so remote spokes stay config-free and
 	// defaultless: a request that names no image inherits the hub's resolved box
 	// image (claude_image, or the built-in default). Spokes reject an imageless
@@ -478,7 +479,7 @@ func (s *Server) CreateBox(ctx context.Context, opts docker.CreateOptions) (*ses
 		s.runDestroyHooks(box, hookState)
 		return nil, err
 	}
-	tok, err := newToken()
+	tok, err := newToken(rand.Reader)
 	if err != nil {
 		// Best effort: don't leave the box or hook state dangling if we can't track it.
 		if derr := mgr.Destroy(context.Background(), id); derr != nil {
@@ -568,7 +569,7 @@ func (s *Server) lookupByBoxID(boxID string) *session {
 	return nil
 }
 
-// SubmitCode feeds the user's OAuth code to the box's login process and waits
+// submitCode feeds the user's OAuth code to the box's login process and waits
 // for the box to become ready. It is called by the web handler, never by MCP.
 //
 // @arg ctx Context for the code submission.
@@ -580,7 +581,7 @@ func (s *Server) lookupByBoxID(boxID string) *session {
 // @testcase TestSubmitCodeFailureRecorded records the error on failure.
 // @testcase TestSubmitCodeUnknownToken errors for an unknown token.
 // @testcase TestSubmitCodeEmpty errors for an empty code.
-func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
+func (s *Server) submitCode(ctx context.Context, tok, code string) error {
 	sess := s.lookup(tok)
 	if sess == nil {
 		return fmt.Errorf("unknown or expired auth session")
@@ -612,7 +613,7 @@ func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
 	return err
 }
 
-// ListBoxes returns all managed boxes across every spoke, each tagged with the
+// listBoxes returns all managed boxes across every spoke, each tagged with the
 // spoke it runs on. The local spoke must list successfully; a connected remote
 // spoke that errors is logged and skipped so one bad spoke doesn't fail the
 // whole listing.
@@ -623,7 +624,7 @@ func (s *Server) SubmitCode(ctx context.Context, tok, code string) error {
 //
 // @testcase TestMCPToolsRegisteredAndCreate exercises the server's box wiring.
 // @testcase TestListFansOutAcrossSpokes aggregates and tags boxes from every spoke.
-func (s *Server) ListBoxes(ctx context.Context) ([]docker.Box, error) {
+func (s *Server) listBoxes(ctx context.Context) ([]docker.Box, error) {
 	out, err := s.mgr.List(ctx)
 	if err != nil {
 		return nil, err
@@ -647,7 +648,7 @@ func (s *Server) ListBoxes(ctx context.Context) ([]docker.Box, error) {
 	return out, nil
 }
 
-// BoxLogs returns the recent console output of the box with the given box ID.
+// boxLogs returns the recent console output of the box with the given box ID.
 // Like get and destroy, it is keyed by the box ID supplied at create time, so
 // a box created without one is not reachable here. tail bounds how many trailing
 // lines are returned and is passed through to the manager.
@@ -659,7 +660,7 @@ func (s *Server) ListBoxes(ctx context.Context) ([]docker.Box, error) {
 // @error error if no box has that box ID, its spoke is not connected, or the logs cannot be read.
 //
 // @testcase TestBoxLogsByBoxID returns a box's logs looked up by box ID.
-func (s *Server) BoxLogs(ctx context.Context, boxID string, tail int) (string, error) {
+func (s *Server) boxLogs(ctx context.Context, boxID string, tail int) (string, error) {
 	sess := s.lookupByBoxID(boxID)
 	if sess == nil {
 		return "", fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
@@ -671,7 +672,7 @@ func (s *Server) BoxLogs(ctx context.Context, boxID string, tail int) (string, e
 	return mgr.Logs(ctx, sess.ContainerID, tail)
 }
 
-// BoxExec runs a shell command inside the box with the given box ID and returns
+// boxExec runs a shell command inside the box with the given box ID and returns
 // its captured output. Like get, logs, and destroy, it is keyed by the box ID
 // supplied at create time, so a box created without one is not reachable here. The
 // command is run via "/bin/sh -c" so callers can pass an ordinary shell line.
@@ -683,7 +684,7 @@ func (s *Server) BoxLogs(ctx context.Context, boxID string, tail int) (string, e
 // @error error if the command is empty, no box has that box ID, its spoke is not connected, or the command cannot be run.
 //
 // @testcase TestBoxExecByBoxID runs a command in a box looked up by box ID.
-func (s *Server) BoxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error) {
+func (s *Server) boxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error) {
 	if strings.TrimSpace(command) == "" {
 		return docker.ExecResult{}, fmt.Errorf("command is required")
 	}
@@ -720,7 +721,7 @@ func boxMatchesSession(sess *session, idOrName string) bool {
 		(strings.HasPrefix(sess.ContainerID, idOrName) || strings.HasPrefix(idOrName, sess.ContainerID))
 }
 
-// DestroyBox destroys a box and forgets any session pointing at it.
+// destroyBox destroys a box and forgets any session pointing at it.
 //
 // @arg ctx Context for the destroy request.
 // @arg idOrName The box ID or container ID identifying the box to destroy.
@@ -730,7 +731,7 @@ func boxMatchesSession(sess *session, idOrName string) bool {
 // @testcase TestDestroyRunsDestroyHooks checks the box's hook state is replayed to the destroy hooks.
 // @testcase TestDestroyRoutesToSpoke destroys a box on the spoke its session names.
 // @testcase TestDestroyBoxByBoxIDRoutesToSpoke destroys a remote box by its box ID.
-func (s *Server) DestroyBox(ctx context.Context, idOrName string) error {
+func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 	// Route to the spoke the matching session names; default to the local spoke
 	// when no session matches (e.g. a raw container ID with no tracked session).
 	// idOrName may be a box ID (what the admin UI sends) or a container ID, so
@@ -881,9 +882,9 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 // @error error if the system random source fails.
 //
 // @testcase TestCreateBoxRegistersSession checks the generated token length.
-func newToken() (string, error) {
+func newToken(randSource io.Reader) (string, error) {
 	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
+	if _, err := randSource.Read(b); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil

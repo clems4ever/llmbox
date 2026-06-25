@@ -345,7 +345,7 @@ func TestAdminJSServed(t *testing.T) {
 func TestAdminDashboardShowsActivationURL(t *testing.T) {
 	s, f, st := newAdminServer(t)
 	f.listResult = []docker.Box{{ContainerID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
-	sess, err := s.CreateBox(t.Context(), docker.CreateOptions{BoxID: "foo"})
+	sess, err := s.createBox(t.Context(), docker.CreateOptions{BoxID: "foo"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -461,7 +461,7 @@ func TestAdminCreateBox(t *testing.T) {
 // destroys the box by ID — the path the admin page's urlencoded fetch takes.
 func TestAdminDeleteBox(t *testing.T) {
 	s, f, st := newAdminServer(t)
-	if _, err := s.CreateBox(t.Context(), docker.CreateOptions{BoxID: "foo"}); err != nil {
+	if _, err := s.createBox(t.Context(), docker.CreateOptions{BoxID: "foo"}); err != nil {
 		t.Fatal(err)
 	}
 	h := s.Handler(s.MCPServer("t", "v"))

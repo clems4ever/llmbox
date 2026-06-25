@@ -177,7 +177,7 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 	// SubmitCode blocks until login completes (or fails); it records the result
 	// (including any error) on the session, which we then render — so the returned
 	// error needs no separate handling here. The code itself is never logged.
-	_ = s.SubmitCode(r.Context(), token, r.PostFormValue("code"))
+	_ = s.submitCode(r.Context(), token, r.PostFormValue("code"))
 
 	status, sessionURL, errMsg := sess.snapshot()
 	s.render(w, authPageData{

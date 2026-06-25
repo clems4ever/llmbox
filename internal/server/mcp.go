@@ -93,7 +93,7 @@ func (s *Server) toolCreate(ctx context.Context, _ *mcp.CallToolRequest, in crea
 	if in.BoxID == "" {
 		return nil, createOutput{}, fmt.Errorf("box_id is required")
 	}
-	sess, err := s.CreateBox(ctx, docker.CreateOptions{
+	sess, err := s.createBox(ctx, docker.CreateOptions{
 		Image:       in.Image,
 		BoxID:       in.BoxID,
 		Description: in.Description,
@@ -170,7 +170,7 @@ type listOutput struct {
 // @testcase TestMCPToolsRegisteredAndCreate checks the list_llmboxes tool is registered.
 // @testcase TestListLlmboxesReturnsBoxID checks the output carries each box's box ID and description.
 func (s *Server) toolList(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, listOutput, error) {
-	boxes, err := s.ListBoxes(ctx)
+	boxes, err := s.listBoxes(ctx)
 	if err != nil {
 		return nil, listOutput{}, err
 	}
@@ -228,7 +228,7 @@ func (s *Server) toolDestroy(ctx context.Context, _ *mcp.CallToolRequest, in des
 	if sess == nil {
 		return nil, destroyOutput{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", in.BoxID)
 	}
-	if err := s.DestroyBox(ctx, sess.ContainerID); err != nil {
+	if err := s.destroyBox(ctx, sess.ContainerID); err != nil {
 		return nil, destroyOutput{}, err
 	}
 	return nil, destroyOutput{Destroyed: in.BoxID}, nil
@@ -259,7 +259,7 @@ func (s *Server) toolLogs(ctx context.Context, _ *mcp.CallToolRequest, in logsIn
 	if in.BoxID == "" {
 		return nil, logsOutput{}, fmt.Errorf("box_id is required")
 	}
-	logs, err := s.BoxLogs(ctx, in.BoxID, in.Tail)
+	logs, err := s.boxLogs(ctx, in.BoxID, in.Tail)
 	if err != nil {
 		return nil, logsOutput{}, err
 	}
@@ -293,7 +293,7 @@ func (s *Server) toolExec(ctx context.Context, _ *mcp.CallToolRequest, in execIn
 	if in.BoxID == "" {
 		return nil, execOutput{}, fmt.Errorf("box_id is required")
 	}
-	res, err := s.BoxExec(ctx, in.BoxID, in.Command)
+	res, err := s.boxExec(ctx, in.BoxID, in.Command)
 	if err != nil {
 		return nil, execOutput{}, err
 	}

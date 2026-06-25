@@ -86,7 +86,7 @@ func TestBoltStoreDelete(t *testing.T) {
 func TestServerWithoutStore(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, noopStore{}, nil)
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{})
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?z=1", submitURL: "https://claude.ai/code/s/1"}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
 
-	sess, err := s.CreateBox(context.Background(), docker.CreateOptions{BoxID: "h", Description: "d"})
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "h", Description: "d"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 		t.Errorf("box ID/description not persisted: %+v", saved[0])
 	}
 
-	if err := s.SubmitCode(context.Background(), sess.Token, "CODE"); err != nil {
+	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
 	saved, _ = st.LoadAll()
