@@ -17,9 +17,9 @@ import (
 	"github.com/clems4ever/llmbox/internal/config"
 )
 
-// loginCookie is the name of the cookie holding the opaque login-session ID. The
+// LoginCookie is the name of the cookie holding the opaque login-session ID. The
 // value is a random key into the login store; the session data lives server-side.
-const loginCookie = "llmbox_login"
+const LoginCookie = "llmbox_login"
 
 // flowTTL bounds how long an in-flight OIDC handshake may take from redirect to
 // callback before its stored state expires.
@@ -153,6 +153,25 @@ func NewAuthenticator(ctx context.Context, cfg config.AuthConfig) (*Authenticato
 		return nil, nil
 	}
 	return a, nil
+}
+
+// NewTestAuthenticator builds an admin-enabled Authenticator for tests, with a
+// single "google" sign-in button (for stable button order) and the given emails
+// on the admin allow list. It does no OIDC discovery, so it is usable offline;
+// the stub provider it installs cannot complete a real login. This is the seam
+// external test packages use to construct an admin Authenticator.
+//
+// @arg adminEmails The identities allowed into the admin UI; lower-cased here.
+// @return *Authenticator An admin-enabled authenticator backed by a stub provider.
+//
+// @testcase TestAdminDashboardGate exercises an admin-enabled authenticator built here.
+func NewTestAuthenticator(adminEmails ...string) *Authenticator {
+	return &Authenticator{
+		providers:   map[string]*provider{"google": {name: "google", label: "Google"}},
+		order:       []string{"google"},
+		sessionTTL:  time.Hour,
+		adminEmails: lowerSet(adminEmails),
+	}
 }
 
 // provider returns the configured provider for name.
@@ -409,7 +428,7 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	expires := time.Now().Add(s.auth.sessionTTL)
-	if err := s.store.SaveLoginSession(id, loginSession{
+	if err := s.store.SaveLoginSession(id, LoginSession{
 		Email:     claims.Email,
 		Provider:  p.name,
 		CSRF:      csrf,
@@ -422,7 +441,7 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name:  loginCookie,
+		Name:  LoginCookie,
 		Value: id,
 		// Scoped to the whole site so the cookie reaches both the activation pages
 		// under /auth and the admin UI under /admin.
@@ -443,18 +462,18 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 // cookie, or false when the visitor is not signed in.
 //
 // @arg r The incoming request (read for the login cookie).
-// @return loginSession The signed-in session when present and unexpired.
+// @return LoginSession The signed-in session when present and unexpired.
 // @return bool True when a valid login session exists.
 //
 // @testcase TestAuthPageRequiresLogin treats a missing cookie as not-signed-in.
-func (s *Server) currentLogin(r *http.Request) (loginSession, bool) {
-	c, err := r.Cookie(loginCookie)
+func (s *Server) currentLogin(r *http.Request) (LoginSession, bool) {
+	c, err := r.Cookie(LoginCookie)
 	if err != nil {
-		return loginSession{}, false
+		return LoginSession{}, false
 	}
 	ls, ok, err := s.store.LoginSession(c.Value)
 	if err != nil || !ok || time.Now().After(ls.ExpiresAt) {
-		return loginSession{}, false
+		return LoginSession{}, false
 	}
 	return ls, true
 }

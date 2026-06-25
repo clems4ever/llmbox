@@ -24,10 +24,10 @@ var (
 	spokesBucket        = []byte("spokes")
 )
 
-// loginSession is a completed activation login, keyed in the store by an opaque
+// LoginSession is a completed activation login, keyed in the store by an opaque
 // random session ID (the value of the browser cookie). Its presence means the
 // user authenticated and was authorized; CSRF guards the activation POST.
-type loginSession struct {
+type LoginSession struct {
 	Email     string    `json:"email"`
 	Provider  string    `json:"provider"`
 	CSRF      string    `json:"csrf"`
@@ -98,9 +98,9 @@ type LoginStore interface {
 	// is false when no flow matches.
 	TakeLoginFlow(state string) (loginFlow, bool, error)
 	// SaveLoginSession stores a completed login session under its opaque id.
-	SaveLoginSession(id string, s loginSession) error
+	SaveLoginSession(id string, s LoginSession) error
 	// LoginSession returns the session for id; the bool is false when none matches.
-	LoginSession(id string) (loginSession, bool, error)
+	LoginSession(id string) (LoginSession, bool, error)
 	// DeleteLoginSession removes a login session; deleting a missing id is a no-op.
 	DeleteLoginSession(id string) error
 	// PurgeExpiredLogins drops login sessions and flows that expired before now.
@@ -168,18 +168,18 @@ func (noopStore) TakeLoginFlow(_ string) (loginFlow, bool, error) { return login
 // @error error Always nil.
 //
 // @testcase TestServerWithoutStore checks the server works with a no-op store.
-func (noopStore) SaveLoginSession(_ string, _ loginSession) error { return nil }
+func (noopStore) SaveLoginSession(_ string, _ LoginSession) error { return nil }
 
 // LoginSession finds nothing.
 //
 // @arg _ The opaque session id.
-// @return loginSession The zero session.
+// @return LoginSession The zero session.
 // @return bool Always false.
 // @error error Always nil.
 //
 // @testcase TestServerWithoutStore checks the server works with a no-op store.
-func (noopStore) LoginSession(_ string) (loginSession, bool, error) {
-	return loginSession{}, false, nil
+func (noopStore) LoginSession(_ string) (LoginSession, bool, error) {
+	return LoginSession{}, false, nil
 }
 
 // DeleteLoginSession does nothing.
@@ -429,7 +429,7 @@ func (b *boltStore) TakeLoginFlow(state string) (loginFlow, bool, error) {
 // @error error if encoding or the write transaction fails.
 //
 // @testcase TestLoginStoreSessionRoundTrip saves and reads back a login session.
-func (b *boltStore) SaveLoginSession(id string, s loginSession) error {
+func (b *boltStore) SaveLoginSession(id string, s LoginSession) error {
 	data, err := json.Marshal(s)
 	if err != nil {
 		return fmt.Errorf("encoding login session: %w", err)
@@ -442,14 +442,14 @@ func (b *boltStore) SaveLoginSession(id string, s loginSession) error {
 // LoginSession returns the login session for id.
 //
 // @arg id The opaque session id to look up.
-// @return loginSession The decoded session when one matched.
+// @return LoginSession The decoded session when one matched.
 // @return bool True when a session matched, false otherwise.
 // @error error if the read transaction or decoding fails.
 //
 // @testcase TestLoginStoreSessionRoundTrip reads back a stored login session.
-func (b *boltStore) LoginSession(id string) (loginSession, bool, error) {
+func (b *boltStore) LoginSession(id string) (LoginSession, bool, error) {
 	var (
-		s     loginSession
+		s     LoginSession
 		found bool
 	)
 	err := b.db.View(func(tx *bolt.Tx) error {
@@ -461,7 +461,7 @@ func (b *boltStore) LoginSession(id string) (loginSession, bool, error) {
 		return json.Unmarshal(v, &s)
 	})
 	if err != nil {
-		return loginSession{}, false, err
+		return LoginSession{}, false, err
 	}
 	return s, found, nil
 }
@@ -488,7 +488,7 @@ func (b *boltStore) DeleteLoginSession(id string) error {
 // @testcase TestLoginStorePurgeExpired drops expired entries and keeps live ones.
 func (b *boltStore) PurgeExpiredLogins(now time.Time) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
-		// loginFlow and loginSession both carry an ExpiresAt; decode just that.
+		// loginFlow and LoginSession both carry an ExpiresAt; decode just that.
 		var hdr struct {
 			ExpiresAt time.Time `json:"expires_at"`
 		}

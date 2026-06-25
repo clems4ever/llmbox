@@ -12,6 +12,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/testutils"
 )
 
 // adminResult is the {ok,msg,err} JSON every admin action returns.
@@ -40,20 +41,15 @@ func decodeAdminResult(t *testing.T, rec *httptest.ResponseRecorder) adminResult
 
 // newAdminServer builds an admin-enabled Server (admin@corp.com on the allow
 // list) backed by a real bbolt store and a fake box manager.
-func newAdminServer(t *testing.T) (*Server, *fakeMgr, Store) {
+func newAdminServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 	t.Helper()
 	st, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
 	if err != nil {
 		t.Fatalf("OpenStore: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	auth := &Authenticator{
-		providers:   map[string]*provider{"google": {name: "google", label: "Google"}},
-		order:       []string{"google"},
-		sessionTTL:  time.Hour,
-		adminEmails: map[string]bool{"admin@corp.com": true},
-	}
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/x", submitURL: "https://claude.ai/code/s/1"}
+	auth := NewTestAuthenticator("admin@corp.com")
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/x", SubmitURL: "https://claude.ai/code/s/1"}
 	return New(f, nil, "https://boxes.example.com", time.Minute, st, auth), f, st
 }
 
@@ -61,13 +57,13 @@ func newAdminServer(t *testing.T) (*Server, *fakeMgr, Store) {
 // the session's capabilities.
 func signIn(t *testing.T, st Store, admin, activate bool) *http.Cookie {
 	t.Helper()
-	if err := st.SaveLoginSession("SID", loginSession{
+	if err := st.SaveLoginSession("SID", LoginSession{
 		Email: "admin@corp.com", CSRF: "CSRF", ExpiresAt: time.Now().Add(time.Hour),
 		Admin: admin, Activate: activate,
 	}); err != nil {
 		t.Fatal(err)
 	}
-	return &http.Cookie{Name: loginCookie, Value: "SID"}
+	return &http.Cookie{Name: LoginCookie, Value: "SID"}
 }
 
 // TestAdminAllowlist checks AdminEnabled/isAdmin honor the allow-list (case-insensitively) and a nil authenticator.
@@ -162,7 +158,7 @@ func TestProviderCallbackAdminOnly(t *testing.T) {
 	}
 	var cookie *http.Cookie
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == loginCookie {
+		if c.Name == LoginCookie {
 			cookie = c
 		}
 	}
@@ -344,7 +340,7 @@ func TestAdminJSServed(t *testing.T) {
 // shown in the dashboard table, so it survives a page refresh.
 func TestAdminDashboardShowsActivationURL(t *testing.T) {
 	s, f, st := newAdminServer(t)
-	f.listResult = []docker.Box{{ContainerID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
+	f.ListResult = []docker.Box{{ContainerID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
 	sess, err := s.createBox(t.Context(), docker.CreateOptions{BoxID: "foo"})
 	if err != nil {
 		t.Fatal(err)
@@ -367,7 +363,7 @@ func TestAdminDashboardShowsActivationURL(t *testing.T) {
 // TestAdminDropSpokeRemovesAndKicks checks dropping a spoke deletes its record and tokens and disconnects its live link.
 func TestAdminDropSpokeRemovesAndKicks(t *testing.T) {
 	s, _, st := newAdminServer(t)
-	hub := &fakeHub{spokes: map[string]boxManager{"edge": &fakeMgr{}}}
+	hub := &testutils.FakeHub{Connected: map[string]boxManager{"edge": &testutils.FakeMgr{}}}
 	s.SetHub(hub)
 	if err := st.PutSpoke("edge", cluster.SpokeRecord{Name: "edge", EnrolledAt: time.Now()}); err != nil {
 		t.Fatal(err)
@@ -393,8 +389,8 @@ func TestAdminDropSpokeRemovesAndKicks(t *testing.T) {
 	if toks, _ := st.ListJoinTokens(); len(toks) != 0 {
 		t.Errorf("join tokens not revoked: %+v", toks)
 	}
-	if len(hub.disconnected) != 1 || hub.disconnected[0] != "edge" {
-		t.Errorf("disconnected = %v, want [edge]", hub.disconnected)
+	if len(hub.Disconnected) != 1 || hub.Disconnected[0] != "edge" {
+		t.Errorf("Disconnected = %v, want [edge]", hub.Disconnected)
 	}
 }
 
@@ -449,8 +445,8 @@ func TestAdminCreateBox(t *testing.T) {
 	if !got.OK || got.NewBox == nil {
 		t.Fatalf("result = %+v, want ok with a newBox", got)
 	}
-	if f.gotOpts.BoxID != "refactor-auth" {
-		t.Errorf("created box id = %q", f.gotOpts.BoxID)
+	if f.GotOpts.BoxID != "refactor-auth" {
+		t.Errorf("created box id = %q", f.GotOpts.BoxID)
 	}
 	if !strings.Contains(got.NewBox.AuthURL, "https://boxes.example.com/auth/") {
 		t.Errorf("newBox.authUrl = %q, want the activation URL", got.NewBox.AuthURL)
@@ -476,8 +472,8 @@ func TestAdminDeleteBox(t *testing.T) {
 	if res := decodeAdminResult(t, rec); !res.OK || res.Err != "" {
 		t.Fatalf("result = %+v, want ok with no error", res)
 	}
-	if len(f.destroyed) != 1 || f.destroyed[0] != "foo" {
-		t.Errorf("destroyed = %v, want [foo]", f.destroyed)
+	if len(f.Destroyed) != 1 || f.Destroyed[0] != "foo" {
+		t.Errorf("Destroyed = %v, want [foo]", f.Destroyed)
 	}
 }
 

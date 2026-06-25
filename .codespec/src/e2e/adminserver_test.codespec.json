@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "newAdminServer",
+			"documentation_hash": "6effbc64f7a69634cd22edd696f7c82def1de861ab63c622d30f8453c4a18911",
+			"definition_hash": "33d6690100289615583b39b62400c3acbf1ed83f046250a40ea2a67c25dd0607",
+			"reviewed_at": "2026-06-25T10:55:09.822574221Z"
+		},
+		{
+			"function_name": "signIn",
+			"documentation_hash": "64a2fbc641867d549ebc4bdd11729a7d3e8c96db05f8e711b1ca2fe2a416c685",
+			"definition_hash": "5505e87ddf1f107229c475bfc6867f14a4994320420fa980314300226194670e",
+			"reviewed_at": "2026-06-25T10:55:09.835767131Z"
+		}
+	]
+}

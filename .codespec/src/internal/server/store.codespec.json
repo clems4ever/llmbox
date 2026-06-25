@@ -86,15 +86,15 @@
 			"function_name": "SaveLoginSession",
 			"receiver": "noopStore",
 			"documentation_hash": "be5500f8d039cb345feeb44561b0657055c7667087831807a67e0dc01e203abd",
-			"definition_hash": "22620b800520a434eec3e9955bd58ea034c086fd3f2e5d6d0d94756680606c03",
-			"reviewed_at": "2026-06-18T18:20:29.648276166Z"
+			"definition_hash": "7514d2f09442ec6c661f30066ec7a6b2d8bc5eb821d0335f75dd8b8f713f97c0",
+			"reviewed_at": "2026-06-25T10:54:27.759732283Z"
 		},
 		{
 			"function_name": "LoginSession",
 			"receiver": "noopStore",
-			"documentation_hash": "37b8b5e17c9df87d0e64d57647fb4b991a2f17d7777273b032fe32a26c2f8ae6",
-			"definition_hash": "18a0ec466410647e74707f55af329770e02a344c12246e3e7fbf03093bb5f4f0",
-			"reviewed_at": "2026-06-18T18:20:29.649781906Z"
+			"documentation_hash": "f4993395813e98305170ae1a97f4ef5b7bbd68b82b814421743e8536932909d5",
+			"definition_hash": "ca871be6fef9b4b2e812f7c808d960d6e66f9c0de75936cc0dbc44a4235abca2",
+			"reviewed_at": "2026-06-25T10:54:27.787678302Z"
 		},
 		{
 			"function_name": "DeleteLoginSession",
@@ -128,15 +128,15 @@
 			"function_name": "SaveLoginSession",
 			"receiver": "boltStore",
 			"documentation_hash": "7669e01a7b1bcb1f514a9016d1a60b2fa4fdc507fa2076a17964ec50cda5b4cf",
-			"definition_hash": "84f27d7297413a37be0fd4d641a379fce76e15dde483ef90c2b840f1be93af15",
-			"reviewed_at": "2026-06-18T18:20:29.660542266Z"
+			"definition_hash": "212561cf04f403e65f67e4e3ee8484f013866cd58dc34b6334a8cb9abcfdd2dc",
+			"reviewed_at": "2026-06-25T10:54:27.816248691Z"
 		},
 		{
 			"function_name": "LoginSession",
 			"receiver": "boltStore",
-			"documentation_hash": "03d6e6e805890daa478522359d222c228bd3b6edf096b5f821c8c4722d49b8be",
-			"definition_hash": "315b7b06b4a67dfbf0a0145778d4572f45d56cbb0c6a4ed067ff2acf58958ce4",
-			"reviewed_at": "2026-06-18T18:20:29.662577694Z"
+			"documentation_hash": "f548ef27468d7906291c2c324231df992b3318c63428dd4203d41c50c8b785c7",
+			"definition_hash": "06f348bed8504ded5aa4448691674fa49d681ec650abd3a30d5b6c9e36d8593f",
+			"reviewed_at": "2026-06-25T10:54:27.848153123Z"
 		},
 		{
 			"function_name": "DeleteLoginSession",
@@ -149,8 +149,8 @@
 			"function_name": "PurgeExpiredLogins",
 			"receiver": "boltStore",
 			"documentation_hash": "2b34a8d5a9821d6a6da651a9ada9b9edf7705b6a9d0d12d655ba4fe9d40ae2e4",
-			"definition_hash": "8534873eaa3c3fb933c76815414eb6ccd2cc9b20e73a90085feef8881ba21a29",
-			"reviewed_at": "2026-06-18T18:20:29.670103469Z"
+			"definition_hash": "946deeb981cfbf4b91cd2f4031294ed8197bdcb214c162854c0a469aa819805b",
+			"reviewed_at": "2026-06-25T10:54:27.877834116Z"
 		},
 		{
 			"function_name": "PutJoinToken",

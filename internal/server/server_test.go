@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -15,88 +14,12 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
+	"github.com/clems4ever/llmbox/testutils"
 )
-
-// fakeMgr is a stand-in for *docker.Manager.
-type fakeMgr struct {
-	mu sync.Mutex
-
-	createID  string
-	createURL string
-	createErr error
-
-	submitURL string
-	submitErr error
-	gotCode   string
-
-	listResult []docker.Box
-	destroyed  []string
-	reaped     []string
-
-	logsResult string
-	logsErr    error
-	gotLogsID  string
-	gotLogsN   int
-
-	execResult docker.ExecResult
-	execErr    error
-	gotExecID  string
-	gotExecCmd []string
-
-	gotOpts docker.CreateOptions
-}
-
-// Create records the requested options and returns the canned ID/URL/error.
-func (f *fakeMgr) Create(_ context.Context, opts docker.CreateOptions) (string, string, error) {
-	f.mu.Lock()
-	f.gotOpts = opts
-	f.mu.Unlock()
-	return f.createID, f.createURL, f.createErr
-}
-
-// SubmitCode records the submitted code and returns the canned URL/error.
-func (f *fakeMgr) SubmitCode(_ context.Context, _, code string) (string, error) {
-	f.mu.Lock()
-	f.gotCode = code
-	f.mu.Unlock()
-	return f.submitURL, f.submitErr
-}
-
-// List returns the canned boxes.
-func (f *fakeMgr) List(context.Context) ([]docker.Box, error) { return f.listResult, nil }
-
-// Destroy records the destroyed ID and always succeeds.
-func (f *fakeMgr) Destroy(_ context.Context, id string) error {
-	f.destroyed = append(f.destroyed, id)
-	return nil
-}
-
-// Logs records the requested box ID and tail and returns the canned output/error.
-func (f *fakeMgr) Logs(_ context.Context, id string, tail int) (string, error) {
-	f.mu.Lock()
-	f.gotLogsID = id
-	f.gotLogsN = tail
-	f.mu.Unlock()
-	return f.logsResult, f.logsErr
-}
-
-// Exec records the requested box ID and command and returns the canned result/error.
-func (f *fakeMgr) Exec(_ context.Context, id string, cmd []string) (docker.ExecResult, error) {
-	f.mu.Lock()
-	f.gotExecID = id
-	f.gotExecCmd = cmd
-	f.mu.Unlock()
-	return f.execResult, f.execErr
-}
-
-// ReapOrphans returns the canned reaped IDs.
-func (f *fakeMgr) ReapOrphans(context.Context, time.Duration) ([]string, error) {
-	return f.reaped, nil
-}
 
 // newTestServer builds a Server backed by the given fake manager and no-op store,
 // with hook integration disabled (nil hooks).
-func newTestServer(f *fakeMgr) *Server {
+func newTestServer(f *testutils.FakeMgr) *Server {
 	return New(f, nil, "https://boxes.example.com", 5*time.Minute, noopStore{}, nil)
 }
 
@@ -106,7 +29,7 @@ func newTestServer(f *fakeMgr) *Server {
 type fakeHooks struct {
 	createFiles []hooks.File
 	createState map[string]string
-	createErr   error
+	CreateErr   error
 	created     int
 	destroyed   []map[string]string
 }
@@ -114,7 +37,7 @@ type fakeHooks struct {
 // OnCreate returns the canned files/state/error and counts the call.
 func (f *fakeHooks) OnCreate(context.Context, hooks.BoxInfo) ([]hooks.File, map[string]string, error) {
 	f.created++
-	return f.createFiles, f.createState, f.createErr
+	return f.createFiles, f.createState, f.CreateErr
 }
 
 // OnDestroy records the per-hook state it was replayed and always succeeds.
@@ -127,7 +50,7 @@ func (f *fakeHooks) OnDestroy(_ context.Context, _ hooks.BoxInfo, state map[stri
 
 // TestCreateBoxRegistersSession checks the session, token, URL, and opts pass-through.
 func TestCreateBoxRegistersSession(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?x=1"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?x=1"}
 	s := newTestServer(f)
 
 	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "my-box", Description: "scratch"})
@@ -141,8 +64,8 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	if sess.BoxID != "my-box" || sess.Description != "scratch" {
 		t.Errorf("session box ID/description = %q/%q, want my-box/scratch", sess.BoxID, sess.Description)
 	}
-	if f.gotOpts.BoxID != "my-box" || f.gotOpts.Description != "scratch" {
-		t.Errorf("manager got opts %+v, want box ID/description my-box/scratch", f.gotOpts)
+	if f.GotOpts.BoxID != "my-box" || f.GotOpts.Description != "scratch" {
+		t.Errorf("manager got opts %+v, want box ID/description my-box/scratch", f.GotOpts)
 	}
 	if len(sess.Token) != 64 {
 		t.Errorf("token not 32 random bytes hex: len %d", len(sess.Token))
@@ -159,37 +82,37 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 // image inherits the hub's configured box image, so the box image is resolved on
 // the hub and remote spokes stay config-free.
 func TestCreateBoxDefaultsImageToBoxImage(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
 	s.SetBoxImage("ghcr.io/clems4ever/granular-llmbox-box:latest")
 
 	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "my-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if f.gotOpts.Image != "ghcr.io/clems4ever/granular-llmbox-box:latest" {
-		t.Errorf("manager got image %q, want the hub's configured box image", f.gotOpts.Image)
+	if f.GotOpts.Image != "ghcr.io/clems4ever/granular-llmbox-box:latest" {
+		t.Errorf("manager got image %q, want the hub's configured box image", f.GotOpts.Image)
 	}
 }
 
 // TestCreateBoxKeepsExplicitImage checks that a request naming its own image is
 // left untouched and not overridden by the hub's configured box image.
 func TestCreateBoxKeepsExplicitImage(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
 	s.SetBoxImage("ghcr.io/clems4ever/granular-llmbox-box:latest")
 
 	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "my-box", Image: "custom:tag"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if f.gotOpts.Image != "custom:tag" {
-		t.Errorf("manager got image %q, want the request's explicit image", f.gotOpts.Image)
+	if f.GotOpts.Image != "custom:tag" {
+		t.Errorf("manager got image %q, want the request's explicit image", f.GotOpts.Image)
 	}
 }
 
 // TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
 func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 	// Hard to force token failure; instead verify create error propagates.
-	f := &fakeMgr{createErr: errors.New("no image")}
+	f := &testutils.FakeMgr{CreateErr: errors.New("no image")}
 	s := newTestServer(f)
 	if _, err := s.createBox(context.Background(), docker.CreateOptions{}); err == nil {
 		t.Fatal("expected error")
@@ -200,7 +123,7 @@ func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 // its returned files are injected into the box, and its per-hook state is
 // persisted on the session.
 func TestCreateBoxRunsCreateHooks(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	h := &fakeHooks{
 		createState: map[string]string{"granular-hook": "subj-xyz"},
 		createFiles: []hooks.File{
@@ -222,19 +145,19 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 	}
 	// Index the injected files by path.
 	byPath := map[string]docker.InjectFile{}
-	for _, fl := range f.gotOpts.Files {
+	for _, fl := range f.GotOpts.Files {
 		byPath[fl.Path] = fl
 	}
 	tok, ok := byPath["/home/node/.granular/subject_token"]
 	if !ok {
-		t.Fatalf("subject token not injected: %+v", f.gotOpts.Files)
+		t.Fatalf("subject token not injected: %+v", f.GotOpts.Files)
 	}
 	if string(tok.Content) != "subj-xyz" || tok.UID != 1000 {
 		t.Errorf("injected token = %q uid %d, want subj-xyz uid 1000", tok.Content, tok.UID)
 	}
 	cfg, ok := byPath["/home/node/.granular/github.yaml"]
 	if !ok {
-		t.Fatalf("RS config not injected: %+v", f.gotOpts.Files)
+		t.Fatalf("RS config not injected: %+v", f.GotOpts.Files)
 	}
 	if !strings.Contains(string(cfg.Content), "http://gh") || cfg.UID != 1000 {
 		t.Errorf("injected config = %q uid %d, want base_url http://gh uid 1000", cfg.Content, cfg.UID)
@@ -245,7 +168,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 // replayed to the destroy hooks when box creation fails, so nothing is left
 // dangling.
 func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
-	f := &fakeMgr{createErr: errors.New("no image")}
+	f := &testutils.FakeMgr{CreateErr: errors.New("no image")}
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-doomed"}}
 	s := New(f, h, "https://boxes.example.com", time.Minute, noopStore{}, nil)
 
@@ -260,7 +183,7 @@ func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 // TestDestroyRunsDestroyHooks checks destroying a box replays its hook state to
 // the destroy hooks.
 func TestDestroyRunsDestroyHooks(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-live"}}
 	s := New(f, h, "https://boxes.example.com", time.Minute, noopStore{}, nil)
 
@@ -278,15 +201,15 @@ func TestDestroyRunsDestroyHooks(t *testing.T) {
 
 // TestSubmitCodeSuccess checks the code is forwarded and the session becomes ready.
 func TestSubmitCodeSuccess(t *testing.T) {
-	f := &fakeMgr{createID: "id1", createURL: "u", submitURL: "https://claude.ai/code/s/1"}
+	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
 
 	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
-	if f.gotCode != "CODE" {
-		t.Errorf("manager got code %q", f.gotCode)
+	if f.GotCode != "CODE" {
+		t.Errorf("manager got code %q", f.GotCode)
 	}
 	status, url, _ := sess.snapshot()
 	if status != "ready" || url != "https://claude.ai/code/s/1" {
@@ -296,7 +219,7 @@ func TestSubmitCodeSuccess(t *testing.T) {
 
 // TestSubmitCodeFailureRecorded checks a submit failure is recorded on the session.
 func TestSubmitCodeFailureRecorded(t *testing.T) {
-	f := &fakeMgr{createID: "id1", createURL: "u", submitErr: errors.New("invalid code")}
+	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u", SubmitErr: errors.New("invalid code")}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
 
@@ -311,7 +234,7 @@ func TestSubmitCodeFailureRecorded(t *testing.T) {
 
 // TestSubmitCodeUnknownToken checks SubmitCode errors for an unknown token.
 func TestSubmitCodeUnknownToken(t *testing.T) {
-	s := newTestServer(&fakeMgr{})
+	s := newTestServer(&testutils.FakeMgr{})
 	if err := s.submitCode(context.Background(), "nope", "code"); err == nil {
 		t.Fatal("expected error for unknown token")
 	}
@@ -319,7 +242,7 @@ func TestSubmitCodeUnknownToken(t *testing.T) {
 
 // TestSubmitCodeEmpty checks SubmitCode errors for an empty code.
 func TestSubmitCodeEmpty(t *testing.T) {
-	f := &fakeMgr{createID: "id1", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
 	if err := s.submitCode(context.Background(), sess.Token, "   "); err == nil {
@@ -329,7 +252,7 @@ func TestSubmitCodeEmpty(t *testing.T) {
 
 // TestDestroyForgetsSession checks the session is forgotten after a destroy.
 func TestDestroyForgetsSession(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
 
@@ -343,7 +266,7 @@ func TestDestroyForgetsSession(t *testing.T) {
 
 // TestPruneSessionsAfterReap checks a reaped box's session is pruned.
 func TestPruneSessionsAfterReap(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
 	s.pruneSessions([]string{"abcdef012345"}) // short ID prefix, as the reaper returns
@@ -356,7 +279,7 @@ func TestPruneSessionsAfterReap(t *testing.T) {
 
 // TestAuthPageRendersAndSubmits checks the auth page renders and the code submits.
 func TestAuthPageRendersAndSubmits(t *testing.T) {
-	f := &fakeMgr{createID: "id1", createURL: "https://claude.com/cai/oauth/authorize?a=b", submitURL: "https://claude.ai/code/s/9"}
+	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "https://claude.com/cai/oauth/authorize?a=b", SubmitURL: "https://claude.ai/code/s/9"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
 	h := s.Handler(s.MCPServer("test", "v0"))
@@ -385,8 +308,8 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 	if prec.Code != http.StatusOK {
 		t.Fatalf("POST status %d", prec.Code)
 	}
-	if f.gotCode != "THECODE" {
-		t.Errorf("code not forwarded: %q", f.gotCode)
+	if f.GotCode != "THECODE" {
+		t.Errorf("code not forwarded: %q", f.GotCode)
 	}
 	if !strings.Contains(prec.Body.String(), "https://claude.ai/code/s/9") {
 		t.Error("session URL missing from success page")
@@ -396,7 +319,7 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 // TestAuthPageShowsBoxAndSpoke checks the activation page names the box and the
 // spoke it runs on, so the user can tell which box they are activating.
 func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
-	s := newTestServer(&fakeMgr{createID: "id1", createURL: "https://c", submitURL: "https://s"})
+	s := newTestServer(&testutils.FakeMgr{CreateID: "id1", CreateURL: "https://c", SubmitURL: "https://s"})
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{BoxID: "refactor-auth"})
 	h := s.Handler(s.MCPServer("test", "v0"))
 
@@ -415,7 +338,7 @@ func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
 
 // TestAuthPageUnknownToken checks the auth page 404s for an unknown token.
 func TestAuthPageUnknownToken(t *testing.T) {
-	s := newTestServer(&fakeMgr{})
+	s := newTestServer(&testutils.FakeMgr{})
 	h := s.Handler(s.MCPServer("test", "v0"))
 	req := httptest.NewRequest(http.MethodGet, "/auth/deadbeef", nil)
 	rec := httptest.NewRecorder()
@@ -427,7 +350,7 @@ func TestAuthPageUnknownToken(t *testing.T) {
 
 // TestHealthz checks the health endpoint returns ok.
 func TestHealthz(t *testing.T) {
-	s := newTestServer(&fakeMgr{})
+	s := newTestServer(&testutils.FakeMgr{})
 	h := s.Handler(s.MCPServer("test", "v0"))
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -439,7 +362,7 @@ func TestHealthz(t *testing.T) {
 
 // TestFaviconServed checks the favicon route returns the embedded SVG.
 func TestFaviconServed(t *testing.T) {
-	s := newTestServer(&fakeMgr{})
+	s := newTestServer(&testutils.FakeMgr{})
 	h := s.Handler(s.MCPServer("test", "v0"))
 	for _, path := range []string{"/favicon.ico", "/favicon.svg"} {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
@@ -460,7 +383,7 @@ func TestFaviconServed(t *testing.T) {
 // TestGetByBoxID checks get_llmbox resolves a box by box ID (case-insensitive)
 // and errors for an empty or unknown box ID.
 func TestGetByBoxID(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u", submitURL: "https://claude.ai/code/s/1"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
 	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box", Description: "d"})
 	if err != nil {
@@ -496,7 +419,7 @@ func TestGetByBoxID(t *testing.T) {
 // TestListLlmboxesReturnsBoxID checks list_llmboxes surfaces each box's box ID
 // (the hostname the user sees) along with its description in the tool output.
 func TestListLlmboxesReturnsBoxID(t *testing.T) {
-	f := &fakeMgr{listResult: []docker.Box{
+	f := &testutils.FakeMgr{ListResult: []docker.Box{
 		{ContainerID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
 		{ContainerID: "0123456789abcdef"},
 	}}
@@ -521,7 +444,7 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 // forwards the box ID and tail to the manager, and errors for empty or unknown
 // box IDs.
 func TestBoxLogsByBoxID(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u", logsResult: "Ready\nlistening\n"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", LogsResult: "Ready\nlistening\n"}
 	s := newTestServer(f)
 	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
@@ -535,8 +458,8 @@ func TestBoxLogsByBoxID(t *testing.T) {
 	if out.BoxID != "WEB-BOX" || out.Logs != "Ready\nlistening\n" {
 		t.Errorf("unexpected logs output: %+v", out)
 	}
-	if f.gotLogsID != "abcdef0123456789" || f.gotLogsN != 25 {
-		t.Errorf("manager got id=%q tail=%d, want abcdef0123456789/25", f.gotLogsID, f.gotLogsN)
+	if f.GotLogsID != "abcdef0123456789" || f.GotLogsN != 25 {
+		t.Errorf("manager got id=%q tail=%d, want abcdef0123456789/25", f.GotLogsID, f.GotLogsN)
 	}
 
 	// Empty and unknown box IDs error.
@@ -552,10 +475,10 @@ func TestBoxLogsByBoxID(t *testing.T) {
 // command in /bin/sh -c, returns the captured output, and errors for empty or
 // unknown box IDs and an empty command.
 func TestBoxExecByBoxID(t *testing.T) {
-	f := &fakeMgr{
-		createID:   "abcdef0123456789",
-		createURL:  "u",
-		execResult: docker.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
+	f := &testutils.FakeMgr{
+		CreateID:   "abcdef0123456789",
+		CreateURL:  "u",
+		ExecResult: docker.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
 	}
 	s := newTestServer(f)
 	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
@@ -570,12 +493,12 @@ func TestBoxExecByBoxID(t *testing.T) {
 	if out.BoxID != "WEB-BOX" || out.Stdout != "hi\n" || out.ExitCode != 0 {
 		t.Errorf("unexpected exec output: %+v", out)
 	}
-	if f.gotExecID != "abcdef0123456789" {
-		t.Errorf("manager got box ID %q, want abcdef0123456789", f.gotExecID)
+	if f.GotExecID != "abcdef0123456789" {
+		t.Errorf("manager got box ID %q, want abcdef0123456789", f.GotExecID)
 	}
 	want := []string{"/bin/sh", "-c", "echo hi"}
-	if len(f.gotExecCmd) != 3 || f.gotExecCmd[0] != want[0] || f.gotExecCmd[1] != want[1] || f.gotExecCmd[2] != want[2] {
-		t.Errorf("manager ran cmd %v, want %v", f.gotExecCmd, want)
+	if len(f.GotExecCmd) != 3 || f.GotExecCmd[0] != want[0] || f.GotExecCmd[1] != want[1] || f.GotExecCmd[2] != want[2] {
+		t.Errorf("manager ran cmd %v, want %v", f.GotExecCmd, want)
 	}
 
 	// Empty/unknown box IDs and an empty command.error.
@@ -594,7 +517,7 @@ func TestBoxExecByBoxID(t *testing.T) {
 
 // TestMCPToolsRegisteredAndCreate checks all tools are registered and create returns a safe auth URL.
 func TestMCPToolsRegisteredAndCreate(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "https://claude.com/cai/oauth/authorize?z=1"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?z=1"}
 	s := newTestServer(f)
 	cs := connectMCP(t, s)
 
@@ -633,15 +556,15 @@ func TestMCPToolsRegisteredAndCreate(t *testing.T) {
 // TestCreateRequiresBoxID checks create_llmbox rejects a call with an empty box
 // ID and does not create a box, so every box stays reachable by its box ID.
 func TestCreateRequiresBoxID(t *testing.T) {
-	f := &fakeMgr{createID: "abcdef0123456789", createURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
 
 	_, _, err := s.toolCreate(context.Background(), nil, createInput{Description: "no box id"})
 	if err == nil {
 		t.Fatal("expected error for empty box ID")
 	}
-	if f.gotOpts.Description != "" {
-		t.Errorf("manager was called despite missing box ID: %+v", f.gotOpts)
+	if f.GotOpts.Description != "" {
+		t.Errorf("manager was called despite missing box ID: %+v", f.GotOpts)
 	}
 }
 

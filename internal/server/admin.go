@@ -139,7 +139,7 @@ func (s *Server) handleAdmin(w http.ResponseWriter, r *http.Request) {
 // @return adminPageData The populated dashboard context.
 //
 // @testcase TestAdminDashboardGate renders the dashboard sections for an admin.
-func (s *Server) adminDashboard(r *http.Request, ls loginSession) adminPageData {
+func (s *Server) adminDashboard(r *http.Request, ls LoginSession) adminPageData {
 	data := adminPageData{SignedIn: true, Email: ls.Email, CSRF: ls.CSRF}
 
 	if spokes, err := s.SpokeStatuses(r.Context()); err != nil {
@@ -248,28 +248,28 @@ func toAdminBoxes(boxes []docker.Box) []adminBox {
 //
 // @arg w The response writer (an error is written on failure).
 // @arg r The request to authorize and parse.
-// @return loginSession The admin's session when authorized.
+// @return LoginSession The admin's session when authorized.
 // @return bool True when the request may proceed.
 //
 // @testcase TestAdminActionsRequireAdminAndCSRF rejects non-admins and bad CSRF tokens.
 // @testcase TestAdminDeleteBox accepts the admin page's urlencoded fetch submit.
-func (s *Server) requireAdminPost(w http.ResponseWriter, r *http.Request) (loginSession, bool) {
+func (s *Server) requireAdminPost(w http.ResponseWriter, r *http.Request) (LoginSession, bool) {
 	ls, ok := s.currentLogin(r)
 	if !ok {
 		http.Error(w, "Please sign in.", http.StatusUnauthorized)
-		return loginSession{}, false
+		return LoginSession{}, false
 	}
 	if !ls.Admin {
 		http.Error(w, "Not authorized.", http.StatusForbidden)
-		return loginSession{}, false
+		return LoginSession{}, false
 	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad form.", http.StatusBadRequest)
-		return loginSession{}, false
+		return LoginSession{}, false
 	}
 	if subtle.ConstantTimeCompare([]byte(r.PostFormValue("csrf")), []byte(ls.CSRF)) != 1 {
 		http.Error(w, "Invalid or missing form token; reload the page and try again.", http.StatusForbidden)
-		return loginSession{}, false
+		return LoginSession{}, false
 	}
 	return ls, true
 }

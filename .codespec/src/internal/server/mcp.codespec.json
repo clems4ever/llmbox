@@ -11,8 +11,8 @@
 			"function_name": "toolCreate",
 			"receiver": "Server",
 			"documentation_hash": "1370922671ddeb85b0095e942727b4851497356b52709dbc1a63179f12b29c4b",
-			"definition_hash": "b95b9ff5fe88edac25195cac47b7d511edf0de6ad9622fcf8539cd87ba575d15",
-			"reviewed_at": "2026-06-19T19:47:04.398183151Z"
+			"definition_hash": "9947fdef2110ccaeb3921ca0510ce00a8a96110f36c4961ddf4e3f0b4cdb0d9f",
+			"reviewed_at": "2026-06-25T10:51:16.09461653Z"
 		},
 		{
 			"function_name": "toolGet",
@@ -25,29 +25,29 @@
 			"function_name": "toolList",
 			"receiver": "Server",
 			"documentation_hash": "ec76050f93c833ca154c6d46e7aabdf2754f1884b800fdee4c89e4faceb702e6",
-			"definition_hash": "6e56b163fef2697708eee6579ac75495daf139f6de5773326b610385bab1e5bb",
-			"reviewed_at": "2026-06-19T13:25:40.374367301Z"
+			"definition_hash": "24e91acfc6c58bbe17bfda7b9e3c7cadb23e765b9ef6bbd54a22b490f99e5250",
+			"reviewed_at": "2026-06-25T10:51:16.094993449Z"
 		},
 		{
 			"function_name": "toolDestroy",
 			"receiver": "Server",
 			"documentation_hash": "8a1c3d132417157ec71203a389350ee7c5b264b271cca091b5f406cc84f9376f",
-			"definition_hash": "bcfa163a70e96bbef9ad9cf20cf01eee3a519b85fb1a6b47d300927633b4bed7",
-			"reviewed_at": "2026-06-18T16:59:05.498741054Z"
+			"definition_hash": "4db36b0f6252eefd0b31eec7c7c856ec145bf05bd96d5b626fb150f37b3542cc",
+			"reviewed_at": "2026-06-25T10:51:16.095339638Z"
 		},
 		{
 			"function_name": "toolLogs",
 			"receiver": "Server",
 			"documentation_hash": "c8f7ed3ae8e2973aa4ff44fc842d29a9cb58c706a93a5645b7b42633c517dad5",
-			"definition_hash": "4eba9e924afc8a8769a0bfa3ee928dc67515b2fc5a368ac4a560469358558b5e",
-			"reviewed_at": "2026-06-18T16:59:05.499511098Z"
+			"definition_hash": "0a79e64c98550c4e0fe4383264df8cbfe7e1157ba523f65b8b867dc0722e1c07",
+			"reviewed_at": "2026-06-25T10:51:16.095837354Z"
 		},
 		{
 			"function_name": "toolExec",
 			"receiver": "Server",
 			"documentation_hash": "acf9e087a4fcbcaea5c5b02ce3747d8171aa7eca09e04b731240d4677ace1b36",
-			"definition_hash": "82179e0a6e16a5729580a0c7d00465f830401e562f11566ba77faccf0a30a0ac",
-			"reviewed_at": "2026-06-18T16:59:05.500232438Z"
+			"definition_hash": "aa6e49774147df787fe8bf3163e7d54bc88eff0e7cf59ce9a8e54bf6d0ab5151",
+			"reviewed_at": "2026-06-25T10:51:16.096260124Z"
 		},
 		{
 			"function_name": "toolListSpokes",

@@ -3,14 +3,14 @@
 		{
 			"function_name": "newAdminServer",
 			"documentation_hash": "0b92a67bc94fd0898ae235fd61feab0f751fe0dc127229d924b42c4184d38339",
-			"definition_hash": "00b95031103621d4ff21ac76317ef1cd430a708aa2c25e3d2774be18d3f2f1f4",
-			"reviewed_at": "2026-06-21T13:24:31.9344774Z"
+			"definition_hash": "86df41f9d01d38422ae36dd3187aeda9c3b29860afacec6aae26ef131202e961",
+			"reviewed_at": "2026-06-25T10:52:23.441151371Z"
 		},
 		{
 			"function_name": "signIn",
 			"documentation_hash": "06dbe717776b9276b78682cdb90dd421479f1c0c3c1b3e50c05763dd8ce15008",
-			"definition_hash": "4ae8e2aac41c690f61321e8932492f649989a801deead8dc6ac8324f877e63bf",
-			"reviewed_at": "2026-06-21T13:24:31.935323227Z"
+			"definition_hash": "cb145816f364ec9114630e7b91671235345de87da00cb664491be27520d2e8ae",
+			"reviewed_at": "2026-06-25T10:51:16.072071939Z"
 		},
 		{
 			"function_name": "TestAdminAllowlist",
@@ -39,8 +39,8 @@
 		{
 			"function_name": "TestProviderCallbackAdminOnly",
 			"documentation_hash": "fe34ea89266250a67be3aee58d8e606096b73d79c69a7304b51f1e06f2032e27",
-			"definition_hash": "0b739accb619cd4b39a7482b1feac25a705831fb6c4c4c8cb60aa3f113cd7fa2",
-			"reviewed_at": "2026-06-21T13:32:40.454052914Z"
+			"definition_hash": "4050bd56e38c00ddbe249f1292eb9312ab5eb222de6c3adf85d40e0207d15d4d",
+			"reviewed_at": "2026-06-25T10:51:16.072925949Z"
 		},
 		{
 			"function_name": "TestAdminDashboardGate",
@@ -63,8 +63,8 @@
 		{
 			"function_name": "TestAdminDropSpokeRemovesAndKicks",
 			"documentation_hash": "7febcd39b90498ef487a8bb76eefe30e8432080a56171c0caf17bf3177fa6eab",
-			"definition_hash": "4981bf46350d95ca7c560aaebc6ea38e78cf7b9d387cb46b51a2d39cc27a0688",
-			"reviewed_at": "2026-06-25T09:38:26.211988517Z"
+			"definition_hash": "3133449a06d05788fd81ff1f2fe2e733ed008279fcf6b446af6c6cf1ee60ac52",
+			"reviewed_at": "2026-06-25T10:51:16.074251234Z"
 		},
 		{
 			"function_name": "TestAdminRevokeToken",
@@ -75,14 +75,14 @@
 		{
 			"function_name": "TestAdminCreateBox",
 			"documentation_hash": "6dbcb5b3155860e79e4eb365edfac90e1fca490ba1f779e1daf40db9ff5368f3",
-			"definition_hash": "9248f877d7df31f1bb665502389442bd41e430abace6954532c76da153069f3a",
-			"reviewed_at": "2026-06-25T09:38:26.2191159Z"
+			"definition_hash": "68cf727cf80e823ddadaceab4207c3a63a4686f9703402aabbae9341a40cf1d8",
+			"reviewed_at": "2026-06-25T10:51:16.074751996Z"
 		},
 		{
 			"function_name": "TestAdminDeleteBox",
 			"documentation_hash": "4777d21cd41d8c3af6ab4492e3d411d5b6250e49ebfac668346e0223cd18cadf",
-			"definition_hash": "0de5d9988e4fcbf4bdc07c8de1d274053b39200326473e8389317fffe7bf6589",
-			"reviewed_at": "2026-06-25T09:38:26.223719856Z"
+			"definition_hash": "d1f634d65d82a6dfb58e46feba588850a5e5a91dce44ff49916d6f9527570b64",
+			"reviewed_at": "2026-06-25T10:51:16.078632005Z"
 		},
 		{
 			"function_name": "TestToAdminTokens",
@@ -105,8 +105,8 @@
 		{
 			"function_name": "TestAdminDashboardShowsActivationURL",
 			"documentation_hash": "306ab681b602d622d2c198322495f04d566763dc098fbb3b36156d2024d7ada8",
-			"definition_hash": "56b2546f72b9863536d0acec2ffec283a7eb98faa046de48a000adb84a8bd1b0",
-			"reviewed_at": "2026-06-21T18:29:19.4928393Z"
+			"definition_hash": "2d90358954fd703e410f8caa04e6c38fb1c1a71465957937f02c620e4fc385cb",
+			"reviewed_at": "2026-06-25T10:51:16.073711923Z"
 		},
 		{
 			"function_name": "TestAdminActionJSON",
