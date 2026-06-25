@@ -213,8 +213,8 @@ func (s *Server) logger() *slog.Logger {
 
 // New builds a Server. publicURL is the externally reachable base URL used to
 // construct auth page links; authTTL is how long a box may stay un-authenticated
-// before the reaper destroys it. store persists the session registry; pass
-// noopStore{} to disable persistence. hooks runs lifecycle hooks per box; pass
+// before the reaper destroys it. store persists the session registry; pass a
+// no-op store to disable persistence. hooks runs lifecycle hooks per box; pass
 // nil to disable hook integration. auth gates box activation behind provider
 // sign-in; pass nil to leave activation unauthenticated. Call Restore to load any
 // saved sessions.
@@ -223,7 +223,7 @@ func (s *Server) logger() *slog.Logger {
 // @arg hooks The box lifecycle hook runner; nil disables hook integration.
 // @arg publicURL The externally reachable base URL for auth page links.
 // @arg authTTL How long a box may stay un-authenticated before being reaped.
-// @arg store The session store used to persist the registry; noopStore{} disables it.
+// @arg store The session store used to persist the registry; a no-op store disables it.
 // @arg auth The activation authenticator; nil leaves activation unauthenticated.
 // @return *Server A ready-to-use Server with an empty in-memory session registry.
 //
@@ -878,6 +878,7 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 
 // newToken returns a 256-bit unguessable hex token for an auth page URL.
 //
+// @arg randSource The reader supplying cryptographic randomness.
 // @return string A 64-character hex-encoded random token.
 // @error error if the system random source fails.
 //

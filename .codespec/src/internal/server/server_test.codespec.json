@@ -3,8 +3,8 @@
 		{
 			"function_name": "newTestServer",
 			"documentation_hash": "4d40d09936b079d5ffb330b3a9a2a0d857b147cc597b17786bb3bc93b833dfa2",
-			"definition_hash": "eabefb448648e1e39ba391032e117f15c9f1192fe44c06fdd71ac2a33cbc4c6d",
-			"reviewed_at": "2026-06-25T10:54:06.953000049Z"
+			"definition_hash": "ca20e1023d4a52b4c3ffd187ae0fc88195630f2cac04f0d5182699f105dc6478",
+			"reviewed_at": "2026-06-25T12:21:29.675514876Z"
 		},
 		{
 			"function_name": "OnCreate",
@@ -35,20 +35,20 @@
 		{
 			"function_name": "TestCreateBoxRunsCreateHooks",
 			"documentation_hash": "f22604637599cb59cf5d44bca26647a56210ce7f2e242ae4da6bbd7c0cbd8083",
-			"definition_hash": "38b683d3585b22b4284814eab13a19ce6b28affdf77b11fadd08b9f6ee0f7dfa",
-			"reviewed_at": "2026-06-25T10:54:07.111455076Z"
+			"definition_hash": "067d45a01806581ecb6edaeb31dd85066f044ed512a9ee634de34d9d20165256",
+			"reviewed_at": "2026-06-25T12:21:29.692086484Z"
 		},
 		{
 			"function_name": "TestCreateBoxRunsDestroyHooksOnCreateFailure",
 			"documentation_hash": "643249a258db8abc292800aabfaba6a8f246667f9e6c914dd39ae4bc1804a616",
-			"definition_hash": "584c9ee4fc282e5c56a3bbb121c0deeaffa21e9ce0a7158ae238af8c1271c5c3",
-			"reviewed_at": "2026-06-25T10:54:07.139445123Z"
+			"definition_hash": "157c41ee33007ca1c93c0d9466604e2acc9455bb7f5c60b58fee073be9413c1a",
+			"reviewed_at": "2026-06-25T12:21:29.706809282Z"
 		},
 		{
 			"function_name": "TestDestroyRunsDestroyHooks",
 			"documentation_hash": "b42b79a67dd4a2c96f0af324f0afe3e2fc2361a7ee66fb981be1c24e1bfa7629",
-			"definition_hash": "bb46ec4d07aca46f97c82fdb8e9a88f4229140f6f9ab4fa4d90d8d6c13272d12",
-			"reviewed_at": "2026-06-25T10:54:07.163947421Z"
+			"definition_hash": "0d1e90b82831507f747e14e35cf60e28c53603f81cfafba87741f3ac566920c8",
+			"reviewed_at": "2026-06-25T12:21:29.719904342Z"
 		},
 		{
 			"function_name": "TestSubmitCodeSuccess",
