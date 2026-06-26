@@ -49,8 +49,20 @@ jobs:
         if: steps.ver.outputs.changed == 'true'
         run: sed -i "s/^ARG CLAUDE_VERSION=.*/ARG CLAUDE_VERSION=${{ steps.ver.outputs.latest }}/" Dockerfile
 
+      - name: Check PR token availability
+        if: steps.ver.outputs.changed == 'true'
+        id: token
+        env:
+          BUMP_CLAUDE_TOKEN: ${{ secrets.BUMP_CLAUDE_TOKEN }}
+        run: |
+          if [ -n "$BUMP_CLAUDE_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create pull request
-        if: steps.ver.outputs.changed == 'true' && secrets.BUMP_CLAUDE_TOKEN != ''
+        if: steps.ver.outputs.changed == 'true' && steps.token.outputs.configured == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.BUMP_CLAUDE_TOKEN }}
@@ -68,6 +80,6 @@ jobs:
             Source: <https://downloads.claude.ai/claude-code-releases/stable>
 
       - name: Skip PR creation (missing BUMP_CLAUDE_TOKEN)
-        if: steps.ver.outputs.changed == 'true' && secrets.BUMP_CLAUDE_TOKEN == ''
+        if: steps.ver.outputs.changed == 'true' && steps.token.outputs.configured != 'true'
         run: |
           echo "::warning::Latest Claude version was found (${{ steps.ver.outputs.latest }}), but no BUMP_CLAUDE_TOKEN secret is configured; skipping PR creation."
