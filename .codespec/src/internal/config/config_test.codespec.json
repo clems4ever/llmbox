@@ -83,6 +83,24 @@
 			"documentation_hash": "b2ea71bf59f8056c3d598c8de7360ffa4006d4db12c426c7fdbc9d0b7d586515",
 			"definition_hash": "5902e26589bbf555455bab5a7a3e376d4df65c1aa39ed3a0e4f18b92cf11ecbb",
 			"reviewed_at": "2026-06-21T13:23:33.260020926Z"
+		},
+		{
+			"function_name": "TestLoadRegistry",
+			"documentation_hash": "06b75d87956fa517fbcc6db70d3259650dbde452c64b3586a089d16e90c3948f",
+			"definition_hash": "0604c5a95940b190f6487366372165a712120c0f2625324c0a87f3329879d2da",
+			"reviewed_at": "2026-06-26T12:09:51.23566773Z"
+		},
+		{
+			"function_name": "TestLoadRegistryMissingPasswordFile",
+			"documentation_hash": "8c42f1afc0bf3ed5a97d73eee966a2ece0d059ebaa8269f9293ca39092917d98",
+			"definition_hash": "3ce4a72e8fe22f88fa12192d70b5e7b8ffa9760fb3c48a972f1c8f13090c4512",
+			"reviewed_at": "2026-06-26T12:09:51.272413982Z"
+		},
+		{
+			"function_name": "TestLoadRegistryRequiresHost",
+			"documentation_hash": "09228fb3163359d063f5c076ec398e093d165de9a5a85307d992c1d466ea96fb",
+			"definition_hash": "b0b24f2f769386226161f229373c55281bc10cab5610e2d132d2d8ecd78809fc",
+			"reviewed_at": "2026-06-26T12:09:51.300268773Z"
 		}
 	]
 }

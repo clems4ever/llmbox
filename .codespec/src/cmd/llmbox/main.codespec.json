@@ -9,8 +9,8 @@
 		{
 			"function_name": "run",
 			"documentation_hash": "529bb1192172e225e7bb30de5171df5bc6a0454a40571f87a547772bf0ff1bac",
-			"definition_hash": "3253731ba3fee7a97bc11c02d183bb24a52533af71d0b62badf5b99f4d0ff477",
-			"reviewed_at": "2026-06-25T12:41:39.288283706Z"
+			"definition_hash": "4a47fa60f4772e7aea5d4cd4464005e70f877b38eaf0ed07ebf8ffa1af472117",
+			"reviewed_at": "2026-06-26T12:08:13.919703626Z"
 		},
 		{
 			"function_name": "newRootCmd",
@@ -29,6 +29,12 @@
 			"documentation_hash": "48938171db45ad3afb0a5361db80924ddd7854d5b77673e327764fe10c740876",
 			"definition_hash": "82e09fdce0eac99147974b2f630afd8d674fdae61bfca2016811159ee0e75339",
 			"reviewed_at": "2026-06-21T14:38:15.036007337Z"
+		},
+		{
+			"function_name": "registryAuths",
+			"documentation_hash": "f1b93be9d5df419115a4a5a257964228d59c2a9e1cc4bcfbef5ff766069464b7",
+			"definition_hash": "930fa5cd0591005ff5a02bd3ff1f285a453bcb831a4ca06fcbf95b4c20d8110e",
+			"reviewed_at": "2026-06-26T12:08:54.021986975Z"
 		}
 	]
 }

@@ -17,9 +17,9 @@
 		{
 			"function_name": "ImagePull",
 			"receiver": "fakeDocker",
-			"documentation_hash": "774eba853b5ab9f82bf50a2471ef6d05ba72b258e53619a044773a04e640c9b0",
-			"definition_hash": "dfd250f60720988154c6d82cd290a3dd02c7cc34ec244dfcc11c64ad6d508a6c",
-			"reviewed_at": "2026-06-18T13:14:37.062127691Z"
+			"documentation_hash": "0e8ed651921ce6c66c66889a86a113ad72c64c2726f1589a9780e048a9400e8e",
+			"definition_hash": "62eece9db039d0935f55c5a8b7875cfd8128f9dae7c7e3afa8645b02fa5bf0a3",
+			"reviewed_at": "2026-06-26T12:10:18.735429549Z"
 		},
 		{
 			"function_name": "ContainerStart",
@@ -397,6 +397,18 @@
 			"documentation_hash": "9c1a1f06472a0d78ea97bb31862c3907c542c53de5b76d95136e1ebe2c0b1bda",
 			"definition_hash": "601e7f8fc9252c2c5f2ce3be3fb191bed3d85cfea30399934ac1c83e7d6db26a",
 			"reviewed_at": "2026-06-22T19:23:51.916118706Z"
+		},
+		{
+			"function_name": "TestCreatePullsWithRegistryAuth",
+			"documentation_hash": "2b71e9d01a9493922c7f222c3be5f1724366386691eff57bc5a7ad7cd7c1da35",
+			"definition_hash": "090693600b75fc0dc1bbd692c3bc8c68b14f15471f13efc5d79c7d4b9c601906",
+			"reviewed_at": "2026-06-26T12:10:18.749889678Z"
+		},
+		{
+			"function_name": "TestCreatePullsAnonymousWhenNoRegistryMatch",
+			"documentation_hash": "d594b6250dddfa654fe798bcd00cae7fb3eed2c9bb6b6b1ccec39e0ff06ed550",
+			"definition_hash": "1a70259d22e36cabf4b95b9a60e7046f865ab4eaaf2d0ba351211cc714527b47",
+			"reviewed_at": "2026-06-26T12:10:18.7896133Z"
 		}
 	]
 }

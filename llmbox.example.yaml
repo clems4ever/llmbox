@@ -82,6 +82,17 @@ state_file: "llmbox-sessions.db"
 #   pids_limit: 4096    # max processes/threads per box (blunts fork bombs)
 #   max_boxes: 0        # max concurrent boxes (0 = unlimited)
 
+# Credentials for pulling box images from authenticated container registries.
+# Each entry is matched against the image's registry host: an image whose host
+# has an entry is pulled with these credentials, any other image is pulled
+# anonymously (as before). Use "docker.io" for Docker Hub images (which carry no
+# host prefix). As with other secrets, the password/token is read from a file and
+# never inlined here. On a spoke, configure this where the box image is pulled.
+# registries:
+#   - registry: "ghcr.io"
+#     username: "your-github-user"
+#     password_file: "/etc/llmbox/ghcr-token"   # a GitHub PAT with read:packages
+
 # Activation authentication. Without this, anyone who obtains a box's auth-page
 # URL (which is relayed through the chatbot) can activate the box with their own
 # account. Enable a provider to require the person activating a box to sign in
