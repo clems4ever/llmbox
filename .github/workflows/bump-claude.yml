@@ -5,9 +5,10 @@ name: Bump Claude version
 # bumping it. Runs daily and on demand. The branch is reused, so at most one open
 # bump PR exists at a time.
 #
-# Note: PRs opened with the default GITHUB_TOKEN do not themselves trigger other
-# workflows (so the image build won't run on the bump PR). To have CI run on the
-# PR, pass a fine-grained PAT as the `token:` input below instead.
+# Note: configure a fine-grained PAT in `secrets.BUMP_CLAUDE_TOKEN` to let this
+# workflow open/update the bump PR. The default GITHUB_TOKEN can be blocked from
+# creating PRs by repository settings and, even when allowed, won't trigger other
+# workflows from the created PR.
 on:
   schedule:
     - cron: "0 7 * * *" # daily at 07:00 UTC
@@ -49,10 +50,10 @@ jobs:
         run: sed -i "s/^ARG CLAUDE_VERSION=.*/ARG CLAUDE_VERSION=${{ steps.ver.outputs.latest }}/" Dockerfile
 
       - name: Create pull request
-        if: steps.ver.outputs.changed == 'true'
+        if: steps.ver.outputs.changed == 'true' && secrets.BUMP_CLAUDE_TOKEN != ''
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.BUMP_CLAUDE_TOKEN }}
           branch: bump-claude-version
           delete-branch: true
           commit-message: "build: bump pinned Claude version to ${{ steps.ver.outputs.latest }}"
@@ -65,3 +66,8 @@ jobs:
             - Latest stable: `${{ steps.ver.outputs.latest }}`
 
             Source: <https://downloads.claude.ai/claude-code-releases/stable>
+
+      - name: Skip PR creation (missing BUMP_CLAUDE_TOKEN)
+        if: steps.ver.outputs.changed == 'true' && secrets.BUMP_CLAUDE_TOKEN == ''
+        run: |
+          echo "::warning::Latest Claude version was found (${{ steps.ver.outputs.latest }}), but no BUMP_CLAUDE_TOKEN secret is configured; skipping PR creation."

@@ -32,7 +32,9 @@ The Claude Code binary baked into the image is **pinned** to a specific stable
 release — the `ARG CLAUDE_VERSION` line in the [`Dockerfile`](../Dockerfile) is the
 single source of truth. `.github/workflows/bump-claude.yml` runs daily, resolves
 the latest stable release from `downloads.claude.ai`, and opens a PR bumping that
-line when a newer version is available. Override per build with
+line when a newer version is available (when the `BUMP_CLAUDE_TOKEN` repository
+secret is configured with a token allowed to create pull requests). Override per
+build with
 `docker build --build-arg CLAUDE_VERSION=<x.y.z|stable|latest> .`.
 
 ## Testing
