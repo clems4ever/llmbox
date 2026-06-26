@@ -21,6 +21,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/pkg/stdcopy"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -69,6 +70,7 @@ type fakeDocker struct {
 	stopped          []string
 	removed          []string
 	pulled           []string
+	pullAuths        []string // RegistryAuth recorded from each ImagePull call
 
 	copyErr     error
 	copyToCalls []copyToCall // recorded CopyToContainer invocations
@@ -104,12 +106,14 @@ func (f *fakeDocker) ContainerCreate(_ context.Context, config *container.Config
 	return f.createResp, f.createErr
 }
 
-// ImagePull records the pulled reference and returns a short progress stream.
-func (f *fakeDocker) ImagePull(_ context.Context, ref string, _ image.PullOptions) (io.ReadCloser, error) {
+// ImagePull records the pulled reference and the auth it was sent with, then
+// returns a short progress stream.
+func (f *fakeDocker) ImagePull(_ context.Context, ref string, opts image.PullOptions) (io.ReadCloser, error) {
 	if f.pullErr != nil {
 		return nil, f.pullErr
 	}
 	f.pulled = append(f.pulled, ref)
+	f.pullAuths = append(f.pullAuths, opts.RegistryAuth)
 	return io.NopCloser(strings.NewReader("pulling " + ref + "\n")), nil
 }
 
@@ -640,6 +644,68 @@ func TestCreatePullFailure(t *testing.T) {
 	}
 	if len(f.started) != 0 {
 		t.Errorf("no box should be started when the pull fails, got %v", f.started)
+	}
+}
+
+// TestCreatePullsWithRegistryAuth checks that when credentials are configured for
+// the image's registry, the pull carries the encoded X-Registry-Auth header; an
+// image on a registry with no configured entry is still pulled anonymously.
+func TestCreatePullsWithRegistryAuth(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp:              container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn:              managerEnd,
+		createNotFoundUntilPull: true,
+	}
+	m := newTestManager(f)
+	// DefaultImage lives on ghcr.io; register matching credentials for it.
+	m.SetRegistryAuths(map[string]registry.AuthConfig{
+		"ghcr.io": {Username: "bob", Password: "ghp_token", ServerAddress: "ghcr.io"},
+	})
+
+	go func() {
+		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
+	}()
+
+	if _, _, err := m.Create(context.Background(), CreateOptions{}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if len(f.pullAuths) != 1 || f.pullAuths[0] == "" {
+		t.Fatalf("expected one pull carrying a non-empty RegistryAuth, got %v", f.pullAuths)
+	}
+	decoded, err := registry.DecodeAuthConfig(f.pullAuths[0])
+	if err != nil {
+		t.Fatalf("DecodeAuthConfig: %v", err)
+	}
+	if decoded.Username != "bob" || decoded.Password != "ghp_token" {
+		t.Errorf("decoded auth = %q / %q, want bob / ghp_token", decoded.Username, decoded.Password)
+	}
+}
+
+// TestCreatePullsAnonymousWhenNoRegistryMatch checks an image whose registry has
+// no configured credentials is pulled with an empty RegistryAuth header.
+func TestCreatePullsAnonymousWhenNoRegistryMatch(t *testing.T) {
+	managerEnd, testEnd := net.Pipe()
+	f := &fakeDocker{
+		createResp:              container.CreateResponse{ID: "abcdef0123456789ffff"},
+		attachConn:              managerEnd,
+		createNotFoundUntilPull: true,
+	}
+	m := newTestManager(f)
+	// Credentials for a different registry than the image's (ghcr.io) host.
+	m.SetRegistryAuths(map[string]registry.AuthConfig{
+		"registry.example.com": {Username: "bob", Password: "x"},
+	})
+
+	go func() {
+		_, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\nPaste code here if prompted >"))
+	}()
+
+	if _, _, err := m.Create(context.Background(), CreateOptions{}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if len(f.pullAuths) != 1 || f.pullAuths[0] != "" {
+		t.Errorf("expected one anonymous pull (empty RegistryAuth), got %v", f.pullAuths)
 	}
 }
 

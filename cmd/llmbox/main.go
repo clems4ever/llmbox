@@ -50,6 +50,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/docker/docker/api/types/registry"
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/cluster"
@@ -165,6 +166,29 @@ func boxLimits(b config.BoxConfig) docker.BoxLimits {
 	}
 }
 
+// registryAuths turns the configured registry credentials into the per-host
+// auth map the Docker manager consumes, keyed by registry host. It returns nil
+// when no registries are configured, which leaves every image pull anonymous.
+//
+// @arg regs The configured registry credentials (each carrying a resolved password).
+// @return map[string]registry.AuthConfig Pull credentials keyed by registry host, or nil when none are configured.
+//
+// @testcase TestRegistryAuthsKeyedByHost maps each entry by its registry host and returns nil when empty.
+func registryAuths(regs []config.RegistryConfig) map[string]registry.AuthConfig {
+	if len(regs) == 0 {
+		return nil
+	}
+	auths := make(map[string]registry.AuthConfig, len(regs))
+	for _, r := range regs {
+		auths[r.Registry] = registry.AuthConfig{
+			Username:      r.Username,
+			Password:      r.Password,
+			ServerAddress: r.Registry,
+		}
+	}
+	return auths
+}
+
 // run assembles and serves the llmbox hub from cfg: it builds the Docker manager
 // (applying the configured per-box resource limits), opens the session store,
 // sets up optional lifecycle hooks and activation auth, optionally enables
@@ -195,6 +219,7 @@ func run(parent context.Context, cfg *config.Config) error {
 		return err
 	}
 	mgr.SetBoxLimits(boxLimits(cfg.Box))
+	mgr.SetRegistryAuths(registryAuths(cfg.Registries))
 	defer func() {
 		if err := mgr.Close(); err != nil {
 			log.Printf("closing docker manager: %v", err)

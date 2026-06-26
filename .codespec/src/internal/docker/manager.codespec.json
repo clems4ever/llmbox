@@ -61,9 +61,9 @@
 		{
 			"function_name": "pullImage",
 			"receiver": "Manager",
-			"documentation_hash": "b9b76a2edcc403122308c8f96fefe67d6aa22a573a88579a5b3e3b2b4a22cac2",
-			"definition_hash": "b26a9b78fbedc9bf56b5504021f78d2087988528925f2c200a61f6366c1304a5",
-			"reviewed_at": "2026-06-19T20:04:57.547279836Z"
+			"documentation_hash": "7bff27a22d3ba9c8a89af93629be83ac4b55d4029bf64c4856cccc627ede1d4c",
+			"definition_hash": "eb56b347b4b380015800faab8f26c27c3e12216fa5401ea95f8c22515f001425",
+			"reviewed_at": "2026-06-26T12:10:07.931186614Z"
 		},
 		{
 			"function_name": "readAuthorizeURL",
@@ -203,6 +203,20 @@
 			"documentation_hash": "da4288aa008809c04f7c226d1b57c7f6f62289b5d42cdaf946023496c0f8e5c8",
 			"definition_hash": "e4040b0a73e047636eda0160a68e0502ffb0c4055818f2ac83c72047a1f88f41",
 			"reviewed_at": "2026-06-22T19:23:35.741514934Z"
+		},
+		{
+			"function_name": "SetRegistryAuths",
+			"receiver": "Manager",
+			"documentation_hash": "60040b3cf498acd4abdfa32989cb83d2f962a07bc01571239fe3874bfcc41516",
+			"definition_hash": "6645528728f4900daf167e2a5e0f6de39519949dd855e9128910fd07fda4617b",
+			"reviewed_at": "2026-06-26T12:10:07.885078201Z"
+		},
+		{
+			"function_name": "registryAuthFor",
+			"receiver": "Manager",
+			"documentation_hash": "0891d0155e9e8171ac50c8d08af276581c49e7ef1a043c5afc7bcade8e160f8d",
+			"definition_hash": "ec1542066ece3754a1f0fa77db49239212a3db591325c4865b4ec124d32ae1fb",
+			"reviewed_at": "2026-06-26T12:10:07.983186882Z"
 		}
 	]
 }

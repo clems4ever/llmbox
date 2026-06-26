@@ -39,11 +39,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -178,6 +180,12 @@ type Manager struct {
 	// spoke whose host has GPUs exposes them. nil/empty attaches no GPU.
 	boxGPUs []container.DeviceRequest
 
+	// registryAuths holds pull credentials keyed by registry host (e.g.
+	// "ghcr.io"). pullImage selects the entry matching an image's registry and
+	// sends it as the X-Registry-Auth header; an image whose registry has no
+	// entry is pulled anonymously. nil/empty disables authenticated pulls.
+	registryAuths map[string]registry.AuthConfig
+
 	// log records best-effort failures (cleanup, network teardown, etc.) that are
 	// not propagated to the caller; nil falls back to slog.Default() via logger().
 	log *slog.Logger
@@ -282,6 +290,16 @@ type BoxLimits struct {
 // @testcase TestCreateAppliesBoxLimits sets limits and checks they reach the host config.
 // @testcase TestCreateRejectsOverMaxBoxes rejects a create once MaxBoxes is reached.
 func (m *Manager) SetBoxLimits(l BoxLimits) { m.limits = l }
+
+// SetRegistryAuths supplies the credentials used when pulling box images from
+// authenticated registries, keyed by registry host (e.g. "ghcr.io"). It is set
+// once at startup after NewManager, mirroring SetBoxLimits/SetBoxGPUs; a nil or
+// empty map leaves every pull anonymous.
+//
+// @arg auths Pull credentials keyed by registry host; nil/empty pulls anonymously.
+//
+// @testcase TestCreatePullsWithRegistryAuth pulls a private image using the configured credentials.
+func (m *Manager) SetRegistryAuths(auths map[string]registry.AuthConfig) { m.registryAuths = auths }
 
 // SetBoxGPUs configures the GPUs attached to every box this manager launches,
 // from a spec in the style of `docker run --gpus`: "" attaches none, "all"
@@ -829,17 +847,28 @@ func tarFiles(files []InjectFile) (io.Reader, error) {
 	return &buf, nil
 }
 
-// pullImage pulls ref from its registry. It drains the progress stream, since
-// the pull is only complete once the response body has been fully read.
+// pullImage pulls ref from its registry. When credentials for ref's registry
+// host were configured (see SetRegistryAuths) they are attached so private
+// images can be pulled. It drains the progress stream, since the pull is only
+// complete once the response body has been fully read.
 //
 // @arg ctx Context for the pull request.
 // @arg ref The image reference to pull.
-// @error error if the pull cannot start or its progress stream fails.
+// @error error if the credentials cannot be encoded, the pull cannot start, or its progress stream fails.
 //
 // @testcase TestCreatePullsMissingImage pulls then retries when the image is absent.
 // @testcase TestCreatePullFailure surfaces an error when the pull fails.
+// @testcase TestCreatePullsWithRegistryAuth attaches the configured credentials for a private registry.
 func (m *Manager) pullImage(ctx context.Context, ref string) error {
-	rc, err := m.cli.ImagePull(ctx, ref, image.PullOptions{})
+	opts := image.PullOptions{}
+	if auth, ok := m.registryAuthFor(ref); ok {
+		encoded, err := registry.EncodeAuthConfig(auth)
+		if err != nil {
+			return fmt.Errorf("encoding registry auth for %q: %w", ref, err)
+		}
+		opts.RegistryAuth = encoded
+	}
+	rc, err := m.cli.ImagePull(ctx, ref, opts)
 	if err != nil {
 		return err
 	}
@@ -848,6 +877,29 @@ func (m *Manager) pullImage(ctx context.Context, ref string) error {
 		return fmt.Errorf("reading pull progress: %w", err)
 	}
 	return nil
+}
+
+// registryAuthFor returns the configured pull credentials for ref's registry
+// host, if any. ref's host is resolved with Docker's normalization rules, so a
+// bare image like "nginx" maps to "docker.io" and "ghcr.io/owner/img" to
+// "ghcr.io". The second result is false when no credentials match (or ref is
+// unparseable), in which case the pull proceeds anonymously.
+//
+// @arg ref The image reference whose registry host is matched against the configured credentials.
+// @return registry.AuthConfig The matching credentials (zero value when none match).
+// @return bool Whether a matching entry was found.
+//
+// @testcase TestCreatePullsWithRegistryAuth matches an image to its registry credentials.
+func (m *Manager) registryAuthFor(ref string) (registry.AuthConfig, bool) {
+	if len(m.registryAuths) == 0 {
+		return registry.AuthConfig{}, false
+	}
+	named, err := reference.ParseNormalizedNamed(ref)
+	if err != nil {
+		return registry.AuthConfig{}, false
+	}
+	auth, ok := m.registryAuths[reference.Domain(named)]
+	return auth, ok
 }
 
 // readAuthorizeURL attaches to a box and reads its output until the OAuth

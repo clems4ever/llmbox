@@ -232,3 +232,58 @@ auth:
 		t.Error("Load with missing secret file = nil, want error")
 	}
 }
+
+// TestLoadRegistry checks a registry entry parses and resolves its password from
+// the referenced file, leaving the password out of the YAML.
+func TestLoadRegistry(t *testing.T) {
+	dir := t.TempDir()
+	pw := writeFile(t, dir, "ghcr-token", "ghp_secrettoken\n")
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+registries:
+  - registry: "ghcr.io"
+    username: "bob"
+    password_file: "`+pw+`"
+`)
+	c, err := Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(c.Registries) != 1 {
+		t.Fatalf("Registries = %v, want one entry", c.Registries)
+	}
+	r := c.Registries[0]
+	if r.Registry != "ghcr.io" || r.Username != "bob" {
+		t.Errorf("registry/username = %q / %q", r.Registry, r.Username)
+	}
+	if r.Password != "ghp_secrettoken" {
+		t.Errorf("Password = %q, want token trimmed from file", r.Password)
+	}
+}
+
+// TestLoadRegistryMissingPasswordFile checks an unreadable password file errors.
+func TestLoadRegistryMissingPasswordFile(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+registries:
+  - registry: "ghcr.io"
+    username: "bob"
+    password_file: "`+filepath.Join(dir, "nope")+`"
+`)
+	if _, err := Load(cfgPath); err == nil {
+		t.Error("Load with missing password file = nil, want error")
+	}
+}
+
+// TestLoadRegistryRequiresHost checks a registry entry with no host is rejected.
+func TestLoadRegistryRequiresHost(t *testing.T) {
+	dir := t.TempDir()
+	pw := writeFile(t, dir, "token", "t")
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+registries:
+  - username: "bob"
+    password_file: "`+pw+`"
+`)
+	if _, err := Load(cfgPath); err == nil {
+		t.Error("Load with no registry host = nil, want error")
+	}
+}

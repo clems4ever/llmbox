@@ -29,6 +29,12 @@
 			"documentation_hash": "69900a0d9891becae5aed1ff2ed9771a417d289a1b38088504c586c9d18e2c54",
 			"definition_hash": "85a33fbe773b5ecb88b17fa22b8ab525fd161cf7f35887d048205928c70b2525",
 			"reviewed_at": "2026-06-21T14:38:47.433679304Z"
+		},
+		{
+			"function_name": "TestRegistryAuthsKeyedByHost",
+			"documentation_hash": "34533ecbdf9f0749bd7ff227181c135ccadea9fc1cd4a764fbe6a2f365bf7ab6",
+			"definition_hash": "84a9b14cd8154da67754945165c5b79f6b8317b4aab9c05443baaeecc7355049",
+			"reviewed_at": "2026-06-26T12:09:01.790846905Z"
 		}
 	]
 }

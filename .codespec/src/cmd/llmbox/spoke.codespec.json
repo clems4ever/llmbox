@@ -21,8 +21,8 @@
 		{
 			"function_name": "runSpoke",
 			"documentation_hash": "b7d0826019669a01db87bc9762508e99ab88fee0c23e4be997d088d5984f8060",
-			"definition_hash": "38d2d85bb96d27667029f0366cddf07b81e70d394851ab8fedb553ecf144a884",
-			"reviewed_at": "2026-06-22T19:23:09.265796121Z"
+			"definition_hash": "999cbb71a096e11ec8996bc2134fa3c1da2e9439d1e6e3b22113ebf4ae97adc0",
+			"reviewed_at": "2026-06-26T12:09:14.983574882Z"
 		},
 		{
 			"function_name": "loadSpokeCreds",

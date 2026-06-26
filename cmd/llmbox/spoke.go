@@ -321,6 +321,7 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 		return err
 	}
 	mgr.SetBoxLimits(boxLimits(cfg.Box))
+	mgr.SetRegistryAuths(registryAuths(cfg.Registries))
 	// GPUs are machine-local: attach the host's GPUs to every box this spoke runs.
 	if err := mgr.SetBoxGPUs(boxGPUs); err != nil {
 		return err

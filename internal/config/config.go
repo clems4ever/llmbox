@@ -91,6 +91,32 @@ type Config struct {
 	Cluster     ClusterConfig `yaml:"cluster"`
 	Spoke       SpokeConfig   `yaml:"spoke"`
 	Box         BoxConfig     `yaml:"box"`
+	// Registries holds credentials for pulling box images from authenticated
+	// container registries. The manager selects the entry whose host matches the
+	// image being pulled; an image whose registry has no entry is pulled
+	// anonymously, as before.
+	Registries []RegistryConfig `yaml:"registries"`
+}
+
+// RegistryConfig holds the credentials used to pull box images from one
+// authenticated container registry. As with other secrets, the password is
+// referenced by file and never inlined in the YAML document.
+type RegistryConfig struct {
+	// Registry is the registry host the credentials apply to, e.g. "ghcr.io" or
+	// "registry.example.com:5000". It is matched against the host of the image
+	// being pulled; use "docker.io" for Docker Hub images (which carry no host
+	// prefix in their reference).
+	Registry string `yaml:"registry"`
+	// Username is the registry account name (for token-based registries such as
+	// ghcr.io this is the account that owns the token).
+	Username string `yaml:"username"`
+	// PasswordFile is the path to the file holding the password or access token;
+	// its contents are read at load time. The secret is never inlined in the YAML.
+	PasswordFile string `yaml:"password_file"`
+
+	// Password is read from PasswordFile at load time; it is never set in the YAML
+	// itself (secrets live in files, not in the config document).
+	Password string `yaml:"-"`
 }
 
 // BoxConfig caps the resources each box may consume and how many boxes may run
@@ -196,6 +222,9 @@ func Default() *Config {
 // @testcase TestLoadGoogleAuth loads an enabled Google provider and resolves its secret file.
 // @testcase TestLoadGoogleRequiresAllowlist rejects an enabled Google provider with no allow rule.
 // @testcase TestLoadGoogleMissingSecretFile errors when the client secret file is absent.
+// @testcase TestLoadRegistry loads a registry entry and resolves its password file.
+// @testcase TestLoadRegistryMissingPasswordFile errors when the password file is absent.
+// @testcase TestLoadRegistryRequiresHost rejects a registry entry with no registry host.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -226,6 +255,8 @@ func Load(path string) (*Config, error) {
 //
 // @testcase TestLoadGoogleAuth resolves the Google client secret from its file.
 // @testcase TestLoadGoogleMissingSecretFile errors when the secret file is absent.
+// @testcase TestLoadRegistry resolves a registry password from its file.
+// @testcase TestLoadRegistryMissingPasswordFile errors when the password file is absent.
 func (c *Config) resolveSecrets() error {
 	if c.Auth.Google.Enabled {
 		secret, err := secretFromFile(c.Auth.Google.ClientSecretFile)
@@ -233,6 +264,13 @@ func (c *Config) resolveSecrets() error {
 			return fmt.Errorf("auth.google.client_secret_file: %w", err)
 		}
 		c.Auth.Google.ClientSecret = secret
+	}
+	for i := range c.Registries {
+		secret, err := secretFromFile(c.Registries[i].PasswordFile)
+		if err != nil {
+			return fmt.Errorf("registries[%d].password_file: %w", i, err)
+		}
+		c.Registries[i].Password = secret
 	}
 	return nil
 }
@@ -263,6 +301,7 @@ func secretFromFile(path string) (string, error) {
 // @error error if an enabled provider is missing credentials or an allow rule.
 //
 // @testcase TestLoadGoogleRequiresAllowlist rejects an enabled provider with no allow rule.
+// @testcase TestLoadRegistryRequiresHost rejects a registry entry with no registry host.
 func (c *Config) validate() error {
 	if g := c.Auth.Google; g.Enabled {
 		if g.ClientID == "" {
@@ -273,6 +312,11 @@ func (c *Config) validate() error {
 		}
 		if len(g.AllowedDomains) == 0 && len(g.AllowedEmails) == 0 {
 			return errors.New("auth.google.enabled requires allowed_domains or allowed_emails (refusing to authorize every Google account)")
+		}
+	}
+	for i, r := range c.Registries {
+		if r.Registry == "" {
+			return fmt.Errorf("registries[%d] requires a registry host", i)
 		}
 	}
 	return nil
