@@ -19,8 +19,13 @@ docker run -d --name llmbox \
   -v "$PWD/llmbox.yaml:/etc/llmbox/llmbox.yaml:ro" \
   --group-add "$(stat -c '%g' /var/run/docker.sock)" \
   -p 8080:8080 \
+  -p 8081:8081 \
   llmbox --config /etc/llmbox/llmbox.yaml
 ```
+
+llmbox listens on two ports: `8080` for the UI/API (auth pages, admin, health)
+and `8081` for the MCP endpoint, kept separate so the MCP port can sit behind its
+own authenticating reverse proxy (e.g. oauth2-proxy).
 
 Or use [`docker-compose.yml`](../docker-compose.yml) (`docker compose up --build`),
 which wires up the Docker socket, the docker group, and a persisted session
@@ -33,9 +38,10 @@ clear text.
 
 ## Connecting a chatbot
 
-`create_llmbox` etc. are served at the root, `https://boxes.example.com/`
-(streamable HTTP). Add that as a remote MCP server in your client. See
-[MCP tools](mcp-tools.md) for the full tool reference.
+`create_llmbox` etc. are served at the root of the **MCP port** (`mcp_addr`,
+default `:8081`), `https://boxes.example.com/` (streamable HTTP). Add that as a
+remote MCP server in your client. See [MCP tools](mcp-tools.md) for the full tool
+reference.
 
 ## Configuration
 
@@ -47,7 +53,8 @@ optional:
 
 | YAML key       | Default                   | Purpose |
 |----------------|---------------------------|---------|
-| `http_addr`    | `:8080`                   | Listen address. |
+| `http_addr`    | `:8080`                   | UI/API listen address (auth pages, admin, health). |
+| `mcp_addr`     | `:8081`                   | MCP endpoint listen address. Served on its own port so it can sit behind an authenticating proxy; never expose it directly to untrusted networks. |
 | `public_url`   | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
 | `claude_image` | `ghcr.io/clems4ever/llmbox-box:latest` | Base image launched per box. Any glibc image with a CA bundle works — Claude is injected, not 
 baked in. |

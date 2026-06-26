@@ -10,39 +10,68 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Handler builds the HTTP handler serving the MCP endpoint (at the root), the
-// auth web pages (at /auth/{token}), a /healthz probe, and the server favicon.
-// When clustering is enabled (a hub was set), it also serves the spoke
-// connection endpoint at /spoke/connect, and when an admin allow-list is
-// configured it serves the admin UI at /admin. mcpServer is reused across
-// sessions.
+// MCPHandler builds a handler serving only the MCP endpoint, meant to be exposed
+// on its own port behind an authenticating reverse proxy. The UI/API routes are
+// not registered here, so this port carries nothing but the MCP verbs.
 //
-// @arg mcpServer The MCP server shared across all requests to the root endpoint.
-// @return http.Handler A mux routing the MCP, auth, health, and favicon endpoints.
+// @arg mcpServer The MCP server shared across all requests.
+// @return http.Handler A mux routing every request to the MCP endpoint.
 //
-// @testcase TestAuthPageRendersAndSubmits drives the auth routes through this handler.
-// @testcase TestHealthz checks the /healthz route returns ok.
-// @testcase TestFaviconServed checks the favicon route returns the embedded SVG.
-func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
+// @testcase TestMCPHandlerServesOnlyMCP serves MCP at the root and not the UI routes.
+func (s *Server) MCPHandler(mcpServer *mcp.Server) http.Handler {
 	mux := http.NewServeMux()
+	s.registerMCPRoute(mux, mcpServer)
+	return mux
+}
 
-	// MCP is served at the root. The more specific routes below take precedence
-	// over this catch-all (Go's ServeMux matches the most specific pattern).
-	//
+// APIHandler builds a handler serving the UI and API (auth pages, provider
+// sign-in, admin UI, spoke connect, health, favicon) — everything except MCP. It
+// is the public-facing port in a two-port deployment, kept separate from the MCP
+// port so the two can be exposed and protected independently.
+//
+// @return http.Handler A mux routing the UI/API endpoints, without the MCP route.
+//
+// @testcase TestAPIHandlerServesUINotMCP serves the UI routes but not MCP at the root.
+func (s *Server) APIHandler() http.Handler {
+	mux := http.NewServeMux()
+	s.registerAppRoutes(mux)
+	return mux
+}
+
+// registerMCPRoute mounts the MCP streamable HTTP handler at the root of mux. It
+// is the catch-all; any more specific app routes registered on the same mux take
+// precedence (Go's ServeMux matches the most specific pattern).
+//
+// @arg mux The mux to register the MCP route on.
+// @arg mcpServer The MCP server shared across all requests to the endpoint.
+//
+// @testcase TestMCPHandlerServesOnlyMCP mounts the MCP route via this helper.
+func (s *Server) registerMCPRoute(mux *http.ServeMux, mcpServer *mcp.Server) {
 	// SECURITY — the MCP endpoint is intentionally UNAUTHENTICATED here. The MCP
 	// tools (create/get/list/destroy/logs/exec) carry no caller identity and bind
 	// boxes to no owner: any client that can reach this handler can act on ANY box
 	// by its box_id (including exec'ing into a box another user activated). This is
 	// by design — llmbox is meant to run behind an authenticating reverse proxy
 	// (e.g. oauth2-proxy / an API gateway with mTLS) that performs authn/authz on
-	// every request before it reaches this mux, AND in front of a trusted set of
-	// callers. Do NOT expose this port directly to untrusted networks. The OIDC
-	// activation flow below (/auth) only gates who can bind a Claude account to a
-	// box; it does NOT protect the MCP verbs. If per-user box isolation is ever
-	// required, authenticate here and bind each box to an owner identity.
+	// every request before it reaches this handler, AND in front of a trusted set
+	// of callers. Do NOT expose this port directly to untrusted networks. The OIDC
+	// activation flow (/auth, on the API handler) only gates who can bind a Claude
+	// account to a box; it does NOT protect the MCP verbs. If per-user box isolation
+	// is ever required, authenticate here and bind each box to an owner identity.
 	mcpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return mcpServer }, nil)
 	mux.Handle("/", mcpHandler)
+}
 
+// registerAppRoutes mounts the UI/API routes on mux: the auth web pages, the
+// optional provider sign-in, spoke connect, and admin routes, plus the health
+// probe and favicon.
+//
+// @arg mux The mux to register the UI/API routes on.
+//
+// @testcase TestAuthPageRendersAndSubmits drives the auth routes registered here.
+// @testcase TestHealthz checks the /healthz route returns ok.
+// @testcase TestFaviconServed checks the favicon route returns the embedded SVG.
+func (s *Server) registerAppRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /auth/{token}", s.handleAuthPage)
 	mux.HandleFunc("POST /auth/{token}", s.handleAuthSubmit)
 
@@ -80,8 +109,6 @@ func (s *Server) Handler(mcpServer *mcp.Server) http.Handler {
 	}
 	mux.HandleFunc("GET /favicon.ico", favicon)
 	mux.HandleFunc("GET /favicon.svg", favicon)
-
-	return mux
 }
 
 // handleAuthPage renders the current state of an auth session, looked up by the

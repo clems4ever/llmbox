@@ -11,7 +11,10 @@ services:
       context: .
     image: llmbox
     ports:
+      # UI/API (auth pages, admin, health).
       - "8080:8080"
+      # MCP endpoint — put behind an authenticating proxy before exposing it.
+      - "8081:8081"
     # llmbox reads a single YAML config file (see llmbox.example.yaml). Mount
     # your config to /etc/llmbox/llmbox.yaml and point the server at it. At a
     # minimum set public_url (the URL the user's browser can reach this server

@@ -1,10 +1,16 @@
 # Example llmbox configuration. Copy to llmbox.yaml (or pass --config <path>).
 # Every field is optional; omitted fields fall back to the defaults shown here.
 
-# Listen address for the combined MCP + auth HTTP server.
+# Listen address for the UI/API server (auth pages, admin UI, health, favicon).
 http_addr: ":8080"
 
-# External base URL the user's browser can reach this server at. MUST be set
+# Listen address for the MCP endpoint, served on its own port so it can sit behind
+# its own authenticating reverse proxy (e.g. oauth2-proxy) independently of the
+# UI/API port. The MCP verbs are unauthenticated by the server itself, so this
+# port must never be exposed directly to untrusted networks.
+mcp_addr: ":8081"
+
+# External base URL the user's browser can reach the UI/API at. MUST be set
 # correctly in production — it is used to build the auth-page links.
 public_url: "http://localhost:8080"
 

@@ -10,11 +10,12 @@
 # Build:
 #   docker build -t llmbox .
 #
-# Run (Docker socket in, HTTP port out; mount a YAML config and point at it):
+# Run (Docker socket in, HTTP ports out; mount a YAML config and point at it).
+# 8080 = UI/API, 8081 = MCP endpoint:
 #   docker run --rm \
 #     -v /var/run/docker.sock:/var/run/docker.sock \
 #     -v "$PWD/llmbox.yaml:/etc/llmbox/llmbox.yaml:ro" \
-#     -p 8080:8080 \
+#     -p 8080:8080 -p 8081:8081 \
 #     llmbox --config /etc/llmbox/llmbox.yaml
 #
 # Configuration is a YAML file (see llmbox.example.yaml and the README); at a
@@ -63,7 +64,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 # ---- runtime stage ----
 FROM gcr.io/distroless/static-debian12:nonroot
 
-EXPOSE 8080
+# 8080 = UI/API, 8081 = MCP endpoint (put the MCP port behind an auth proxy).
+EXPOSE 8080 8081
 
 COPY --from=build /out/llmbox /usr/local/bin/llmbox
 # The standalone Claude binary the server injects into each box (see claude stage).

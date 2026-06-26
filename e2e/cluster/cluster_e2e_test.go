@@ -65,26 +65,36 @@ func TestClusterEndToEnd(t *testing.T) {
 	// exactly what they are sent.
 	srv.SetBoxImage("box:e2e")
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	// Two listeners: the UI/API (which carries /spoke/connect and /healthz) and the
+	// MCP endpoint, mirroring the two-port production split.
+	uiLn, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("listen: %v", err)
+		t.Fatalf("listen ui: %v", err)
 	}
-	addr := ln.Addr().String()
-	httpSrv := &http.Server{Handler: srv.Handler(srv.MCPServer("llmbox", "cluster-e2e"))}
-	go func() { _ = httpSrv.Serve(ln) }()
-	t.Cleanup(func() { _ = httpSrv.Close() })
-	waitHealthy(t, "http://"+addr)
+	mcpLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen mcp: %v", err)
+	}
+	uiAddr := uiLn.Addr().String()
+	mcpAddr := mcpLn.Addr().String()
+	apiSrv := &http.Server{Handler: srv.APIHandler()}
+	mcpSrv := &http.Server{Handler: srv.MCPHandler(srv.MCPServer("llmbox", "cluster-e2e"))}
+	go func() { _ = apiSrv.Serve(uiLn) }()
+	go func() { _ = mcpSrv.Serve(mcpLn) }()
+	t.Cleanup(func() { _ = apiSrv.Close() })
+	t.Cleanup(func() { _ = mcpSrv.Close() })
+	waitHealthy(t, "http://"+uiAddr)
 
 	// The spoke: a real spoke process (goroutine) dialing the hub over WebSocket,
 	// backed by its own simulated Docker layer.
 	edgeMgr := newFakeSpokeMgr("edge")
-	wsURL := "ws://" + addr + "/spoke/connect"
+	wsURL := "ws://" + uiAddr + "/spoke/connect"
 	go func() {
 		_ = cluster.Run(ctx, cluster.WebSocketDialer(wsURL), edgeMgr, joinToken, nil, func(cluster.Credentials) error { return nil }, cluster.ValidationPolicy{})
 	}()
 
-	// The chatbot side, over a real MCP client.
-	cs := connectMCP(t, "http://"+addr)
+	// The chatbot side, over a real MCP client (on the MCP port).
+	cs := connectMCP(t, "http://"+mcpAddr)
 
 	// Create a box on the spoke. Retry until the spoke has finished enrolling.
 	var createOut map[string]any

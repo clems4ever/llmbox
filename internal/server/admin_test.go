@@ -118,7 +118,7 @@ func TestSafeReturnPath(t *testing.T) {
 // TestProviderLoginReturnPath checks the login flow persists a safe return path (admin flow) instead of a box token.
 func TestProviderLoginReturnPath(t *testing.T) {
 	s, _, st := newAuthServer(t, googleTestProvider(t, idClaims{}, nil))
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/login?return=%2Fadmin", nil))
@@ -142,7 +142,7 @@ func TestProviderCallbackAdminOnly(t *testing.T) {
 	p := googleTestProvider(t, idClaims{Email: "boss@admin.io", EmailVerified: true}, nil)
 	s, _, st := newAuthServer(t, p)
 	s.auth.adminEmails = map[string]bool{"boss@admin.io": true}
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	if err := st.SaveLoginFlow("STATE", loginFlow{Provider: "google", ReturnTo: "/admin", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
@@ -174,7 +174,7 @@ func TestProviderCallbackAdminOnly(t *testing.T) {
 // TestAdminDashboardGate checks /admin shows sign-in to anonymous, a 403 notice to non-admins, and the dashboard to admins.
 func TestAdminDashboardGate(t *testing.T) {
 	s, _, st := newAdminServer(t)
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	get := func(c *http.Cookie) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(http.MethodGet, "/admin", nil)
@@ -200,7 +200,7 @@ func TestAdminDashboardGate(t *testing.T) {
 // TestAdminActionsRequireAdminAndCSRF checks a mutating admin action rejects no-cookie, non-admin, and bad-CSRF requests.
 func TestAdminActionsRequireAdminAndCSRF(t *testing.T) {
 	s, _, st := newAdminServer(t)
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	post := func(c *http.Cookie, form url.Values) int {
 		req := httptest.NewRequest(http.MethodPost, "/admin/spokes", strings.NewReader(form.Encode()))
@@ -227,7 +227,7 @@ func TestAdminActionsRequireAdminAndCSRF(t *testing.T) {
 // TestAdminCreateSpokeMintsToken checks creating a spoke mints a join token in the server's own store and shows the command.
 func TestAdminCreateSpokeMintsToken(t *testing.T) {
 	s, _, st := newAdminServer(t)
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	form := url.Values{"name": {"edge-1"}, "ttl": {"2h"}, "csrf": {"CSRF"}}
 	req := httptest.NewRequest(http.MethodPost, "/admin/spokes", strings.NewReader(form.Encode()))
@@ -267,7 +267,7 @@ func TestAdminCreateSpokeMintsToken(t *testing.T) {
 // the page updates in place and a dashboard refresh never resubmits a create.
 func TestAdminActionJSON(t *testing.T) {
 	s, _, st := newAdminServer(t)
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	jsonPost := func(path string, form url.Values) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
@@ -319,7 +319,7 @@ func TestAdminActionJSON(t *testing.T) {
 // /admin.js.
 func TestAdminJSServed(t *testing.T) {
 	s, _, _ := newAdminServer(t)
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	req := httptest.NewRequest(http.MethodGet, "/admin.js", nil)
 	rec := httptest.NewRecorder()
@@ -345,7 +345,7 @@ func TestAdminDashboardShowsActivationURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.AddCookie(signIn(t, st, true, false))
@@ -371,7 +371,7 @@ func TestAdminDropSpokeRemovesAndKicks(t *testing.T) {
 	if _, err := cluster.CreateJoinToken(st, "edge", time.Hour, time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	form := url.Values{"name": {"edge"}, "csrf": {"CSRF"}}
 	req := httptest.NewRequest(http.MethodPost, "/admin/spokes/delete", strings.NewReader(form.Encode()))
@@ -404,7 +404,7 @@ func TestAdminRevokeToken(t *testing.T) {
 	if len(toks) != 1 {
 		t.Fatalf("setup: %d tokens", len(toks))
 	}
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	form := url.Values{"id": {toks[0].ID}, "csrf": {"CSRF"}}
 	req := httptest.NewRequest(http.MethodPost, "/admin/tokens/delete", strings.NewReader(form.Encode()))
@@ -424,7 +424,7 @@ func TestAdminRevokeToken(t *testing.T) {
 // TestAdminCreateBox checks creating a box routes to the requested spoke and shows the activation URL.
 func TestAdminCreateBox(t *testing.T) {
 	s, f, st := newAdminServer(t)
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	form := url.Values{"box_id": {"refactor-auth"}, "spoke": {"local"}, "csrf": {"CSRF"}}
 	req := httptest.NewRequest(http.MethodPost, "/admin/boxes", strings.NewReader(form.Encode()))
@@ -460,7 +460,7 @@ func TestAdminDeleteBox(t *testing.T) {
 	if _, err := s.createBox(t.Context(), docker.CreateOptions{BoxID: "foo"}); err != nil {
 		t.Fatal(err)
 	}
-	h := s.Handler(s.MCPServer("t", "v"))
+	h := s.APIHandler()
 
 	form := url.Values{"box_id": {"foo"}, "csrf": {"CSRF"}}
 	req := httptest.NewRequest(http.MethodPost, "/admin/boxes/delete", strings.NewReader(form.Encode()))

@@ -282,7 +282,7 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "https://claude.com/cai/oauth/authorize?a=b", SubmitURL: "https://claude.ai/code/s/9"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
-	h := s.Handler(s.MCPServer("test", "v0"))
+	h := s.APIHandler()
 
 	// GET the page: shows the authorize link and a paste form.
 	req := httptest.NewRequest(http.MethodGet, "/auth/"+sess.Token, nil)
@@ -321,7 +321,7 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{CreateID: "id1", CreateURL: "https://c", SubmitURL: "https://s"})
 	sess, _ := s.createBox(context.Background(), docker.CreateOptions{BoxID: "refactor-auth"})
-	h := s.Handler(s.MCPServer("test", "v0"))
+	h := s.APIHandler()
 
 	req := httptest.NewRequest(http.MethodGet, "/auth/"+sess.Token, nil)
 	rec := httptest.NewRecorder()
@@ -339,7 +339,7 @@ func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
 // TestAuthPageUnknownToken checks the auth page 404s for an unknown token.
 func TestAuthPageUnknownToken(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
-	h := s.Handler(s.MCPServer("test", "v0"))
+	h := s.APIHandler()
 	req := httptest.NewRequest(http.MethodGet, "/auth/deadbeef", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -351,7 +351,7 @@ func TestAuthPageUnknownToken(t *testing.T) {
 // TestHealthz checks the health endpoint returns ok.
 func TestHealthz(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
-	h := s.Handler(s.MCPServer("test", "v0"))
+	h := s.APIHandler()
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -360,10 +360,53 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+// TestAPIHandlerServesUINotMCP checks the API handler serves the UI/API routes
+// (e.g. /healthz) but does not mount the MCP catch-all at the root.
+func TestAPIHandlerServesUINotMCP(t *testing.T) {
+	s := newTestServer(&testutils.FakeMgr{})
+	h := s.APIHandler()
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	if rec.Code != http.StatusOK || rec.Body.String() != "ok" {
+		t.Errorf("healthz on API handler: %d %q", rec.Code, rec.Body.String())
+	}
+
+	// With no MCP route registered, the root is unrouted and 404s.
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("MCP root on API handler: status %d, want 404", rec.Code)
+	}
+}
+
+// TestMCPHandlerServesOnlyMCP checks the MCP handler mounts the MCP endpoint at
+// the root and does not serve the UI/API routes (so /healthz falls through to the
+// MCP catch-all rather than returning the health body).
+func TestMCPHandlerServesOnlyMCP(t *testing.T) {
+	s := newTestServer(&testutils.FakeMgr{})
+	h := s.MCPHandler(s.MCPServer("test", "v0"))
+
+	// The root is registered (handled by MCP), so it is not a mux 404.
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	if rec.Code == http.StatusNotFound {
+		t.Error("MCP root on MCP handler returned 404, want it routed to MCP")
+	}
+
+	// /healthz is not registered here; it is swallowed by the MCP catch-all and so
+	// must not return the plain health body.
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	if rec.Body.String() == "ok" {
+		t.Error("MCP handler served /healthz as the UI health route")
+	}
+}
+
 // TestFaviconServed checks the favicon route returns the embedded SVG.
 func TestFaviconServed(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
-	h := s.Handler(s.MCPServer("test", "v0"))
+	h := s.APIHandler()
 	for _, path := range []string{"/favicon.ico", "/favicon.svg"} {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
 		rec := httptest.NewRecorder()
