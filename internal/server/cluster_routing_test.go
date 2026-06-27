@@ -151,6 +151,29 @@ func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
 	}
 }
 
+// TestDestroySessionlessBoxFindsSpoke checks that a box which appears in the
+// admin list (built straight from each spoke) but has NO tracked session is
+// destroyed on the spoke that actually hosts it, instead of failing because the
+// destroy fell back to the local spoke. This is the bug behind the admin UI's
+// "no managed box matches" error when removing a box on a remote spoke.
+func TestDestroySessionlessBoxFindsSpoke(t *testing.T) {
+	local := &testutils.FakeMgr{}
+	// The edge spoke reports a box "test" with no session tracking it.
+	edge := &testutils.FakeMgr{ListResult: []docker.Box{{BoxID: "test", ContainerID: "edgecid"}}}
+	s := newTestServer(local)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+
+	if err := s.destroyBox(context.Background(), "test"); err != nil {
+		t.Fatalf("DestroyBox sessionless: %v", err)
+	}
+	if len(edge.Destroyed) != 1 || edge.Destroyed[0] != "test" {
+		t.Errorf("edge.Destroyed = %v, want [test] (routed to the hosting spoke)", edge.Destroyed)
+	}
+	if len(local.Destroyed) != 0 {
+		t.Errorf("local.Destroyed = %v, want none (must not fall back to local)", local.Destroyed)
+	}
+}
+
 // TestSpokeStatusesReportsHealth checks SpokeStatuses returns the local spoke
 // plus each enrolled spoke, marking which are currently connected.
 func TestSpokeStatusesReportsHealth(t *testing.T) {

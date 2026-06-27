@@ -699,10 +699,33 @@ func (s *Server) boxExec(ctx context.Context, boxID, command string) (docker.Exe
 	return mgr.Exec(ctx, sess.ContainerID, []string{"/bin/sh", "-c", command})
 }
 
-// boxMatchesSession reports whether idOrName identifies sess's box — by exact box
-// ID (what the admin UI sends) or by container-ID prefix in either direction (so
-// a short ID matches the full one, and vice versa). Used to route and clean up a
-// destroy regardless of which identifier the caller has.
+// idMatchesBox reports whether idOrName identifies a box with the given box ID
+// and container ID — by exact box ID (what the admin UI sends) or by container-ID
+// prefix in either direction (so a short ID matches the full one, and vice
+// versa). It is the shared predicate used to match both tracked sessions and
+// live box listings when routing or cleaning up a destroy.
+//
+// @arg boxID The box's box ID (the caller-assigned identifier), if any.
+// @arg containerID The box's container ID, if known.
+// @arg idOrName The box ID or container ID to match against.
+// @return bool Whether the identifier names that box.
+//
+// @testcase TestDestroyBoxByBoxIDRoutesToSpoke routes a box-ID destroy to the box's spoke.
+// @testcase TestDestroyRoutesToSpoke routes a container-ID destroy to the box's spoke.
+func idMatchesBox(boxID, containerID, idOrName string) bool {
+	if idOrName == "" {
+		return false
+	}
+	if boxID != "" && boxID == idOrName {
+		return true
+	}
+	return containerID != "" &&
+		(strings.HasPrefix(containerID, idOrName) || strings.HasPrefix(idOrName, containerID))
+}
+
+// boxMatchesSession reports whether idOrName identifies sess's box, matching on
+// its box ID or container ID. Used to route and clean up a destroy regardless of
+// which identifier the caller has.
 //
 // @arg sess The session to test.
 // @arg idOrName The box ID or container ID to match against.
@@ -711,14 +734,7 @@ func (s *Server) boxExec(ctx context.Context, boxID, command string) (docker.Exe
 // @testcase TestDestroyBoxByBoxIDRoutesToSpoke routes a box-ID destroy to the box's spoke.
 // @testcase TestDestroyRoutesToSpoke routes a container-ID destroy to the box's spoke.
 func boxMatchesSession(sess *session, idOrName string) bool {
-	if idOrName == "" {
-		return false
-	}
-	if sess.BoxID == idOrName {
-		return true
-	}
-	return sess.ContainerID != "" &&
-		(strings.HasPrefix(sess.ContainerID, idOrName) || strings.HasPrefix(idOrName, sess.ContainerID))
+	return idMatchesBox(sess.BoxID, sess.ContainerID, idOrName)
 }
 
 // destroyBox destroys a box and forgets any session pointing at it.
@@ -731,24 +747,39 @@ func boxMatchesSession(sess *session, idOrName string) bool {
 // @testcase TestDestroyRunsDestroyHooks checks the box's hook state is replayed to the destroy hooks.
 // @testcase TestDestroyRoutesToSpoke destroys a box on the spoke its session names.
 // @testcase TestDestroyBoxByBoxIDRoutesToSpoke destroys a remote box by its box ID.
+// @testcase TestDestroySessionlessBoxFindsSpoke destroys a box with no tracked session on its actual spoke.
 func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
-	// Route to the spoke the matching session names; default to the local spoke
-	// when no session matches (e.g. a raw container ID with no tracked session).
-	// idOrName may be a box ID (what the admin UI sends) or a container ID, so
-	// match on both — a box-ID-only match previously fell through to the local
-	// spoke and failed for boxes running on a remote spoke.
+	// Route to the spoke the matching session names. idOrName may be a box ID
+	// (what the admin UI sends) or a container ID, so match on both.
 	mgr := s.mgr
+	matched := false
 	var spokeErr error
 	s.mu.Lock()
 	for _, sess := range s.byToken {
 		if boxMatchesSession(sess, idOrName) {
 			mgr, spokeErr = s.spoke(sess.SpokeName)
+			matched = true
 			break
 		}
 	}
 	s.mu.Unlock()
 	if spokeErr != nil {
 		return spokeErr
+	}
+	// No tracked session named the box. The admin box list is built straight from
+	// each spoke (see listBoxes), so a box can appear there — and be Remove-able —
+	// with no session: e.g. its login session expired, or it was created
+	// out-of-band. Locate the box across all spokes the way the list does, rather
+	// than blindly destroying on the local spoke, which fails ("no managed box
+	// matches") for a box that actually lives on a remote spoke.
+	if !matched {
+		hosting, err := s.spokeHostingBox(ctx, idOrName)
+		if err != nil {
+			return err
+		}
+		if hosting != nil {
+			mgr = hosting
+		}
 	}
 	if err := mgr.Destroy(ctx, idOrName); err != nil {
 		return err
@@ -774,6 +805,38 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)
 	}
 	return nil
+}
+
+// spokeHostingBox returns the manager of the spoke whose box list contains
+// idOrName (matched by box ID or container-ID prefix), or nil when no spoke
+// reports such a box. It mirrors how the admin box list is assembled (see
+// listBoxes), so a destroy can locate a box that has no tracked session instead
+// of assuming the local spoke. A remote spoke that fails to list is skipped
+// (it cannot be the host to destroy on); only the local spoke failing is fatal.
+//
+// @arg ctx Context for the per-spoke list requests.
+// @arg idOrName The box ID or container ID to locate.
+// @return boxManager The hosting spoke's manager, or nil when no spoke reports the box.
+// @error error if the local spoke cannot be listed.
+//
+// @testcase TestDestroySessionlessBoxFindsSpoke locates a sessionless remote box's spoke.
+func (s *Server) spokeHostingBox(ctx context.Context, idOrName string) (boxManager, error) {
+	for name, bm := range s.allSpokes() {
+		boxes, err := bm.List(ctx)
+		if err != nil {
+			if name == localSpokeName {
+				return nil, err
+			}
+			s.logger().Warn("listing spoke failed while locating box to destroy", "spoke", name, "err", err)
+			continue
+		}
+		for _, b := range boxes {
+			if idMatchesBox(b.BoxID, b.ContainerID, idOrName) {
+				return bm, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 // tornBox carries the bits of a removed session that the box.destroy hooks need:

@@ -65,6 +65,12 @@
 			"documentation_hash": "e621c13faf106c9bb2629bd45ac9c6e2366702793d782f934bf4f6ba36cfde2b",
 			"definition_hash": "9ece112a6e0cefcce944713ae0aa74d310e361812b56e4be93cc691a1ca0008c",
 			"reviewed_at": "2026-06-25T10:51:16.088863891Z"
+		},
+		{
+			"function_name": "TestDestroySessionlessBoxFindsSpoke",
+			"documentation_hash": "f5f614ef4247eea921fa2cc45e4a17585f493e82a647223ede8600ea062a8d58",
+			"definition_hash": "53d89a5fe9408159849cb23483f42fe61ba24b532acc13f9e67ce96f5540e47e",
+			"reviewed_at": "2026-06-26T12:33:43.049792353Z"
 		}
 	]
 }
