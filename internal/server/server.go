@@ -176,6 +176,13 @@ type Server struct {
 	mu      sync.Mutex
 	byToken map[string]*session
 
+	// pendingBoxIDs holds box IDs claimed by in-flight createBox calls (lowercased)
+	// that have not yet been registered in byToken. Together with byToken — which
+	// holds every already-registered box's ID across all spokes — it enforces
+	// hub-wide box-ID uniqueness: two concurrent creates, or a create racing a box
+	// still being registered, cannot both take the same ID. Guarded by mu.
+	pendingBoxIDs map[string]struct{}
+
 	// hub holds the connected remote spokes (nil when clustering is not enabled).
 	// The in-process mgr is always the "local" spoke; remote spokes are resolved
 	// through the hub by name. Set once at startup via SetHub before serving.
@@ -237,14 +244,15 @@ func (s *Server) logger() *slog.Logger {
 // @testcase TestCreateBoxRunsCreateHooks builds a Server with a hook runner.
 func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration, store Store, auth *auth.Authenticator) *Server {
 	s := &Server{
-		mgr:       mgr,
-		hooks:     hooks,
-		publicURL: strings.TrimRight(publicURL, "/"),
-		authTTL:   authTTL,
-		store:     store,
-		auth:      auth,
-		byToken:   make(map[string]*session),
-		log:       slog.Default(),
+		mgr:           mgr,
+		hooks:         hooks,
+		publicURL:     strings.TrimRight(publicURL, "/"),
+		authTTL:       authTTL,
+		store:         store,
+		auth:          auth,
+		byToken:       make(map[string]*session),
+		pendingBoxIDs: make(map[string]struct{}),
+		log:           slog.Default(),
 	}
 	// The server owns the canonical store; bind it into the authenticator so its
 	// OIDC handlers and CurrentLogin persist to (and read) the same login state.
@@ -328,6 +336,51 @@ func (s *Server) allSpokes() map[string]boxManager {
 	return out
 }
 
+// reserveBoxID atomically claims boxID for an in-flight create so no other box —
+// on this or any other spoke — can hold it. It fails if an already-registered
+// session (any spoke) or another in-flight create already uses the ID
+// (case-insensitive). An empty box ID is unnamed and exempt from uniqueness.
+// Every successful reserve must be paired with releaseBoxID once the create
+// settles (the registered session in byToken then carries the claim).
+//
+// @arg boxID The caller-assigned box ID to claim, or "" for an unnamed box.
+// @return error if the box ID is already in use or being created.
+//
+// @testcase TestCreateBoxRejectsDuplicateBoxIDSameSpoke rejects a duplicate on one spoke.
+// @testcase TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes rejects a duplicate on another spoke.
+func (s *Server) reserveBoxID(boxID string) error {
+	if boxID == "" {
+		return nil
+	}
+	key := strings.ToLower(boxID)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, sess := range s.byToken {
+		if strings.EqualFold(sess.BoxID, boxID) {
+			return fmt.Errorf("box ID %q is already in use on spoke %q; choose a different box ID", boxID, sess.SpokeName)
+		}
+	}
+	if _, claimed := s.pendingBoxIDs[key]; claimed {
+		return fmt.Errorf("box ID %q is already being created; choose a different box ID", boxID)
+	}
+	s.pendingBoxIDs[key] = struct{}{}
+	return nil
+}
+
+// releaseBoxID drops an in-flight box-ID claim made by reserveBoxID. It is a
+// no-op for an empty ID. Safe to call even after the box registered, since the
+// claim and the registered session are tracked separately.
+//
+// @arg boxID The box ID whose in-flight claim to release.
+func (s *Server) releaseBoxID(boxID string) {
+	if boxID == "" {
+		return
+	}
+	s.mu.Lock()
+	delete(s.pendingBoxIDs, strings.ToLower(boxID))
+	s.mu.Unlock()
+}
+
 // SpokeStatus describes one cluster spoke and its health. The in-process spoke
 // is always present and connected; each enrolled remote spoke is reported with
 // whether it currently holds a live connection to the hub.
@@ -371,7 +424,9 @@ func (s *Server) SpokeStatuses(_ context.Context) ([]SpokeStatus, error) {
 // whose spoke is not currently connected is kept — the box may still be alive,
 // we just can't verify it yet. Enabled proxies are reconciled the same way, so a
 // box removed out of band before this restart leaves no proxy a later same-id box
-// could reuse. It returns the number of sessions restored. Call it once at
+// could reuse. Finally, when clustering is enabled, sessions and proxies pinned to
+// a spoke that has been de-enrolled (departed, not merely offline) are purged via
+// PruneDepartedSpokes. It returns the number of sessions restored. Call it once at
 // startup, before serving.
 //
 // @arg ctx Context for the spoke listings used to reconcile.
@@ -441,6 +496,16 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 	// this, the orphaned proxy would survive and a later box created with the same
 	// box ID would inherit its slug. A proxy on an unreachable spoke is kept.
 	s.reconcileProxies(boxesBySpoke)
+
+	// Purge sessions and proxies pinned to spokes that have been de-enrolled since
+	// the last run, so a removed spoke leaves no objects behind to resolve at
+	// random. (Reconciliation above only drops boxes gone from a *reachable* spoke;
+	// this drops everything tied to a spoke that no longer exists at all.)
+	if purged, err := s.PruneDepartedSpokes(); err != nil {
+		s.logger().Warn("pruning departed spokes during restore", "err", err)
+	} else if len(purged) > 0 {
+		s.logger().Info("pruned sessions for departed spokes", "count", len(purged))
+	}
 	return n, nil
 }
 
@@ -527,6 +592,14 @@ func (s *Server) createBox(ctx context.Context, opts docker.CreateOptions) (*ses
 	if err != nil {
 		return nil, err
 	}
+
+	// Claim the box ID hub-wide before any slow work, so a box ID is unique across
+	// every spoke (the per-spoke docker layer only sees its own boxes). The claim
+	// is held until the session is registered (or the create fails), then released.
+	if err := s.reserveBoxID(opts.BoxID); err != nil {
+		return nil, err
+	}
+	defer s.releaseBoxID(opts.BoxID)
 
 	box := hooks.BoxInfo{Image: opts.Image, BoxID: opts.BoxID, Description: opts.Description}
 	var hookState map[string]string
@@ -627,22 +700,72 @@ func (s *Server) lookup(tok string) *session {
 }
 
 // lookupByBoxID returns the session for a box's caller-assigned box ID
-// (case-insensitive), or nil. Box IDs are unique across boxes, so at most one
-// matches.
+// (case-insensitive), or nil. Box IDs are unique across boxes (enforced at create
+// time by reserveBoxID), so normally at most one matches. Should a duplicate ever
+// linger — e.g. a stale session from a spoke that has not yet been pruned — the
+// choice is made deterministically and health-aware rather than by random map
+// order: a session on a currently reachable spoke wins over one on an unreachable
+// spoke, then the most recently created, then the lexically smaller token. This
+// guarantees a stable, sensible result and never resolves a box to a dead spoke
+// while a live one exists.
 //
 // @arg boxID The box ID to look up.
 // @return *session The matching session, or nil if none has that box ID.
 //
 // @testcase TestGetByBoxID looks a box up by its box ID.
+// @testcase TestLookupByBoxIDPrefersReachableSpoke deterministically prefers a reachable spoke.
 func (s *Server) lookupByBoxID(boxID string) *session {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	var matches []*session
 	for _, sess := range s.byToken {
 		if sess.BoxID != "" && strings.EqualFold(sess.BoxID, boxID) {
-			return sess
+			matches = append(matches, sess)
 		}
 	}
-	return nil
+	s.mu.Unlock()
+	if len(matches) == 0 {
+		return nil
+	}
+	// spoke() touches the hub, so it is called outside s.mu. The fields compared
+	// (SpokeName, CreatedAt, Token) are immutable after creation.
+	best := matches[0]
+	bestReachable := s.spokeReachable(best.SpokeName)
+	for _, c := range matches[1:] {
+		cReachable := s.spokeReachable(c.SpokeName)
+		if betterBoxIDMatch(c, cReachable, best, bestReachable) {
+			best, bestReachable = c, cReachable
+		}
+	}
+	return best
+}
+
+// spokeReachable reports whether the named spoke is currently resolvable (the
+// local spoke always is; a remote spoke only when connected to the hub).
+//
+// @arg name The spoke name ("" or "local" for the in-process spoke).
+// @return bool True when the spoke can currently be reached.
+func (s *Server) spokeReachable(name string) bool {
+	_, err := s.spoke(name)
+	return err == nil
+}
+
+// betterBoxIDMatch reports whether candidate c should be preferred over best when
+// resolving a box ID, applying the total order: reachable spoke first, then newer
+// CreatedAt, then lexically smaller Token (a stable final tiebreak).
+//
+// @arg c The candidate session.
+// @arg cReachable Whether c's spoke is currently reachable.
+// @arg best The current best session.
+// @arg bestReachable Whether best's spoke is currently reachable.
+// @return bool True when c is the better match.
+func betterBoxIDMatch(c *session, cReachable bool, best *session, bestReachable bool) bool {
+	if cReachable != bestReachable {
+		return cReachable
+	}
+	if !c.CreatedAt.Equal(best.CreatedAt) {
+		return c.CreatedAt.After(best.CreatedAt)
+	}
+	return c.Token < best.Token
 }
 
 // submitCode feeds the user's OAuth code to the box's login process and waits
@@ -961,6 +1084,12 @@ func (s *Server) ReapLoop(ctx context.Context, every time.Duration, log func(str
 			// enforced at read time, so this just bounds the buckets' growth).
 			if err := s.store.PurgeExpiredLogins(time.Now()); err != nil {
 				s.logger().Warn("purging expired login sessions", "err", err)
+			}
+			// Purge objects pinned to spokes that have disappeared (de-enrolled).
+			if purged, err := s.PruneDepartedSpokes(); err != nil {
+				s.logger().Warn("pruning departed spokes", "err", err)
+			} else if len(purged) > 0 && log != nil {
+				log(fmt.Sprintf("reaper: purged %d box(es) on departed spoke(s): %s", len(purged), strings.Join(purged, ", ")))
 			}
 			reaped := s.reapAllSpokes(ctx, log)
 			if len(reaped) > 0 {
