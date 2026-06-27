@@ -82,6 +82,9 @@ type fakeDocker struct {
 	netConnects      [][2]string // {network, container} per NetworkConnect
 	netDisconnects   [][2]string // {network, container} per NetworkDisconnect
 	networksRemoved  []string    // network names passed to NetworkRemove
+
+	gotListOpts      container.ListOptions // options recorded from the last ContainerList call
+	honorLabelFilter bool                  // when true, ContainerList applies the label filter like the real daemon
 }
 
 // copyToCall records one CopyToContainer invocation: the destination path and
@@ -91,9 +94,40 @@ type copyToCall struct {
 	archive []byte
 }
 
-// ContainerList returns the canned summaries (or error) configured on the fake.
-func (f *fakeDocker) ContainerList(_ context.Context, _ container.ListOptions) ([]container.Summary, error) {
-	return f.listResult, f.listErr
+// ContainerList records the requested options and returns the canned summaries
+// (or error) configured on the fake. When honorLabelFilter is set it applies the
+// "label" filter from the options the way the real daemon does, so a test can
+// prove unmanaged containers are excluded; otherwise it returns listResult
+// verbatim (the default, to keep existing tests unaffected).
+func (f *fakeDocker) ContainerList(_ context.Context, opts container.ListOptions) ([]container.Summary, error) {
+	f.gotListOpts = opts
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	if !f.honorLabelFilter {
+		return f.listResult, nil
+	}
+	want := opts.Filters.Get("label")
+	out := make([]container.Summary, 0, len(f.listResult))
+	for _, c := range f.listResult {
+		if labelsSatisfy(c.Labels, want) {
+			out = append(out, c)
+		}
+	}
+	return out, nil
+}
+
+// labelsSatisfy reports whether have meets every "key=value" (or bare "key")
+// predicate in want, matching how Docker's label filter selects containers.
+func labelsSatisfy(have map[string]string, want []string) bool {
+	for _, w := range want {
+		k, v, hasVal := strings.Cut(w, "=")
+		got, ok := have[k]
+		if !ok || (hasVal && got != v) {
+			return false
+		}
+	}
+	return true
 }
 
 // ContainerCreate records the requested config and returns the canned response,
@@ -1296,4 +1330,56 @@ func TestDialBoxNoNetworkIP(t *testing.T) {
 	if _, err := m.DialBox(context.Background(), fullID[:12], 8000); err == nil {
 		t.Fatal("expected an error for a box with no network IP, got nil")
 	}
+}
+
+// TestListRequestsManagedFilter checks List queries Docker only for containers
+// carrying the managed label. This is the basis of the managed-only guarantee:
+// every per-box verb (dial/exec/destroy/reap) resolves through List, so an
+// unmanaged host container never enters the box layer. Removing managedFilter()
+// from List would expose arbitrary containers and is caught here.
+func TestListRequestsManagedFilter(t *testing.T) {
+	f := &fakeDocker{}
+	m := newTestManager(f)
+	if _, err := m.List(context.Background()); err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	got := f.gotListOpts.Filters.Get("label")
+	if !labelsRequested(got, ManagedLabel+"=true") {
+		t.Errorf("List label filter = %v, want it to include %q", got, ManagedLabel+"=true")
+	}
+}
+
+// TestDialBoxRejectsUnmanagedContainer checks an unmanaged container cannot be
+// reached through DialBox even when its exact ID is supplied: the managed-label
+// filter excludes it from findManaged's candidate set, so the proxy/dial path can
+// never be coerced into reaching an arbitrary host container. The fake honors the
+// label filter the way the real daemon does, and a managed box is present too so
+// the rejection is the filter at work, not an empty list.
+func TestDialBoxRejectsUnmanagedContainer(t *testing.T) {
+	const unmanagedID = "deadbeef0000111122223333"
+	f := &fakeDocker{
+		honorLabelFilter: true,
+		listResult: []container.Summary{
+			{ID: unmanagedID, Names: []string{"/some-unrelated-container"}}, // no managed label
+			managedSummary("abcdef012345aaaaaaaaaaaa"),
+		},
+	}
+	m := newTestManager(f)
+
+	if _, err := m.DialBox(context.Background(), unmanagedID, 8000); !IsNotFound(err) {
+		t.Fatalf("DialBox(unmanaged) error = %v, want not-found", err)
+	}
+	if got := f.gotListOpts.Filters.Get("label"); !labelsRequested(got, ManagedLabel+"=true") {
+		t.Errorf("DialBox List label filter = %v, want it to include %q", got, ManagedLabel+"=true")
+	}
+}
+
+// labelsRequested reports whether want is among the requested label filters.
+func labelsRequested(got []string, want string) bool {
+	for _, g := range got {
+		if g == want {
+			return true
+		}
+	}
+	return false
 }

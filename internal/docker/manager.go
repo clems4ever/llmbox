@@ -465,6 +465,7 @@ func phaseOf(name string) string {
 // @error error if listing containers from Docker fails.
 //
 // @testcase TestListMapsPhaseFromName checks phase, container ID, box ID, and description mapping.
+// @testcase TestListRequestsManagedFilter checks List queries only managed-labelled containers.
 func (m *Manager) List(ctx context.Context) ([]Box, error) {
 	cs, err := m.cli.ContainerList(ctx, container.ListOptions{All: true, Filters: managedFilter()})
 	if err != nil {
@@ -1147,6 +1148,7 @@ func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (Exec
 // @testcase TestDialBoxResolvesAddr dials the box's network address for a valid port.
 // @testcase TestDialBoxRejectsBadPort rejects a port outside 1-65535 before dialing.
 // @testcase TestDialBoxUnknownBox errors when no managed box matches.
+// @testcase TestDialBoxRejectsUnmanagedContainer refuses a container without the managed label.
 func (m *Manager) DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error) {
 	addr, err := m.boxAddr(ctx, idOrName, port)
 	if err != nil {
