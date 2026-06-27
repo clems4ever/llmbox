@@ -1,0 +1,3 @@
+# codespec-managed metadata — generated, never hand-edited. Mark it generated so
+# code-review tools (GitHub, etc.) collapse these diffs by default.
+.codespec/** linguist-generated=true
