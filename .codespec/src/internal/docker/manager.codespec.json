@@ -2,22 +2,15 @@
 	"functions": [
 		{
 			"function_name": "NewManager",
-			"documentation_hash": "48d57e601a32eb19fed9e705dacf93c5144202fdfafb853cd5337fd06f96b205",
-			"definition_hash": "70efd20ae3e7939b0761a8af9248b0c11ac8c616e7ecaaeeda6087ab6529f4fc",
-			"reviewed_at": "2026-06-18T17:12:11.774687081Z"
-		},
-		{
-			"function_name": "loadClaudeBinary",
-			"receiver": "Manager",
-			"documentation_hash": "2c8e382d6233968b76f9823d5e17fa4c4fc0e2df3bb002b05fc9c68042b84af2",
-			"definition_hash": "d5597807b20f2b02759593aa07486b4c8b75c320d789b39dfe6971b966f89edc",
-			"reviewed_at": "2026-06-19T20:04:57.527572207Z"
+			"documentation_hash": "44b5de09521e019edb76d15b2b2d22ecd558cb8d5f71ca420c5ca3c8b5be5cd6",
+			"definition_hash": "5436a428b507f4472a233fb1fb06beb6a354768377fc72afd0e39bcd4bbce6f9",
+			"reviewed_at": "2026-06-27T14:01:02.725561761Z"
 		},
 		{
 			"function_name": "claudeConfigSeed",
-			"documentation_hash": "d2bffe7c9ac2d69f4ffb85df7c06a993e7ac7ad2814ddc7c3a1d840c40ae7f09",
+			"documentation_hash": "056f714a09c99294da161eef7e16d77fbc54b49588ba787650145665bbbda684",
 			"definition_hash": "ca55c8da7d89ac98af5cc8b059aef98d4d0f34f7a75c3b4115b70c8eb536fcfe",
-			"reviewed_at": "2026-06-19T20:04:57.532181125Z"
+			"reviewed_at": "2026-06-27T14:01:02.729386445Z"
 		},
 		{
 			"function_name": "Close",
@@ -168,9 +161,9 @@
 		{
 			"function_name": "Create",
 			"receiver": "Manager",
-			"documentation_hash": "899682051659ac67c5bf4778acf32fadd548940b8994bf819ca6967a19cfc516",
-			"definition_hash": "22fe5a5b2c1b89323b21ecb85ee007bae66ea828e6bbc9cb3d84d78088deb231",
-			"reviewed_at": "2026-06-27T09:38:38.236929544Z"
+			"documentation_hash": "4497b0890fbd23ac2c46dbed997528b0f01bf36f445dcfad34fa6615ec869254",
+			"definition_hash": "bc50692b0b4ca6e1a95cb956109b641df02d3aaf9f65a5ee4ce2bc808cfb51d3",
+			"reviewed_at": "2026-06-27T14:01:02.739459574Z"
 		},
 		{
 			"function_name": "SetBoxLimits",

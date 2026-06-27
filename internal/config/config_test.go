@@ -44,7 +44,6 @@ http_addr: ":9090"
 mcp_addr: ":9091"
 public_url: "https://boxes.example.com"
 claude_image: "ubuntu:24.04"
-claude_bin: "/usr/local/bin/claude"
 remote_args: "--spawn new-dir"
 auth_ttl: "10m"
 state_file: "/var/lib/llmbox/sessions.db"
@@ -61,8 +60,8 @@ box_peers:
 	if c.HTTPAddr != ":9090" || c.MCPAddr != ":9091" || c.PublicURL != "https://boxes.example.com" {
 		t.Errorf("addr/url = %q / %q / %q", c.HTTPAddr, c.MCPAddr, c.PublicURL)
 	}
-	if c.ClaudeImage != "ubuntu:24.04" || c.ClaudeBin != "/usr/local/bin/claude" || c.RemoteArgs != "--spawn new-dir" {
-		t.Errorf("docker fields = %q / %q / %q", c.ClaudeImage, c.ClaudeBin, c.RemoteArgs)
+	if c.ClaudeImage != "ubuntu:24.04" || c.RemoteArgs != "--spawn new-dir" {
+		t.Errorf("docker fields = %q / %q", c.ClaudeImage, c.RemoteArgs)
 	}
 	if time.Duration(c.AuthTTL) != 10*time.Minute {
 		t.Errorf("AuthTTL = %v, want 10m", time.Duration(c.AuthTTL))

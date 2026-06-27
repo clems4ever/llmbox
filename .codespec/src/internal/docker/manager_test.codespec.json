@@ -184,9 +184,9 @@
 		},
 		{
 			"function_name": "newTestManager",
-			"documentation_hash": "be46a4373e35a73f30cf98ab36fad37ad20c5e050d9af9f9991f64e2dc4735a8",
-			"definition_hash": "a91ecba5be298691dda857a8287cf6e1b28543a47f9318d9635ec8546af43734",
-			"reviewed_at": "2026-06-18T15:04:15.849644824Z"
+			"documentation_hash": "e2c93243f9fc27fc95d6442b5de8480617ec2435f9370a00bf56585da4bed42f",
+			"definition_hash": "0b077f30bd9a1ec7932676ffc88c9906c92b1c9e9f606125387aa66cfdc87d2f",
+			"reviewed_at": "2026-06-27T14:01:39.460762764Z"
 		},
 		{
 			"function_name": "TestListMapsPhaseFromName",
@@ -269,14 +269,14 @@
 		{
 			"function_name": "TestSetupBoxNetworkConnectsPeers",
 			"documentation_hash": "eb2991a05e25756ab3d21af3bc1126c8c96fbc7da8dc187174c5dc9e3c06ec4f",
-			"definition_hash": "0017924dcbf3c06d8e57f920ebe0a558711c0a21981dd33e9e0ad6b980d970c6",
-			"reviewed_at": "2026-06-19T20:04:57.60376801Z"
+			"definition_hash": "b00526fc3d49cfdc7f25dc9926ada7a99d59b6a1daaae9e3caabd64a4c6541b8",
+			"reviewed_at": "2026-06-27T14:01:26.272057099Z"
 		},
 		{
 			"function_name": "TestDestroyRemovesBoxNetwork",
 			"documentation_hash": "b07e27c71e3f7035f299b7d9d02d5eddb501663a5270872f599b6e3fe75ff5ea",
-			"definition_hash": "53d36f759a178a6dc7457badc32a5fdb92e53143eea09d898bc0ddaa1e950f7b",
-			"reviewed_at": "2026-06-18T15:04:15.870362554Z"
+			"definition_hash": "93c0e9dc624b5f8dffb0e99d5bddcc2456f396026716da1a6e635ef4538b0a01",
+			"reviewed_at": "2026-06-27T14:01:26.277143156Z"
 		},
 		{
 			"function_name": "TestStripANSI",
@@ -297,12 +297,6 @@
 			"reviewed_at": "2026-06-18T13:14:41.299917992Z"
 		},
 		{
-			"function_name": "TestMain",
-			"documentation_hash": "da16935fbd4c36cde88a4755a0ea0caa2bab7a0043be80349a33c6db783ff161",
-			"definition_hash": "06872e08df8e52e19acf911dff84af63cc73cfc83064eed76617be5389ef2011",
-			"reviewed_at": "2026-06-18T15:04:15.84131089Z"
-		},
-		{
 			"function_name": "slicesContains",
 			"documentation_hash": "c9fefd6276dc52d23f4f781754daa9997877b7ca2cd25f9c2909bc62de9edad9",
 			"definition_hash": "fdcf3e2bcac10804152341fa257eda82e17cc84ef11b7217cac02f616d0448e9",
@@ -317,8 +311,8 @@
 		{
 			"function_name": "TestCreateCapturesURL",
 			"documentation_hash": "f472d72b2c6d2501326aceaa6531bb1dab4d7bde05f92b69c752c37a9bca68f2",
-			"definition_hash": "b87d44a9c5ce1df8dcc73b8384f055a88e50808e68cac74ae85d888a0805d455",
-			"reviewed_at": "2026-06-19T20:04:57.562128146Z"
+			"definition_hash": "7c481d7541356056a4c9327f22893e0501072b374609402a17af5b68563bf37f",
+			"reviewed_at": "2026-06-27T14:01:39.466571417Z"
 		},
 		{
 			"function_name": "TestCreateCleansUpOnStartFailure",
@@ -349,18 +343,6 @@
 			"documentation_hash": "e1915cd31baf30d59eb54fd0b40592d99130fef2863d14525d168dd93dcfb862",
 			"definition_hash": "7a77167eff36ba8042f50a9cf1ddf7956e63e280db1af1ceb36c488f8a81e51a",
 			"reviewed_at": "2026-06-19T20:04:57.61087821Z"
-		},
-		{
-			"function_name": "TestCreateInjectsClaude",
-			"documentation_hash": "22b4e517fc215d5e8e9348c612cdf1685eeb5edef9a4772c368e987a5ad1c104",
-			"definition_hash": "7b04e546ac1239e7cb2ba5b950e23280fe99f288cd9edeefdebfae75e7b83279",
-			"reviewed_at": "2026-06-19T20:04:57.618600434Z"
-		},
-		{
-			"function_name": "TestCreateMissingClaudeBinary",
-			"documentation_hash": "36d96b590f2bc6fc9060715bfd19395e1289ea9629aeb2c190335a71119815a9",
-			"definition_hash": "57a0e705266436284cb2078a3409e9663943921802ecd52d097e98be3cd1e56c",
-			"reviewed_at": "2026-06-19T20:04:57.625183756Z"
 		},
 		{
 			"function_name": "TestValidBoxID",
@@ -415,6 +397,12 @@
 			"documentation_hash": "db1db746d613b21e726516985d4947dfe08c497f5593500c5dfbbef4c77501bf",
 			"definition_hash": "6d6c1da92d4f32d1817296bad17a48ee7697bcbae1478bc9b5e9ffff3ac93659",
 			"reviewed_at": "2026-06-27T09:31:33.756015623Z"
+		},
+		{
+			"function_name": "TestCreateInjectsConfigSeed",
+			"documentation_hash": "ed20b7b7151cbc2b2a300d080efe78c7fe234b1d7ad0d12ae4767f49ed6b843a",
+			"definition_hash": "fd58816e3f0f12a057c547965894df62cbfffa3557dad05437e901047d43cb7c",
+			"reviewed_at": "2026-06-27T14:01:26.286509822Z"
 		}
 	]
 }

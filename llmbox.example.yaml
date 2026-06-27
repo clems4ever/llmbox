@@ -14,14 +14,11 @@ mcp_addr: ":8081"
 # correctly in production — it is used to build the auth-page links.
 public_url: "http://localhost:8080"
 
-# Base image launched per box. Any glibc image with /bin/sh, util-linux (for
-# `script`), and CA certificates works — Claude is injected, not baked in.
-# Defaults to ghcr.io/clems4ever/llmbox-box (debian:bookworm-slim + ca-certificates;
-# plain debian:bookworm-slim has no CA bundle, so HTTPS from inside a box fails).
+# Base image launched per box. It must bake in the standalone Claude binary (on
+# PATH), tini (used as PID 1), /bin/sh, util-linux (for `script`), and a CA
+# bundle. Defaults to ghcr.io/clems4ever/llmbox-box, built by Dockerfile.box;
+# build your own FROM it to add more tooling.
 claude_image: "ghcr.io/clems4ever/llmbox-box:latest"
-
-# Path (on the server) to the standalone Claude binary injected into each box.
-claude_bin: "/opt/llmbox/claude"
 
 # Args passed to `claude remote-control`.
 remote_args: "--spawn same-dir"

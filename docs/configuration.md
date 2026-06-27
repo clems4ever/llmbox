@@ -56,9 +56,7 @@ optional:
 | `http_addr`    | `:8080`                   | UI/API listen address (auth pages, admin, health). |
 | `mcp_addr`     | `:8081`                   | MCP endpoint listen address. Served on its own port so it can sit behind an authenticating proxy; never expose it directly to untrusted networks. |
 | `public_url`   | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
-| `claude_image` | `ghcr.io/clems4ever/llmbox-box:latest` | Base image launched per box. Any glibc image with a CA bundle works — Claude is injected, not 
-baked in. |
-| `claude_bin`   | `/opt/llmbox/claude`      | Path (on the server) to the standalone Claude binary injected into each box. |
+| `claude_image` | `ghcr.io/clems4ever/llmbox-box:latest` | Base image launched per box. Must bake in the standalone Claude binary, tini (PID 1), util-linux, and a CA bundle (see `Dockerfile.box`); build your own FROM it to add tooling. |
 | `remote_args`  | `--spawn same-dir`        | Args passed to `claude remote-control`. |
 | `auth_ttl`     | `5m`                      | Destroy un-authenticated boxes after this long (a Go duration string, e.g. `300s`, `5m`). |
 | `state_file`   | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](operations.md#session-persistence)). |

@@ -316,7 +316,7 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 	// default included) and sends it with every create, and validateCreate rejects
 	// any create that arrives without one. Pass no default here so nothing local
 	// can stand in for what the hub sends.
-	mgr, err := docker.NewManager("", cfg.RemoteArgs, cfg.ClaudeBin, cfg.BoxPeers)
+	mgr, err := docker.NewManager("", cfg.RemoteArgs, cfg.BoxPeers)
 	if err != nil {
 		return err
 	}
