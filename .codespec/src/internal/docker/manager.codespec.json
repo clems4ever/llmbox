@@ -137,8 +137,8 @@
 			"function_name": "findManaged",
 			"receiver": "Manager",
 			"documentation_hash": "9f80e1649517a015e9a29763ea3ade2ed22549008f4ec4f3d44e61c990c28fd0",
-			"definition_hash": "72323cdc40e3a2e4cb5046c50cb6dc04b109c2ae388c7f1ab0d907d43280ba72",
-			"reviewed_at": "2026-06-18T16:59:05.466822551Z"
+			"definition_hash": "cd8527b6ef239fd8be201c1da8eb2c98286de8533595492c159cc2b1a395d48d",
+			"reviewed_at": "2026-06-27T09:31:33.753606238Z"
 		},
 		{
 			"function_name": "scanFor",
@@ -169,8 +169,8 @@
 			"function_name": "Create",
 			"receiver": "Manager",
 			"documentation_hash": "899682051659ac67c5bf4778acf32fadd548940b8994bf819ca6967a19cfc516",
-			"definition_hash": "2c4e30a994f7cbdb935fffe65afe8ac40800126aa9e3b260303c33b64900a367",
-			"reviewed_at": "2026-06-22T19:23:35.755724953Z"
+			"definition_hash": "22fe5a5b2c1b89323b21ecb85ee007bae66ea828e6bbc9cb3d84d78088deb231",
+			"reviewed_at": "2026-06-27T09:38:38.236929544Z"
 		},
 		{
 			"function_name": "SetBoxLimits",
@@ -217,6 +217,12 @@
 			"documentation_hash": "0891d0155e9e8171ac50c8d08af276581c49e7ef1a043c5afc7bcade8e160f8d",
 			"definition_hash": "ec1542066ece3754a1f0fa77db49239212a3db591325c4865b4ec124d32ae1fb",
 			"reviewed_at": "2026-06-26T12:10:07.983186882Z"
+		},
+		{
+			"function_name": "IsNotFound",
+			"documentation_hash": "db957289bc7baf55daf70679534b101d3ee27a564f071c008a29dde3ee47e343",
+			"definition_hash": "fe5368bff4d70aa8a2f73136c8e38a2f10d63d6ca9c1d873afd3626dc13a72e8",
+			"reviewed_at": "2026-06-27T09:31:33.751872913Z"
 		}
 	]
 }

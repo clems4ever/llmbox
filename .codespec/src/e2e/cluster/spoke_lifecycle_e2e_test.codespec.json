@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "TestUIDisconnectReconnectThenDestroy",
+			"documentation_hash": "ebe9b82166b556aa9f60e0a6d809d9993617e2f5fadbda8755d77f91033a4ab7",
+			"definition_hash": "314b671bbc8f242017c2df35c8f5a62b778b8f8d145363a4be4398912c9ef30e",
+			"reviewed_at": "2026-06-27T09:31:33.749779261Z"
+		},
+		{
+			"function_name": "TestUIRemoveBoxAfterHumanDestroyedIt",
+			"documentation_hash": "538dab7c5432f5deba169148d324e7d86e02eac71c23239c08918813abd4c959",
+			"definition_hash": "760a0fd8a44396042559ee0fd737d4076aa5a134cd93ff152fbee84eb5606f67",
+			"reviewed_at": "2026-06-27T09:31:33.749922312Z"
+		},
+		{
+			"function_name": "TestUIStartThenDestroyBoxOnRemote",
+			"documentation_hash": "90c349d5a55a88516df9d47bb1fad815eddf2fc1589cb3438945b7e1bd99d8d6",
+			"definition_hash": "89b5a84f1e67ff63107a1246cb5c47a056e9baefadeeaf6bf404065d6825ac40",
+			"reviewed_at": "2026-06-27T09:31:33.750045591Z"
+		}
+	]
+}

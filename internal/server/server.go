@@ -737,17 +737,21 @@ func boxMatchesSession(sess *session, idOrName string) bool {
 	return idMatchesBox(sess.BoxID, sess.ContainerID, idOrName)
 }
 
-// destroyBox destroys a box and forgets any session pointing at it.
+// destroyBox destroys a box and forgets any session pointing at it. Removal is
+// idempotent: if the box's container is already gone on its spoke (a not-found
+// error), the destroy is treated as success and the session is still forgotten,
+// so a box a human removed out of band can be cleared from the UI without error.
 //
 // @arg ctx Context for the destroy request.
 // @arg idOrName The box ID or container ID identifying the box to destroy.
-// @error error if the box's spoke is not connected, or the box cannot be destroyed.
+// @error error if the box's spoke is not connected, or the box cannot be destroyed for a reason other than already being gone.
 //
 // @testcase TestDestroyForgetsSession checks the session is forgotten after destroy.
 // @testcase TestDestroyRunsDestroyHooks checks the box's hook state is replayed to the destroy hooks.
 // @testcase TestDestroyRoutesToSpoke destroys a box on the spoke its session names.
 // @testcase TestDestroyBoxByBoxIDRoutesToSpoke destroys a remote box by its box ID.
 // @testcase TestDestroySessionlessBoxFindsSpoke destroys a box with no tracked session on its actual spoke.
+// @testcase TestDestroyAlreadyGoneBoxSucceeds treats a not-found from the spoke as a successful, session-clearing removal.
 func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 	// Route to the spoke the matching session names. idOrName may be a box ID
 	// (what the admin UI sends) or a container ID, so match on both.
@@ -782,7 +786,15 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 		}
 	}
 	if err := mgr.Destroy(ctx, idOrName); err != nil {
-		return err
+		// Removal is idempotent: if the box's container is already gone on its
+		// spoke (e.g. an operator removed it out of band), the desired end state —
+		// the box no longer exists — already holds. Treat that as success and fall
+		// through to forget the session so the box disappears from the UI without a
+		// spurious error. Any other failure is real and surfaced.
+		if !docker.IsNotFound(err) {
+			return err
+		}
+		s.logger().Info("box already gone on its spoke; treating destroy as success", "box", idOrName)
 	}
 	s.mu.Lock()
 	var dropped []string

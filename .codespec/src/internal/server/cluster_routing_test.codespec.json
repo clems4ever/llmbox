@@ -71,6 +71,12 @@
 			"documentation_hash": "f5f614ef4247eea921fa2cc45e4a17585f493e82a647223ede8600ea062a8d58",
 			"definition_hash": "53d89a5fe9408159849cb23483f42fe61ba24b532acc13f9e67ce96f5540e47e",
 			"reviewed_at": "2026-06-26T12:33:43.049792353Z"
+		},
+		{
+			"function_name": "TestDestroyAlreadyGoneBoxSucceeds",
+			"documentation_hash": "2277ef3a62ee090c4e8e7f2840e4e3979a87cee42d3513cea87a8417fc7b957a",
+			"definition_hash": "660b001c8f2afb9ed6a9f258996ca5d13fa61687275a3da381b66233fdef6b44",
+			"reviewed_at": "2026-06-27T09:31:33.756605479Z"
 		}
 	]
 }

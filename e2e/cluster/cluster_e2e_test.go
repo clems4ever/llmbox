@@ -17,6 +17,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"net"
 	"net/http"
 	"path/filepath"
@@ -40,8 +41,7 @@ import (
 //  4. list/exec/destroy over MCP all route to that spoke;
 //  5. the join token is one-time: a second enrollment with it is rejected.
 func TestClusterEndToEnd(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	store, err := server.OpenStore(filepath.Join(t.TempDir(), "hub.db"))
 	if err != nil {
@@ -220,16 +220,44 @@ func (m *fakeSpokeMgr) List(_ context.Context) ([]docker.Box, error) {
 	return out, nil
 }
 
-// Destroy removes a matching in-memory box.
+// Destroy removes a matching in-memory box, by box ID or container-ID prefix.
+// Like the real docker manager, destroying a box that is not here fails with a
+// not-found error — the case a human-removed container produces.
 func (m *fakeSpokeMgr) Destroy(_ context.Context, idOrName string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	for id := range m.boxes {
-		if id == idOrName || hasPrefix(id, idOrName) || hasPrefix(idOrName, id) {
+	for id, boxID := range m.boxes {
+		if boxID == idOrName || id == idOrName || hasPrefix(id, idOrName) || hasPrefix(idOrName, id) {
+			delete(m.boxes, id)
+			return nil
+		}
+	}
+	return fmt.Errorf("%w %q", docker.ErrBoxNotFound, idOrName)
+}
+
+// humanDestroy simulates an operator removing a box's container directly on the
+// host, out of band: the box vanishes from the spoke without going through the
+// cluster Destroy path, so a later Destroy sees no such box.
+func (m *fakeSpokeMgr) humanDestroy(boxID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for id, bid := range m.boxes {
+		if bid == boxID {
 			delete(m.boxes, id)
 		}
 	}
-	return nil
+}
+
+// hasBox reports whether the spoke currently holds a box with the given box ID.
+func (m *fakeSpokeMgr) hasBox(boxID string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, bid := range m.boxes {
+		if bid == boxID {
+			return true
+		}
+	}
+	return false
 }
 
 // Logs returns canned output identifying this spoke.

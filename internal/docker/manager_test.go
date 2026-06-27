@@ -1207,3 +1207,24 @@ func TestTarFilesCreatesParentDirs(t *testing.T) {
 		t.Errorf("default mode = %o, want 600", file.hdr.Mode)
 	}
 }
+
+// TestIsNotFound checks IsNotFound recognizes the sentinel, a wrapped error, and
+// an error that crossed the cluster wire as a bare string, while rejecting
+// unrelated errors and nil.
+func TestIsNotFound(t *testing.T) {
+	cases := map[string]struct {
+		err  error
+		want bool
+	}{
+		"sentinel":   {ErrBoxNotFound, true},
+		"wrapped":    {fmt.Errorf("%w %q", ErrBoxNotFound, "b1"), true},
+		"wire-string": {errors.New(`no managed box matches "b1"`), true},
+		"unrelated":  {errors.New("connection refused"), false},
+		"nil":        {nil, false},
+	}
+	for name, tc := range cases {
+		if got := IsNotFound(tc.err); got != tc.want {
+			t.Errorf("%s: IsNotFound(%v) = %v, want %v", name, tc.err, got, tc.want)
+		}
+	}
+}

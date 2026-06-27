@@ -174,6 +174,34 @@ func TestDestroySessionlessBoxFindsSpoke(t *testing.T) {
 	}
 }
 
+// TestDestroyAlreadyGoneBoxSucceeds checks that removing a box whose container is
+// already gone on its spoke (the spoke returns a not-found error, e.g. a human
+// removed it out of band) is treated as a successful, idempotent removal: no
+// error is surfaced and the tracked session is still forgotten.
+func TestDestroyAlreadyGoneBoxSucceeds(t *testing.T) {
+	local := &testutils.FakeMgr{}
+	// The edge spoke no longer has the box: any destroy fails not-found, mirroring
+	// the real docker manager once the container has been removed out of band.
+	edge := &testutils.FakeMgr{CreateID: "edge-id", DestroyErr: docker.ErrBoxNotFound}
+	s := newTestServer(local)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+
+	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	if err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+
+	if err := s.destroyBox(context.Background(), "b1"); err != nil {
+		t.Fatalf("destroyBox of an already-gone box should succeed, got: %v", err)
+	}
+	if len(edge.Destroyed) != 1 || edge.Destroyed[0] != "b1" {
+		t.Errorf("edge.Destroyed = %v, want [b1] (destroy still routed to the spoke)", edge.Destroyed)
+	}
+	if s.lookup(sess.Token) != nil {
+		t.Error("session not forgotten after destroying an already-gone box")
+	}
+}
+
 // TestSpokeStatusesReportsHealth checks SpokeStatuses returns the local spoke
 // plus each enrolled spoke, marking which are currently connected.
 func TestSpokeStatusesReportsHealth(t *testing.T) {

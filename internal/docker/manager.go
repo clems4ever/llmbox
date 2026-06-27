@@ -28,6 +28,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -39,6 +40,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containerd/errdefs"
 	"github.com/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -708,7 +710,7 @@ func (m *Manager) Create(ctx context.Context, opts CreateOptions) (id, authorize
 	}
 
 	resp, err := m.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
-	if err != nil && client.IsErrNotFound(err) {
+	if err != nil && errdefs.IsNotFound(err) {
 		// The image isn't present locally; pull it and try once more.
 		if perr := m.pullImage(ctx, image); perr != nil {
 			m.createMu.Unlock()
@@ -1239,7 +1241,30 @@ func (m *Manager) findManaged(ctx context.Context, idOrName string) (*Box, error
 			return &b, nil
 		}
 	}
-	return nil, fmt.Errorf("no managed box matches %q", idOrName)
+	return nil, fmt.Errorf("%w %q", ErrBoxNotFound, idOrName)
+}
+
+// errBoxNotFoundMsg is the text of ErrBoxNotFound, also matched against errors
+// that crossed the cluster wire as a plain string (where the typed sentinel is
+// lost but the message survives).
+const errBoxNotFoundMsg = "no managed box matches"
+
+// ErrBoxNotFound reports that no box managed by this daemon matches a given
+// identifier — e.g. because its container was removed out of band. Destroying an
+// already-gone box surfaces this so callers can treat removal as idempotent.
+var ErrBoxNotFound = errors.New(errBoxNotFoundMsg)
+
+// IsNotFound reports whether err indicates that no managed box matched the
+// identifier. It recognizes both the typed ErrBoxNotFound (local calls) and an
+// error that round-tripped over the cluster transport as a bare string, where
+// only the message is preserved (remote spokes).
+//
+// @arg err The error to classify; nil is not a not-found error.
+// @return bool Whether err means the box does not exist.
+//
+// @testcase TestIsNotFound recognizes the sentinel, a wrapped error, a wire string, and rejects others.
+func IsNotFound(err error) bool {
+	return err != nil && (errors.Is(err, ErrBoxNotFound) || strings.Contains(err.Error(), errBoxNotFoundMsg))
 }
 
 // scanFor reads from r until re matches the accumulated (ANSI-stripped) output
