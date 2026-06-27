@@ -409,6 +409,12 @@
 			"documentation_hash": "d594b6250dddfa654fe798bcd00cae7fb3eed2c9bb6b6b1ccec39e0ff06ed550",
 			"definition_hash": "1a70259d22e36cabf4b95b9a60e7046f865ab4eaaf2d0ba351211cc714527b47",
 			"reviewed_at": "2026-06-26T12:10:18.7896133Z"
+		},
+		{
+			"function_name": "TestIsNotFound",
+			"documentation_hash": "db1db746d613b21e726516985d4947dfe08c497f5593500c5dfbbef4c77501bf",
+			"definition_hash": "6d6c1da92d4f32d1817296bad17a48ee7697bcbae1478bc9b5e9ffff3ac93659",
+			"reviewed_at": "2026-06-27T09:31:33.756015623Z"
 		}
 	]
 }

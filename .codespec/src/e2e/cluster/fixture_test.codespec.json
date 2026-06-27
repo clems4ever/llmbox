@@ -1,0 +1,106 @@
+{
+	"functions": [
+		{
+			"function_name": "connectSpoke",
+			"receiver": "clusterFixture",
+			"documentation_hash": "a308e5419168b6de8d0fab3b59f1532b9a7f018dfcef57ef6b4b6e1ec8125ffd",
+			"definition_hash": "20fae2b63565c3b58b07dfc658360158bf9b2ca362eff7369e0a747a35ee321f",
+			"reviewed_at": "2026-06-27T09:31:33.743067994Z"
+		},
+		{
+			"function_name": "dashboard",
+			"receiver": "clusterFixture",
+			"documentation_hash": "f8509e8a9e640317d25bdc25f6ae676428bb6f6707fc70aa39bab1720d3e0973",
+			"definition_hash": "690cc0ccd2b79cfdb5a79659d34e3c0fb889e88f53f3ff8a7d85556f4bc31dd8",
+			"reviewed_at": "2026-06-27T09:31:33.744141252Z"
+		},
+		{
+			"function_name": "post",
+			"receiver": "clusterFixture",
+			"documentation_hash": "8790a707a5d429bd4b3defd4a3a93bbd9c3dde1bafaf84129fcd4933e695882b",
+			"definition_hash": "bc2923804abc78262c7bd765b02c80c3988e1d1fb7eb5cea8d9ae43d3c5e5d0d",
+			"reviewed_at": "2026-06-27T09:31:33.745025059Z"
+		},
+		{
+			"function_name": "signInAdmin",
+			"receiver": "clusterFixture",
+			"documentation_hash": "80873c964cec1f07768788b530a0527bd797d47f16e793eee935874bdcb2826a",
+			"definition_hash": "66f8d15358944444c5a5f8e464e6ecc271342dea3396efc5438b9d55c738ab3f",
+			"reviewed_at": "2026-06-27T09:31:33.745408776Z"
+		},
+		{
+			"function_name": "waitSpokeConnected",
+			"receiver": "clusterFixture",
+			"documentation_hash": "a16ec2d4ff093d8f41460dad1d8d789223bc779f16d7985704b755bcebc0afe0",
+			"definition_hash": "0fcf381c4237dce4fdc22766d89ebc5cfefab5ef4886901a50875be54ddd84fc",
+			"reviewed_at": "2026-06-27T10:01:06.206857251Z"
+		},
+		{
+			"function_name": "disconnect",
+			"receiver": "fakeRemote",
+			"documentation_hash": "57c3b91c569fbd0b21b1023b0f2d1593ae3a29c1e36cacbcf08790982ad41441",
+			"definition_hash": "c3279cbbdf48019d68811c4c9bd9427c01f685c29695c8d0c2251bc7015fdc0a",
+			"reviewed_at": "2026-06-27T09:31:33.747139745Z"
+		},
+		{
+			"function_name": "reconnect",
+			"receiver": "fakeRemote",
+			"documentation_hash": "01b152458b4087e6b3a2c9255ccda7dc3ec862bce62ec7aead38f921ffb11f10",
+			"definition_hash": "92e5bd4558e1a159474e14ba430936b526cf15e8a40f7dd98dd60a2c0c3b71e7",
+			"reviewed_at": "2026-06-27T09:31:33.747702233Z"
+		},
+		{
+			"function_name": "start",
+			"receiver": "fakeRemote",
+			"documentation_hash": "40ec5e3ba1c3b34c77d679426dc27e083a3fba50908455657f0f1071de503634",
+			"definition_hash": "700a162e98c05941cb6481bcdcf80ab30e6e9843e45a51d22f95900d1bd288cb",
+			"reviewed_at": "2026-06-27T09:31:33.748166196Z"
+		},
+		{
+			"function_name": "newClusterFixture",
+			"documentation_hash": "27f270b3b24a4c005fa040dc79089f96589bdd95b4ea37d1b710526b903c3327",
+			"definition_hash": "07c5d8fa69c96174cf100eeeb5b21f55172fd2d8029f5a1bb8a6a23650040aa9",
+			"reviewed_at": "2026-06-27T09:31:33.74862549Z"
+		},
+		{
+			"function_name": "nextMonoCell",
+			"documentation_hash": "eb3887d028f62c43f9087ec16c09fe1c43c9bdb6d8b8309bf4ffaeb6e0e60af7",
+			"definition_hash": "b8c2831b2feb8f215cfa9b9b18d4a82b91626fbb56645dc8adfdfd51afcaab84",
+			"reviewed_at": "2026-06-27T09:31:33.749143179Z"
+		},
+		{
+			"function_name": "rowInSection",
+			"documentation_hash": "bb810f8a4b9cf5d39e3ef5cacab531c66e5a1983129c824597e357fee37a0d2f",
+			"definition_hash": "d393c2fbf79238cf0005f343819a3180dcb592d4b896c62045aa56c4310d8cec",
+			"reviewed_at": "2026-06-27T09:31:33.749600353Z"
+		},
+		{
+			"function_name": "boxOnSpokeViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "2ddc15c7063033de108b140fdef1756de148a72025bc7cfc0443ec46ba4b3d94",
+			"definition_hash": "35409a1e35c76e3f41845679824afd9648069177055b323751aaac2f9e2f9fbe",
+			"reviewed_at": "2026-06-27T10:01:06.190753899Z"
+		},
+		{
+			"function_name": "createBoxViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "45208a1f7899087402911aa0d09adc19461f8219d38ada46592dcb2848ace62c",
+			"definition_hash": "e0f66109c5453628e5bc0b655e9e1349428ef6373b0a2d2f109a164403315698",
+			"reviewed_at": "2026-06-27T10:01:06.192670702Z"
+		},
+		{
+			"function_name": "deleteBoxViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "71aa690689d537a618d627c0e695b6373ee41938a627e5d52c3f0aa5c454e5b2",
+			"definition_hash": "17bbb98262f3d0447a7723c7ccc99165072ca6f901dc14ab92ec01d9035e2835",
+			"reviewed_at": "2026-06-27T10:01:06.202671999Z"
+		},
+		{
+			"function_name": "spokeConnectedViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "a127b823e8cccf73c3d588f0b1c10623d29dd2236c218682014b943bf5de9116",
+			"definition_hash": "c8ebf6b9d760347aaffddb10f3465995828ff0ecdad491b539c18a8c49920fbb",
+			"reviewed_at": "2026-06-27T10:01:06.204862367Z"
+		}
+	]
+}

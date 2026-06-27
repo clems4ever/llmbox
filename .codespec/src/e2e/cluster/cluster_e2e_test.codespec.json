@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestClusterEndToEnd",
 			"documentation_hash": "23fcc25d19c4f7e34061cdbfb319ef7f44f81ebee6329d0d15e49719b40f43ad",
-			"definition_hash": "d466e50eacc45a52b59e9de766712560dc0bb104939adedec9e1d8e815a1a8a4",
-			"reviewed_at": "2026-06-25T12:45:25.524915798Z"
+			"definition_hash": "8e49b603a7fdbe44ad46e7b3a1cbe22a4ad96f6cdb50f3e23f1b8f490ed610c4",
+			"reviewed_at": "2026-06-27T09:33:18.442800137Z"
 		},
 		{
 			"function_name": "newFakeSpokeMgr",
@@ -36,9 +36,9 @@
 		{
 			"function_name": "Destroy",
 			"receiver": "fakeSpokeMgr",
-			"documentation_hash": "87e97ad3a73aba8054ac3b2a31dfe2b25cd49c66ef47acadaf4a0ca11dfcd05c",
-			"definition_hash": "a0fd378b6ded440ec5a7a15b16b7c6aa0cd84c6aadd65f29005dcbc9dab8abae",
-			"reviewed_at": "2026-06-19T20:31:53.270827457Z"
+			"documentation_hash": "31bf669cf99ea1c0893bd2cfaad79287f19abf13d8f5a1d399c8425b514f5dcd",
+			"definition_hash": "b32bbda38686cd4b6bad5d9fd402943e9c1e6570dfbfaa5e940e2a4ac1073eba",
+			"reviewed_at": "2026-06-27T09:31:33.730526735Z"
 		},
 		{
 			"function_name": "Logs",
@@ -143,6 +143,20 @@
 			"documentation_hash": "7c480ed542ed7713af7fc1e6c289ae24f513e7bb9a408ec8625cde8ab99da3d9",
 			"definition_hash": "663c8e94fca0bff2b694fe8f35279434a94baf79d6cb840921f771a67aaf2357",
 			"reviewed_at": "2026-06-22T14:06:42.743198429Z"
+		},
+		{
+			"function_name": "hasBox",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "dbdc0dc70b96c5fe519f62e56c76702277d18626e1bd6a9e9573c638d362475a",
+			"definition_hash": "3faf3fa9c07f3f753eacb6b31be13cad866e65c992f47c9ea6591996110b084d",
+			"reviewed_at": "2026-06-27T09:31:33.73137028Z"
+		},
+		{
+			"function_name": "humanDestroy",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "623e625328cadfc06a1d9df8e010801049f07490f1b34c3a7597669eeecba4a4",
+			"definition_hash": "b088ad19bc70d64bff9fb4c07fef1b40f1a9a08432badac082ae7cf13b93fcdb",
+			"reviewed_at": "2026-06-27T09:31:33.741126773Z"
 		}
 	]
 }

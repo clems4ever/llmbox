@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "TestFakeHub",
+			"documentation_hash": "9cdb514d0a26d04ebeff0a4439ada4abe0f3cf09e16ff5a1b02f406af47d3b3a",
+			"definition_hash": "85708a2ad5c0d9d86c5cf07e521dc7c26ceaf481e7d10ff3ef64dbb7dfc0eab7",
+			"reviewed_at": "2026-06-27T09:43:43.046036645Z"
+		},
+		{
+			"function_name": "TestFakeMgr",
+			"documentation_hash": "31af0f45b00bc516348c35c111b0aedae7fe36877d6dffb583fb34c209993641",
+			"definition_hash": "c911af4b1e846c70bd253f028b546921b9b5b5fd429d02b204ce3cedb3981bf3",
+			"reviewed_at": "2026-06-27T09:43:43.046251581Z"
+		}
+	]
+}

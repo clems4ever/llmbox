@@ -29,6 +29,7 @@ type FakeMgr struct {
 
 	ListResult []docker.Box
 	Destroyed  []string
+	DestroyErr error
 	Reaped     []string
 
 	LogsResult string
@@ -51,7 +52,9 @@ type FakeMgr struct {
 // @return string The canned container ID.
 // @return string The canned authorize URL.
 // @error error The canned create error, if any.
-func (f *FakeMgr) Create(_ context.Context, opts docker.CreateOptions) (string, string, error) {
+//
+// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
+func (f *FakeMgr) Create(ctx context.Context, opts docker.CreateOptions) (string, string, error) {
 	f.mu.Lock()
 	f.GotOpts = opts
 	f.mu.Unlock()
@@ -65,7 +68,9 @@ func (f *FakeMgr) Create(_ context.Context, opts docker.CreateOptions) (string, 
 // @arg code The submitted OAuth code, recorded into GotCode.
 // @return string The canned session URL.
 // @error error The canned submit error, if any.
-func (f *FakeMgr) SubmitCode(_ context.Context, _, code string) (string, error) {
+//
+// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
+func (f *FakeMgr) SubmitCode(ctx context.Context, idOrName, code string) (string, error) {
 	f.mu.Lock()
 	f.GotCode = code
 	f.mu.Unlock()
@@ -77,16 +82,23 @@ func (f *FakeMgr) SubmitCode(_ context.Context, _, code string) (string, error) 
 // @arg ctx Context (unused by the fake).
 // @return []docker.Box The canned ListResult slice.
 // @error error Always nil.
-func (f *FakeMgr) List(context.Context) ([]docker.Box, error) { return f.ListResult, nil }
+//
+// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
+func (f *FakeMgr) List(ctx context.Context) ([]docker.Box, error) { return f.ListResult, nil }
 
-// Destroy records the destroyed ID and always succeeds.
+// Destroy records the destroyed ID and returns the canned DestroyErr (nil by
+// default), letting a test simulate a spoke whose box is already gone.
 //
 // @arg ctx Context (unused by the fake).
 // @arg id The identifier to destroy, appended to Destroyed.
-// @error error Always nil.
-func (f *FakeMgr) Destroy(_ context.Context, id string) error {
+// @error error The canned DestroyErr, if any.
+//
+// @testcase TestFakeMgr checks Destroy records the ID and surfaces the canned DestroyErr.
+func (f *FakeMgr) Destroy(ctx context.Context, id string) error {
+	f.mu.Lock()
 	f.Destroyed = append(f.Destroyed, id)
-	return nil
+	f.mu.Unlock()
+	return f.DestroyErr
 }
 
 // Logs records the requested box ID and tail and returns the canned output/error.
@@ -96,7 +108,9 @@ func (f *FakeMgr) Destroy(_ context.Context, id string) error {
 // @arg tail The requested tail count, recorded into GotLogsN.
 // @return string The canned LogsResult.
 // @error error The canned logs error, if any.
-func (f *FakeMgr) Logs(_ context.Context, id string, tail int) (string, error) {
+//
+// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
+func (f *FakeMgr) Logs(ctx context.Context, id string, tail int) (string, error) {
 	f.mu.Lock()
 	f.GotLogsID = id
 	f.GotLogsN = tail
@@ -111,7 +125,9 @@ func (f *FakeMgr) Logs(_ context.Context, id string, tail int) (string, error) {
 // @arg cmd The command, recorded into GotExecCmd.
 // @return docker.ExecResult The canned ExecResult.
 // @error error The canned exec error, if any.
-func (f *FakeMgr) Exec(_ context.Context, id string, cmd []string) (docker.ExecResult, error) {
+//
+// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
+func (f *FakeMgr) Exec(ctx context.Context, id string, cmd []string) (docker.ExecResult, error) {
 	f.mu.Lock()
 	f.GotExecID = id
 	f.GotExecCmd = cmd
@@ -125,7 +141,9 @@ func (f *FakeMgr) Exec(_ context.Context, id string, cmd []string) (docker.ExecR
 // @arg ttl The orphan TTL (ignored).
 // @return []string The canned Reaped slice.
 // @error error Always nil.
-func (f *FakeMgr) ReapOrphans(context.Context, time.Duration) ([]string, error) {
+//
+// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
+func (f *FakeMgr) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error) {
 	return f.Reaped, nil
 }
 
@@ -141,6 +159,8 @@ type FakeHub struct {
 // @arg name The spoke name to look up.
 // @return cluster.BoxManager The connected spoke's box manager, if present.
 // @return bool True when a spoke with that name is connected.
+//
+// @testcase TestFakeHub checks Spoke returns injected spokes and reports missing ones.
 func (h *FakeHub) Spoke(name string) (cluster.BoxManager, bool) {
 	bm, ok := h.Connected[name]
 	return bm, ok
@@ -149,15 +169,21 @@ func (h *FakeHub) Spoke(name string) (cluster.BoxManager, bool) {
 // Spokes returns the connected spokes.
 //
 // @return map[string]cluster.BoxManager The connected spokes keyed by name.
+//
+// @testcase TestFakeHub checks Spokes returns the injected spokes.
 func (h *FakeHub) Spokes() map[string]cluster.BoxManager { return h.Connected }
 
 // ConnectHandler is a no-op; tests inject spokes directly.
 //
 // @arg w The response writer (unused).
 // @arg r The request (unused).
-func (h *FakeHub) ConnectHandler(http.ResponseWriter, *http.Request) {}
+//
+// @testcase TestFakeHub checks ConnectHandler is inert.
+func (h *FakeHub) ConnectHandler(w http.ResponseWriter, r *http.Request) {}
 
 // Disconnect records the name so tests can assert a spoke was kicked.
 //
 // @arg name The spoke name, appended to Disconnected.
+//
+// @testcase TestFakeHub checks Disconnect records the kicked spoke name.
 func (h *FakeHub) Disconnect(name string) { h.Disconnected = append(h.Disconnected, name) }
