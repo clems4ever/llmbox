@@ -376,6 +376,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, slug string
 // @return bool True when the spoke supports proxying.
 //
 // @testcase TestHandleProxyForwards uses the local streaming transport.
+// @testcase TestHandleProxyDialsByContainerID dials the box by container ID, not box ID.
 // @testcase TestHandleProxyRemoteSpokeForwards uses the remote buffered transport.
 // @testcase TestHandleProxyUnsupportedSpoke returns false when neither path is available.
 func (s *Server) boxTransport(mgr boxManager, rec store.ProxyRecord) (http.RoundTripper, bool) {
@@ -383,15 +384,23 @@ func (s *Server) boxTransport(mgr boxManager, rec store.ProxyRecord) (http.Round
 		// Every outbound dial goes to the box itself, regardless of the synthetic
 		// target host — the box has no host-published port, so it is reached through
 		// the spoke's box dialer. This keeps the connection live (streaming).
+		//
+		// Dial by ContainerID, not BoxID: the docker manager resolves boxes through
+		// findManaged, which matches the container ID/name — never the user-facing
+		// box-id label. A box whose box ID differs from its container ID (any box
+		// created with a custom box ID) would otherwise fail with "no managed box
+		// matches <box-id>".
 		return &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return dialer.DialBox(ctx, rec.BoxID, rec.Port)
+				return dialer.DialBox(ctx, rec.ContainerID, rec.Port)
 			},
 			ResponseHeaderTimeout: 60 * time.Second,
 		}, true
 	}
 	if proxier, ok := mgr.(cluster.HTTPProxier); ok {
-		return &clusterProxyTransport{proxier: proxier, boxID: rec.BoxID, port: rec.Port}, true
+		// As above, the remote spoke resolves the target via its own findManaged, so
+		// it must receive the container ID, not the box ID.
+		return &clusterProxyTransport{proxier: proxier, boxID: rec.ContainerID, port: rec.Port}, true
 	}
 	return nil, false
 }

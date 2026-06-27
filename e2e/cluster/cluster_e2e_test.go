@@ -287,13 +287,29 @@ func (m *fakeSpokeMgr) setDialTarget(addr string) {
 	m.mu.Unlock()
 }
 
-// DialBox dials the configured target, standing in for a connection to a port
-// inside a box. It makes the spoke satisfy cluster.BoxDialer, so the spoke can
-// service proxy_http requests forwarded from the hub over the real WebSocket.
-func (m *fakeSpokeMgr) DialBox(ctx context.Context, _ string, _ int) (net.Conn, error) {
+// DialBox resolves the identifier the way the real docker manager does — by
+// container ID (or prefix), never the user-facing box-id label — then dials the
+// configured target, standing in for a connection to a port inside a box. It
+// makes the spoke satisfy cluster.BoxDialer, so the spoke can service proxy_http
+// requests forwarded from the hub over the real WebSocket. Resolving like the
+// real findManaged is what lets this catch a hub that forwards the box ID instead
+// of the container ID — such a request finds no box here and fails.
+func (m *fakeSpokeMgr) DialBox(ctx context.Context, idOrName string, _ int) (net.Conn, error) {
 	m.mu.Lock()
 	target := m.dialTarget
+	_, ok := m.boxes[idOrName]
+	if !ok {
+		for id := range m.boxes {
+			if hasPrefix(id, idOrName) || hasPrefix(idOrName, id) {
+				ok = true
+				break
+			}
+		}
+	}
 	m.mu.Unlock()
+	if !ok {
+		return nil, fmt.Errorf("%w %q", docker.ErrBoxNotFound, idOrName)
+	}
 	if target == "" {
 		return nil, fmt.Errorf("no dial target configured for spoke %q", m.name)
 	}

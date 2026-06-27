@@ -19,11 +19,15 @@ import (
 // standing in for the in-process docker manager reaching a box's port.
 type dialMgr struct {
 	*testutils.FakeMgr
-	target string // host:port DialBox connects to (a real test listener)
+	target   string // host:port DialBox connects to (a real test listener)
+	gotBoxID string // identifier the last DialBox call received, recorded for assertions
 }
 
-// DialBox dials the fixed target, ignoring the box identifier and port.
-func (d *dialMgr) DialBox(_ context.Context, _ string, _ int) (net.Conn, error) {
+// DialBox records the identifier it was called with and dials the fixed target.
+// The recorded identifier lets tests assert the proxy dials by container ID (what
+// the real docker manager resolves), not the user-facing box ID.
+func (d *dialMgr) DialBox(_ context.Context, boxID string, _ int) (net.Conn, error) {
+	d.gotBoxID = boxID
 	return net.Dial("tcp", d.target)
 }
 
@@ -346,6 +350,48 @@ func TestHandleProxyForwards(t *testing.T) {
 	}
 }
 
+// TestHandleProxyDialsByContainerID checks the proxy dials the box by its
+// container ID rather than its user-facing box ID. The docker manager resolves
+// boxes through findManaged, which matches the container ID/name and never the
+// box-id label, so forwarding the box ID fails with "no managed box matches
+// <box-id>" for any box whose box ID differs from its container ID. The box ID
+// and container ID are deliberately distinct here so the wrong identifier is
+// detectable.
+func TestHandleProxyDialsByContainerID(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer upstream.Close()
+
+	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "container-id-9999"}, target: upstream.Listener.Addr().String()}
+	s, _ := newProxyServer(t, mgr, nil) // auth nil => proxy open
+	registerBox(t, s, "web-box", "")
+	rec, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.BoxID == rec.ContainerID {
+		t.Fatalf("test setup invalid: box ID and container ID must differ (both %q)", rec.BoxID)
+	}
+
+	srv := httptest.NewServer(s.APIHandler())
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+	req.Host = rec.Slug + ".proxy.example.com"
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	if mgr.gotBoxID != rec.ContainerID {
+		t.Errorf("DialBox dialed %q, want container ID %q (dialing the box ID never resolves in findManaged)", mgr.gotBoxID, rec.ContainerID)
+	}
+}
+
 // TestHandleProxyUnknownSlug checks a request for a slug with no proxy 404s.
 func TestHandleProxyUnknownSlug(t *testing.T) {
 	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{}}, nil)
@@ -432,14 +478,17 @@ func TestHandleProxyAuthorizedForwards(t *testing.T) {
 // canned response and recording what it was asked to forward.
 type proxySpokeMgr struct {
 	*testutils.FakeMgr
+	gotBoxID  string
 	gotMethod string
 	gotPath   string
 	gotBody   []byte
 }
 
-// ProxyHTTP records the forwarded request and returns a canned box response.
-func (p *proxySpokeMgr) ProxyHTTP(_ context.Context, _ string, _ int, method, path string, _ http.Header, body []byte) (int, http.Header, []byte, error) {
-	p.gotMethod, p.gotPath, p.gotBody = method, path, body
+// ProxyHTTP records the forwarded request (including the box identifier, so tests
+// can assert the container ID is what crosses the wire) and returns a canned box
+// response.
+func (p *proxySpokeMgr) ProxyHTTP(_ context.Context, boxID string, _ int, method, path string, _ http.Header, body []byte) (int, http.Header, []byte, error) {
+	p.gotBoxID, p.gotMethod, p.gotPath, p.gotBody = boxID, method, path, body
 	return http.StatusOK, http.Header{"X-Spoke": {"remote"}}, []byte("remote box at " + path), nil
 }
 
@@ -478,6 +527,9 @@ func TestHandleProxyRemoteSpokeForwards(t *testing.T) {
 	}
 	if spoke.gotPath != "/page?x=1" || spoke.gotMethod != http.MethodGet {
 		t.Errorf("spoke saw %s %q", spoke.gotMethod, spoke.gotPath)
+	}
+	if spoke.gotBoxID != rec.ContainerID {
+		t.Errorf("spoke ProxyHTTP got box id %q, want container ID %q (remote spokes resolve by container ID)", spoke.gotBoxID, rec.ContainerID)
 	}
 }
 
