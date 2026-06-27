@@ -1,22 +1,22 @@
 {
 	"functions": [
 		{
-			"function_name": "TestUIDisconnectReconnectThenDestroy",
-			"documentation_hash": "ebe9b82166b556aa9f60e0a6d809d9993617e2f5fadbda8755d77f91033a4ab7",
-			"definition_hash": "314b671bbc8f242017c2df35c8f5a62b778b8f8d145363a4be4398912c9ef30e",
-			"reviewed_at": "2026-06-27T09:31:33.749779261Z"
+			"function_name": "TestAdminAPIDisconnectReconnectThenDestroy",
+			"documentation_hash": "428b33b21b5f7a44d3b278c469478cf9275a7cb9455f66ace66343af37bc5346",
+			"definition_hash": "1061b52b3917043bd5a4dfc6a6b2217569f7d056ed4d53a38c5eccf7030c4553",
+			"reviewed_at": "2026-06-27T10:01:06.207654471Z"
 		},
 		{
-			"function_name": "TestUIRemoveBoxAfterHumanDestroyedIt",
-			"documentation_hash": "538dab7c5432f5deba169148d324e7d86e02eac71c23239c08918813abd4c959",
-			"definition_hash": "760a0fd8a44396042559ee0fd737d4076aa5a134cd93ff152fbee84eb5606f67",
-			"reviewed_at": "2026-06-27T09:31:33.749922312Z"
+			"function_name": "TestAdminAPIRemoveBoxAfterHumanDestroyedIt",
+			"documentation_hash": "ae18b38c7d43330f375c7e8ee16588a6cd6d7eeb1bc4473d761e76dd73b71346",
+			"definition_hash": "edb9b5d0246556c1def926467b3425875e99f1c8f596f345fe8a062b74ce5371",
+			"reviewed_at": "2026-06-27T10:01:06.208267094Z"
 		},
 		{
-			"function_name": "TestUIStartThenDestroyBoxOnRemote",
-			"documentation_hash": "90c349d5a55a88516df9d47bb1fad815eddf2fc1589cb3438945b7e1bd99d8d6",
-			"definition_hash": "89b5a84f1e67ff63107a1246cb5c47a056e9baefadeeaf6bf404065d6825ac40",
-			"reviewed_at": "2026-06-27T09:31:33.750045591Z"
+			"function_name": "TestAdminAPIStartThenDestroyBoxOnRemote",
+			"documentation_hash": "d82ba65f405479b7293b11756a55b61c29752f63460712ceec654d3db2d44cfe",
+			"definition_hash": "e48b444a2832f362ff7a680621b936e4ab600ab955b90b36fb57e9e13f9be52a",
+			"reviewed_at": "2026-06-27T10:01:06.208778017Z"
 		}
 	]
 }

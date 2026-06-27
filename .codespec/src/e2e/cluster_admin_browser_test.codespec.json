@@ -1,0 +1,179 @@
+{
+	"functions": [
+		{
+			"function_name": "Create",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "5158ba468ff665ac9ad5a4ec9fe3a36cf8b606be785c81fc07c6b09e65379f41",
+			"definition_hash": "0b2a16540e711f9043f7465fda3e3f11f5b9d302c0c1fcf28e971a0eef781c3d",
+			"reviewed_at": "2026-06-27T10:01:06.212043688Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "cfec2425441feed521d4c593441c4394298b23aff770b995ae13e2d16138c768",
+			"definition_hash": "9c3a7ebb342ea2ab1e6e8401a3f1d276b311fe788df49575f0f16108b1b08a1e",
+			"reviewed_at": "2026-06-27T10:01:06.214453141Z"
+		},
+		{
+			"function_name": "Exec",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "d7694a7f371537cda31e239e0b31ef29b54f14ff2a90fb806285060afcd3a6c6",
+			"definition_hash": "eef18048eccb8fe471328fd787f6858bead7afaf7aa7e45498dd02b70b5e8bbc",
+			"reviewed_at": "2026-06-27T10:01:06.216099729Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "4ddd7b474f85b86b3adf6e5408c8562200f8ad8af1dccb736dbe0a588cbfccd8",
+			"definition_hash": "3ed81e0d3e329d20385ccfc1ca411aa7ee1c33dfe8190066c110ceda10035d53",
+			"reviewed_at": "2026-06-27T10:01:06.217558346Z"
+		},
+		{
+			"function_name": "Logs",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "522e917ccb050b8a131c645932c4b54c62f87708fc71fcfbd1648fe6a3e19698",
+			"definition_hash": "0356edc90d984159a140bb8f9c53c186555b436cc8bd9333a925eab3f7e8c98e",
+			"reviewed_at": "2026-06-27T10:01:06.218946835Z"
+		},
+		{
+			"function_name": "ReapOrphans",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "96639410bd50a250948ac74492fec157796e4b82fad78fabfdea6b32cdcaa322",
+			"definition_hash": "f89de22d36854cf831c92de35037ccdf2ab540d513729deb8143ab344f918676",
+			"reviewed_at": "2026-06-27T10:01:06.221225238Z"
+		},
+		{
+			"function_name": "SubmitCode",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "02402ab2de8d16f8cf8d84e1a455361d85363ada1e82ef61ee2754a7e1fa23c0",
+			"definition_hash": "d1484c67fbcbda1ce76b6880ed6ef29829ba339f13441e725acf83c65bd4e91a",
+			"reviewed_at": "2026-06-27T10:01:06.222874532Z"
+		},
+		{
+			"function_name": "hasBox",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "050bb0d47ff708c8d12ee1b241c93915c1c9cb72a643f82811933d242270942f",
+			"definition_hash": "d87f37596513a11ddb47097d7f246589e70df1654c49ee36372b6069eb9ee106",
+			"reviewed_at": "2026-06-27T10:01:06.224122417Z"
+		},
+		{
+			"function_name": "humanDestroy",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "72f7f470e92497aa057b68ee36f73c35bbcbea13e27a3de1d354a6a6917c8c0b",
+			"definition_hash": "b9cd2a4c981f6037fd75afd582db1b7ff00631711ad4a333660b564dad8b195d",
+			"reviewed_at": "2026-06-27T10:01:06.224717742Z"
+		},
+		{
+			"function_name": "newBrowserSpokeMgr",
+			"documentation_hash": "4daf638b4ca733b2238c81f4023ae0ee1dbae954b2e325b179b6d4776c339e83",
+			"definition_hash": "2bdc749c7f6f396a359e6609e45b2290ad16dd36fb6da6957070e0559b259543",
+			"reviewed_at": "2026-06-27T10:01:06.225544152Z"
+		},
+		{
+			"function_name": "disconnect",
+			"receiver": "browserRemote",
+			"documentation_hash": "4ae5a6e52bf5bb176add046d50e2b8b1ec1fc1eb5984b8e88f6106a92af2e0de",
+			"definition_hash": "6d554dcad810bce4d4489a99d036603a9c9a4b92efd2503fb1a00fbadc6d913e",
+			"reviewed_at": "2026-06-27T10:01:08.669450787Z"
+		},
+		{
+			"function_name": "reconnect",
+			"receiver": "browserRemote",
+			"documentation_hash": "f473c2a971b715d33452b8e2553fd15341a87e411ee3cf328b2bdcf3d38bf071",
+			"definition_hash": "603253b1eb2d68c65f02b3e28a64361fed3b94e989f65bf7735a46721e18fee0",
+			"reviewed_at": "2026-06-27T10:01:08.672259857Z"
+		},
+		{
+			"function_name": "start",
+			"receiver": "browserRemote",
+			"documentation_hash": "227186b80e672d8f16bb70e20114897866d8ce3cde3d39712dc58496187cc8c0",
+			"definition_hash": "0cb8713072554bc3c1d7a3f32faf0b25e8a0365fddee709268e6214f5ac3fe16",
+			"reviewed_at": "2026-06-27T10:01:08.708937428Z"
+		},
+		{
+			"function_name": "connectSpoke",
+			"receiver": "clusterBrowserEnv",
+			"documentation_hash": "f85262433f6217521df25a70a337bb5c6835e51b4c37c6bf257b8a695d90147f",
+			"definition_hash": "43e72a243770251b46146c1ab255188e2ed434de09d2a1b8024c83b0cd2a342d",
+			"reviewed_at": "2026-06-27T10:01:08.713390308Z"
+		},
+		{
+			"function_name": "createBox",
+			"receiver": "clusterBrowserEnv",
+			"documentation_hash": "8dae606d54911ef9c5018068cd525608507d83bec0254d32f77ebc5280f13955",
+			"definition_hash": "cc5618837ced1b2efebaca88082a1d46d4abeab1e7e71cccc5d449c964a914de",
+			"reviewed_at": "2026-06-27T10:01:08.716162995Z"
+		},
+		{
+			"function_name": "openAdmin",
+			"receiver": "clusterBrowserEnv",
+			"documentation_hash": "55423edd1d13e36b5b99d3f30586c68488475db99ab3248db990d23d76ad24d0",
+			"definition_hash": "4b534087366cd8a90331a9d83123b1b8ded7fa52853e3bb8c72d6e8ad226a8eb",
+			"reviewed_at": "2026-06-27T10:01:08.718377282Z"
+		},
+		{
+			"function_name": "reload",
+			"receiver": "clusterBrowserEnv",
+			"documentation_hash": "2e9e8d8f1cbc56823cad940ca750a7c6b2f35d9b03764d495cb816126b198c4e",
+			"definition_hash": "5145c7bb3cefa978c329fce47476d9aed0dc69326007160e3fcd0b2616ab0e1d",
+			"reviewed_at": "2026-06-27T10:01:08.720554591Z"
+		},
+		{
+			"function_name": "removeBox",
+			"receiver": "clusterBrowserEnv",
+			"documentation_hash": "62e278c40c0abc120954e0f8c327b72a5d05137ee6548c98c3bb111007a52fff",
+			"definition_hash": "62a864ba8ac406a0b39d8506001836f97e2c40738b00e18648c4b626571496f8",
+			"reviewed_at": "2026-06-27T10:01:08.724307528Z"
+		},
+		{
+			"function_name": "waitSpokeStatus",
+			"receiver": "clusterBrowserEnv",
+			"documentation_hash": "e1b311e23dea67d4da689afc72805dc785c75f7242d630c58cde5ab2c06ce29e",
+			"definition_hash": "68fb94976eabe1773fdca015adb5188896ddff0fbb7c314935b83ab7399fe63c",
+			"reviewed_at": "2026-06-27T10:01:08.726562102Z"
+		},
+		{
+			"function_name": "newClusterBrowserEnv",
+			"documentation_hash": "80960e62883bbce1e1c50529f534e6187c6c8b0d446a9efd174974f2a3209971",
+			"definition_hash": "45e05b0f980da795dea7907ce4c3d9767d3f75245fd261719e4b5f0656c34496",
+			"reviewed_at": "2026-06-27T10:01:08.728569792Z"
+		},
+		{
+			"function_name": "TestAdminCreateAndRemoveBoxOnSpokeInBrowser",
+			"documentation_hash": "33834ac39efde5a10b16f8eeb8997dc60a0ab67bd1af6210e2eb75f80f2340ee",
+			"definition_hash": "0f4b622772aa53c61b0a7d7debf06e3476b9fd3b63423401d2b835cd03b79614",
+			"reviewed_at": "2026-06-27T10:01:11.15327916Z"
+		},
+		{
+			"function_name": "TestAdminRemoveHumanDestroyedBoxOnSpokeInBrowser",
+			"documentation_hash": "94a9113ec9814450e22be710fd04139cac0cad178290b4a3fac9c285d04379e3",
+			"definition_hash": "2ffb2d4fa5a3a0696d7d7db5fab133b6ff093dc6666cc672ea93d46df39e4114",
+			"reviewed_at": "2026-06-27T10:07:24.14024222Z"
+		},
+		{
+			"function_name": "TestAdminSpokeDisconnectReconnectInBrowser",
+			"documentation_hash": "2b3ada9beb6e7557cf4083ae9db2531d8ce2bfc2ddd7e3cad35c5691dbfcc145",
+			"definition_hash": "66189e2b30692e28b38891049890843f6924cc321bd08a2055175cd910aa1704",
+			"reviewed_at": "2026-06-27T10:01:11.193337963Z"
+		},
+		{
+			"function_name": "boxCellXPath",
+			"documentation_hash": "3659c933a87407e02811ccb6631fc7762843366919c7f1cf3f23a5e28c164374",
+			"definition_hash": "01996f35a38057ccfbb3f38f647aabb5cf6da5ca55fc4a1e4e51f6ba003e9480",
+			"reviewed_at": "2026-06-27T10:01:11.197804053Z"
+		},
+		{
+			"function_name": "boxSpoke",
+			"receiver": "clusterBrowserEnv",
+			"documentation_hash": "50ea79cc00c41777137eb1286949b57168b04de3036089aeb3ddd5d64802497d",
+			"definition_hash": "8af4238360a72b3a0f32ab90f50496e29fc8f514a1a42d8ac5dd3a72ea5ed644",
+			"reviewed_at": "2026-06-27T10:01:11.200412837Z"
+		},
+		{
+			"function_name": "randContainerID",
+			"documentation_hash": "f132ff2b99213bfe565cf2816fdb04a50f0b0383d6d00fe4c8a505be280b8f9c",
+			"definition_hash": "f9002c47f97cc8b843d7c2d6d380f797c6753b75fa0d83de98eb08e8702609aa",
+			"reviewed_at": "2026-06-27T10:01:11.202660391Z"
+		}
+	]
+}

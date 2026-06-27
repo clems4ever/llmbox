@@ -1,13 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "boxOnSpokeUI",
-			"receiver": "clusterFixture",
-			"documentation_hash": "9d3ef44dfa16b8d79d8b571fc51083662106065c1e94632eef8d6d5358797f3c",
-			"definition_hash": "8aa73442a440f1765493d961c8cef5aeadb0a88cb01271affdca392addb40151",
-			"reviewed_at": "2026-06-27T09:31:33.741974405Z"
-		},
-		{
 			"function_name": "connectSpoke",
 			"receiver": "clusterFixture",
 			"documentation_hash": "a308e5419168b6de8d0fab3b59f1532b9a7f018dfcef57ef6b4b6e1ec8125ffd",
@@ -15,25 +8,11 @@
 			"reviewed_at": "2026-06-27T09:31:33.743067994Z"
 		},
 		{
-			"function_name": "createBoxUI",
-			"receiver": "clusterFixture",
-			"documentation_hash": "8379d58d19b07e97d0c4cb0a0ee8c8f5d9e664c9f1f985ff0af9db009cbe5c11",
-			"definition_hash": "0f14984c3cc51192f9a4dca390ae98a23e7aac6f721819b9b875238f84b5aa6d",
-			"reviewed_at": "2026-06-27T09:31:33.743635778Z"
-		},
-		{
 			"function_name": "dashboard",
 			"receiver": "clusterFixture",
 			"documentation_hash": "f8509e8a9e640317d25bdc25f6ae676428bb6f6707fc70aa39bab1720d3e0973",
 			"definition_hash": "690cc0ccd2b79cfdb5a79659d34e3c0fb889e88f53f3ff8a7d85556f4bc31dd8",
 			"reviewed_at": "2026-06-27T09:31:33.744141252Z"
-		},
-		{
-			"function_name": "deleteBoxUI",
-			"receiver": "clusterFixture",
-			"documentation_hash": "8b6fb4c2bc328289f0ec405011af0e9b8341584c6b0b2f23e655e100c0be7c84",
-			"definition_hash": "8e84a33479170ff5c64ebb39ffecd5a1fda94e0162881a7f1bcf03fda9796dc3",
-			"reviewed_at": "2026-06-27T09:31:33.74458181Z"
 		},
 		{
 			"function_name": "post",
@@ -50,18 +29,11 @@
 			"reviewed_at": "2026-06-27T09:31:33.745408776Z"
 		},
 		{
-			"function_name": "spokeConnectedUI",
-			"receiver": "clusterFixture",
-			"documentation_hash": "4d399dbdee112cfe82913b8583fcafae785961f3ce61ab215c1132a0971d429c",
-			"definition_hash": "0ba80d5984a74bad66b307814da1814d06d052fcf1d5975326ac85515b7f2a56",
-			"reviewed_at": "2026-06-27T09:31:33.745958479Z"
-		},
-		{
 			"function_name": "waitSpokeConnected",
 			"receiver": "clusterFixture",
 			"documentation_hash": "a16ec2d4ff093d8f41460dad1d8d789223bc779f16d7985704b755bcebc0afe0",
-			"definition_hash": "17683fa6ec1390c7b410cc69fce327fed82a466272402ebc73111df06291e0e0",
-			"reviewed_at": "2026-06-27T09:31:33.746397246Z"
+			"definition_hash": "0fcf381c4237dce4fdc22766d89ebc5cfefab5ef4886901a50875be54ddd84fc",
+			"reviewed_at": "2026-06-27T10:01:06.206857251Z"
 		},
 		{
 			"function_name": "disconnect",
@@ -101,6 +73,34 @@
 			"documentation_hash": "bb810f8a4b9cf5d39e3ef5cacab531c66e5a1983129c824597e357fee37a0d2f",
 			"definition_hash": "d393c2fbf79238cf0005f343819a3180dcb592d4b896c62045aa56c4310d8cec",
 			"reviewed_at": "2026-06-27T09:31:33.749600353Z"
+		},
+		{
+			"function_name": "boxOnSpokeViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "2ddc15c7063033de108b140fdef1756de148a72025bc7cfc0443ec46ba4b3d94",
+			"definition_hash": "35409a1e35c76e3f41845679824afd9648069177055b323751aaac2f9e2f9fbe",
+			"reviewed_at": "2026-06-27T10:01:06.190753899Z"
+		},
+		{
+			"function_name": "createBoxViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "45208a1f7899087402911aa0d09adc19461f8219d38ada46592dcb2848ace62c",
+			"definition_hash": "e0f66109c5453628e5bc0b655e9e1349428ef6373b0a2d2f109a164403315698",
+			"reviewed_at": "2026-06-27T10:01:06.192670702Z"
+		},
+		{
+			"function_name": "deleteBoxViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "71aa690689d537a618d627c0e695b6373ee41938a627e5d52c3f0aa5c454e5b2",
+			"definition_hash": "17bbb98262f3d0447a7723c7ccc99165072ca6f901dc14ab92ec01d9035e2835",
+			"reviewed_at": "2026-06-27T10:01:06.202671999Z"
+		},
+		{
+			"function_name": "spokeConnectedViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "a127b823e8cccf73c3d588f0b1c10623d29dd2236c218682014b943bf5de9116",
+			"definition_hash": "c8ebf6b9d760347aaffddb10f3465995828ff0ecdad491b539c18a8c49920fbb",
+			"reviewed_at": "2026-06-27T10:01:06.204862367Z"
 		}
 	]
 }

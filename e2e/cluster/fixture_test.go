@@ -20,10 +20,13 @@ import (
 )
 
 // clusterFixture is a complete, in-process llmbox cluster wired for driving box
-// operations through the ADMIN UI rather than the MCP API. It stands up a real
-// hub with clustering enabled, a real HTTP server (the UI/API handler, which
-// also carries /spoke/connect and /healthz) on a loopback listener, and a
-// signed-in admin whose login cookie and CSRF token authorize the admin actions.
+// operations against the admin HTTP endpoints DIRECTLY (the same routes the admin
+// page's JavaScript POSTs to) — not the MCP API, and not through a browser. It is
+// the fast test layer; the browser-level equivalents live in package e2e
+// (cluster_admin_browser_test.go). It stands up a real hub with clustering
+// enabled, a real HTTP server (the UI/API handler, which also carries
+// /spoke/connect and /healthz) on a loopback listener, and a signed-in admin
+// whose login cookie and CSRF token authorize the admin actions.
 //
 // Spokes are attached with connectSpoke: each is a real spoke process (a
 // goroutine) that dials the hub over a real WebSocket and enrolls with a join
@@ -231,12 +234,12 @@ func (f *clusterFixture) post(path string, form url.Values) uiResult {
 	return r
 }
 
-// createBoxUI creates a box on the given spoke through the admin UI, asserting
-// the action succeeds.
+// createBoxViaAPI creates a box on the given spoke by POSTing to the admin
+// /admin/boxes endpoint, asserting the action succeeds.
 //
 // @arg boxID The box ID to assign.
 // @arg spoke The spoke to create the box on.
-func (f *clusterFixture) createBoxUI(boxID, spoke string) {
+func (f *clusterFixture) createBoxViaAPI(boxID, spoke string) {
 	f.t.Helper()
 	// The create action embeds its one-time newBox payload alongside ok; only the
 	// ok flag matters here.
@@ -246,12 +249,13 @@ func (f *clusterFixture) createBoxUI(boxID, spoke string) {
 	}
 }
 
-// deleteBoxUI removes a box through the admin UI and returns the action result so
-// a test can assert success (or inspect the error).
+// deleteBoxViaAPI removes a box by POSTing to the admin /admin/boxes/delete
+// endpoint and returns the action result so a test can assert success (or inspect
+// the error).
 //
 // @arg boxID The box ID to remove.
 // @return uiResult The decoded {ok,msg,err} result.
-func (f *clusterFixture) deleteBoxUI(boxID string) uiResult {
+func (f *clusterFixture) deleteBoxViaAPI(boxID string) uiResult {
 	f.t.Helper()
 	return f.post("/admin/boxes/delete", url.Values{"box_id": {boxID}})
 }
@@ -281,12 +285,13 @@ func (f *clusterFixture) dashboard() string {
 	return string(body)
 }
 
-// spokeConnectedUI reads the spoke's connection status from the admin dashboard.
+// spokeConnectedViaAPI reads the spoke's connection status from the admin
+// dashboard HTML (fetched over HTTP).
 //
 // @arg name The spoke name to look up.
 // @return connected Whether the dashboard marks the spoke connected.
 // @return present Whether a row for the spoke is shown at all.
-func (f *clusterFixture) spokeConnectedUI(name string) (connected, present bool) {
+func (f *clusterFixture) spokeConnectedViaAPI(name string) (connected, present bool) {
 	f.t.Helper()
 	row, ok := rowInSection(f.dashboard(), "spokes-card", "boxes-card", name)
 	if !ok {
@@ -295,12 +300,13 @@ func (f *clusterFixture) spokeConnectedUI(name string) (connected, present bool)
 	return strings.Contains(row, `pill on">connected`), true
 }
 
-// boxOnSpokeUI reads which spoke a box is shown on in the admin dashboard.
+// boxOnSpokeViaAPI reads which spoke a box is shown on in the admin dashboard
+// HTML (fetched over HTTP).
 //
 // @arg boxID The box ID to look up.
 // @return spoke The spoke the box is listed under.
 // @return present Whether a row for the box is shown at all.
-func (f *clusterFixture) boxOnSpokeUI(boxID string) (spoke string, present bool) {
+func (f *clusterFixture) boxOnSpokeViaAPI(boxID string) (spoke string, present bool) {
 	f.t.Helper()
 	row, ok := rowInSection(f.dashboard(), "boxes-card", "", boxID)
 	if !ok {
@@ -320,7 +326,7 @@ func (f *clusterFixture) waitSpokeConnected(name string, want bool) {
 	f.t.Helper()
 	deadline := time.Now().Add(10 * time.Second)
 	for {
-		if got, present := f.spokeConnectedUI(name); present && got == want {
+		if got, present := f.spokeConnectedViaAPI(name); present && got == want {
 			return
 		}
 		if time.Now().After(deadline) {
