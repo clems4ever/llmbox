@@ -56,7 +56,7 @@ they always reflect the current UI and stay reviewable; see
 | `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile`         | Image for **this server** (`llmbox`). Carries only the llmbox server binary; it neither runs nor ships Claude. |
-| `Dockerfile.box`     | Default box image (`claude_image`). Bakes in the standalone Claude binary, tini (PID 1), util-linux, and a CA bundle. |
+| `Dockerfile.box`     | Default box image (`claude_image`). Bakes in the standalone Claude binary, tini (PID 1), util-linux, Node.js + pm2 (so Claude can run daemons), and a CA bundle. |
 
 Boxes run on the box image (`claude_image`, default
 `ghcr.io/clems4ever/llmbox-box`, built by `Dockerfile.box`), which **bakes in**
@@ -64,5 +64,7 @@ the standalone Claude binary along with `tini`. The server injects only a small
 `~/.claude.json` seed into each box at creation, and runs it as root with
 `HOME=/root` and a `/workspace` working directory. The entrypoint runs under
 `tini` as PID 1, so the many short-lived processes Claude's tools spawn are
-reaped instead of accumulating as zombies. Any glibc image bundling Claude,
-`tini`, `/bin/sh`, `util-linux` (for `script`), and CA certificates works.
+reaped instead of accumulating as zombies. The default image also ships Node.js
+and `pm2`, so Claude can start, list, and stop long-running daemons at runtime
+(`pm2 start <cmd>`). Any glibc image bundling Claude, `tini`, `/bin/sh`,
+`util-linux` (for `script`), and CA certificates works.
