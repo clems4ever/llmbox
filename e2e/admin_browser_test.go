@@ -10,8 +10,8 @@ import (
 
 	"github.com/tebeka/selenium"
 
+	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/docker"
-	"github.com/clems4ever/llmbox/internal/server"
 )
 
 // TestAdminRemoveBoxInBrowser drives the cluster-admin "Remove" button through a
@@ -49,7 +49,7 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 	if err := b.wd.Get(httpSrv.URL + "/admin"); err != nil {
 		t.Fatalf("loading origin: %v", err)
 	}
-	setCookie := fmt.Sprintf("document.cookie = %q;", server.LoginCookie+"="+cookie.Value+"; path=/")
+	setCookie := fmt.Sprintf("document.cookie = %q;", auth.LoginCookie+"="+cookie.Value+"; path=/")
 	if _, err := b.wd.ExecuteScript(setCookie, nil); err != nil {
 		t.Fatalf("setting login cookie: %v", err)
 	}

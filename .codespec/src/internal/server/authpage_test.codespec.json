@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "newAuthServer",
+			"documentation_hash": "c16a3959c55a328535892f47f41e995eeff97ecd3db79011868adb343fae9299",
+			"definition_hash": "a4cd3481190d68e5449ede1621f2b475cedf466099bcf87adc55136cc418470b",
+			"reviewed_at": "2026-06-27T11:24:22.844166531Z"
+		},
+		{
+			"function_name": "TestAuthPageRequiresLogin",
+			"documentation_hash": "fbb8971e7c31b6217e7a1dccfc54e364ea92db72f30e8d1641442af558061cee",
+			"definition_hash": "9a971eebf9c15a5980d8e53a17565ea2e60a78a95027d76c03b0cda117cc1d34",
+			"reviewed_at": "2026-06-27T11:24:33.704717921Z"
+		},
+		{
+			"function_name": "TestActivationGatedByLogin",
+			"documentation_hash": "fa49343c911c73f938e0d5789ca32237e72a340b9e80faf40de09649a58f1c4f",
+			"definition_hash": "85e38317db585cf9c105d5db1108bfaf048684a8c5b5ba6369ed504d953f6fb5",
+			"reviewed_at": "2026-06-27T11:24:44.564411198Z"
+		}
+	]
+}

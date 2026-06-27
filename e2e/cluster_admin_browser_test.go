@@ -28,6 +28,7 @@ import (
 
 	"github.com/tebeka/selenium"
 
+	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/server"
@@ -203,9 +204,9 @@ func newClusterBrowserEnv(t *testing.T) *clusterBrowserEnv {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 
-	auth := server.NewTestAuthenticator("admin@corp.com")
+	a := auth.NewTestAuthenticator("admin@corp.com")
 	hub := cluster.NewHub(ctx, st, nil, nil)
-	srv := server.New(newBrowserSpokeMgr("local"), nil, "https://boxes.example.com", time.Minute, st, auth)
+	srv := server.New(newBrowserSpokeMgr("local"), nil, "https://boxes.example.com", time.Minute, st, a)
 	srv.SetHub(hub)
 	srv.SetBoxImage("box:e2e")
 
@@ -301,7 +302,7 @@ func (e *clusterBrowserEnv) openAdmin(b *browser) {
 	if err := b.wd.Get(e.httpSrv.URL + "/admin"); err != nil {
 		e.t.Fatalf("loading origin: %v", err)
 	}
-	setCookie := fmt.Sprintf("document.cookie = %q;", server.LoginCookie+"="+e.cookie.Value+"; path=/")
+	setCookie := fmt.Sprintf("document.cookie = %q;", auth.LoginCookie+"="+e.cookie.Value+"; path=/")
 	if _, err := b.wd.ExecuteScript(setCookie, nil); err != nil {
 		e.t.Fatalf("setting login cookie: %v", err)
 	}

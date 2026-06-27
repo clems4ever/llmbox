@@ -25,8 +25,8 @@
 			"function_name": "signInAdmin",
 			"receiver": "clusterFixture",
 			"documentation_hash": "80873c964cec1f07768788b530a0527bd797d47f16e793eee935874bdcb2826a",
-			"definition_hash": "66f8d15358944444c5a5f8e464e6ecc271342dea3396efc5438b9d55c738ab3f",
-			"reviewed_at": "2026-06-27T09:31:33.745408776Z"
+			"definition_hash": "f1f227306b0ce08ea8aeaba5b3ce2fd9278e0c6efec1bbede26a1df84f4e5edb",
+			"reviewed_at": "2026-06-27T11:22:57.131089162Z"
 		},
 		{
 			"function_name": "waitSpokeConnected",
@@ -59,8 +59,8 @@
 		{
 			"function_name": "newClusterFixture",
 			"documentation_hash": "27f270b3b24a4c005fa040dc79089f96589bdd95b4ea37d1b710526b903c3327",
-			"definition_hash": "07c5d8fa69c96174cf100eeeb5b21f55172fd2d8029f5a1bb8a6a23650040aa9",
-			"reviewed_at": "2026-06-27T09:31:33.74862549Z"
+			"definition_hash": "c5d678986d0605bdc027a3ff1e467277a8fa66fcdcda045a0a6819aa9704f358",
+			"reviewed_at": "2026-06-27T11:22:56.754823579Z"
 		},
 		{
 			"function_name": "nextMonoCell",

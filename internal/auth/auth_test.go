@@ -1,4 +1,4 @@
-package server
+package auth
 
 import (
 	"context"
@@ -14,8 +14,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/clems4ever/llmbox/internal/config"
-	"github.com/clems4ever/llmbox/internal/docker"
-	"github.com/clems4ever/llmbox/testutils"
+	"github.com/clems4ever/llmbox/internal/store"
 )
 
 // fakeVerifier stands in for a real OIDC ID-token verifier so the HTTP flow can
@@ -54,21 +53,26 @@ func googleTestProvider(t *testing.T, claims idClaims, verr error) *provider {
 	}
 }
 
-// newAuthServer builds an auth-enabled Server backed by a real bbolt store.
-func newAuthServer(t *testing.T, p *provider) (*Server, *testutils.FakeMgr, Store) {
+// newTestAuth builds an Authenticator wrapping p and bound to a fresh bbolt store,
+// plus a mux mounting the login/callback handlers, so the OIDC flow can be driven
+// over HTTP without a Server.
+func newTestAuth(t *testing.T, p *provider) (*Authenticator, http.Handler, store.Store) {
 	t.Helper()
-	st, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	st, err := store.Open(filepath.Join(t.TempDir(), "s.db"))
 	if err != nil {
-		t.Fatalf("OpenStore: %v", err)
+		t.Fatalf("store.Open: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	auth := &Authenticator{
+	a := &Authenticator{
 		providers:  map[string]*provider{p.name: p},
 		order:      []string{p.name},
 		sessionTTL: time.Hour,
 	}
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?x=1", SubmitURL: "https://claude.ai/code/s/1"}
-	return New(f, nil, "https://boxes.example.com", time.Minute, st, auth), f, st
+	a.Bind(st, nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /auth/{provider}/login", a.HandleLogin)
+	mux.HandleFunc("GET /auth/{provider}/callback", a.HandleCallback)
+	return a, mux, st
 }
 
 // TestAuthorize checks the allow rules: verified email in an allowed domain or
@@ -98,12 +102,12 @@ func TestAuthorize(t *testing.T) {
 	}
 }
 
-// TestNewAuthenticatorDisabled checks that no enabled provider yields a nil
-// Authenticator (activation stays unauthenticated) with no error.
-func TestNewAuthenticatorDisabled(t *testing.T) {
-	a, err := NewAuthenticator(context.Background(), config.AuthConfig{})
+// TestNewDisabled checks that no enabled provider yields a nil Authenticator
+// (activation stays unauthenticated) with no error.
+func TestNewDisabled(t *testing.T) {
+	a, err := New(context.Background(), config.AuthConfig{})
 	if err != nil {
-		t.Fatalf("NewAuthenticator: %v", err)
+		t.Fatalf("New: %v", err)
 	}
 	if a != nil {
 		t.Errorf("want nil authenticator when no provider enabled, got %v", a)
@@ -113,8 +117,7 @@ func TestNewAuthenticatorDisabled(t *testing.T) {
 // TestProviderLoginRedirects checks /auth/google/login persists a flow and
 // redirects to the provider with state and a PKCE challenge.
 func TestProviderLoginRedirects(t *testing.T) {
-	s, _, st := newAuthServer(t, googleTestProvider(t, idClaims{}, nil))
-	h := s.APIHandler()
+	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{}, nil))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/login?token=TOK", nil))
@@ -142,13 +145,32 @@ func TestProviderLoginRedirects(t *testing.T) {
 	}
 }
 
+// TestProviderLoginReturnPath checks the login flow persists a safe return path
+// (the admin flow) instead of a box token.
+func TestProviderLoginReturnPath(t *testing.T) {
+	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{}, nil))
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/login?return=%2Fadmin", nil))
+	if rec.Code != http.StatusFound {
+		t.Fatalf("status = %d, want 302", rec.Code)
+	}
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	flow, ok, err := st.TakeLoginFlow(loc.Query().Get("state"))
+	if err != nil || !ok {
+		t.Fatalf("flow not persisted: ok=%v err=%v", ok, err)
+	}
+	if flow.ReturnTo != "/admin" || flow.ReturnToken != "" {
+		t.Errorf("flow = %+v, want ReturnTo=/admin", flow)
+	}
+}
+
 // TestProviderCallbackActivates checks an authorized identity gets a login
 // session cookie and is redirected back to the box's auth page.
 func TestProviderCallbackActivates(t *testing.T) {
-	s, _, st := newAuthServer(t, googleTestProvider(t, idClaims{Email: "alice@corp.com", EmailVerified: true}, nil))
-	h := s.APIHandler()
+	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "alice@corp.com", EmailVerified: true}, nil))
 
-	if err := st.SaveLoginFlow("STATE", loginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+	if err := st.SaveLoginFlow("STATE", store.LoginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -182,10 +204,9 @@ func TestProviderCallbackActivates(t *testing.T) {
 // TestProviderCallbackRejectsUnauthorized checks an identity outside the allow
 // rule is refused with 403 and gets no login cookie.
 func TestProviderCallbackRejectsUnauthorized(t *testing.T) {
-	s, _, st := newAuthServer(t, googleTestProvider(t, idClaims{Email: "mallory@evil.com", EmailVerified: true}, nil))
-	h := s.APIHandler()
+	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "mallory@evil.com", EmailVerified: true}, nil))
 
-	if err := st.SaveLoginFlow("STATE", loginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+	if err := st.SaveLoginFlow("STATE", store.LoginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 	rec := httptest.NewRecorder()
@@ -199,84 +220,86 @@ func TestProviderCallbackRejectsUnauthorized(t *testing.T) {
 	}
 }
 
-// TestAuthPageRequiresLogin checks that, with auth enabled, an unauthenticated
-// visitor sees the sign-in buttons and not the code-entry form.
-func TestAuthPageRequiresLogin(t *testing.T) {
-	s, _, _ := newAuthServer(t, googleTestProvider(t, idClaims{}, nil))
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
-	if err != nil {
-		t.Fatalf("CreateBox: %v", err)
-	}
-	h := s.APIHandler()
+// TestProviderCallbackAdminOnly checks an admin who cannot activate boxes still
+// signs in with Admin=true, Activate=false.
+func TestProviderCallbackAdminOnly(t *testing.T) {
+	// Admin whose email is in no activation allow rule (domain admin.io is not
+	// allowed) still signs in for admin, with Activate=false.
+	a, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "boss@admin.io", EmailVerified: true}, nil))
+	a.adminEmails = map[string]bool{"boss@admin.io": true}
 
+	if err := st.SaveLoginFlow("STATE", store.LoginFlow{Provider: "google", ReturnTo: "/admin", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/"+sess.Token, nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/callback?state=STATE&code=CODE", nil))
 
-	body := rec.Body.String()
-	if !strings.Contains(body, "Sign in with Google") || !strings.Contains(body, "/auth/google/login?token=") {
-		t.Errorf("sign-in buttons missing from page:\n%s", body)
+	if rec.Code != http.StatusFound {
+		t.Fatalf("status = %d, want 302 (body %q)", rec.Code, rec.Body.String())
 	}
-	if strings.Contains(body, `name="code"`) {
-		t.Error("code form should be hidden until signed in")
+	if loc := rec.Header().Get("Location"); loc != "/admin" {
+		t.Errorf("Location = %q, want /admin", loc)
+	}
+	var cookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == LoginCookie {
+			cookie = c
+		}
+	}
+	if cookie == nil {
+		t.Fatal("no login cookie set")
+	}
+	ls, ok, _ := st.LoginSession(cookie.Value)
+	if !ok || !ls.Admin || ls.Activate {
+		t.Errorf("session = %+v, want Admin=true Activate=false", ls)
 	}
 }
 
-// TestActivationGatedByLogin checks the activation POST is refused without a
-// valid login session and matching CSRF, and proceeds (recording who activated)
-// when both are present.
-func TestActivationGatedByLogin(t *testing.T) {
-	s, f, st := newAuthServer(t, googleTestProvider(t, idClaims{}, nil))
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
-	if err != nil {
-		t.Fatalf("CreateBox: %v", err)
+// TestAdminAllowlist checks AdminEnabled/isAdmin honor the allow-list (case-insensitively) and a nil authenticator.
+func TestAdminAllowlist(t *testing.T) {
+	a := &Authenticator{adminEmails: map[string]bool{"admin@corp.com": true}}
+	if !a.AdminEnabled() {
+		t.Error("AdminEnabled = false, want true")
 	}
-	h := s.APIHandler()
+	if !a.isAdmin("Admin@Corp.com") {
+		t.Error("isAdmin should be case-insensitive")
+	}
+	if a.isAdmin("nobody@corp.com") {
+		t.Error("isAdmin allowed an unlisted email")
+	}
+	var nilA *Authenticator
+	if nilA.AdminEnabled() || nilA.isAdmin("admin@corp.com") {
+		t.Error("nil Authenticator should not enable admin")
+	}
+	if (&Authenticator{}).AdminEnabled() {
+		t.Error("empty allow-list should disable admin")
+	}
+}
 
-	post := func(cookie *http.Cookie, form url.Values) *httptest.ResponseRecorder {
-		req := httptest.NewRequest(http.MethodPost, "/auth/"+sess.Token, strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		if cookie != nil {
-			req.AddCookie(cookie)
+// TestAdminButtonsReturnPath checks AdminButtons builds a login link carrying the URL-encoded return path.
+func TestAdminButtonsReturnPath(t *testing.T) {
+	a := &Authenticator{providers: map[string]*provider{"google": {label: "Google"}}, order: []string{"google"}}
+	btns := a.AdminButtons("/admin")
+	if len(btns) != 1 || btns[0].LoginPath != "/auth/google/login?return=%2Fadmin" {
+		t.Errorf("AdminButtons = %+v", btns)
+	}
+}
+
+// TestSafeReturnPath checks local paths are accepted and absolute/protocol-relative/backslash ones are rejected.
+func TestSafeReturnPath(t *testing.T) {
+	cases := map[string]string{
+		"/admin":            "/admin",
+		"/admin?x=1":        "/admin?x=1",
+		"":                  "",
+		"//evil.com":        "",
+		"https://evil.com":  "",
+		"http://evil.com/x": "",
+		"relative":          "",
+		"/\\evil":           "",
+	}
+	for in, want := range cases {
+		if got := safeReturnPath(in); got != want {
+			t.Errorf("safeReturnPath(%q) = %q, want %q", in, got, want)
 		}
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, req)
-		return rec
-	}
-
-	// No login session -> 401, code never submitted.
-	if rec := post(nil, url.Values{"code": {"X"}}); rec.Code != http.StatusUnauthorized {
-		t.Fatalf("unauth POST status = %d, want 401", rec.Code)
-	}
-	if f.GotCode != "" {
-		t.Fatal("SubmitCode should not run without a login session")
-	}
-
-	// Seed a login session (authorized to activate) and post with the right CSRF.
-	if err := st.SaveLoginSession("SID", LoginSession{Email: "alice@corp.com", CSRF: "CSRF", ExpiresAt: time.Now().Add(time.Hour), Activate: true}); err != nil {
-		t.Fatal(err)
-	}
-	cookie := &http.Cookie{Name: LoginCookie, Value: "SID"}
-
-	// Wrong CSRF -> 403, still no submission.
-	if rec := post(cookie, url.Values{"code": {"X"}, "csrf": {"WRONG"}}); rec.Code != http.StatusForbidden {
-		t.Fatalf("bad-CSRF POST status = %d, want 403", rec.Code)
-	}
-	if f.GotCode != "" {
-		t.Fatal("SubmitCode should not run with a bad CSRF token")
-	}
-
-	// Correct session + CSRF -> activation proceeds and records who activated.
-	if rec := post(cookie, url.Values{"code": {"THECODE"}, "csrf": {"CSRF"}}); rec.Code != http.StatusOK {
-		t.Fatalf("authorized POST status = %d, want 200", rec.Code)
-	}
-	if f.GotCode != "THECODE" {
-		t.Errorf("submitted code = %q, want THECODE", f.GotCode)
-	}
-	got := s.lookup(sess.Token)
-	got.mu.Lock()
-	activatedBy := got.ActivatedBy
-	got.mu.Unlock()
-	if activatedBy != "alice@corp.com" {
-		t.Errorf("ActivatedBy = %q, want alice@corp.com", activatedBy)
 	}
 }

@@ -4,15 +4,15 @@
 			"function_name": "handleAuthPage",
 			"receiver": "Server",
 			"documentation_hash": "47b4e80bb483527e9e00167d9e18b3a5f20ccb5e433430b13e09c5cc7d22a821",
-			"definition_hash": "165435e079849283efdc7304441b5c504fbe360a96feef538cc1bf1b84a1387d",
-			"reviewed_at": "2026-06-21T19:09:12.558456395Z"
+			"definition_hash": "54aed0562e39ee6b486dd13dd7bc2d431dcde179eb111cf45a5521f1657df878",
+			"reviewed_at": "2026-06-27T11:23:49.722618145Z"
 		},
 		{
 			"function_name": "handleAuthSubmit",
 			"receiver": "Server",
 			"documentation_hash": "f45e9f0d45ebd585cefa5df03feee1bf0a9a1c1c4621657abf03b9fd4661ff1e",
-			"definition_hash": "17c1ace6b5c5724a20b0499724e013a348d8a3f709d8ad8fe05f01eb8568ecd4",
-			"reviewed_at": "2026-06-25T10:51:16.094307727Z"
+			"definition_hash": "92007e47fdc8dd99dd12bec4d27c2820c98cbc88d2ed7fe5d0d2b4ce7a5fcebf",
+			"reviewed_at": "2026-06-27T11:23:54.520155661Z"
 		},
 		{
 			"function_name": "render",
@@ -46,8 +46,8 @@
 			"function_name": "registerAppRoutes",
 			"receiver": "Server",
 			"documentation_hash": "9b42222a915bf0c96e77c7424c07d421496ca49e80a6a3a22f6efe01ce99e1a2",
-			"definition_hash": "70cf8b9bc0786a93b9081b7295c1fb961b4403dd2782a6478c69e52504ef8174",
-			"reviewed_at": "2026-06-25T12:41:39.331261744Z"
+			"definition_hash": "4850f5097f8ccc2026790f9cd9f45716774c1347413a3b657934a7b3d1e9e539",
+			"reviewed_at": "2026-06-27T11:23:44.897909883Z"
 		}
 	]
 }

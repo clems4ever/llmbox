@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/testutils"
@@ -48,9 +49,9 @@ func newAdminServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 		t.Fatalf("OpenStore: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	auth := NewTestAuthenticator("admin@corp.com")
+	a := auth.NewTestAuthenticator("admin@corp.com")
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/x", SubmitURL: "https://claude.ai/code/s/1"}
-	return New(f, nil, "https://boxes.example.com", time.Minute, st, auth), f, st
+	return New(f, nil, "https://boxes.example.com", time.Minute, st, a), f, st
 }
 
 // signIn stores a login session and returns its cookie. admin/activate control
@@ -63,112 +64,7 @@ func signIn(t *testing.T, st Store, admin, activate bool) *http.Cookie {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	return &http.Cookie{Name: LoginCookie, Value: "SID"}
-}
-
-// TestAdminAllowlist checks AdminEnabled/isAdmin honor the allow-list (case-insensitively) and a nil authenticator.
-func TestAdminAllowlist(t *testing.T) {
-	a := &Authenticator{adminEmails: map[string]bool{"admin@corp.com": true}}
-	if !a.AdminEnabled() {
-		t.Error("AdminEnabled = false, want true")
-	}
-	if !a.isAdmin("Admin@Corp.com") {
-		t.Error("isAdmin should be case-insensitive")
-	}
-	if a.isAdmin("nobody@corp.com") {
-		t.Error("isAdmin allowed an unlisted email")
-	}
-	var nilA *Authenticator
-	if nilA.AdminEnabled() || nilA.isAdmin("admin@corp.com") {
-		t.Error("nil Authenticator should not enable admin")
-	}
-	if (&Authenticator{}).AdminEnabled() {
-		t.Error("empty allow-list should disable admin")
-	}
-}
-
-// TestAdminButtonsReturnPath checks adminButtons builds a login link carrying the URL-encoded return path.
-func TestAdminButtonsReturnPath(t *testing.T) {
-	a := &Authenticator{providers: map[string]*provider{"google": {label: "Google"}}, order: []string{"google"}}
-	btns := a.adminButtons("/admin")
-	if len(btns) != 1 || btns[0].LoginPath != "/auth/google/login?return=%2Fadmin" {
-		t.Errorf("adminButtons = %+v", btns)
-	}
-}
-
-// TestSafeReturnPath checks local paths are accepted and absolute/protocol-relative/backslash ones are rejected.
-func TestSafeReturnPath(t *testing.T) {
-	cases := map[string]string{
-		"/admin":            "/admin",
-		"/admin?x=1":        "/admin?x=1",
-		"":                  "",
-		"//evil.com":        "",
-		"https://evil.com":  "",
-		"http://evil.com/x": "",
-		"relative":          "",
-		"/\\evil":           "",
-	}
-	for in, want := range cases {
-		if got := safeReturnPath(in); got != want {
-			t.Errorf("safeReturnPath(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
-// TestProviderLoginReturnPath checks the login flow persists a safe return path (admin flow) instead of a box token.
-func TestProviderLoginReturnPath(t *testing.T) {
-	s, _, st := newAuthServer(t, googleTestProvider(t, idClaims{}, nil))
-	h := s.APIHandler()
-
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/login?return=%2Fadmin", nil))
-	if rec.Code != http.StatusFound {
-		t.Fatalf("status = %d, want 302", rec.Code)
-	}
-	loc, _ := url.Parse(rec.Header().Get("Location"))
-	flow, ok, err := st.TakeLoginFlow(loc.Query().Get("state"))
-	if err != nil || !ok {
-		t.Fatalf("flow not persisted: ok=%v err=%v", ok, err)
-	}
-	if flow.ReturnTo != "/admin" || flow.ReturnToken != "" {
-		t.Errorf("flow = %+v, want ReturnTo=/admin", flow)
-	}
-}
-
-// TestProviderCallbackAdminOnly checks an admin who cannot activate boxes still signs in with Admin=true, Activate=false.
-func TestProviderCallbackAdminOnly(t *testing.T) {
-	// Admin whose email is in no activation allow rule (domain admin.io is not
-	// allowed) still signs in for admin, with Activate=false.
-	p := googleTestProvider(t, idClaims{Email: "boss@admin.io", EmailVerified: true}, nil)
-	s, _, st := newAuthServer(t, p)
-	s.auth.adminEmails = map[string]bool{"boss@admin.io": true}
-	h := s.APIHandler()
-
-	if err := st.SaveLoginFlow("STATE", loginFlow{Provider: "google", ReturnTo: "/admin", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
-		t.Fatal(err)
-	}
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/callback?state=STATE&code=CODE", nil))
-
-	if rec.Code != http.StatusFound {
-		t.Fatalf("status = %d, want 302 (body %q)", rec.Code, rec.Body.String())
-	}
-	if loc := rec.Header().Get("Location"); loc != "/admin" {
-		t.Errorf("Location = %q, want /admin", loc)
-	}
-	var cookie *http.Cookie
-	for _, c := range rec.Result().Cookies() {
-		if c.Name == LoginCookie {
-			cookie = c
-		}
-	}
-	if cookie == nil {
-		t.Fatal("no login cookie set")
-	}
-	ls, ok, _ := st.LoginSession(cookie.Value)
-	if !ok || !ls.Admin || ls.Activate {
-		t.Errorf("session = %+v, want Admin=true Activate=false", ls)
-	}
+	return &http.Cookie{Name: auth.LoginCookie, Value: "SID"}
 }
 
 // TestAdminDashboardGate checks /admin shows sign-in to anonymous, a 403 notice to non-admins, and the dashboard to admins.

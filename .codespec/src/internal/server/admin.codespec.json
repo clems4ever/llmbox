@@ -11,8 +11,8 @@
 			"function_name": "handleAdmin",
 			"receiver": "Server",
 			"documentation_hash": "34f7af7b5b8e3a927ca6f6bd1686d04fb6359c1575678c0cd063ab69b40bcda9",
-			"definition_hash": "059b47b7529d604976ee0521d1a489e1944f1171d7d679313765f36848c91031",
-			"reviewed_at": "2026-06-25T09:38:26.184504944Z"
+			"definition_hash": "5893245291ae287d7168113879c0c04e87604749f62de0095fffef92cc5e161c",
+			"reviewed_at": "2026-06-27T11:22:58.288845946Z"
 		},
 		{
 			"function_name": "adminDashboard",
@@ -37,8 +37,8 @@
 			"function_name": "requireAdminPost",
 			"receiver": "Server",
 			"documentation_hash": "9cfd909c4e9afb0f87cbb637c23a29e51ca94173199bc2aee36a1eda72974246",
-			"definition_hash": "2bd16781045faa7823c5941ac9af2d6554fa7e78e54df0a9a77de1497d7d2523",
-			"reviewed_at": "2026-06-25T10:50:51.593110971Z"
+			"definition_hash": "0d2ebb0e86c18536c41ad601316ec41113c68100628adeb6b79064176b269f1c",
+			"reviewed_at": "2026-06-27T11:22:58.775871323Z"
 		},
 		{
 			"function_name": "handleAdminCreateSpoke",
