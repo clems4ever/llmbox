@@ -92,7 +92,8 @@ func (s *Server) proxyURL(slug string) string {
 // @testcase TestCreateProxyDisabled errors when proxying is not enabled.
 // @testcase TestCreateProxyUnknownBox errors when no box has the given box ID.
 // @testcase TestCreateProxyRejectsBadPort rejects an out-of-range port.
-// @testcase TestCreateProxyIdempotent returns the existing proxy for a repeated box/port.
+// @testcase TestCreateProxyIdempotent returns the existing proxy for a repeated box/port on the same container.
+// @testcase TestCreateProxyReplacesStaleContainer mints a fresh slug when a same-id box has a new container.
 func (s *Server) createProxy(boxID string, port int, createdBy string) (store.ProxyRecord, error) {
 	if !s.ProxyEnabled() {
 		return store.ProxyRecord{}, fmt.Errorf("proxying is not enabled on this server")
@@ -104,22 +105,34 @@ func (s *Server) createProxy(boxID string, port int, createdBy string) (store.Pr
 	if sess == nil {
 		return store.ProxyRecord{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
 	}
-	if existing, err := s.findProxy(boxID, port); err != nil {
+	existing, err := s.findProxy(boxID, port)
+	if err != nil {
 		return store.ProxyRecord{}, err
-	} else if existing != nil {
-		return *existing, nil
+	}
+	if existing != nil {
+		// Reuse the slug only when it belongs to the *same* container. A proxy left
+		// over from an earlier box that happened to share this box ID points at a
+		// destroyed container, so it must not be handed back for the new box —
+		// delete it and mint a fresh slug instead.
+		if existing.ContainerID == sess.ContainerID {
+			return *existing, nil
+		}
+		if derr := s.store.DeleteProxy(existing.Slug); derr != nil {
+			return store.ProxyRecord{}, fmt.Errorf("replacing stale proxy: %w", derr)
+		}
 	}
 	slug, err := newProxySlug()
 	if err != nil {
 		return store.ProxyRecord{}, fmt.Errorf("generating proxy slug: %w", err)
 	}
 	rec := store.ProxyRecord{
-		Slug:      slug,
-		BoxID:     boxID,
-		Port:      port,
-		Spoke:     sess.SpokeName,
-		CreatedAt: time.Now(),
-		CreatedBy: createdBy,
+		Slug:        slug,
+		BoxID:       boxID,
+		ContainerID: sess.ContainerID,
+		Port:        port,
+		Spoke:       sess.SpokeName,
+		CreatedAt:   time.Now(),
+		CreatedBy:   createdBy,
 	}
 	if err := s.store.SaveProxy(rec); err != nil {
 		return store.ProxyRecord{}, fmt.Errorf("saving proxy: %w", err)

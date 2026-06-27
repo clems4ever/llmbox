@@ -369,8 +369,10 @@ func (s *Server) SpokeStatuses(_ context.Context) ([]SpokeStatus, error) {
 // the spokes: a session whose box no longer exists on its (reachable) spoke is
 // dropped (and deleted from the store) so a stale token can't linger. A session
 // whose spoke is not currently connected is kept — the box may still be alive,
-// we just can't verify it yet. It returns the number of sessions restored. Call
-// it once at startup, before serving.
+// we just can't verify it yet. Enabled proxies are reconciled the same way, so a
+// box removed out of band before this restart leaves no proxy a later same-id box
+// could reuse. It returns the number of sessions restored. Call it once at
+// startup, before serving.
 //
 // @arg ctx Context for the spoke listings used to reconcile.
 // @return int The number of sessions restored into the registry.
@@ -378,6 +380,7 @@ func (s *Server) SpokeStatuses(_ context.Context) ([]SpokeStatus, error) {
 //
 // @testcase TestRestoreLoadsAndReconciles restores live sessions and drops dead ones.
 // @testcase TestRestoreKeepsDisconnectedSpokeSessions keeps a session whose spoke is offline.
+// @testcase TestRestoreReconcilesProxies drops a stale proxy whose box is gone.
 func (s *Server) Restore(ctx context.Context) (int, error) {
 	saved, err := s.store.LoadAll()
 	if err != nil {
@@ -431,7 +434,59 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 	}
 	n := len(s.byToken)
 	s.mu.Unlock()
+
+	// Reconcile proxies too: drop any whose box generation no longer exists on a
+	// reachable spoke. This closes the reuse window where a box is removed out of
+	// band (so neither destroy nor reap ran) and the server then restarts — without
+	// this, the orphaned proxy would survive and a later box created with the same
+	// box ID would inherit its slug. A proxy on an unreachable spoke is kept.
+	s.reconcileProxies(boxesBySpoke)
 	return n, nil
+}
+
+// reconcileProxies deletes proxies whose box no longer exists on its (listed)
+// spoke, matching by container ID so a same-box-ID box of a newer generation
+// does not keep an old proxy alive. boxesBySpoke holds the boxes successfully
+// listed per spoke; a proxy whose spoke is absent (unreachable) is kept.
+//
+// @arg boxesBySpoke The boxes listed per reachable spoke, keyed by spoke name.
+//
+// @testcase TestRestoreReconcilesProxies drops a proxy whose box is gone and keeps a live one.
+func (s *Server) reconcileProxies(boxesBySpoke map[string][]docker.Box) {
+	proxies, err := s.store.ListProxies()
+	if err != nil {
+		s.logger().Warn("listing proxies to reconcile during restore", "err", err)
+		return
+	}
+	for _, p := range proxies {
+		spokeName := p.Spoke
+		if spokeName == "" {
+			spokeName = localSpokeName
+		}
+		boxes, listed := boxesBySpoke[spokeName]
+		if !listed {
+			continue // spoke unreachable; can't verify, so keep the proxy
+		}
+		alive := false
+		for _, b := range boxes {
+			// Prefer the container ID (the exact box generation); fall back to box ID
+			// for a proxy persisted before container IDs were recorded.
+			if p.ContainerID != "" {
+				if strings.HasPrefix(p.ContainerID, b.ContainerID) {
+					alive = true
+					break
+				}
+			} else if b.BoxID != "" && strings.EqualFold(b.BoxID, p.BoxID) {
+				alive = true
+				break
+			}
+		}
+		if !alive {
+			if derr := s.store.DeleteProxy(p.Slug); derr != nil {
+				s.logger().Warn("failed to delete stale proxy during restore", "slug", p.Slug, "err", derr)
+			}
+		}
+	}
 }
 
 // createBox launches a new box and registers an auth session for it. When box
@@ -838,6 +893,11 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)
 		s.deleteProxiesForBox(tb.boxID)
 	}
+	// Defence in depth: also clear proxies for the identifier the caller passed, in
+	// case it is a box ID with no matching session (so the torn loop above missed
+	// it). A non-box-ID (container ID) matches no proxies, so this is a no-op then.
+	// This guarantees a destroyed box leaves no proxy a later same-id box can reuse.
+	s.deleteProxiesForBox(idOrName)
 	return nil
 }
 

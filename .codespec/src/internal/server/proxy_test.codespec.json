@@ -133,6 +133,24 @@
 			"documentation_hash": "146b960037b57805295968111edb7662c56854d9e6315feb65272b6a8d7ec28d",
 			"definition_hash": "aaedc566948c169b567dec79c4395f131b2cfdc884ee7830cbd46f3a536311ef",
 			"reviewed_at": "2026-06-27T17:27:44.202113135Z"
+		},
+		{
+			"function_name": "TestCreateProxyReplacesStaleContainer",
+			"documentation_hash": "53d6bb5cf75daec23f36523d5f1753ab8d3881da896243d755cc78d2339fd96a",
+			"definition_hash": "68ab54eb4bb23db35d08afa6dea84a41aacd3eac15fd1835fcfdbfadee2be723",
+			"reviewed_at": "2026-06-27T18:01:57.340629513Z"
+		},
+		{
+			"function_name": "TestDestroySessionlessBoxRemovesProxies",
+			"documentation_hash": "6e9d2642fbe442e0b507fb9a33baf3cbb9747ef049b33fdaf1c813eb44bd7d1c",
+			"definition_hash": "8508db5b6a12d6435923e799475b9523ec075133a334ff3c4180760f7a061671",
+			"reviewed_at": "2026-06-27T18:01:57.341758259Z"
+		},
+		{
+			"function_name": "TestRestoreReconcilesProxies",
+			"documentation_hash": "f04dc9dbd3d0ff79038fc13210b0972c1e8c2d45418bea0666a84bd10d7b1ab4",
+			"definition_hash": "cd3d01611d9d0ca105663e01d611caf298be3431875eac5a087744d54e572218",
+			"reviewed_at": "2026-06-27T18:01:57.342567135Z"
 		}
 	]
 }

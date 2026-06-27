@@ -67,6 +67,11 @@ type ProxyRecord struct {
 	Slug string `json:"slug"`
 	// BoxID is the box whose port is exposed (the caller-assigned box ID).
 	BoxID string `json:"box_id"`
+	// ContainerID is the container the proxy was created for. It pins the proxy to
+	// one box *generation*: a box destroyed and later recreated with the same box
+	// ID gets a different container, so a stale proxy is never silently reused for
+	// the new box (it is replaced, and reconciliation drops it).
+	ContainerID string `json:"container_id,omitempty"`
 	// Port is the TCP port inside the box that requests are forwarded to.
 	Port int `json:"port"`
 	// Spoke is the cluster spoke the box runs on ("local" for the in-process spoke).

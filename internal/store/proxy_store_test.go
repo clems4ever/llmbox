@@ -16,12 +16,13 @@ func TestProxyStoreRoundTrip(t *testing.T) {
 	defer st.Close()
 
 	rec := ProxyRecord{
-		Slug:      "abc123def456",
-		BoxID:     "web-box",
-		Port:      8000,
-		Spoke:     "local",
-		CreatedAt: time.Unix(1700000000, 0).UTC(),
-		CreatedBy: "dev@example.com",
+		Slug:        "abc123def456",
+		BoxID:       "web-box",
+		ContainerID: "abcdef0123456789",
+		Port:        8000,
+		Spoke:       "local",
+		CreatedAt:   time.Unix(1700000000, 0).UTC(),
+		CreatedBy:   "dev@example.com",
 	}
 	if err := st.SaveProxy(rec); err != nil {
 		t.Fatalf("SaveProxy: %v", err)

@@ -125,6 +125,84 @@ func TestCreateProxyIdempotent(t *testing.T) {
 	}
 }
 
+// TestCreateProxyReplacesStaleContainer checks that when a proxy already exists
+// for a box ID/port but points at a different (destroyed) container, createProxy
+// mints a fresh slug and drops the stale one — so a new box that reuses a box ID
+// never inherits the old box's proxy URL.
+func TestCreateProxyReplacesStaleContainer(t *testing.T) {
+	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "newcontainer00000"}, nil)
+	// Pre-seed a proxy from an earlier box generation (a different container).
+	if err := st.SaveProxy(store.ProxyRecord{
+		Slug: "oldslug", BoxID: "web-box", ContainerID: "oldcontainer00000", Port: 8000, Spoke: localSpokeName,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	registerBox(t, s, "web-box", "") // session's container is "newcontainer00000"
+
+	rec, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatalf("createProxy: %v", err)
+	}
+	if rec.Slug == "oldslug" {
+		t.Error("createProxy reused the stale slug from the destroyed container")
+	}
+	if rec.ContainerID != "newcontainer00000" {
+		t.Errorf("new proxy container = %q, want the current box's container", rec.ContainerID)
+	}
+	// The stale record is gone, and only the fresh one remains.
+	if _, ok, _ := st.GetProxy("oldslug"); ok {
+		t.Error("stale proxy slug still resolvable")
+	}
+	if list, _ := st.ListProxies(); len(list) != 1 {
+		t.Errorf("got %d proxies, want 1", len(list))
+	}
+}
+
+// TestDestroySessionlessBoxRemovesProxies checks that destroying a box by its box
+// ID clears its proxies even when no session is tracked (defence in depth).
+func TestDestroySessionlessBoxRemovesProxies(t *testing.T) {
+	s, st := newProxyServer(t, &testutils.FakeMgr{}, nil)
+	if err := st.SaveProxy(store.ProxyRecord{
+		Slug: "slug1", BoxID: "web-box", ContainerID: "c1", Port: 8000, Spoke: localSpokeName,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.destroyBox(context.Background(), "web-box"); err != nil {
+		t.Fatalf("destroyBox: %v", err)
+	}
+	if list, _ := st.ListProxies(); len(list) != 0 {
+		t.Errorf("sessionless box destroy left proxies: %+v", list)
+	}
+}
+
+// TestRestoreReconcilesProxies checks Restore drops a proxy whose box generation
+// no longer exists on its spoke while keeping a proxy whose box is still alive —
+// closing the reuse window where a box vanishes out of band before a restart.
+func TestRestoreReconcilesProxies(t *testing.T) {
+	mgr := &testutils.FakeMgr{ListResult: []docker.Box{
+		{ContainerID: "live123", BoxID: "live-box", State: "running", Phase: "ready"},
+	}}
+	s, st := newProxyServer(t, mgr, nil)
+	// One proxy for a live box, one for a box that no longer exists.
+	if err := st.SaveProxy(store.ProxyRecord{Slug: "live", BoxID: "live-box", ContainerID: "live123", Port: 8000, Spoke: localSpokeName}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveProxy(store.ProxyRecord{Slug: "dead", BoxID: "dead-box", ContainerID: "dead999", Port: 8000, Spoke: localSpokeName}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := s.Restore(context.Background()); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	if _, ok, _ := st.GetProxy("live"); !ok {
+		t.Error("live box's proxy was wrongly dropped")
+	}
+	if _, ok, _ := st.GetProxy("dead"); ok {
+		t.Error("stale proxy for a gone box survived Restore")
+	}
+}
+
 // TestListProxiesFiltersByBox checks listProxies returns all proxies or only one
 // box's.
 func TestListProxiesFiltersByBox(t *testing.T) {
