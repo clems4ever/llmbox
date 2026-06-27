@@ -1,4 +1,13 @@
-package server
+// Package auth gates box activation and the admin UI behind OIDC provider
+// sign-in. It owns the provider configuration and allow rules, the OIDC
+// login/callback handshake, and the login-session lookup the rest of the server
+// uses to learn who (if anyone) is signed in.
+//
+// The package depends only on internal/store (for the durable login state) and
+// internal/config, never on the server package, so authentication can evolve
+// independently of the box/spoke machinery. The server holds an *Authenticator,
+// mounts its handlers, and asks it who is signed in.
+package auth
 
 import (
 	"context"
@@ -6,6 +15,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,6 +25,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/clems4ever/llmbox/internal/config"
+	"github.com/clems4ever/llmbox/internal/store"
 )
 
 // LoginCookie is the name of the cookie holding the opaque login-session ID. The
@@ -104,25 +115,33 @@ type Authenticator struct {
 	// Empty (nil) means the admin UI is disabled. This is independent of any
 	// provider's box-activation allow rule.
 	adminEmails map[string]bool
+
+	// store persists the in-flight handshake state and completed login sessions.
+	// It is bound by the server (which owns the store) via Bind before serving;
+	// the OIDC handlers and CurrentLogin read and write it.
+	store store.LoginStore
+	// log records best-effort handler failures; nil falls back to slog.Default().
+	log *slog.Logger
 }
 
-// providerButton is one sign-in option rendered on the activation page.
-type providerButton struct {
+// ProviderButton is one sign-in option rendered on an activation or admin page.
+type ProviderButton struct {
 	Label     string
 	LoginPath string
 }
 
-// NewAuthenticator builds an Authenticator from the auth configuration, doing
-// OIDC discovery for each enabled provider. It returns (nil, nil) when no
-// provider is enabled, which leaves activation unauthenticated.
+// New builds an Authenticator from the auth configuration, doing OIDC discovery
+// for each enabled provider. It returns (nil, nil) when no provider is enabled,
+// which leaves activation unauthenticated. Call Bind before serving to attach the
+// login store the handlers persist to.
 //
 // @arg ctx Context for provider discovery.
 // @arg cfg The auth configuration (providers, session TTL).
 // @return *Authenticator The authenticator, or nil when no provider is enabled.
 // @error error if an enabled provider cannot be discovered.
 //
-// @testcase TestNewAuthenticatorDisabled returns nil when no provider is enabled.
-func NewAuthenticator(ctx context.Context, cfg config.AuthConfig) (*Authenticator, error) {
+// @testcase TestNewDisabled returns nil when no provider is enabled.
+func New(ctx context.Context, cfg config.AuthConfig) (*Authenticator, error) {
 	a := &Authenticator{
 		providers:   map[string]*provider{},
 		sessionTTL:  time.Duration(cfg.SessionTTL),
@@ -159,7 +178,8 @@ func NewAuthenticator(ctx context.Context, cfg config.AuthConfig) (*Authenticato
 // single "google" sign-in button (for stable button order) and the given emails
 // on the admin allow list. It does no OIDC discovery, so it is usable offline;
 // the stub provider it installs cannot complete a real login. This is the seam
-// external test packages use to construct an admin Authenticator.
+// external test packages use to construct an admin Authenticator. Call Bind to
+// attach a login store before exercising the handlers.
 //
 // @arg adminEmails The identities allowed into the admin UI; lower-cased here.
 // @return *Authenticator An admin-enabled authenticator backed by a stub provider.
@@ -172,6 +192,34 @@ func NewTestAuthenticator(adminEmails ...string) *Authenticator {
 		sessionTTL:  time.Hour,
 		adminEmails: lowerSet(adminEmails),
 	}
+}
+
+// Bind attaches the login store (and an optional logger) the OIDC handlers and
+// CurrentLogin use. The server, which owns the store, calls it once at
+// construction before serving. It is a no-op on a nil Authenticator.
+//
+// @arg s The login store the handlers persist handshake and session state to.
+// @arg log Optional logger for handler failures; nil falls back to slog.Default().
+//
+// @testcase TestProviderCallbackActivates exercises handlers backed by a bound store.
+func (a *Authenticator) Bind(s store.LoginStore, log *slog.Logger) {
+	if a == nil {
+		return
+	}
+	a.store = s
+	a.log = log
+}
+
+// logger returns the Authenticator's logger, or slog.Default() when none was set.
+//
+// @return *slog.Logger The configured logger, or the slog default.
+//
+// @testcase TestProviderLoginRedirects exercises handlers whose logger defaults.
+func (a *Authenticator) logger() *slog.Logger {
+	if a.log != nil {
+		return a.log
+	}
+	return slog.Default()
 }
 
 // provider returns the configured provider for name.
@@ -189,20 +237,20 @@ func (a *Authenticator) provider(name string) (*provider, bool) {
 	return p, ok
 }
 
-// buttons returns the sign-in buttons to render for an activation page, each
+// Buttons returns the sign-in buttons to render for an activation page, each
 // linking back to the given box token after login.
 //
 // @arg token The box auth token to return to after sign-in.
-// @return []providerButton One button per enabled provider, in config order.
+// @return []ProviderButton One button per enabled provider, in config order.
 //
 // @testcase TestAuthPageRequiresLogin renders the sign-in buttons.
-func (a *Authenticator) buttons(token string) []providerButton {
+func (a *Authenticator) Buttons(token string) []ProviderButton {
 	if a == nil {
 		return nil
 	}
-	out := make([]providerButton, 0, len(a.order))
+	out := make([]ProviderButton, 0, len(a.order))
 	for _, name := range a.order {
-		out = append(out, providerButton{
+		out = append(out, ProviderButton{
 			Label:     a.providers[name].label,
 			LoginPath: "/auth/" + name + "/login?token=" + url.QueryEscape(token),
 		})
@@ -234,20 +282,20 @@ func (a *Authenticator) isAdmin(email string) bool {
 	return a.adminEmails[strings.ToLower(strings.TrimSpace(email))]
 }
 
-// adminButtons returns the sign-in buttons for the admin UI, each returning to
+// AdminButtons returns the sign-in buttons for the admin UI, each returning to
 // returnTo (a local path) after sign-in rather than to a box activation page.
 //
 // @arg returnTo The local path to return to after sign-in (e.g. "/admin").
-// @return []providerButton One button per enabled provider, in config order.
+// @return []ProviderButton One button per enabled provider, in config order.
 //
 // @testcase TestAdminButtonsReturnPath builds login links carrying the return path.
-func (a *Authenticator) adminButtons(returnTo string) []providerButton {
+func (a *Authenticator) AdminButtons(returnTo string) []ProviderButton {
 	if a == nil {
 		return nil
 	}
-	out := make([]providerButton, 0, len(a.order))
+	out := make([]ProviderButton, 0, len(a.order))
 	for _, name := range a.order {
-		out = append(out, providerButton{
+		out = append(out, ProviderButton{
 			Label:     a.providers[name].label,
 			LoginPath: "/auth/" + name + "/login?return=" + url.QueryEscape(returnTo),
 		})
@@ -310,18 +358,18 @@ func (o oidcVerifier) verify(ctx context.Context, rawIDToken, nonce string) (idC
 	return idClaims{Email: c.Email, EmailVerified: c.EmailVerified, HostedDomain: c.HD}, nil
 }
 
-// handleProviderLogin begins an OIDC handshake: it persists fresh state (PKCE
-// verifier + nonce + where to return) and redirects to the provider. The return
-// target is either a box activation token (?token=, the activation flow) or a
-// safe local path (?return=, the admin flow); exactly one is required.
+// HandleLogin begins an OIDC handshake: it persists fresh state (PKCE verifier +
+// nonce + where to return) and redirects to the provider. The return target is
+// either a box activation token (?token=, the activation flow) or a safe local
+// path (?return=, the admin flow); exactly one is required.
 //
 // @arg w The response writer (redirected to the provider).
 // @arg r The request carrying {provider} and either a token or return query param.
 //
 // @testcase TestProviderLoginRedirects redirects to the provider with state.
 // @testcase TestProviderLoginReturnPath accepts a safe return path for the admin flow.
-func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
-	p, ok := s.auth.provider(r.PathValue("provider"))
+func (a *Authenticator) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	p, ok := a.provider(r.PathValue("provider"))
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -335,12 +383,12 @@ func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
 	state, err1 := randToken(32)
 	nonce, err2 := randToken(32)
 	if err1 != nil || err2 != nil {
-		s.logger().Error("generating login state", "err", errors.Join(err1, err2))
+		a.logger().Error("generating login state", "err", errors.Join(err1, err2))
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	verifier := oauth2.GenerateVerifier()
-	flow := loginFlow{
+	flow := store.LoginFlow{
 		Provider:    p.name,
 		ReturnToken: token,
 		ReturnTo:    returnTo,
@@ -348,8 +396,8 @@ func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
 		Verifier:    verifier,
 		ExpiresAt:   time.Now().Add(flowTTL),
 	}
-	if err := s.store.SaveLoginFlow(state, flow); err != nil {
-		s.logger().Error("saving login flow", "err", err)
+	if err := a.store.SaveLoginFlow(state, flow); err != nil {
+		a.logger().Error("saving login flow", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -357,8 +405,8 @@ func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
-// handleProviderCallback completes an OIDC handshake: it consumes the stored
-// flow, exchanges the code, verifies the ID token, and on success creates a login
+// HandleCallback completes an OIDC handshake: it consumes the stored flow,
+// exchanges the code, verifies the ID token, and on success creates a login
 // session recording the identity's box-activation and admin capabilities, then
 // redirects to the flow's return target (a box auth page or the admin UI). It
 // rejects only an identity with neither capability.
@@ -369,8 +417,8 @@ func (s *Server) handleProviderLogin(w http.ResponseWriter, r *http.Request) {
 // @testcase TestProviderCallbackActivates signs in an allowed identity and sets the cookie.
 // @testcase TestProviderCallbackRejectsUnauthorized 403s an identity in neither allow rule.
 // @testcase TestProviderCallbackAdminOnly signs in an admin who cannot activate boxes.
-func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) {
-	p, ok := s.auth.provider(r.PathValue("provider"))
+func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
+	p, ok := a.provider(r.PathValue("provider"))
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -380,9 +428,9 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "sign-in was cancelled or failed: "+e, http.StatusBadRequest)
 		return
 	}
-	flow, ok, err := s.store.TakeLoginFlow(q.Get("state"))
+	flow, ok, err := a.store.TakeLoginFlow(q.Get("state"))
 	if err != nil {
-		s.logger().Error("reading login flow", "err", err)
+		a.logger().Error("reading login flow", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -392,7 +440,7 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 	}
 	tok, err := p.oauth2.Exchange(r.Context(), q.Get("code"), oauth2.VerifierOption(flow.Verifier))
 	if err != nil {
-		s.logger().Warn("oidc code exchange failed", "provider", p.name, "err", err)
+		a.logger().Warn("oidc code exchange failed", "provider", p.name, "err", err)
 		http.Error(w, "sign-in failed", http.StatusBadGateway)
 		return
 	}
@@ -403,7 +451,7 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 	}
 	claims, err := p.verifier.verify(r.Context(), rawID, flow.Nonce)
 	if err != nil {
-		s.logger().Warn("oidc id token verification failed", "provider", p.name, "err", err)
+		a.logger().Warn("oidc id token verification failed", "provider", p.name, "err", err)
 		http.Error(w, "sign-in failed", http.StatusBadGateway)
 		return
 	}
@@ -413,9 +461,9 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 	// when the identity has neither capability — an admin who cannot activate
 	// boxes (or vice versa) is still allowed to sign in for what they can do.
 	canActivate := p.authorize(claims)
-	isAdmin := s.auth.isAdmin(claims.Email)
+	isAdmin := a.isAdmin(claims.Email)
 	if !canActivate && !isAdmin {
-		s.logger().Info("sign-in denied for unauthorized identity", "provider", p.name, "email", claims.Email)
+		a.logger().Info("sign-in denied for unauthorized identity", "provider", p.name, "email", claims.Email)
 		http.Error(w, fmt.Sprintf("Signed in as %s, but that account is not authorized here.", claims.Email), http.StatusForbidden)
 		return
 	}
@@ -423,12 +471,12 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 	id, err1 := randToken(32)
 	csrf, err2 := randToken(32)
 	if err1 != nil || err2 != nil {
-		s.logger().Error("generating login session", "err", errors.Join(err1, err2))
+		a.logger().Error("generating login session", "err", errors.Join(err1, err2))
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	expires := time.Now().Add(s.auth.sessionTTL)
-	if err := s.store.SaveLoginSession(id, LoginSession{
+	expires := time.Now().Add(a.sessionTTL)
+	if err := a.store.SaveLoginSession(id, store.LoginSession{
 		Email:     claims.Email,
 		Provider:  p.name,
 		CSRF:      csrf,
@@ -436,7 +484,7 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 		Activate:  canActivate,
 		Admin:     isAdmin,
 	}); err != nil {
-		s.logger().Error("saving login session", "err", err)
+		a.logger().Error("saving login session", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -458,22 +506,22 @@ func (s *Server) handleProviderCallback(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/auth/"+url.PathEscape(flow.ReturnToken), http.StatusFound)
 }
 
-// currentLogin returns the live, unexpired login session for the request's
+// CurrentLogin returns the live, unexpired login session for the request's
 // cookie, or false when the visitor is not signed in.
 //
 // @arg r The incoming request (read for the login cookie).
-// @return LoginSession The signed-in session when present and unexpired.
+// @return store.LoginSession The signed-in session when present and unexpired.
 // @return bool True when a valid login session exists.
 //
 // @testcase TestAuthPageRequiresLogin treats a missing cookie as not-signed-in.
-func (s *Server) currentLogin(r *http.Request) (LoginSession, bool) {
+func (a *Authenticator) CurrentLogin(r *http.Request) (store.LoginSession, bool) {
 	c, err := r.Cookie(LoginCookie)
 	if err != nil {
-		return LoginSession{}, false
+		return store.LoginSession{}, false
 	}
-	ls, ok, err := s.store.LoginSession(c.Value)
+	ls, ok, err := a.store.LoginSession(c.Value)
 	if err != nil || !ok || time.Now().After(ls.ExpiresAt) {
-		return LoginSession{}, false
+		return store.LoginSession{}, false
 	}
 	return ls, true
 }

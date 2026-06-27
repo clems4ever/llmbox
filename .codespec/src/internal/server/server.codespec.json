@@ -30,8 +30,8 @@
 		{
 			"function_name": "New",
 			"documentation_hash": "aecca58f4b07755c495f67634a069fec2a2b2f7b027da7a35ef7ef19a244aebc",
-			"definition_hash": "a85d7973db4a26eb8f979caaef05467a4c15b8f88ba3bfb6414ecd81acad971c",
-			"reviewed_at": "2026-06-25T12:20:58.213033909Z"
+			"definition_hash": "bf38544246d3a28c084257da175555d7da3317c054b5978452cb31af98dc33cd",
+			"reviewed_at": "2026-06-27T11:24:02.583889609Z"
 		},
 		{
 			"function_name": "Restore",

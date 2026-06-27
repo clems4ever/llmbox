@@ -15,8 +15,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/server"
+	storepkg "github.com/clems4ever/llmbox/internal/store"
 )
 
 // clusterFixture is a complete, in-process llmbox cluster wired for driving box
@@ -68,9 +70,9 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	t.Cleanup(func() { _ = store.Close() })
 
 	localMgr := newFakeSpokeMgr("local")
-	auth := server.NewTestAuthenticator("admin@corp.com")
+	a := auth.NewTestAuthenticator("admin@corp.com")
 	hub := cluster.NewHub(ctx, store, nil, nil)
-	srv := server.New(localMgr, nil, "http://placeholder", 5*time.Minute, store, auth)
+	srv := server.New(localMgr, nil, "http://placeholder", 5*time.Minute, store, a)
 	srv.SetHub(hub)
 	// The hub is the sole source of the box image: it stamps this onto every
 	// create so config-free spokes launch exactly what they are sent.
@@ -105,7 +107,7 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 // token, so the fixture's admin requests are authorized.
 func (f *clusterFixture) signInAdmin() {
 	f.t.Helper()
-	if err := f.store.SaveLoginSession("SID", server.LoginSession{
+	if err := f.store.SaveLoginSession("SID", storepkg.LoginSession{
 		Email:     "admin@corp.com",
 		CSRF:      "CSRF",
 		ExpiresAt: time.Now().Add(time.Hour),
@@ -113,7 +115,7 @@ func (f *clusterFixture) signInAdmin() {
 	}); err != nil {
 		f.t.Fatalf("save login session: %v", err)
 	}
-	f.cookie = &http.Cookie{Name: server.LoginCookie, Value: "SID"}
+	f.cookie = &http.Cookie{Name: auth.LoginCookie, Value: "SID"}
 	f.csrf = "CSRF"
 }
 

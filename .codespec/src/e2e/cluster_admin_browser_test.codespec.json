@@ -108,8 +108,8 @@
 			"function_name": "openAdmin",
 			"receiver": "clusterBrowserEnv",
 			"documentation_hash": "55423edd1d13e36b5b99d3f30586c68488475db99ab3248db990d23d76ad24d0",
-			"definition_hash": "4b534087366cd8a90331a9d83123b1b8ded7fa52853e3bb8c72d6e8ad226a8eb",
-			"reviewed_at": "2026-06-27T10:01:08.718377282Z"
+			"definition_hash": "0db732ab42f984ce7679e9a3bb7cc978d2e7ea56e97a568bbe8ae7c6a497d748",
+			"reviewed_at": "2026-06-27T11:22:57.900442313Z"
 		},
 		{
 			"function_name": "reload",
@@ -135,8 +135,8 @@
 		{
 			"function_name": "newClusterBrowserEnv",
 			"documentation_hash": "80960e62883bbce1e1c50529f534e6187c6c8b0d446a9efd174974f2a3209971",
-			"definition_hash": "45e05b0f980da795dea7907ce4c3d9767d3f75245fd261719e4b5f0656c34496",
-			"reviewed_at": "2026-06-27T10:01:08.728569792Z"
+			"definition_hash": "444d0523145e5206fb073b12bbdb0981361d81bce939d23d6882f1612d78ac33",
+			"reviewed_at": "2026-06-27T11:22:57.521720222Z"
 		},
 		{
 			"function_name": "TestAdminCreateAndRemoveBoxOnSpokeInBrowser",

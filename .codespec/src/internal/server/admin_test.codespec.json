@@ -3,44 +3,14 @@
 		{
 			"function_name": "newAdminServer",
 			"documentation_hash": "0b92a67bc94fd0898ae235fd61feab0f751fe0dc127229d924b42c4184d38339",
-			"definition_hash": "86df41f9d01d38422ae36dd3187aeda9c3b29860afacec6aae26ef131202e961",
-			"reviewed_at": "2026-06-25T10:52:23.441151371Z"
+			"definition_hash": "fbbf2f5c92d65b3e047d5be33e7f40783aa20df4673de026c9b8c182e671a95e",
+			"reviewed_at": "2026-06-27T11:23:32.108883936Z"
 		},
 		{
 			"function_name": "signIn",
 			"documentation_hash": "06dbe717776b9276b78682cdb90dd421479f1c0c3c1b3e50c05763dd8ce15008",
-			"definition_hash": "cb145816f364ec9114630e7b91671235345de87da00cb664491be27520d2e8ae",
-			"reviewed_at": "2026-06-25T10:51:16.072071939Z"
-		},
-		{
-			"function_name": "TestAdminAllowlist",
-			"documentation_hash": "e619cca80e99e13097f4e2942e683cf2dad05633d8ada074ef42a14268ed943c",
-			"definition_hash": "fa0246ca1d946057f63f52b0e3fcaed9d121f8c9941770bbf0beeafae70f2b7d",
-			"reviewed_at": "2026-06-21T13:32:40.428176761Z"
-		},
-		{
-			"function_name": "TestAdminButtonsReturnPath",
-			"documentation_hash": "30d04dfc771958f8b492d6aaab200965b8849744f778b5bdec8157b3e9bf71ab",
-			"definition_hash": "d5eaddbaaccf1e4f713c12e842e06ac04d790a312f41dd02c4fe12484dc6c8c9",
-			"reviewed_at": "2026-06-21T13:32:40.437226077Z"
-		},
-		{
-			"function_name": "TestSafeReturnPath",
-			"documentation_hash": "4fc6a5e0337e525f2989f28f066a5f2c2764f4ae462625e4002ec9e9f23ce2e3",
-			"definition_hash": "2b6997a7c1c31be561f0a3650acee0f29791363d549d8d47e91f7f67cfd79f9d",
-			"reviewed_at": "2026-06-21T13:32:40.44658841Z"
-		},
-		{
-			"function_name": "TestProviderLoginReturnPath",
-			"documentation_hash": "93dc5db44cfe9921e7c94699f187284717e69aa4965ad631d7f88ca77860962b",
-			"definition_hash": "3507fe41d9b3bcc892419786cb358f329b583d8ce7c41c612e54000f5e87fbfc",
-			"reviewed_at": "2026-06-25T12:45:27.746724496Z"
-		},
-		{
-			"function_name": "TestProviderCallbackAdminOnly",
-			"documentation_hash": "fe34ea89266250a67be3aee58d8e606096b73d79c69a7304b51f1e06f2032e27",
-			"definition_hash": "660e01175d9ca96011b330dab3cf055518ea32c5b688da783405836c959c52c5",
-			"reviewed_at": "2026-06-25T12:45:27.750806753Z"
+			"definition_hash": "03cbc1ef4c6af3308ae5ad013ea9548df1401ab392f4d8661aec181579a9b28d",
+			"reviewed_at": "2026-06-27T11:23:39.915279871Z"
 		},
 		{
 			"function_name": "TestAdminDashboardGate",

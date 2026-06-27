@@ -11,14 +11,10 @@ import (
 type (
 	// Store persists the auth-session registry, login state, and cluster records.
 	Store = store.Store
-	// LoginStore persists the activation login state.
-	LoginStore = store.LoginStore
-	// LoginSession is a completed activation login.
+	// LoginSession is a completed activation login, used by the admin handlers.
 	LoginSession = store.LoginSession
 	// persistedSession is the on-disk form of a box's auth session.
 	persistedSession = store.PersistedSession
-	// loginFlow is the short-lived state of an in-flight OIDC handshake.
-	loginFlow = store.LoginFlow
 )
 
 // OpenStore opens (creating if needed) a bbolt-backed Store at path.

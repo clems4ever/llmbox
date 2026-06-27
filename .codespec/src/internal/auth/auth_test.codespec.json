@@ -1,0 +1,83 @@
+{
+	"functions": [
+		{
+			"function_name": "verify",
+			"receiver": "fakeVerifier",
+			"documentation_hash": "794818b21d5740150c656c55e4b8f45bb98b22a242dfe2604a5093fc84e190a4",
+			"definition_hash": "b2d56809c396ac6b0125ae996c458a9a4eb560000ef3610aba63def51b6a07b7",
+			"reviewed_at": "2026-06-27T11:26:36.014669731Z"
+		},
+		{
+			"function_name": "googleTestProvider",
+			"documentation_hash": "713687acca491cff6e8a81f9060039f21a9d2128ffa0bc1c41a5b470810d5125",
+			"definition_hash": "a62d36250c1e889086fbec43118c2c129643868bd582ef46fec26fd51fc8c0c4",
+			"reviewed_at": "2026-06-27T11:26:36.044485348Z"
+		},
+		{
+			"function_name": "newTestAuth",
+			"documentation_hash": "92af375f432b6be82c07b612aca78884d58d86e3d23191c6c9259006a55fb7d6",
+			"definition_hash": "8ccdfa2c4bc3773e760a53fd2e91961d57860b4e3c17b221ce4ace201461e0ae",
+			"reviewed_at": "2026-06-27T11:26:36.071323492Z"
+		},
+		{
+			"function_name": "TestAuthorize",
+			"documentation_hash": "c33949385682aeee7c4503daa89888f119a9f9dd9679d9b6f19434b6b649f510",
+			"definition_hash": "2218239d528f828dced775841175fdb7f2df0f451ec996a4a3b86806f6d78195",
+			"reviewed_at": "2026-06-27T11:26:36.097672167Z"
+		},
+		{
+			"function_name": "TestNewDisabled",
+			"documentation_hash": "d557847c2d821d3c8cb0d13de8ab0f96dc1861974153f3a1931d65571c9fc250",
+			"definition_hash": "1470b9e7fe497d972a1890afd55cb4085989d61d3bd922e69fb0533a9e817214",
+			"reviewed_at": "2026-06-27T11:26:36.124352788Z"
+		},
+		{
+			"function_name": "TestProviderLoginRedirects",
+			"documentation_hash": "ed380cc7dfa26526a63c8034fa2e4bbe3dc756163b86bc80eaa4eb97cfb69fd5",
+			"definition_hash": "7e51add8954cab8959131ffdd023256ad44691437e418eb10a154c9713c6a404",
+			"reviewed_at": "2026-06-27T11:26:36.153371552Z"
+		},
+		{
+			"function_name": "TestProviderLoginReturnPath",
+			"documentation_hash": "2aab51eb1aa039b3c57800a92ee3412f704cc03259c42ca7b149fc1b30d16c6c",
+			"definition_hash": "e20a68cc1a1dda069a48b1c6f83e96f8a9d9f97cebcd4b57b178c4327acccdce",
+			"reviewed_at": "2026-06-27T11:26:36.179234199Z"
+		},
+		{
+			"function_name": "TestProviderCallbackActivates",
+			"documentation_hash": "be865bce82dcd31326b7b807c6d8d6fe84f9d9b29249936e722b51d0dff5cc91",
+			"definition_hash": "e704d3578306024ac6dab132fd6132474fe1bc8191611970a47a83ef5f0ba70c",
+			"reviewed_at": "2026-06-27T11:26:36.204142045Z"
+		},
+		{
+			"function_name": "TestProviderCallbackRejectsUnauthorized",
+			"documentation_hash": "e3b315c661abc3e366db6ab1e230b2f287bde5f5a98d199b9974d8f6f2d8b6d6",
+			"definition_hash": "68d570ab8732240dc3ad9b704d69faa9c38e3175177d49fa92d7ec8387e1b3a9",
+			"reviewed_at": "2026-06-27T11:26:36.228968805Z"
+		},
+		{
+			"function_name": "TestProviderCallbackAdminOnly",
+			"documentation_hash": "cdddc698487d92abb3f604ef111928e58dfe1cf05e533a00628c326279f67158",
+			"definition_hash": "47b79fb4225c31ec529c8c99321f1fc0de1b53456196e539829ae19583184ee5",
+			"reviewed_at": "2026-06-27T11:26:36.254199479Z"
+		},
+		{
+			"function_name": "TestAdminAllowlist",
+			"documentation_hash": "e619cca80e99e13097f4e2942e683cf2dad05633d8ada074ef42a14268ed943c",
+			"definition_hash": "fa0246ca1d946057f63f52b0e3fcaed9d121f8c9941770bbf0beeafae70f2b7d",
+			"reviewed_at": "2026-06-27T11:26:36.283075747Z"
+		},
+		{
+			"function_name": "TestAdminButtonsReturnPath",
+			"documentation_hash": "168deffb4163cb062970f4f4ac75e36180b15cf0c2ae154f3c46899bca91c4a6",
+			"definition_hash": "b0ae173299b57d45830a73ae32935f2de61223bfc867b84aa74ed8cadbc10086",
+			"reviewed_at": "2026-06-27T11:26:36.310383855Z"
+		},
+		{
+			"function_name": "TestSafeReturnPath",
+			"documentation_hash": "4fc6a5e0337e525f2989f28f066a5f2c2764f4ae462625e4002ec9e9f23ce2e3",
+			"definition_hash": "2b6997a7c1c31be561f0a3650acee0f29791363d549d8d47e91f7f67cfd79f9d",
+			"reviewed_at": "2026-06-27T11:26:36.336294875Z"
+		}
+	]
+}

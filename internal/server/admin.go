@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
 )
@@ -95,7 +96,7 @@ type newBoxResult struct {
 type adminPageData struct {
 	// Sign-in state. SignIn holds the provider buttons when the visitor is not
 	// signed in; NotAdmin is set when signed in without admin rights.
-	SignIn   []providerButton
+	SignIn   []auth.ProviderButton
 	SignedIn bool
 	NotAdmin bool
 	Email    string
@@ -117,9 +118,9 @@ type adminPageData struct {
 //
 // @testcase TestAdminDashboardGate shows sign-in to anonymous, 403 notice to non-admins, dashboard to admins.
 func (s *Server) handleAdmin(w http.ResponseWriter, r *http.Request) {
-	ls, ok := s.currentLogin(r)
+	ls, ok := s.auth.CurrentLogin(r)
 	if !ok {
-		s.renderAdmin(w, adminPageData{SignIn: s.auth.adminButtons("/admin")})
+		s.renderAdmin(w, adminPageData{SignIn: s.auth.AdminButtons("/admin")})
 		return
 	}
 	if !ls.Admin {
@@ -254,7 +255,7 @@ func toAdminBoxes(boxes []docker.Box) []adminBox {
 // @testcase TestAdminActionsRequireAdminAndCSRF rejects non-admins and bad CSRF tokens.
 // @testcase TestAdminDeleteBox accepts the admin page's urlencoded fetch submit.
 func (s *Server) requireAdminPost(w http.ResponseWriter, r *http.Request) (LoginSession, bool) {
-	ls, ok := s.currentLogin(r)
+	ls, ok := s.auth.CurrentLogin(r)
 	if !ok {
 		http.Error(w, "Please sign in.", http.StatusUnauthorized)
 		return LoginSession{}, false

@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/clems4ever/llmbox/internal/auth"
 )
 
 // MCPHandler builds a handler serving only the MCP endpoint, meant to be exposed
@@ -84,8 +86,8 @@ func (s *Server) registerAppRoutes(mux *http.ServeMux) {
 	// Provider sign-in routes (only when activation auth is configured). The
 	// 3-segment patterns don't collide with the 2-segment /auth/{token} above.
 	if s.auth != nil {
-		mux.HandleFunc("GET /auth/{provider}/login", s.handleProviderLogin)
-		mux.HandleFunc("GET /auth/{provider}/callback", s.handleProviderCallback)
+		mux.HandleFunc("GET /auth/{provider}/login", s.auth.HandleLogin)
+		mux.HandleFunc("GET /auth/{provider}/callback", s.auth.HandleCallback)
 	}
 
 	// Admin web UI (only when an admin allow-list is configured): manage cluster
@@ -143,16 +145,16 @@ func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
 		// Only a session authorized to activate boxes unlocks the activation form;
 		// a signed-in admin who isn't a box-activator is told so rather than shown
 		// the form (and an unauthenticated visitor sees only the sign-in buttons).
-		if ls, ok := s.currentLogin(r); ok && ls.Activate {
+		if ls, ok := s.auth.CurrentLogin(r); ok && ls.Activate {
 			data.LoggedIn = true
 			data.Email = ls.Email
 			data.CSRF = ls.CSRF
 		} else if ok {
 			data.Email = ls.Email
 			data.NotAuthorized = true
-			data.Providers = s.auth.buttons(sess.Token)
+			data.Providers = s.auth.Buttons(sess.Token)
 		} else {
-			data.Providers = s.auth.buttons(sess.Token)
+			data.Providers = s.auth.Buttons(sess.Token)
 		}
 	}
 	s.render(w, data)
@@ -182,7 +184,7 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 	// CSRF token before accepting the code, and record who activated the box.
 	var email string
 	if s.auth != nil {
-		ls, ok := s.currentLogin(r)
+		ls, ok := s.auth.CurrentLogin(r)
 		if !ok {
 			http.Error(w, "Please sign in to activate this box.", http.StatusUnauthorized)
 			return
@@ -243,7 +245,7 @@ type authPageData struct {
 	NotAuthorized bool
 	Email         string
 	CSRF          string
-	Providers     []providerButton
+	Providers     []auth.ProviderButton
 }
 
 // render writes the auth page for data, with no-store caching since the page

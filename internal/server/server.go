@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
@@ -182,7 +183,7 @@ type Server struct {
 
 	// auth gates box activation behind provider sign-in (Google, …). nil leaves
 	// activation unauthenticated (no provider configured).
-	auth *Authenticator
+	auth *auth.Authenticator
 
 	// spokeImage is the llmbox image named in the admin UI's ready-to-run spoke
 	// command; empty falls back to a built-in default. Display-only.
@@ -229,8 +230,8 @@ func (s *Server) logger() *slog.Logger {
 //
 // @testcase TestCreateBoxRegistersSession builds a Server via New.
 // @testcase TestCreateBoxRunsCreateHooks builds a Server with a hook runner.
-func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration, store Store, auth *Authenticator) *Server {
-	return &Server{
+func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration, store Store, auth *auth.Authenticator) *Server {
+	s := &Server{
 		mgr:       mgr,
 		hooks:     hooks,
 		publicURL: strings.TrimRight(publicURL, "/"),
@@ -240,6 +241,10 @@ func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration
 		byToken:   make(map[string]*session),
 		log:       slog.Default(),
 	}
+	// The server owns the canonical store; bind it into the authenticator so its
+	// OIDC handlers and CurrentLogin persist to (and read) the same login state.
+	auth.Bind(store, s.log)
+	return s
 }
 
 // SetHub attaches the cluster hub holding connected remote spokes. Call it once

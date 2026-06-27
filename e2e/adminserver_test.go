@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/store"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -27,9 +29,9 @@ func newAdminServer(t *testing.T) (*server.Server, *testutils.FakeMgr, server.St
 		t.Fatalf("OpenStore: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	auth := server.NewTestAuthenticator("admin@corp.com")
+	a := auth.NewTestAuthenticator("admin@corp.com")
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/x", SubmitURL: "https://claude.ai/code/s/1"}
-	return server.New(f, nil, "https://boxes.example.com", time.Minute, st, auth), f, st
+	return server.New(f, nil, "https://boxes.example.com", time.Minute, st, a), f, st
 }
 
 // signIn stores a login session and returns its cookie. admin/activate control
@@ -42,11 +44,11 @@ func newAdminServer(t *testing.T) (*server.Server, *testutils.FakeMgr, server.St
 // @return *http.Cookie The login cookie naming the persisted session.
 func signIn(t *testing.T, st server.Store, admin, activate bool) *http.Cookie {
 	t.Helper()
-	if err := st.SaveLoginSession("SID", server.LoginSession{
+	if err := st.SaveLoginSession("SID", store.LoginSession{
 		Email: "admin@corp.com", CSRF: "CSRF", ExpiresAt: time.Now().Add(time.Hour),
 		Admin: admin, Activate: activate,
 	}); err != nil {
 		t.Fatal(err)
 	}
-	return &http.Cookie{Name: server.LoginCookie, Value: "SID"}
+	return &http.Cookie{Name: auth.LoginCookie, Value: "SID"}
 }
