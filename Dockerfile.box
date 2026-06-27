@@ -1,13 +1,16 @@
 # llmbox-box — the default base image launched per sandboxed box.
 #
 # Each box runs Claude Code in remote-control mode, so this image bakes in the
-# standalone Claude native binary (no Node runtime) along with the few things the
-# box entrypoint relies on:
+# standalone Claude native binary along with the few things the box entrypoint
+# and the tools running inside a box rely on:
 #   - the standalone `claude` binary on PATH (the entrypoint runs `claude auth
 #     login` then `claude remote-control`),
 #   - tini, used as PID 1 so orphaned descendants of Claude (the many short-lived
 #     processes its tools spawn) are reaped instead of piling up as zombies,
-#   - /bin/sh and util-linux (the entrypoint runs `script` to allocate a PTY), and
+#   - /bin/sh and util-linux (the entrypoint runs `script` to allocate a PTY),
+#   - Node.js and pm2, so Claude can start, list, and stop long-running daemons
+#     dynamically at runtime (e.g. `pm2 start <cmd>`); pm2 keeps them alive
+#     independently of the foreground session, and tini reaps them on exit, and
 #   - the public CA-certificate bundle, so HTTPS calls from inside the box
 #     succeed. Plain debian:bookworm-slim ships WITHOUT ca-certificates, which
 #     leaves the trust store empty and makes every TLS call fail with
@@ -42,8 +45,15 @@ RUN set -eux; \
 
 # ---- box image ----
 FROM debian:bookworm-slim
+# Node.js + npm provide the runtime pm2 needs; pm2 stays installed (it is a
+# runtime tool Claude can drive), so unlike the Claude binary it cannot be copied
+# out of a throwaway stage. Pin pm2 for reproducible builds; override with
+# --build-arg PM2_VERSION=<x.y.z|latest>.
+ARG PM2_VERSION=7.0.1
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates util-linux tini \
+    && apt-get install -y --no-install-recommends ca-certificates util-linux tini nodejs npm \
+    && npm install -g pm2@${PM2_VERSION} \
+    && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/*
 # Claude on PATH so the entrypoint can invoke `claude` directly.
 COPY --from=claude /opt/llmbox/claude /usr/local/bin/claude
