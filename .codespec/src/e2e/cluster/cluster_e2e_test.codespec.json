@@ -157,6 +157,20 @@
 			"documentation_hash": "623e625328cadfc06a1d9df8e010801049f07490f1b34c3a7597669eeecba4a4",
 			"definition_hash": "b088ad19bc70d64bff9fb4c07fef1b40f1a9a08432badac082ae7cf13b93fcdb",
 			"reviewed_at": "2026-06-27T09:31:33.741126773Z"
+		},
+		{
+			"function_name": "setDialTarget",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "bdae3dd639cf436a5a996fb0abd3862e57ebbf47562b8fcb3c9dad3c6ed4670e",
+			"definition_hash": "6754fedac4a545f2d84f8a680421569eef9c9aa27e187645f3b676ced6f1bede",
+			"reviewed_at": "2026-06-27T17:44:05.385392609Z"
+		},
+		{
+			"function_name": "DialBox",
+			"receiver": "fakeSpokeMgr",
+			"documentation_hash": "c75dbea2391c49c541bb4396f829e9507f1f72fa3e0e8a60c6d7935e336e8973",
+			"definition_hash": "46671721861574f651ba4d304fe72f1aabc30746817c592e572dfd75ad6bd7f8",
+			"reviewed_at": "2026-06-27T17:44:05.388465247Z"
 		}
 	]
 }
