@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -77,6 +78,10 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	// The hub is the sole source of the box image: it stamps this onto every
 	// create so config-free spokes launch exactly what they are sent.
 	srv.SetBoxImage("box:e2e")
+	// Enable HTTP proxying so the proxy-through-spoke path can be exercised. A
+	// request whose Host is a proxy sub-domain is reverse-proxied; every other
+	// request (the admin UI on the loopback host) falls through unchanged.
+	srv.SetProxyBaseDomain("proxy.example.com")
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -249,6 +254,42 @@ func (f *clusterFixture) createBoxViaAPI(boxID, spoke string) {
 	if !res.OK {
 		f.t.Fatalf("create box %q on spoke %q failed: %s", boxID, spoke, res.Err)
 	}
+}
+
+// createProxyViaAPI enables an HTTP proxy for a box's port via the admin
+// /admin/proxies endpoint and returns the proxy URL it reports.
+//
+// @arg boxID The box to expose.
+// @arg port The port inside the box.
+// @return string The proxy URL (https://<slug>.proxy.example.com/).
+func (f *clusterFixture) createProxyViaAPI(boxID string, port int) string {
+	f.t.Helper()
+	form := url.Values{"box_id": {boxID}, "port": {strconv.Itoa(port)}, "csrf": {f.csrf}}
+	req, err := http.NewRequest(http.MethodPost, f.baseURL+"/admin/proxies", strings.NewReader(form.Encode()))
+	if err != nil {
+		f.t.Fatalf("build proxy request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(f.cookie)
+	resp, err := f.client.Do(req)
+	if err != nil {
+		f.t.Fatalf("POST /admin/proxies: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var out struct {
+		OK       bool `json:"ok"`
+		Err      string
+		NewProxy struct {
+			URL string `json:"url"`
+		} `json:"newProxy"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		f.t.Fatalf("decode proxy result: %v", err)
+	}
+	if !out.OK || out.NewProxy.URL == "" {
+		f.t.Fatalf("create proxy failed: ok=%v err=%q url=%q", out.OK, out.Err, out.NewProxy.URL)
+	}
+	return out.NewProxy.URL
 }
 
 // deleteBoxViaAPI removes a box by POSTing to the admin /admin/boxes/delete

@@ -216,6 +216,26 @@
 			"documentation_hash": "db957289bc7baf55daf70679534b101d3ee27a564f071c008a29dde3ee47e343",
 			"definition_hash": "fe5368bff4d70aa8a2f73136c8e38a2f10d63d6ca9c1d873afd3626dc13a72e8",
 			"reviewed_at": "2026-06-27T09:31:33.751872913Z"
+		},
+		{
+			"function_name": "DialBox",
+			"receiver": "Manager",
+			"documentation_hash": "8448db30dd5e73f936b27289177b67a0e6619a162b2af28c788a21df566ccc4c",
+			"definition_hash": "e5ba56ba184c605ad758f5d3d90d5bf4082c2d1a28323332fe6a8918acd67041",
+			"reviewed_at": "2026-06-27T17:02:38.501572555Z"
+		},
+		{
+			"function_name": "boxAddr",
+			"receiver": "Manager",
+			"documentation_hash": "18389469d61a4da60680d31fc4a3c61d0d64b235d515cbf2bac86f99317bd234",
+			"definition_hash": "11bbd772ee85445e5bd7064f14a336a631d00a84276d4f2ce9ac2e331bc6b608",
+			"reviewed_at": "2026-06-27T17:02:38.505409824Z"
+		},
+		{
+			"function_name": "boxNetworkIP",
+			"documentation_hash": "3ecbe99cf36f89398862a3de3e05b066c18a70048cdf687cafb23e8f0d20fb64",
+			"definition_hash": "1b5625078e679aec0f9d504760de95f6e783dd83e57c35c8ad610213a29dfefa",
+			"reviewed_at": "2026-06-27T17:02:38.507929058Z"
 		}
 	]
 }

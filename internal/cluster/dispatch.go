@@ -72,6 +72,8 @@ func handleRequest(ctx context.Context, tr transport, mgr BoxManager, req frame,
 // @testcase TestDispatchUnknownMethod errors on an unrecognized method.
 // @testcase TestDispatchBadPayload errors on a malformed request payload.
 // @testcase TestDispatchRejectsInvalidCreate rejects a creation that fails the policy.
+// @testcase TestRemoteSpokeProxyHTTP runs the proxy_http verb end to end.
+// @testcase TestProxyHTTPUnsupportedSpoke rejects proxy_http when the spoke cannot dial boxes.
 func dispatch(ctx context.Context, mgr BoxManager, req frame, policy ValidationPolicy) (json.RawMessage, error) {
 	switch req.Method {
 	case methodCreate:
@@ -142,6 +144,23 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame, policy ValidationP
 			return nil, err
 		}
 		return encodePayload(reapResp{Reaped: reaped})
+	case methodProxyHTTP:
+		var in proxyHTTPReq
+		if err := decodePayload(req.Payload, &in); err != nil {
+			return nil, err
+		}
+		// Only a manager that can dial boxes (the in-process *docker.Manager)
+		// services proxy requests; the dial is managed-only, so this never reaches
+		// a host address outside one of the spoke's own boxes.
+		dialer, ok := mgr.(BoxDialer)
+		if !ok {
+			return nil, fmt.Errorf("this spoke does not support proxying")
+		}
+		resp, err := roundTripToBox(ctx, dialer, in)
+		if err != nil {
+			return nil, err
+		}
+		return encodePayload(resp)
 	default:
 		return nil, fmt.Errorf("unknown method %q", req.Method)
 	}

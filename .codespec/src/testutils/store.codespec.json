@@ -125,6 +125,34 @@
 			"documentation_hash": "fdb8a103bb590abab129623a32534441b78eef61d03fe20a2f67abdfc856c6fd",
 			"definition_hash": "1c0f0105856dc386ac10ec97f3773dd268ed403f4b87c2ad0070591f8f66b5b2",
 			"reviewed_at": "2026-06-25T12:22:55.74686075Z"
+		},
+		{
+			"function_name": "SaveProxy",
+			"receiver": "NoopStore",
+			"documentation_hash": "04e51eb16cce80c58f57563c20c67f7d2743c699cad8a310754950c8b83ef38a",
+			"definition_hash": "dde59fa78b58b51b2ca2096cc91ade4a3f1e0667be76281a59fc645fdfe1fdb5",
+			"reviewed_at": "2026-06-27T17:02:38.550486819Z"
+		},
+		{
+			"function_name": "GetProxy",
+			"receiver": "NoopStore",
+			"documentation_hash": "dedf1ac3f5f39b05a30e5e0108cf74f92b01b974e613cfcf8065c551ca124b9b",
+			"definition_hash": "43d8521073639bb5fb81954322ef3eaf80de86030c9e3627dd2e62cbd5d4b95f",
+			"reviewed_at": "2026-06-27T17:02:38.550790088Z"
+		},
+		{
+			"function_name": "ListProxies",
+			"receiver": "NoopStore",
+			"documentation_hash": "5f43197c8f87f6ee81410717cd254980329d5b3107fc8a342f455c1ccbe492f5",
+			"definition_hash": "75bc0fe0e45b3553b3e66791f3be87ac45a659cbc64888c8a869016852f8764a",
+			"reviewed_at": "2026-06-27T17:02:38.551107748Z"
+		},
+		{
+			"function_name": "DeleteProxy",
+			"receiver": "NoopStore",
+			"documentation_hash": "5b4db0f177e7d43394b5a6f22d1d9f582eee152158769901dd7712272a36356c",
+			"definition_hash": "b43186076feb43ab87e023f509812eb8ab11246bce4d6ff67c5069007ccf9016",
+			"reviewed_at": "2026-06-27T17:02:38.551427021Z"
 		}
 	]
 }

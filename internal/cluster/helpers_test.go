@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"errors"
+	"net"
 	"sync"
 	"time"
 
@@ -78,6 +79,8 @@ type fakeManager struct {
 	logsOut    string
 	execResult docker.ExecResult
 	reaped     []string
+	dialTarget string // address DialBox connects to (for proxy_http tests)
+	dialErr    error  // when set, DialBox returns it
 	err        error
 
 	// recorded inputs
@@ -90,6 +93,19 @@ type fakeManager struct {
 		cmd      []string
 	}
 	lastReap time.Duration
+}
+
+// DialBox is a test helper: it dials the configured target (or returns dialErr),
+// so the fake manager can satisfy BoxDialer for proxy_http dispatch tests.
+func (f *fakeManager) DialBox(ctx context.Context, _ string, _ int) (net.Conn, error) {
+	f.mu.Lock()
+	target, derr := f.dialTarget, f.dialErr
+	f.mu.Unlock()
+	if derr != nil {
+		return nil, derr
+	}
+	var d net.Dialer
+	return d.DialContext(ctx, "tcp", target)
 }
 
 // Create is a test helper.

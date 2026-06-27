@@ -303,3 +303,75 @@ func TestSafeReturnPath(t *testing.T) {
 		}
 	}
 }
+
+// TestNewTestAuthenticator checks the test-helper authenticator is admin-enabled,
+// recognizes its admin emails case-insensitively, and exposes the single stub
+// "Google" sign-in button.
+func TestNewTestAuthenticator(t *testing.T) {
+	a := NewTestAuthenticator("Admin@Corp.com")
+	if !a.AdminEnabled() {
+		t.Error("AdminEnabled() = false, want true")
+	}
+	if !a.isAdmin("admin@corp.com") {
+		t.Error("isAdmin should match the configured admin email (case-insensitive)")
+	}
+	if a.isAdmin("nobody@corp.com") {
+		t.Error("isAdmin should reject an unlisted email")
+	}
+	if btns := a.AdminButtons("/admin"); len(btns) != 1 || btns[0].Label != "Google" {
+		t.Errorf("AdminButtons = %+v, want a single Google button", btns)
+	}
+}
+
+// TestButtons checks Buttons renders one login button per provider, labelled and
+// carrying the box token in the login path.
+func TestButtons(t *testing.T) {
+	a := NewTestAuthenticator()
+	btns := a.Buttons("tok 123")
+	if len(btns) != 1 {
+		t.Fatalf("got %d buttons, want 1", len(btns))
+	}
+	if btns[0].Label != "Google" {
+		t.Errorf("label = %q, want Google", btns[0].Label)
+	}
+	if !strings.Contains(btns[0].LoginPath, "/auth/google/login?token=tok+123") {
+		t.Errorf("login path = %q, want it to carry the escaped token", btns[0].LoginPath)
+	}
+}
+
+// TestCurrentLogin checks CurrentLogin resolves a live login session from the
+// request cookie and treats a missing or expired session as not-signed-in.
+func TestCurrentLogin(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("store.Open: %v", err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	a := &Authenticator{sessionTTL: time.Hour}
+	a.Bind(st, nil)
+
+	// No cookie -> not signed in.
+	if _, ok := a.CurrentLogin(httptest.NewRequest(http.MethodGet, "/", nil)); ok {
+		t.Error("CurrentLogin with no cookie should be not-signed-in")
+	}
+
+	// A live session resolves via its cookie.
+	if err := st.SaveLoginSession("SID", store.LoginSession{Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), Activate: true}); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: LoginCookie, Value: "SID"})
+	if ls, ok := a.CurrentLogin(req); !ok || ls.Email != "dev@corp.com" || !ls.Activate {
+		t.Errorf("CurrentLogin = (%+v, %v), want the signed-in session", ls, ok)
+	}
+
+	// An expired session is treated as not-signed-in.
+	if err := st.SaveLoginSession("OLD", store.LoginSession{Email: "x@corp.com", ExpiresAt: time.Now().Add(-time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	reqOld := httptest.NewRequest(http.MethodGet, "/", nil)
+	reqOld.AddCookie(&http.Cookie{Name: LoginCookie, Value: "OLD"})
+	if _, ok := a.CurrentLogin(reqOld); ok {
+		t.Error("expired session should be not-signed-in")
+	}
+}

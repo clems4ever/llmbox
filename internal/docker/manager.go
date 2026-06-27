@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"path"
 	"regexp"
 	"strconv"
@@ -124,6 +125,7 @@ type dockerAPI interface {
 	ContainerExecCreate(ctx context.Context, containerID string, opts container.ExecOptions) (container.ExecCreateResponse, error)
 	ContainerExecAttach(ctx context.Context, execID string, opts container.ExecAttachOptions) (types.HijackedResponse, error)
 	ContainerExecInspect(ctx context.Context, execID string) (container.ExecInspect, error)
+	ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error)
 	ContainerRename(ctx context.Context, containerID, newName string) error
 	ContainerResize(ctx context.Context, containerID string, opts container.ResizeOptions) error
 	CopyToContainer(ctx context.Context, containerID, dstPath string, content io.Reader, opts container.CopyToContainerOptions) error
@@ -1124,6 +1126,99 @@ func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (Exec
 		Stderr:   capOutput(stderr.Bytes()),
 		ExitCode: insp.ExitCode,
 	}, nil
+}
+
+// DialBox opens a TCP connection to port inside a managed box identified by ID
+// or name. It is the box-reachability primitive the proxy layer builds on: the
+// box publishes no host ports and lives on its own dedicated network, so the
+// connection is made to the box's address on that network (see boxAddr). The
+// caller owns the returned connection and must close it.
+//
+// Like every per-box verb it resolves through findManaged first, so it can only
+// ever reach a box this manager created — never an arbitrary host container or
+// address — which keeps the proxy from being coercible into a generic dialer.
+//
+// @arg ctx Context for the inspect and the dial.
+// @arg idOrName The ID or name identifying the box to connect to.
+// @arg port The TCP port to connect to inside the box.
+// @return net.Conn A connection to the box's port; the caller must close it.
+// @error error if the port is out of range, no managed box matches, the box has no address on its network, or the dial fails.
+//
+// @testcase TestDialBoxResolvesAddr dials the box's network address for a valid port.
+// @testcase TestDialBoxRejectsBadPort rejects a port outside 1-65535 before dialing.
+// @testcase TestDialBoxUnknownBox errors when no managed box matches.
+func (m *Manager) DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error) {
+	addr, err := m.boxAddr(ctx, idOrName, port)
+	if err != nil {
+		return nil, err
+	}
+	var d net.Dialer
+	conn, err := d.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("dialing box %s at %s: %w", idOrName, addr, err)
+	}
+	return conn, nil
+}
+
+// boxAddr resolves a managed box and port to the "ip:port" address reachable on
+// the box's own dedicated network. The box is detached from the default bridge
+// and attached only to llmboxnet-<id> (see setupBoxNetwork), so the address is
+// taken from that network's endpoint. The host (or any peer on that network,
+// e.g. the hub) can reach this address directly.
+//
+// @arg ctx Context for the inspect call.
+// @arg idOrName The ID or name identifying the box.
+// @arg port The TCP port inside the box.
+// @return string The "ip:port" address of the box on its dedicated network.
+// @error error if the port is out of range, no managed box matches, the inspect fails, or the box has no IP on its network.
+//
+// @testcase TestDialBoxResolvesAddr resolves the box-network address.
+// @testcase TestDialBoxRejectsBadPort rejects an out-of-range port.
+// @testcase TestDialBoxNoNetworkIP errors when the box has no address on its network.
+func (m *Manager) boxAddr(ctx context.Context, idOrName string, port int) (string, error) {
+	if port < 1 || port > 65535 {
+		return "", fmt.Errorf("invalid port %d: must be between 1 and 65535", port)
+	}
+	b, err := m.findManaged(ctx, idOrName)
+	if err != nil {
+		return "", err
+	}
+	insp, err := m.cli.ContainerInspect(ctx, b.ContainerID)
+	if err != nil {
+		return "", fmt.Errorf("inspecting box %s: %w", idOrName, err)
+	}
+	ip := boxNetworkIP(insp)
+	if ip == "" {
+		return "", fmt.Errorf("box %s has no reachable address (is it running?)", idOrName)
+	}
+	return net.JoinHostPort(ip, strconv.Itoa(port)), nil
+}
+
+// boxNetworkIP returns the box's IPv4 address on its own dedicated network
+// (llmboxnet-<id>), falling back to any other attached network's address if the
+// dedicated one is absent (e.g. a box wired up differently). It returns "" when
+// the container has no usable address, which boxAddr turns into an error.
+//
+// @arg insp The container inspect response to read network settings from.
+// @return string The box's IP address, or "" when none is available.
+//
+// @testcase TestDialBoxResolvesAddr prefers the dedicated box network's IP.
+// @testcase TestDialBoxNoNetworkIP returns empty when no network carries an IP.
+func boxNetworkIP(insp container.InspectResponse) string {
+	if insp.NetworkSettings == nil {
+		return ""
+	}
+	want := boxNetworkName(insp.ID)
+	if ep, ok := insp.NetworkSettings.Networks[want]; ok && ep != nil && ep.IPAddress != "" {
+		return ep.IPAddress
+	}
+	// Fall back to the first network that carries an address.
+	for _, ep := range insp.NetworkSettings.Networks {
+		if ep != nil && ep.IPAddress != "" {
+			return ep.IPAddress
+		}
+	}
+	return ""
 }
 
 // capOutput truncates b to maxExecOutput, appending a marker when it overflows,

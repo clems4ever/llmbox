@@ -1,0 +1,101 @@
+{
+	"functions": [
+		{
+			"function_name": "ProxyEnabled",
+			"receiver": "Server",
+			"documentation_hash": "6ccde43f8fdebe84485dc314b6e8479cb459dfd6e38fd9c95d27e395050233e3",
+			"definition_hash": "38dcdd967efcaf7412404fed820f46af5d9981c878525d2406e5654347dbb922",
+			"reviewed_at": "2026-06-27T17:15:37.295018426Z"
+		},
+		{
+			"function_name": "newProxySlug",
+			"documentation_hash": "3dc313c45cde7c9613b1cfde085fc4a2e2e1b3169fcbdcc7fb0798f983901408",
+			"definition_hash": "c0cc7310d191779c38531a035f96636156fc0364dd913985484c2f090e7d61db",
+			"reviewed_at": "2026-06-27T17:15:37.295463757Z"
+		},
+		{
+			"function_name": "proxyURL",
+			"receiver": "Server",
+			"documentation_hash": "03b3deacbc922be369356e926f99f4827d96575b43feead29cb9a90e06613dc8",
+			"definition_hash": "a11018780e4f9293b12895bde3118db1f2f0b6692a8c441c4171edf7113c747d",
+			"reviewed_at": "2026-06-27T17:15:37.295823309Z"
+		},
+		{
+			"function_name": "createProxy",
+			"receiver": "Server",
+			"documentation_hash": "6bbb13256c35201230061edeb658fdf1214581c740424663ab64d48be4008951",
+			"definition_hash": "8c9cd2e9066d229fd5ee7af7076e0fe9010a84f7ec1b8faecc12d40fee95fece",
+			"reviewed_at": "2026-06-27T18:01:57.339818608Z"
+		},
+		{
+			"function_name": "findProxy",
+			"receiver": "Server",
+			"documentation_hash": "049f8fdf943b1ea3ebe025cbfcdd2e7fe284382b747d3021555cf4004cc653f9",
+			"definition_hash": "c24a702dc4bce405fddc4b7fa6af706d33184ed030630dbe64b25d9dc0a6dca1",
+			"reviewed_at": "2026-06-27T17:15:37.296685779Z"
+		},
+		{
+			"function_name": "listProxies",
+			"receiver": "Server",
+			"documentation_hash": "a11e33865167833b7c392f1e1103e923cdf99b03a9e936b25565561ed64b9678",
+			"definition_hash": "969aa34ad170aeff987372a9c188a1f567b58fcd4a28c9498acc84e08b6fdba4",
+			"reviewed_at": "2026-06-27T17:15:37.297046628Z"
+		},
+		{
+			"function_name": "deleteProxy",
+			"receiver": "Server",
+			"documentation_hash": "3c0875f632e8a3dfe951601303a04718086a7fb4abfeda000cf165127c5890c7",
+			"definition_hash": "3aafc9456ec3d4edbf87c3b39489cda7a043f7c02f74543619a485732cb40130",
+			"reviewed_at": "2026-06-27T17:15:37.297439489Z"
+		},
+		{
+			"function_name": "deleteProxyBySlug",
+			"receiver": "Server",
+			"documentation_hash": "46f01c17456e4e6a6ebc9fd3da5f3e67574909b5ff9b94017c27c44c00a555b6",
+			"definition_hash": "e4e233c3fba5e9db5e52e74774039aa30549dd29e726a7c77dc625ec8427f75c",
+			"reviewed_at": "2026-06-27T17:15:37.298011039Z"
+		},
+		{
+			"function_name": "deleteProxiesForBox",
+			"receiver": "Server",
+			"documentation_hash": "295fd1dc6d3bc36e39d00ce14988833b6824abb7be43f7aa85417f833231aaed",
+			"definition_hash": "3d31a86c8a0d2f63f374a7c3117a73ea77fd0c7d568f368bad9182ad06a2cc7b",
+			"reviewed_at": "2026-06-27T17:15:37.298402095Z"
+		},
+		{
+			"function_name": "proxySlugFromHost",
+			"receiver": "Server",
+			"documentation_hash": "3a900d0704c970520be4cfd58fe3c2fd941748c9d37cc1acd22300898b310a8b",
+			"definition_hash": "22f4a37cb58d1db32dfa592930a801c1dc1d028bf669c6bea119201adc3b8420",
+			"reviewed_at": "2026-06-27T17:15:37.298786351Z"
+		},
+		{
+			"function_name": "proxyAuthorized",
+			"receiver": "Server",
+			"documentation_hash": "3b0518119429e08ba9f11a12d7e6d41043ee2702069fff751d5bcf9912c96c7f",
+			"definition_hash": "4cba9512a4f06c35966b047b55bb955d93515d36c968bd36ab579349423e1a03",
+			"reviewed_at": "2026-06-27T17:15:37.299181028Z"
+		},
+		{
+			"function_name": "handleProxy",
+			"receiver": "Server",
+			"documentation_hash": "6494713f54aedd36f60e664a0e318fe0ee0d41871cf9e3ebfd7e0d0532c88625",
+			"definition_hash": "baee63d2f2416351d1bdb14470dae3b4feeadb37541c03410253495a9f0f0e81",
+			"reviewed_at": "2026-06-27T17:32:04.107625679Z"
+		},
+		{
+			"function_name": "boxTransport",
+			"receiver": "Server",
+			"documentation_hash": "f74299f8a8d74dafc61472df951f500cdd2818a51fd7938c556f186acfa4d4a8",
+			"definition_hash": "2a599c42b0d5754a6f37084da229551ff8a556ded4dbf3ed790246702083e3fd",
+			"reviewed_at": "2026-06-27T17:27:44.157324412Z"
+		},
+		{
+			"function_name": "RoundTrip",
+			"receiver": "clusterProxyTransport",
+			"documentation_hash": "a0d20e332339d8cfc254cb96d92c6475508ab30f91f6ea2870939a70e5473df4",
+			"definition_hash": "49454ac9bc2b3fd1cc0677160816b6a96526e98b17bb6bfed1e80062bad409be",
+			"reviewed_at": "2026-06-27T17:27:44.194385393Z"
+		}
+	]
+}

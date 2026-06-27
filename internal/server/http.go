@@ -37,7 +37,19 @@ func (s *Server) MCPHandler(mcpServer *mcp.Server) http.Handler {
 func (s *Server) APIHandler() http.Handler {
 	mux := http.NewServeMux()
 	s.registerAppRoutes(mux)
-	return mux
+	if !s.ProxyEnabled() {
+		return mux
+	}
+	// With proxying enabled, dispatch by Host: a request whose Host is a proxy
+	// sub-domain (<slug>.<base-domain>) is reverse-proxied to the box; everything
+	// else (the main UI/API host) falls through to the normal routes.
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if slug, ok := s.proxySlugFromHost(r.Host); ok {
+			s.handleProxy(w, r, slug)
+			return
+		}
+		mux.ServeHTTP(w, r)
+	})
 }
 
 // registerMCPRoute mounts the MCP streamable HTTP handler at the root of mux. It

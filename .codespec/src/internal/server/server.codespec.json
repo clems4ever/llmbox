@@ -36,9 +36,9 @@
 		{
 			"function_name": "Restore",
 			"receiver": "Server",
-			"documentation_hash": "053a793528a864b88fe18e52ad98e98f522cd630558c97a881c3c6c51352c779",
-			"definition_hash": "1251b2c98a68c19bde8cd7db028d5a9b6a8c65cb679734fc2d436cc7a287b858",
-			"reviewed_at": "2026-06-19T19:47:04.419834565Z"
+			"documentation_hash": "ba78bd5b2fd1d9d9ddbd64d542c970a409a5647c45485e7fe188dd3fda0e123e",
+			"definition_hash": "0edfe3365a0a6155450f971d00f4cfaf4866af904ba1c70ba949966bfe4bec1b",
+			"reviewed_at": "2026-06-27T18:01:57.343599148Z"
 		},
 		{
 			"function_name": "runDestroyHooks",
@@ -72,8 +72,8 @@
 			"function_name": "pruneSessions",
 			"receiver": "Server",
 			"documentation_hash": "23c55ae6234174ed2f0a7add4898f8701b93ed7fc53618e18d1deb48ecdf3dd4",
-			"definition_hash": "34198d5c5715ffceb1b78500e7691befe2fc3009d4d2969173a89a2d6a73e3e0",
-			"reviewed_at": "2026-06-18T17:12:11.837687498Z"
+			"definition_hash": "1d4e38761ac16c255f5252ddb459b836cbaf88d032175718db918384d9359b2a",
+			"reviewed_at": "2026-06-27T17:02:38.546415608Z"
 		},
 		{
 			"function_name": "newToken",
@@ -189,8 +189,8 @@
 			"function_name": "destroyBox",
 			"receiver": "Server",
 			"documentation_hash": "eddaffd3da7e6c7e490580cbe690101807da0d3a7aa1d0b1f7170bebf0664f70",
-			"definition_hash": "c181865b99ba4704eca9b2100c9341c82332130af75b928c40ea8c4b333af694",
-			"reviewed_at": "2026-06-27T09:31:33.757819161Z"
+			"definition_hash": "927fd12cac9bb0b232af750a12047e30b5bbeef150cc126118b371ab105df949",
+			"reviewed_at": "2026-06-27T18:01:57.346525014Z"
 		},
 		{
 			"function_name": "idMatchesBox",
@@ -204,6 +204,20 @@
 			"documentation_hash": "80d908719cbe9db30abf2e3a0286c0fdfdc4daf1ea7bb56b56ebf0f6e7632de6",
 			"definition_hash": "50007d3f1474a4c547df4a261b5f040952e527af49df37be446307b234aafd3c",
 			"reviewed_at": "2026-06-26T12:33:43.256534715Z"
+		},
+		{
+			"function_name": "SetProxyBaseDomain",
+			"receiver": "Server",
+			"documentation_hash": "ac53411b78f1c630931cd4dac6736a2948c952beb49d2f4cf20e24bf4a61d5ab",
+			"definition_hash": "41c6881d6f0d561308be055b438896926c047ba7bdcc0945423c3f3734f0539a",
+			"reviewed_at": "2026-06-27T17:02:38.543697953Z"
+		},
+		{
+			"function_name": "reconcileProxies",
+			"receiver": "Server",
+			"documentation_hash": "386635f7d96832bd53bc1d1cd906eef242e3438403cb3cae5f7c1a9634d1d4fc",
+			"definition_hash": "195463d4e3de33af888bfdf475c2237d821688c8e1a3a6ff8858b126546f561f",
+			"reviewed_at": "2026-06-27T18:01:57.345071707Z"
 		}
 	]
 }

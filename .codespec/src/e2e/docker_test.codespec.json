@@ -61,6 +61,13 @@
 			"documentation_hash": "484aae03d3f962625076f968b95816b6e5df8a92dcc25cb9aefcc1ab059c565d",
 			"definition_hash": "8e7645723641311670061b3c82e11cd50c56a984229669c6d53589cc7579eb46",
 			"reviewed_at": "2026-06-25T09:53:56.419322195Z"
+		},
+		{
+			"function_name": "DialBox",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "a7264279883bbe955d65a5411dfe8e4f891706e4af5a5e79e0597eca77a0b783",
+			"definition_hash": "c1fcb01b1b7ba95c328559f329717541b27202cb0b01937494ddaa5e3bb44736",
+			"reviewed_at": "2026-06-27T17:02:38.489567078Z"
 		}
 	]
 }

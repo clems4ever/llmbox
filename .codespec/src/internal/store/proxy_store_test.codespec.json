@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "TestProxyStoreRoundTrip",
+			"documentation_hash": "8421a43bf9e9b62181b4d707dea4ab708746b2809e73a9fe0916d88506579b8f",
+			"definition_hash": "ba728863ce3a0522d7ee3b608433faaaaa724c20157536639ea3941c507443b1",
+			"reviewed_at": "2026-06-27T18:01:57.346983608Z"
+		}
+	]
+}

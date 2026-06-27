@@ -93,8 +93,33 @@
     if (results) results.replaceChildren(box);
   }
 
-  // refresh re-fetches the dashboard and swaps in fresh Spokes and Boxes cards,
-  // leaving the flash and result areas (just set from the action) untouched.
+  // showProxyResult renders the URL of a freshly enabled proxy.
+  function showProxyResult(p) {
+    var box = document.createElement("div");
+    box.className = "result";
+
+    var head = document.createElement("strong");
+    head.textContent =
+      'Proxy enabled for box "' + p.boxId + '" port ' + p.port + ".";
+    box.appendChild(head);
+
+    var link = document.createElement("a");
+    link.href = p.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = p.url;
+    var val = document.createElement("div");
+    val.className = "val";
+    val.appendChild(link);
+    box.appendChild(labelled("Proxy URL (give this to the user)", val));
+
+    var results = el("results");
+    if (results) results.replaceChildren(box);
+  }
+
+  // refresh re-fetches the dashboard and swaps in fresh Spokes, Boxes, and
+  // Proxies cards, leaving the flash and result areas (just set from the action)
+  // untouched.
   function refresh() {
     return fetch("/admin", {
       headers: { Accept: "text/html" },
@@ -105,7 +130,7 @@
       })
       .then(function (html) {
         var doc = new DOMParser().parseFromString(html, "text/html");
-        ["spokes-card", "boxes-card"].forEach(function (id) {
+        ["spokes-card", "boxes-card", "proxies-card"].forEach(function (id) {
           var fresh = doc.getElementById(id);
           var cur = el(id);
           if (fresh && cur) cur.replaceWith(fresh);
@@ -153,6 +178,7 @@
         else setFlash();
         if (data.newSpoke) showSpokeResult(data.newSpoke);
         if (data.newBox) showBoxResult(data.newBox);
+        if (data.newProxy) showProxyResult(data.newProxy);
         return refresh();
       })
       .catch(function (err) {

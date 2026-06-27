@@ -173,3 +173,39 @@ func (NoopStore) ListSpokes() ([]cluster.SpokeRecord, error) { return nil, nil }
 //
 // @testcase TestNoopStore checks every no-op method is inert.
 func (NoopStore) DeleteSpoke(_ string) error { return nil }
+
+// SaveProxy discards the proxy.
+//
+// @arg _ The proxy record to (not) persist.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) SaveProxy(_ store.ProxyRecord) error { return nil }
+
+// GetProxy finds nothing.
+//
+// @arg _ The proxy slug key.
+// @return store.ProxyRecord The zero record.
+// @return bool Always false.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) GetProxy(_ string) (store.ProxyRecord, bool, error) {
+	return store.ProxyRecord{}, false, nil
+}
+
+// ListProxies returns no proxies.
+//
+// @return []store.ProxyRecord Always nil.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) ListProxies() ([]store.ProxyRecord, error) { return nil, nil }
+
+// DeleteProxy does nothing.
+//
+// @arg _ The proxy slug key.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) DeleteProxy(_ string) error { return nil }

@@ -1,0 +1,101 @@
+{
+	"functions": [
+		{
+			"function_name": "newRemoteSpoke",
+			"documentation_hash": "872af5a0f2a4c9fbe5afa70273202e7179078a6142f310fe9741417933263321",
+			"definition_hash": "69d47ec6a113256e798473423af934c5bf3cd7d08a7e56667d7a36f22fd0439d",
+			"reviewed_at": "2026-06-27T17:27:56.717261535Z"
+		},
+		{
+			"function_name": "readLoop",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "6daaee3a89534e438c145c72b5e525c1e1f33cfd09a7d99600af554c433685b9",
+			"definition_hash": "84f6f9df937c44cd59c1e373a1cb181f2ebaf5c185b96e02d01fa3d5e0bcaabc",
+			"reviewed_at": "2026-06-27T17:27:56.717939734Z"
+		},
+		{
+			"function_name": "shutdown",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "0ffdb5ce74b096ae021cfb49062948505a3a19667129311bf722601cf0b6b718",
+			"definition_hash": "a7bd7df4721137a2e1ca1ecf586717016310641f322d85d743865918bc7a2043",
+			"reviewed_at": "2026-06-27T17:27:56.727283572Z"
+		},
+		{
+			"function_name": "Done",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "889748679c37d58beb16c7043bae1538b8b6c30995ca1874b062528b8d18f508",
+			"definition_hash": "cafa12d3dadd8f0292d1ca7c61ef7634b3b5b43df81d06f411e7f2a3a6c6cb79",
+			"reviewed_at": "2026-06-27T17:27:56.727691792Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "4d8ae9bf4e495552dda00e993881afbae466acae1c1258ed088d4e33737b87ef",
+			"definition_hash": "16a71f5bf9a81b4246c906ef097b1f4ae9ac5cd5fd42b1c330d1af88e9261442",
+			"reviewed_at": "2026-06-27T17:27:56.728037765Z"
+		},
+		{
+			"function_name": "call",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "c88baa5ee8b44cdcb294bd536291ea1a5706ae4a1f87d7b0df0bdd96d266955d",
+			"definition_hash": "c4ffc8cca89d342424d2a9cc36941ed91ea5110d8d1fb5e9427d03e939bdedcd",
+			"reviewed_at": "2026-06-27T17:27:56.728376719Z"
+		},
+		{
+			"function_name": "Create",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "1f2307be6db8570e6adf0e69173fb89220b8fbade6aeb229a7727cd9aa9356ba",
+			"definition_hash": "76fe040a7af1dba1a410e986d461a998de034c4a6c68cc93a9e4e4c3acb880d8",
+			"reviewed_at": "2026-06-27T17:27:56.728714606Z"
+		},
+		{
+			"function_name": "SubmitCode",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "0cc2ad9a610c2c779307faa2be85beee7474a0e9e43e0cc46e7a26bc3a4c4b2d",
+			"definition_hash": "741e4e40e94500ce1a0d22e7912d51b98a74e5f4b03b2a413607fc98f3ae7cc0",
+			"reviewed_at": "2026-06-27T17:27:56.729049501Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "cd4c9536bc4557bf447714876556c0829b7f6010fe48c1f56cf023c4b5fd401f",
+			"definition_hash": "5fae1bbc3fe7ce21bd32567922f6df319466a0f7203a554e6ec6c80009581758",
+			"reviewed_at": "2026-06-27T17:27:56.729402545Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "c88ec6dcc4f6d0618676cdde83ec8d0e5d7d1cb4a9fcc044afcab551d9906022",
+			"definition_hash": "381cde33aad52d1fa7423463becf8b8a523ae9e7f1f6c90adb06db4c1bf303c2",
+			"reviewed_at": "2026-06-27T17:27:56.72974864Z"
+		},
+		{
+			"function_name": "Logs",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "93bc06fa7302e3c2bb292374da76ca6bec518004e5e48ccc2b09dfbf184a76a1",
+			"definition_hash": "364392ccefe65e16e579ced424f6349ec5b16ee1188dce9be8b9d5354318a063",
+			"reviewed_at": "2026-06-27T17:27:56.730413178Z"
+		},
+		{
+			"function_name": "Exec",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "df3e3cd54c629b82e2ed9a77b0f75456deeff0239a9ccc8365fe1447afa4ce53",
+			"definition_hash": "21e35a73873a6686e9fddc56da179171c59312596d0915426dff0e6d5bc35ced",
+			"reviewed_at": "2026-06-27T17:27:56.730821519Z"
+		},
+		{
+			"function_name": "ProxyHTTP",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "1d1cae19babc2c1401457db4bc6af4793984663d55f9f86108aea0c862d0b371",
+			"definition_hash": "0ff1f62fb5b739e4c99c5ead065216d1fb243bf3719490c463b0d178f3f870b3",
+			"reviewed_at": "2026-06-27T17:27:56.731194847Z"
+		},
+		{
+			"function_name": "ReapOrphans",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "9673653f4182211a29f5d3b2d7262b950407d20479436afc9ada714d5c391b24",
+			"definition_hash": "c0e9cabf554141cfce36839f282f3c17720acaa8f7be3880ad31864321dc29d9",
+			"reviewed_at": "2026-06-27T17:27:56.731552335Z"
+		}
+	]
+}

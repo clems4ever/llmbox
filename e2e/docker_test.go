@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +26,10 @@ type fakeBoxManager struct {
 	platform *fakeAnthropic
 
 	miscRand io.Reader
+
+	// dialTarget is the address DialBox connects to, standing in for a server
+	// listening inside a box (a real loopback server in the proxy e2e test).
+	dialTarget string
 
 	mu    sync.Mutex
 	boxes map[string]*fakeBox // keyed by full container ID
@@ -204,6 +209,23 @@ func (m *fakeBoxManager) Exec(_ context.Context, idOrName string, cmd []string) 
 		return docker.ExecResult{Stdout: rest + "\n"}, nil
 	}
 	return docker.ExecResult{}, nil
+}
+
+// DialBox connects to the fake's dialTarget, standing in for a real box's port.
+// It satisfies the server's boxDialer interface so the proxy path can be driven
+// end to end against a real loopback server without Docker.
+//
+// @arg ctx Context for the dial.
+// @arg idOrName The box identifier (ignored; the simulation has one target).
+// @arg port The port (ignored).
+// @return net.Conn A connection to the dial target.
+// @error error if no dial target is configured or the dial fails.
+func (m *fakeBoxManager) DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error) {
+	if m.dialTarget == "" {
+		return nil, fmt.Errorf("no dial target configured")
+	}
+	var d net.Dialer
+	return d.DialContext(ctx, "tcp", m.dialTarget)
 }
 
 // ReapOrphans is a no-op in the simulation; the workflow never leaves orphans.

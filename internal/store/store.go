@@ -57,6 +57,47 @@ type PersistedSession struct {
 	ActivatedBy  string            `json:"activated_by,omitempty"`
 }
 
+// ProxyRecord is the on-disk form of an enabled HTTP proxy: a stable, unguessable
+// slug (the subdomain label the user's browser requests) bound to a box's port on
+// a given spoke. Proxies are default-deny — a request only reaches a box's port
+// when a record with a matching slug exists — so this registry is the allowlist.
+type ProxyRecord struct {
+	// Slug is the unguessable DNS label the proxy is reached at
+	// (https://<slug>.<base-domain>/) and the store key.
+	Slug string `json:"slug"`
+	// BoxID is the box whose port is exposed (the caller-assigned box ID).
+	BoxID string `json:"box_id"`
+	// ContainerID is the container the proxy was created for. It pins the proxy to
+	// one box *generation*: a box destroyed and later recreated with the same box
+	// ID gets a different container, so a stale proxy is never silently reused for
+	// the new box (it is replaced, and reconciliation drops it).
+	ContainerID string `json:"container_id,omitempty"`
+	// Port is the TCP port inside the box that requests are forwarded to.
+	Port int `json:"port"`
+	// Spoke is the cluster spoke the box runs on ("local" for the in-process spoke).
+	Spoke string `json:"spoke,omitempty"`
+	// CreatedAt is when the proxy was enabled.
+	CreatedAt time.Time `json:"created_at"`
+	// CreatedBy is the identity (email) that enabled the proxy, when known (e.g.
+	// an admin acting through the UI); empty for proxies enabled over MCP.
+	CreatedBy string `json:"created_by,omitempty"`
+}
+
+// ProxyStore persists the enabled-proxy registry across restarts, keyed by the
+// proxy's slug. It is the store's own concern (separate from sessions, logins,
+// and cluster enrollment) so a backend can implement and test it in isolation.
+// All methods must be safe for concurrent use.
+type ProxyStore interface {
+	// SaveProxy writes (creating or replacing) one proxy keyed by its slug.
+	SaveProxy(rec ProxyRecord) error
+	// GetProxy returns the proxy for a slug; the bool is false when none matches.
+	GetProxy(slug string) (ProxyRecord, bool, error)
+	// ListProxies returns every enabled proxy.
+	ListProxies() ([]ProxyRecord, error)
+	// DeleteProxy removes the proxy for a slug; deleting a missing slug is a no-op.
+	DeleteProxy(slug string) error
+}
+
 // SessionStore persists the box auth-session registry across restarts. It is the
 // store's own concern (logins and cluster enrollment are separate contracts), so
 // a backend can implement and test it in isolation. All methods must be safe for
@@ -77,6 +118,7 @@ type SessionStore interface {
 type Store interface {
 	SessionStore
 	LoginStore
+	ProxyStore
 	cluster.Store
 	io.Closer
 }

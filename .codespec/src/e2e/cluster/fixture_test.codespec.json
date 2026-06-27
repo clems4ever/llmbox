@@ -59,8 +59,8 @@
 		{
 			"function_name": "newClusterFixture",
 			"documentation_hash": "27f270b3b24a4c005fa040dc79089f96589bdd95b4ea37d1b710526b903c3327",
-			"definition_hash": "c5d678986d0605bdc027a3ff1e467277a8fa66fcdcda045a0a6819aa9704f358",
-			"reviewed_at": "2026-06-27T11:22:56.754823579Z"
+			"definition_hash": "50329ba6c7a3cd01364f552b36178dee5e55e9d34fb65f9416eb297f8f879d2c",
+			"reviewed_at": "2026-06-27T17:44:05.428959152Z"
 		},
 		{
 			"function_name": "nextMonoCell",
@@ -101,6 +101,13 @@
 			"documentation_hash": "a127b823e8cccf73c3d588f0b1c10623d29dd2236c218682014b943bf5de9116",
 			"definition_hash": "c8ebf6b9d760347aaffddb10f3465995828ff0ecdad491b539c18a8c49920fbb",
 			"reviewed_at": "2026-06-27T10:01:06.204862367Z"
+		},
+		{
+			"function_name": "createProxyViaAPI",
+			"receiver": "clusterFixture",
+			"documentation_hash": "2e70aa7d5c5c7dfe101fa2af3c834aca70f998aefa9b830a85cd3f701d6046b3",
+			"definition_hash": "0e96ee14c262fc73a96d4046c99cc37b7d0e35cc000022bf840559b8070aae7d",
+			"reviewed_at": "2026-06-27T17:44:05.397689561Z"
 		}
 	]
 }

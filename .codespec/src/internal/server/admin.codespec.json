@@ -4,8 +4,8 @@
 			"function_name": "registerAdminRoutes",
 			"receiver": "Server",
 			"documentation_hash": "5d0fd1d0e760908f9f9d90e8fbd996f0f1bc7ad8d6b7425099b1fac98dbab1bf",
-			"definition_hash": "24810213556ae630d481cc2057f3323f88c01ac1084635433c64adf275b4b6a4",
-			"reviewed_at": "2026-06-22T19:50:31.28476636Z"
+			"definition_hash": "630159709f9a4700b73815b993f7e30d2ff070b72e91d06eef9bb6268d3a9c0d",
+			"reviewed_at": "2026-06-27T17:02:38.530901469Z"
 		},
 		{
 			"function_name": "handleAdmin",
@@ -18,8 +18,8 @@
 			"function_name": "adminDashboard",
 			"receiver": "Server",
 			"documentation_hash": "98837fe4f193d291be7463599a66299f9fe6221d93dcb799bbeb01c8416a7d38",
-			"definition_hash": "af367660ba4307addc4bf29b72248d46724a8f1a3002d27b883858fe2abf0b14",
-			"reviewed_at": "2026-06-25T10:50:51.586030504Z"
+			"definition_hash": "9b1803e8b24c0ff805b4cca0624e0ee91ae39ef179006eaea7a0f8b21eb0fa9f",
+			"reviewed_at": "2026-06-27T17:02:38.531686076Z"
 		},
 		{
 			"function_name": "toAdminTokens",
@@ -114,6 +114,26 @@
 			"documentation_hash": "a80bd76025e2515be78e35d455516db38c00e2f52a06653dc58d15c53df0d1c6",
 			"definition_hash": "cb97da2bcf0061878cee44252b9a15d3aea54f38e5fdc0aefdfd2a7f658498a1",
 			"reviewed_at": "2026-06-25T09:38:26.203774438Z"
+		},
+		{
+			"function_name": "toAdminProxies",
+			"documentation_hash": "9334d5029e7212f1b78658f23c2c7119eb8895109a720c73f9368abf06ae2756",
+			"definition_hash": "41cafe0a780cbbbf1fa3e8ace56d51d046afac7384ff3f03c87bd7b9722efdcd",
+			"reviewed_at": "2026-06-27T17:02:38.532404783Z"
+		},
+		{
+			"function_name": "handleAdminCreateProxy",
+			"receiver": "Server",
+			"documentation_hash": "a9ef0013b74b76e05796c7e0348018b71d5baebd751a51ee5f1e4c5321d36de9",
+			"definition_hash": "4434f421239ec0de11491f18bbf428c28431b57e202f3cacb07afe592cd956bd",
+			"reviewed_at": "2026-06-27T17:02:38.533486175Z"
+		},
+		{
+			"function_name": "handleAdminDeleteProxy",
+			"receiver": "Server",
+			"documentation_hash": "e199e3679d288596286ae423f3ba0695687414c4d96dc47b711f6a6f2c3d70df",
+			"definition_hash": "d42acfa57102cef37bb3b9bf2025ae5e7cb87634fe8716dead6190fcbace5120",
+			"reviewed_at": "2026-06-27T17:02:38.534213994Z"
 		}
 	]
 }

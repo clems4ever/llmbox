@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"encoding/json"
+	"net/http"
 
 	"github.com/clems4ever/llmbox/internal/docker"
 )
@@ -34,6 +35,7 @@ const (
 	methodLogs       = "logs"
 	methodExec       = "exec"
 	methodReap       = "reap"
+	methodProxyHTTP  = "proxy_http"
 )
 
 // frame is the single envelope exchanged over a cluster connection. Payload is
@@ -106,6 +108,25 @@ type reapReq struct {
 }
 type reapResp struct {
 	Reaped []string `json:"reaped"`
+}
+
+// proxyHTTPReq carries one buffered HTTP request to forward to a box's port on
+// the spoke. The whole request and response are buffered into single frames (no
+// streaming), which is why this verb suits ordinary request/response traffic
+// (APIs, SPA assets) but not WebSockets or SSE to a remote box. Body is
+// base64-encoded by JSON. Path is the request URI (path plus raw query).
+type proxyHTTPReq struct {
+	BoxID  string      `json:"box_id"`
+	Port   int         `json:"port"`
+	Method string      `json:"method"`
+	Path   string      `json:"path"`
+	Header http.Header `json:"header,omitempty"`
+	Body   []byte      `json:"body,omitempty"`
+}
+type proxyHTTPResp struct {
+	Status int         `json:"status"`
+	Header http.Header `json:"header,omitempty"`
+	Body   []byte      `json:"body,omitempty"`
 }
 
 // encodePayload marshals v into a frame payload. It panics only on a programmer

@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "roundTripToBox",
+			"documentation_hash": "abed714e669bd4e465190daef8ce1e7437df580f1c850f635e337820bdb8fd4d",
+			"definition_hash": "383e65bf34e7499d04fcac257f0a3923cd43d2169533a0029fd67da0a9a7f23e",
+			"reviewed_at": "2026-06-27T17:28:42.147646538Z"
+		}
+	]
+}

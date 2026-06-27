@@ -179,6 +179,7 @@ type fakeSpokeMgr struct {
 	createCount int
 	execCount   int
 	gotImage    string // image of the most recent create, as received from the hub
+	dialTarget  string // address DialBox connects to (a real upstream "box" server)
 }
 
 // newFakeSpokeMgr builds an empty simulated spoke box manager.
@@ -276,6 +277,28 @@ func (m *fakeSpokeMgr) Exec(_ context.Context, _ string, _ []string) (docker.Exe
 // ReapOrphans reaps nothing in the simulation.
 func (m *fakeSpokeMgr) ReapOrphans(_ context.Context, _ time.Duration) ([]string, error) {
 	return nil, nil
+}
+
+// setDialTarget points DialBox at addr (a real loopback server standing in for a
+// box's HTTP server), under the lock so the spoke goroutine reads it safely.
+func (m *fakeSpokeMgr) setDialTarget(addr string) {
+	m.mu.Lock()
+	m.dialTarget = addr
+	m.mu.Unlock()
+}
+
+// DialBox dials the configured target, standing in for a connection to a port
+// inside a box. It makes the spoke satisfy cluster.BoxDialer, so the spoke can
+// service proxy_http requests forwarded from the hub over the real WebSocket.
+func (m *fakeSpokeMgr) DialBox(ctx context.Context, _ string, _ int) (net.Conn, error) {
+	m.mu.Lock()
+	target := m.dialTarget
+	m.mu.Unlock()
+	if target == "" {
+		return nil, fmt.Errorf("no dial target configured for spoke %q", m.name)
+	}
+	var d net.Dialer
+	return d.DialContext(ctx, "tcp", target)
 }
 
 // creates returns how many boxes were created on this spoke.

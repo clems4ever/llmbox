@@ -90,6 +90,21 @@ state_file: "llmbox-sessions.db"
 #     username: "your-github-user"
 #     password_file: "/etc/llmbox/ghcr-token"   # a GitHub PAT with read:packages
 
+# Expose box HTTP ports to the user's browser. When base_domain is set, the hub
+# serves a reverse proxy at https://<slug>.<base_domain>/ for every proxy enabled
+# over MCP (create_llmbox_proxy) or the admin UI, forwarding to the box's port on
+# its spoke. No port is reachable until a proxy is explicitly enabled (default
+# deny). Each proxy gets its OWN sub-domain so single-page apps and servers that
+# emit absolute paths work unchanged (no path rewriting). Requires:
+#   - a wildcard DNS record   *.proxy.example.com  ->  this host
+#   - a wildcard TLS cert for *.proxy.example.com  (terminated at your proxy)
+# A box on the local spoke is proxied with a live (streaming) connection; a box on
+# a remote spoke is forwarded over the cluster transport with buffered
+# request/response (ordinary HTTP and SPAs work; WebSocket/SSE streaming to a
+# remote box does not).
+# proxy:
+#   base_domain: "proxy.example.com"
+
 # Activation authentication. Without this, anyone who obtains a box's auth-page
 # URL (which is relayed through the chatbot) can activate the box with their own
 # account. Enable a provider to require the person activating a box to sign in
@@ -97,6 +112,11 @@ state_file: "llmbox-sessions.db"
 # allowed domain or email allowlist.
 # auth:
 #   session_ttl: "1h"          # how long a sign-in stays valid
+#   # Share one sign-in across sub-domains, so the login that gates box activation
+#   # also covers the per-proxy <slug>.proxy.example.com hosts. Set it to the
+#   # parent domain both hosts share (note the leading dot). Leave unset unless you
+#   # use the proxy feature above with sub-domain hosts.
+#   cookie_domain: ".example.com"
 #   google:
 #     enabled: true
 #     client_id: "xxxxxxxx.apps.googleusercontent.com"

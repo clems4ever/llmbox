@@ -9,8 +9,8 @@
 		{
 			"function_name": "openBolt",
 			"documentation_hash": "b45b6bc3292610580f47cce9100136c5b6a3faf1b61bcc513832f97634367df3",
-			"definition_hash": "dfe565d0f016d4e0c15f6dec96f5587da8a6b98c4a35a337887fb5cf750c779d",
-			"reviewed_at": "2026-06-25T12:20:58.243152684Z"
+			"definition_hash": "25e66d404127848b3fec2307656d7daed426f721a842dfb012ffcc0ef212df13",
+			"reviewed_at": "2026-06-27T17:02:38.547248756Z"
 		},
 		{
 			"function_name": "Save",
@@ -137,6 +137,34 @@
 			"documentation_hash": "5cbbdd940b04e8564d1df20afe90e717aca5f481af0cc5e50207d70d09122328",
 			"definition_hash": "6940a3d7d06cf9f78053d80e65f5479f79c866f68beed0c54808d20ac71f5942",
 			"reviewed_at": "2026-06-25T12:20:58.39727419Z"
+		},
+		{
+			"function_name": "SaveProxy",
+			"receiver": "boltStore",
+			"documentation_hash": "d9192e4b280e6796d393dc6e154dda9dfcc1a1d302832d2ef2aeac349d32e991",
+			"definition_hash": "3bb89240aa94c3f2dfa7166ef4d0286cdc83f55b5919056a6aee612c9054f44a",
+			"reviewed_at": "2026-06-27T17:02:38.54800866Z"
+		},
+		{
+			"function_name": "GetProxy",
+			"receiver": "boltStore",
+			"documentation_hash": "a6cfa1457af9a54655fb96ff47520ef7eb34ad35ce1287ba23a64c986a68410c",
+			"definition_hash": "f4be5044a8fa3a44bc8323dfdaf1e3b005c43c009e4009bbe073ac26c0e9fea6",
+			"reviewed_at": "2026-06-27T17:02:38.548625837Z"
+		},
+		{
+			"function_name": "ListProxies",
+			"receiver": "boltStore",
+			"documentation_hash": "ab7fda70179dfd14e5b729319fb5bf07e9fc9b3a1f1257a5fdedd06721a3c693",
+			"definition_hash": "4e38af9495eb1c196964061f77552bbf96f8e09ce619f87d7ab498afa30e378c",
+			"reviewed_at": "2026-06-27T17:02:38.549300629Z"
+		},
+		{
+			"function_name": "DeleteProxy",
+			"receiver": "boltStore",
+			"documentation_hash": "c5bf6ababd61d2b4dd62e361858c8d077b6bb980db643551a00615f38abd9c81",
+			"definition_hash": "b51557fdfcb2dc8dc5aad600a7912fb73418b26263fb5ebc5f01f959f0277be9",
+			"reviewed_at": "2026-06-27T17:02:38.550170875Z"
 		}
 	]
 }

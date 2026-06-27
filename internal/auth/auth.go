@@ -116,6 +116,11 @@ type Authenticator struct {
 	// provider's box-activation allow rule.
 	adminEmails map[string]bool
 
+	// cookieDomain, when non-empty, is set as the login cookie's Domain attribute
+	// so the session is shared across sub-domains (e.g. the per-proxy hosts). Empty
+	// leaves the cookie host-only.
+	cookieDomain string
+
 	// store persists the in-flight handshake state and completed login sessions.
 	// It is bound by the server (which owns the store) via Bind before serving;
 	// the OIDC handlers and CurrentLogin read and write it.
@@ -143,9 +148,10 @@ type ProviderButton struct {
 // @testcase TestNewDisabled returns nil when no provider is enabled.
 func New(ctx context.Context, cfg config.AuthConfig) (*Authenticator, error) {
 	a := &Authenticator{
-		providers:   map[string]*provider{},
-		sessionTTL:  time.Duration(cfg.SessionTTL),
-		adminEmails: lowerSet(cfg.Admin.Emails),
+		providers:    map[string]*provider{},
+		sessionTTL:   time.Duration(cfg.SessionTTL),
+		adminEmails:  lowerSet(cfg.Admin.Emails),
+		cookieDomain: strings.TrimSpace(cfg.CookieDomain),
 	}
 	if cfg.Google.Enabled {
 		oidcProvider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
@@ -184,7 +190,7 @@ func New(ctx context.Context, cfg config.AuthConfig) (*Authenticator, error) {
 // @arg adminEmails The identities allowed into the admin UI; lower-cased here.
 // @return *Authenticator An admin-enabled authenticator backed by a stub provider.
 //
-// @testcase TestAdminDashboardGate exercises an admin-enabled authenticator built here.
+// @testcase TestNewTestAuthenticator checks the admin-enabled test authenticator it builds.
 func NewTestAuthenticator(adminEmails ...string) *Authenticator {
 	return &Authenticator{
 		providers:   map[string]*provider{"google": {name: "google", label: "Google"}},
@@ -243,7 +249,7 @@ func (a *Authenticator) provider(name string) (*provider, bool) {
 // @arg token The box auth token to return to after sign-in.
 // @return []ProviderButton One button per enabled provider, in config order.
 //
-// @testcase TestAuthPageRequiresLogin renders the sign-in buttons.
+// @testcase TestButtons builds a login button per provider carrying the box token.
 func (a *Authenticator) Buttons(token string) []ProviderButton {
 	if a == nil {
 		return nil
@@ -492,7 +498,9 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		Name:  LoginCookie,
 		Value: id,
 		// Scoped to the whole site so the cookie reaches both the activation pages
-		// under /auth and the admin UI under /admin.
+		// under /auth and the admin UI under /admin. When a cookie domain is
+		// configured, it is also shared across sub-domains (the per-proxy hosts).
+		Domain:   a.cookieDomain,
 		Path:     "/",
 		Expires:  expires,
 		HttpOnly: true,
@@ -513,7 +521,7 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 // @return store.LoginSession The signed-in session when present and unexpired.
 // @return bool True when a valid login session exists.
 //
-// @testcase TestAuthPageRequiresLogin treats a missing cookie as not-signed-in.
+// @testcase TestCurrentLogin resolves a live session by cookie and rejects missing or expired ones.
 func (a *Authenticator) CurrentLogin(r *http.Request) (store.LoginSession, bool) {
 	c, err := r.Cookie(LoginCookie)
 	if err != nil {

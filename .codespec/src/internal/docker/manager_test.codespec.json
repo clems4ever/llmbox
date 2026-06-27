@@ -395,14 +395,57 @@
 		{
 			"function_name": "TestIsNotFound",
 			"documentation_hash": "db1db746d613b21e726516985d4947dfe08c497f5593500c5dfbbef4c77501bf",
-			"definition_hash": "6d6c1da92d4f32d1817296bad17a48ee7697bcbae1478bc9b5e9ffff3ac93659",
-			"reviewed_at": "2026-06-27T09:31:33.756015623Z"
+			"definition_hash": "d977a6aaca55157b4aeca00121250638cb3d7f180680a88f65545a3a9a4a7e17",
+			"reviewed_at": "2026-06-27T17:02:38.512854976Z"
 		},
 		{
 			"function_name": "TestCreateInjectsConfigSeed",
 			"documentation_hash": "ed20b7b7151cbc2b2a300d080efe78c7fe234b1d7ad0d12ae4767f49ed6b843a",
 			"definition_hash": "fd58816e3f0f12a057c547965894df62cbfffa3557dad05437e901047d43cb7c",
 			"reviewed_at": "2026-06-27T14:01:26.286509822Z"
+		},
+		{
+			"function_name": "ContainerInspect",
+			"receiver": "fakeDocker",
+			"documentation_hash": "76341e6e27d66e0f2e38e59c99a0c2be5df0e109727c701f766f837b06e5dcd8",
+			"definition_hash": "a7f073d25ef1c8daf7c950147bf3dc27431b0283ec988524cddb99e036122afe",
+			"reviewed_at": "2026-06-27T17:02:38.50987463Z"
+		},
+		{
+			"function_name": "managedSummary",
+			"documentation_hash": "e80f833ed56ea820834d46018be965043f6183294bec4f0a0022f3115fc3e176",
+			"definition_hash": "60dfec9314c324962363b8ebd1dec128e95767462a731036d44e24e901c78d1a",
+			"reviewed_at": "2026-06-27T17:02:38.515195578Z"
+		},
+		{
+			"function_name": "inspectWithNetworks",
+			"documentation_hash": "bc5f293c235cbe8162b11bb04929c89162a756163e01ec3ebb7a4d272528c393",
+			"definition_hash": "34f21aa866151cfb7a05a67f3694cc9c7ebaadddf860b5194a370e12b29d474f",
+			"reviewed_at": "2026-06-27T17:02:38.517709411Z"
+		},
+		{
+			"function_name": "TestDialBoxResolvesAddr",
+			"documentation_hash": "47752a171391bf2d6d56655339a05b7ca8b857000d1f2114f80102a44cb29f57",
+			"definition_hash": "5384edc64eb1e29bb93b2f04c3799836146ac2a3c7b186e5d202564ff87f9bd9",
+			"reviewed_at": "2026-06-27T17:02:38.520156146Z"
+		},
+		{
+			"function_name": "TestDialBoxRejectsBadPort",
+			"documentation_hash": "104489987429e7bb894b1d7ca56114141eac425a8219bb3e41bbf336398fa6be",
+			"definition_hash": "83f310ef818b2606798656578cc961cab8e18db28d71682dadb3b4ae411b1953",
+			"reviewed_at": "2026-06-27T17:02:38.522498347Z"
+		},
+		{
+			"function_name": "TestDialBoxUnknownBox",
+			"documentation_hash": "920c1a16127da1f22ec2a36ac5d9bb8fbb94cc2ec2ac1c5125aca94e3211c644",
+			"definition_hash": "da7665897535bc8486062953c651f49f715991c0e6e2dab741f9e9b740825aaa",
+			"reviewed_at": "2026-06-27T17:02:38.524934601Z"
+		},
+		{
+			"function_name": "TestDialBoxNoNetworkIP",
+			"documentation_hash": "42ce48aa3bfc32b99b7c2167775126415e66b09e26b928a45cc12e2d691d1696",
+			"definition_hash": "a3ade5d9252b09b11bb24c9bd1af2225a66e7affee95b14974eb2a8ea79f8879",
+			"reviewed_at": "2026-06-27T17:02:38.527353333Z"
 		}
 	]
 }

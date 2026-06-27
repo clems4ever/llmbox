@@ -22,6 +22,7 @@ var (
 	loginFlowsBucket    = []byte("login_flows")
 	joinTokensBucket    = []byte("spoke_join_tokens")
 	spokesBucket        = []byte("spokes")
+	proxiesBucket       = []byte("proxies")
 )
 
 // boltStore is a Store backed by a single bbolt database file.
@@ -52,7 +53,7 @@ func openBolt(path string) (*boltStore, error) {
 		return nil, fmt.Errorf("opening session store %q: %w", path, err)
 	}
 	if err := db.Update(func(tx *bolt.Tx) error {
-		for _, b := range [][]byte{sessionsBucket, loginSessionsBucket, loginFlowsBucket, joinTokensBucket, spokesBucket} {
+		for _, b := range [][]byte{sessionsBucket, loginSessionsBucket, loginFlowsBucket, joinTokensBucket, spokesBucket, proxiesBucket} {
 			if _, berr := tx.CreateBucketIfNotExists(b); berr != nil {
 				return berr
 			}
@@ -434,5 +435,84 @@ func (b *boltStore) ListSpokes() ([]cluster.SpokeRecord, error) {
 func (b *boltStore) DeleteSpoke(name string) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		return tx.Bucket(spokesBucket).Delete([]byte(name))
+	})
+}
+
+// SaveProxy stores (creating or replacing) one proxy as JSON keyed by its slug.
+//
+// @arg rec The proxy record to persist.
+// @error error if encoding or the write transaction fails.
+//
+// @testcase TestProxyStoreRoundTrip saves a proxy and reads it back.
+func (b *boltStore) SaveProxy(rec ProxyRecord) error {
+	data, err := json.Marshal(rec)
+	if err != nil {
+		return fmt.Errorf("encoding proxy: %w", err)
+	}
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(proxiesBucket).Put([]byte(rec.Slug), data)
+	})
+}
+
+// GetProxy returns the proxy for a slug.
+//
+// @arg slug The proxy slug to look up.
+// @return ProxyRecord The decoded record when one matched.
+// @return bool True when a proxy matched, false otherwise.
+// @error error if the read transaction or decoding fails.
+//
+// @testcase TestProxyStoreRoundTrip reads back a stored proxy and misses an unknown slug.
+func (b *boltStore) GetProxy(slug string) (ProxyRecord, bool, error) {
+	var (
+		rec   ProxyRecord
+		found bool
+	)
+	err := b.db.View(func(tx *bolt.Tx) error {
+		v := tx.Bucket(proxiesBucket).Get([]byte(slug))
+		if v == nil {
+			return nil
+		}
+		found = true
+		return json.Unmarshal(v, &rec)
+	})
+	if err != nil {
+		return ProxyRecord{}, false, err
+	}
+	return rec, found, nil
+}
+
+// ListProxies returns every enabled proxy.
+//
+// @return []ProxyRecord One entry per stored proxy.
+// @error error if a read transaction or decoding fails.
+//
+// @testcase TestProxyStoreRoundTrip lists the stored proxies.
+func (b *boltStore) ListProxies() ([]ProxyRecord, error) {
+	var out []ProxyRecord
+	err := b.db.View(func(tx *bolt.Tx) error {
+		return tx.Bucket(proxiesBucket).ForEach(func(_, v []byte) error {
+			var rec ProxyRecord
+			if derr := json.Unmarshal(v, &rec); derr != nil {
+				return fmt.Errorf("decoding proxy: %w", derr)
+			}
+			out = append(out, rec)
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DeleteProxy removes a proxy by its slug; deleting a missing one is a no-op.
+//
+// @arg slug The proxy slug to delete.
+// @error error if the write transaction fails.
+//
+// @testcase TestProxyStoreRoundTrip deletes a proxy and confirms it is gone.
+func (b *boltStore) DeleteProxy(slug string) error {
+	return b.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(proxiesBucket).Delete([]byte(slug))
 	})
 }
