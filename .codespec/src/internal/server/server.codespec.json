@@ -146,9 +146,9 @@
 		},
 		{
 			"function_name": "boxMatchesSession",
-			"documentation_hash": "a5d78f01cba29bf4b7484d21488d0f5282a0965ff9ce45e1afd81c6b534bc6e2",
-			"definition_hash": "912246c74cf52c74853d482d036187510d86510d18c120ecd0ebbd0b10f24643",
-			"reviewed_at": "2026-06-22T19:40:17.753483189Z"
+			"documentation_hash": "2300e910d38a72b36659f02bd324a500b7e95d37b62647c6f3c239ae1d5cee51",
+			"definition_hash": "136c20e29af27c8ef15b89f8f712f7fdda7ff1e2e2c984d87e3537b94483701e",
+			"reviewed_at": "2026-06-26T12:33:43.200654976Z"
 		},
 		{
 			"function_name": "createBox",
@@ -188,9 +188,22 @@
 		{
 			"function_name": "destroyBox",
 			"receiver": "Server",
-			"documentation_hash": "f119a80ef2fb65e46b855f161fddf4e910fac952913fd6098f619d865191e158",
-			"definition_hash": "c366a0a6f5ba0192de14c6347eb378d1c24fc43c3eed9056409461ace8033c68",
-			"reviewed_at": "2026-06-25T10:51:16.113278871Z"
+			"documentation_hash": "c42c774a4c9a1d63cf176ad47a5753084b22d662fddb21b71f1e3dde80a93952",
+			"definition_hash": "97cf941849a3e68e11771e51ad115e79ceecdc128bc73e2ef31781c781a2fc31",
+			"reviewed_at": "2026-06-26T12:33:43.216011715Z"
+		},
+		{
+			"function_name": "idMatchesBox",
+			"documentation_hash": "ee4fc221715c8f1efe7c28efb24acc415a300304be1ef8b4c580b93b3f7dce65",
+			"definition_hash": "89d2588cedeba81f267f81bd1379b41db72e318e2d527ddc84418d886632d7fd",
+			"reviewed_at": "2026-06-26T12:33:43.1635075Z"
+		},
+		{
+			"function_name": "spokeHostingBox",
+			"receiver": "Server",
+			"documentation_hash": "80d908719cbe9db30abf2e3a0286c0fdfdc4daf1ea7bb56b56ebf0f6e7632de6",
+			"definition_hash": "50007d3f1474a4c547df4a261b5f040952e527af49df37be446307b234aafd3c",
+			"reviewed_at": "2026-06-26T12:33:43.256534715Z"
 		}
 	]
 }
