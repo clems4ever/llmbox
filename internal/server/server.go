@@ -195,6 +195,11 @@ type Server struct {
 	// config-free and hold no default of their own.
 	boxImage string
 
+	// proxyBaseDomain is the parent domain per-box HTTP proxies hang off (e.g.
+	// "proxy.example.com"); a proxy is reached at <slug>.<proxyBaseDomain>. Empty
+	// disables the proxy feature entirely. Set once at startup via SetProxyBaseDomain.
+	proxyBaseDomain string
+
 	// log records best-effort failures (persistence, cleanup, destroy hooks) that
 	// are not propagated to the caller; nil falls back to slog.Default().
 	log *slog.Logger
@@ -273,6 +278,17 @@ func (s *Server) SetSpokeImage(image string) { s.spokeImage = image }
 //
 // @testcase TestCreateBoxDefaultsImageToBoxImage stamps the configured image onto an imageless request.
 func (s *Server) SetBoxImage(image string) { s.boxImage = image }
+
+// SetProxyBaseDomain sets the parent domain per-box HTTP proxies are served
+// under (e.g. "proxy.example.com"), enabling the proxy feature. An empty domain
+// leaves it disabled. Call it once at startup before serving.
+//
+// @arg domain The proxy parent domain; empty disables proxying.
+//
+// @testcase TestCreateProxyRegistersAndBuildsURL enables proxying via this setter.
+func (s *Server) SetProxyBaseDomain(domain string) {
+	s.proxyBaseDomain = strings.Trim(strings.TrimSpace(domain), ".")
+}
 
 // spoke resolves a spoke name to its box manager. An empty name or "local"
 // returns the in-process manager; any other name is looked up among the
@@ -820,6 +836,7 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 	}
 	for _, tb := range torn {
 		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)
+		s.deleteProxiesForBox(tb.boxID)
 	}
 	return nil
 }
@@ -953,6 +970,7 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 	}
 	for _, tb := range torn {
 		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)
+		s.deleteProxiesForBox(tb.boxID)
 	}
 }
 

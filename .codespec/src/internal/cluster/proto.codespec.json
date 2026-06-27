@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "encodePayload",
+			"documentation_hash": "08c6ffa2603184ae26b9e2aad6ce15a04eea33f99253602a0130566d44e6955a",
+			"definition_hash": "b245be217de73f11d9dad6208e4009b8387c74fd2ce7219cbb3a98af6edd2ff8",
+			"reviewed_at": "2026-06-27T17:27:51.153221327Z"
+		},
+		{
+			"function_name": "decodePayload",
+			"documentation_hash": "fd131291ccc4875d6a7619b61e9dcf1c13afdf695f032f01b7eeb953c17b15e0",
+			"definition_hash": "254c2f1f2ae2b5d2b222f616c9690496977198a52a1e52b575908eddddb5163b",
+			"reviewed_at": "2026-06-27T17:27:51.153406107Z"
+		}
+	]
+}

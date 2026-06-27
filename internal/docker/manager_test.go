@@ -55,6 +55,10 @@ type fakeDocker struct {
 	execInspectErr error
 	gotExecCmd     []string // Cmd recorded from the last ContainerExecCreate call
 
+	inspectResp container.InspectResponse // canned ContainerInspect response
+	inspectErr  error                     // canned ContainerInspect error
+	gotInspect  string                    // container ID recorded from ContainerInspect
+
 	// createNotFoundUntilPull makes ContainerCreate return an image-not-found
 	// error until ImagePull has been called, simulating a missing local image.
 	createNotFoundUntilPull bool
@@ -222,6 +226,12 @@ func (f *fakeDocker) ContainerExecInspect(_ context.Context, _ string) (containe
 		return container.ExecInspect{}, f.execInspectErr
 	}
 	return container.ExecInspect{ExitCode: f.execExitCode}, nil
+}
+
+// ContainerInspect records the inspected ID and returns the canned response or error.
+func (f *fakeDocker) ContainerInspect(_ context.Context, id string) (container.InspectResponse, error) {
+	f.gotInspect = id
+	return f.inspectResp, f.inspectErr
 }
 
 // Close satisfies the dockerAPI interface; the fake holds no resources.
@@ -1170,15 +1180,120 @@ func TestIsNotFound(t *testing.T) {
 		err  error
 		want bool
 	}{
-		"sentinel":   {ErrBoxNotFound, true},
-		"wrapped":    {fmt.Errorf("%w %q", ErrBoxNotFound, "b1"), true},
+		"sentinel":    {ErrBoxNotFound, true},
+		"wrapped":     {fmt.Errorf("%w %q", ErrBoxNotFound, "b1"), true},
 		"wire-string": {errors.New(`no managed box matches "b1"`), true},
-		"unrelated":  {errors.New("connection refused"), false},
-		"nil":        {nil, false},
+		"unrelated":   {errors.New("connection refused"), false},
+		"nil":         {nil, false},
 	}
 	for name, tc := range cases {
 		if got := IsNotFound(tc.err); got != tc.want {
 			t.Errorf("%s: IsNotFound(%v) = %v, want %v", name, tc.err, got, tc.want)
 		}
+	}
+}
+
+// managedSummary builds a managed container summary for a box with the given
+// full ID, named with the ready prefix on its short form.
+func managedSummary(fullID string) container.Summary {
+	return container.Summary{
+		ID:     fullID,
+		Names:  []string{"/" + readyPrefix + fullID[:12]},
+		Labels: map[string]string{ManagedLabel: "true"},
+		State:  "running",
+		Status: "Up",
+	}
+}
+
+// inspectWithNetworks builds an inspect response for fullID exposing the given
+// network-name → IP mapping.
+func inspectWithNetworks(fullID string, networks map[string]string) container.InspectResponse {
+	eps := map[string]*network.EndpointSettings{}
+	for name, ip := range networks {
+		eps[name] = &network.EndpointSettings{IPAddress: ip}
+	}
+	return container.InspectResponse{
+		ContainerJSONBase: &container.ContainerJSONBase{ID: fullID},
+		NetworkSettings:   &container.NetworkSettings{Networks: eps},
+	}
+}
+
+// TestDialBoxResolvesAddr checks DialBox resolves the box's address on its
+// dedicated network and connects to it, preferring the per-box network's IP.
+func TestDialBoxResolvesAddr(t *testing.T) {
+	// A real loopback listener stands in for the in-box server.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	port := ln.Addr().(*net.TCPAddr).Port
+
+	const fullID = "abcdef012345aaaaaaaaaaaa"
+	f := &fakeDocker{
+		listResult:  []container.Summary{managedSummary(fullID)},
+		inspectResp: inspectWithNetworks(fullID, map[string]string{boxNetworkName(fullID): "127.0.0.1"}),
+	}
+	m := newTestManager(f)
+
+	conn, err := m.DialBox(context.Background(), fullID[:12], port)
+	if err != nil {
+		t.Fatalf("DialBox: %v", err)
+	}
+	defer conn.Close()
+	if f.gotInspect != fullID[:12] {
+		t.Errorf("inspected %q, want %q", f.gotInspect, fullID[:12])
+	}
+	// Prove the connection reaches the listener by accepting it.
+	accepted := make(chan net.Conn, 1)
+	go func() {
+		c, _ := ln.Accept()
+		accepted <- c
+	}()
+	select {
+	case c := <-accepted:
+		c.Close()
+	case <-time.After(2 * time.Second):
+		t.Fatal("listener never accepted the DialBox connection")
+	}
+}
+
+// TestDialBoxRejectsBadPort checks DialBox rejects an out-of-range port before
+// it inspects or dials anything.
+func TestDialBoxRejectsBadPort(t *testing.T) {
+	const fullID = "abcdef012345aaaaaaaaaaaa"
+	f := &fakeDocker{listResult: []container.Summary{managedSummary(fullID)}}
+	m := newTestManager(f)
+	for _, port := range []int{0, -1, 70000} {
+		if _, err := m.DialBox(context.Background(), fullID[:12], port); err == nil {
+			t.Errorf("port %d: expected error, got nil", port)
+		}
+	}
+	if f.gotInspect != "" {
+		t.Errorf("inspect was called for a bad port: %q", f.gotInspect)
+	}
+}
+
+// TestDialBoxUnknownBox checks DialBox surfaces a not-found error when no
+// managed box matches the identifier.
+func TestDialBoxUnknownBox(t *testing.T) {
+	m := newTestManager(&fakeDocker{listResult: nil})
+	_, err := m.DialBox(context.Background(), "nope", 8000)
+	if !IsNotFound(err) {
+		t.Errorf("DialBox error = %v, want not-found", err)
+	}
+}
+
+// TestDialBoxNoNetworkIP checks DialBox errors when the box carries no address
+// on any network (e.g. it is not running).
+func TestDialBoxNoNetworkIP(t *testing.T) {
+	const fullID = "abcdef012345aaaaaaaaaaaa"
+	f := &fakeDocker{
+		listResult:  []container.Summary{managedSummary(fullID)},
+		inspectResp: inspectWithNetworks(fullID, nil),
+	}
+	m := newTestManager(f)
+	if _, err := m.DialBox(context.Background(), fullID[:12], 8000); err == nil {
+		t.Fatal("expected an error for a box with no network IP, got nil")
 	}
 }

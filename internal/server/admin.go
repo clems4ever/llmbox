@@ -7,12 +7,14 @@ import (
 	"html/template"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/store"
 )
 
 // adminTokenIDLen is how many leading hash characters the admin UI shows for a
@@ -37,6 +39,10 @@ func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/tokens/delete", s.handleAdminRevokeToken)
 	mux.HandleFunc("POST /admin/boxes", s.handleAdminCreateBox)
 	mux.HandleFunc("POST /admin/boxes/delete", s.handleAdminDeleteBox)
+	if s.ProxyEnabled() {
+		mux.HandleFunc("POST /admin/proxies", s.handleAdminCreateProxy)
+		mux.HandleFunc("POST /admin/proxies/delete", s.handleAdminDeleteProxy)
+	}
 }
 
 // handleAdminJS serves the admin page's client script. It is a
@@ -78,6 +84,24 @@ type adminBox struct {
 	SessionURL string
 }
 
+// adminProxy is one enabled proxy rendered in the admin UI (pre-formatted).
+type adminProxy struct {
+	Slug      string
+	URL       string
+	BoxID     string
+	Port      int
+	Spoke     string
+	CreatedBy string
+	Created   string
+}
+
+// newProxyResult is the one-time output shown after enabling a proxy.
+type newProxyResult struct {
+	BoxID string `json:"boxId"`
+	Port  int    `json:"port"`
+	URL   string `json:"url"`
+}
+
 // newSpokeResult is the one-time output shown after minting a join token.
 type newSpokeResult struct {
 	Name    string `json:"name"`
@@ -107,6 +131,10 @@ type adminPageData struct {
 	Tokens          []adminToken
 	Boxes           []adminBox
 	ConnectedSpokes []string
+
+	// ProxyEnabled gates the proxies card; Proxies are the enabled HTTP proxies.
+	ProxyEnabled bool
+	Proxies      []adminProxy
 }
 
 // handleAdmin renders the admin dashboard for an authorized admin, the admin
@@ -182,7 +210,46 @@ func (s *Server) adminDashboard(r *http.Request, ls LoginSession) adminPageData 
 		}
 		data.Boxes = rows
 	}
+
+	if s.ProxyEnabled() {
+		data.ProxyEnabled = true
+		if proxies, err := s.listProxies(""); err != nil {
+			s.logger().Warn("admin: listing proxies", "err", err)
+		} else {
+			data.Proxies = toAdminProxies(proxies, s)
+		}
+	}
 	return data
+}
+
+// toAdminProxies maps stored proxies to their display form, sorted by box ID
+// then port, resolving each proxy's public URL via the server.
+//
+// @arg proxies The enabled proxies.
+// @arg s The server used to resolve each proxy's public URL.
+// @return []adminProxy The display rows.
+//
+// @testcase TestAdminCreateProxy renders the proxies card for an admin.
+func toAdminProxies(proxies []store.ProxyRecord, s *Server) []adminProxy {
+	out := make([]adminProxy, 0, len(proxies))
+	for _, p := range proxies {
+		out = append(out, adminProxy{
+			Slug:      p.Slug,
+			URL:       s.proxyURL(p.Slug),
+			BoxID:     p.BoxID,
+			Port:      p.Port,
+			Spoke:     p.Spoke,
+			CreatedBy: p.CreatedBy,
+			Created:   p.CreatedAt.UTC().Format(time.RFC3339),
+		})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].BoxID != out[j].BoxID {
+			return out[i].BoxID < out[j].BoxID
+		}
+		return out[i].Port < out[j].Port
+	})
+	return out
 }
 
 // toAdminTokens maps store join-token records to their display form, sorted by
@@ -459,6 +526,63 @@ func (s *Server) handleAdminDeleteBox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeResult(w, "removed box "+boxID, "")
+}
+
+// handleAdminCreateProxy enables an HTTP proxy to a box's port and returns its
+// URL as JSON. The signed-in admin's email is recorded as the proxy's creator.
+//
+// @arg w The response writer the JSON result is written to.
+// @arg r The request carrying the box ID and port.
+//
+// @testcase TestAdminCreateProxy enables a proxy and returns its URL.
+// @testcase TestAdminCreateProxyValidates rejects a missing box ID or bad port.
+func (s *Server) handleAdminCreateProxy(w http.ResponseWriter, r *http.Request) {
+	ls, ok := s.requireAdminPost(w, r)
+	if !ok {
+		return
+	}
+	boxID := strings.TrimSpace(r.PostFormValue("box_id"))
+	if boxID == "" {
+		writeResult(w, "", "box id is required")
+		return
+	}
+	port, err := strconv.Atoi(strings.TrimSpace(r.PostFormValue("port")))
+	if err != nil || port <= 0 {
+		writeResult(w, "", "a valid port is required")
+		return
+	}
+	rec, err := s.createProxy(boxID, port, ls.Email)
+	if err != nil {
+		writeResult(w, "", "creating proxy: "+err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"ok": true, "newProxy": &newProxyResult{
+		BoxID: rec.BoxID,
+		Port:  rec.Port,
+		URL:   s.proxyURL(rec.Slug),
+	}})
+}
+
+// handleAdminDeleteProxy disables a proxy by its slug.
+//
+// @arg w The response writer the JSON result is written to.
+// @arg r The request carrying the proxy slug.
+//
+// @testcase TestAdminDeleteProxy disables a proxy by its slug.
+func (s *Server) handleAdminDeleteProxy(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.requireAdminPost(w, r); !ok {
+		return
+	}
+	slug := strings.TrimSpace(r.PostFormValue("slug"))
+	if slug == "" {
+		writeResult(w, "", "proxy slug is required")
+		return
+	}
+	if err := s.deleteProxyBySlug(slug); err != nil {
+		writeResult(w, "", "removing proxy: "+err.Error())
+		return
+	}
+	writeResult(w, "removed proxy", "")
 }
 
 // writeResult reports an action's outcome to the admin page as a small

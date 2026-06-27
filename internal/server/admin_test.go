@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -415,5 +416,118 @@ func TestSpokeConnectURL(t *testing.T) {
 		if got := s.spokeConnectURL(); got != want {
 			t.Errorf("spokeConnectURL(%q) = %q, want %q", pub, got, want)
 		}
+	}
+}
+
+// newProxyAdminServer builds an admin server with proxying enabled and a
+// "web-box" session registered on the local spoke.
+func newProxyAdminServer(t *testing.T) (*Server, Store) {
+	t.Helper()
+	s, _, st := newAdminServer(t)
+	s.SetProxyBaseDomain("proxy.example.com")
+	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
+		t.Fatalf("createBox: %v", err)
+	}
+	return s, st
+}
+
+// TestAdminCreateProxy checks the admin create-proxy action enables a proxy,
+// returns its URL, and records the admin as its creator.
+func TestAdminCreateProxy(t *testing.T) {
+	s, st := newProxyAdminServer(t)
+	h := s.APIHandler()
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/proxies", strings.NewReader(url.Values{
+		"box_id": {"web-box"}, "port": {"8000"}, "csrf": {"CSRF"},
+	}.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	req.AddCookie(signIn(t, st, true, false))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	var out struct {
+		OK       bool `json:"ok"`
+		NewProxy *struct {
+			URL string `json:"url"`
+		} `json:"newProxy"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode: %v (body %q)", err, rec.Body.String())
+	}
+	if !out.OK || out.NewProxy == nil || !strings.HasSuffix(out.NewProxy.URL, ".proxy.example.com/") {
+		t.Fatalf("unexpected result %+v", out)
+	}
+	proxies, _ := st.ListProxies()
+	if len(proxies) != 1 || proxies[0].CreatedBy != "admin@corp.com" {
+		t.Errorf("proxies = %+v, want one created by admin@corp.com", proxies)
+	}
+}
+
+// TestAdminCreateProxyValidates checks the admin create-proxy action rejects a
+// missing box ID or a non-numeric port.
+func TestAdminCreateProxyValidates(t *testing.T) {
+	s, st := newProxyAdminServer(t)
+	h := s.APIHandler()
+
+	post := func(form url.Values) adminResult {
+		req := httptest.NewRequest(http.MethodPost, "/admin/proxies", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(signIn(t, st, true, false))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return decodeAdminResult(t, rec)
+	}
+	if r := post(url.Values{"port": {"8000"}, "csrf": {"CSRF"}}); r.OK || r.Err == "" {
+		t.Error("expected an error for a missing box id")
+	}
+	if r := post(url.Values{"box_id": {"web-box"}, "port": {"nope"}, "csrf": {"CSRF"}}); r.OK || r.Err == "" {
+		t.Error("expected an error for a non-numeric port")
+	}
+}
+
+// TestAdminDeleteProxy checks the admin delete-proxy action removes a proxy by
+// its slug.
+func TestAdminDeleteProxy(t *testing.T) {
+	s, st := newProxyAdminServer(t)
+	h := s.APIHandler()
+	rec, err := s.createProxy("web-box", 8000, "admin@corp.com")
+	if err != nil {
+		t.Fatalf("createProxy: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/proxies/delete", strings.NewReader(url.Values{
+		"slug": {rec.Slug}, "csrf": {"CSRF"},
+	}.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(signIn(t, st, true, false))
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+	if res := decodeAdminResult(t, rr); !res.OK {
+		t.Fatalf("delete result not ok: %+v", res)
+	}
+	if proxies, _ := st.ListProxies(); len(proxies) != 0 {
+		t.Errorf("proxy survived delete: %+v", proxies)
+	}
+}
+
+// TestAdminDashboardShowsProxies checks the dashboard renders the proxies card
+// for an admin when proxying is enabled.
+func TestAdminDashboardShowsProxies(t *testing.T) {
+	s, st := newProxyAdminServer(t)
+	if _, err := s.createProxy("web-box", 8000, "admin@corp.com"); err != nil {
+		t.Fatal(err)
+	}
+	h := s.APIHandler()
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	req.AddCookie(signIn(t, st, true, false))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if !strings.Contains(body, "HTTP proxies") || !strings.Contains(body, "proxies-card") {
+		t.Error("dashboard missing proxies card")
+	}
+	if !strings.Contains(body, ".proxy.example.com/") {
+		t.Error("dashboard missing proxy URL")
 	}
 }

@@ -16,14 +16,14 @@
 		{
 			"function_name": "New",
 			"documentation_hash": "cf59020d96d974899ab625c190f25e3016ba5147f06f89958408546ff9c12fc7",
-			"definition_hash": "d43a615389e5fe0211a6fcff6c452be8d2216372149f405f640e44a34780d821",
-			"reviewed_at": "2026-06-27T11:25:38.82547007Z"
+			"definition_hash": "238675cbcd469ba33c5344b9fbfce3052ec94f4cc8b80fe8dad80b5bc6603cce",
+			"reviewed_at": "2026-06-27T17:02:38.490401937Z"
 		},
 		{
 			"function_name": "NewTestAuthenticator",
-			"documentation_hash": "475acf8fc89adadb242535d975660bd3958e824d1808c41549123376698c6ca5",
+			"documentation_hash": "8c9e2e14d4a10e93d7430e86ead24e4caf0ab3c0c07025563008d33dc834bcbc",
 			"definition_hash": "96822e6db9f7889e28851315edac74886cf83df8a1842ada93b7cfde672bf0fb",
-			"reviewed_at": "2026-06-27T11:25:38.851682054Z"
+			"reviewed_at": "2026-06-27T17:06:23.249747579Z"
 		},
 		{
 			"function_name": "Bind",
@@ -49,9 +49,9 @@
 		{
 			"function_name": "Buttons",
 			"receiver": "Authenticator",
-			"documentation_hash": "97f0bcd4f3906c0e62114a9f4cc1a7cf9e8fbb7d409081ff8a5b00d8258c3a3b",
+			"documentation_hash": "518d538414d61152880354866bad2ef612e884899f1a3df55d1994629d06c444",
 			"definition_hash": "909a4d41fba045ca4502d4fd2a65dfc4878e8b700e866e287bcd206b2c8b95be",
-			"reviewed_at": "2026-06-27T11:25:38.958317426Z"
+			"reviewed_at": "2026-06-27T17:07:44.987212989Z"
 		},
 		{
 			"function_name": "AdminEnabled",
@@ -98,15 +98,15 @@
 			"function_name": "HandleCallback",
 			"receiver": "Authenticator",
 			"documentation_hash": "f0ef8e80ca8947b4993f6c043bc42ce4cde365b7feb46b9789a1ddf068efa7e4",
-			"definition_hash": "7b8b75e8a5e9eb0cbd798bc3ee1b6ceab039bce2cbd53fd463270b95433a709f",
-			"reviewed_at": "2026-06-27T11:25:39.165300831Z"
+			"definition_hash": "81c037db7cb3c319b589ee80d4fc5067f623a7acd7c8c4df2f405377d029c5a0",
+			"reviewed_at": "2026-06-27T17:02:38.49119582Z"
 		},
 		{
 			"function_name": "CurrentLogin",
 			"receiver": "Authenticator",
-			"documentation_hash": "34050a0b00ac94201bb459be80fdcbb7ce63143b2b36cadc955c4272acfa8f1b",
+			"documentation_hash": "83dd76ee382bddac34b50d64cbc60185e285217e5073f51eea9fa162f460a863",
 			"definition_hash": "f42fcda96dc9fecbefa9fcc2fc3c713e3e520ff2b7cc6307a4412c358c68c764",
-			"reviewed_at": "2026-06-27T11:25:39.192897784Z"
+			"reviewed_at": "2026-06-27T17:09:19.659835481Z"
 		},
 		{
 			"function_name": "randToken",

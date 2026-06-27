@@ -40,8 +40,20 @@ type fakeBackend struct {
 	gotExecID  string
 	gotExecCmd string
 	execErr    error
+
+	proxyEnabled    bool
+	createProxyInfo ProxyInfo
+	createProxyErr  error
+	gotProxyBoxID   string
+	gotProxyPort    int
+	deletedProxy    [2]any // {boxID, port} of the last DeleteProxy
+	deleteProxyErr  error
+	proxies         []ProxyInfo
+	gotListBoxID    string
+	listProxiesErr  error
 }
 
+// CreateBox records the create options and returns the canned session/error.
 func (f *fakeBackend) CreateBox(_ context.Context, opts docker.CreateOptions) (BoxSession, error) {
 	f.createCalled = true
 	f.gotCreate = opts
@@ -51,36 +63,135 @@ func (f *fakeBackend) CreateBox(_ context.Context, opts docker.CreateOptions) (B
 	return f.createSess, nil
 }
 
+// AuthPageURL returns a canned auth page URL for the token.
 func (f *fakeBackend) AuthPageURL(token string) string {
 	return "https://boxes.example.com/auth/" + token
 }
 
+// LookupByBoxID returns the canned session for a box ID (case-insensitive).
 func (f *fakeBackend) LookupByBoxID(boxID string) (BoxSession, bool) {
 	sess, ok := f.sessions[strings.ToLower(boxID)]
 	return sess, ok
 }
 
+// ListBoxes returns the canned boxes and list error.
 func (f *fakeBackend) ListBoxes(context.Context) ([]docker.Box, error) {
 	return f.boxes, f.listErr
 }
 
+// SpokeStatuses returns the canned spoke statuses and error.
 func (f *fakeBackend) SpokeStatuses(context.Context) ([]SpokeStatus, error) {
 	return f.spokes, f.spokesErr
 }
 
+// DestroyBox records the destroyed container ID and returns the canned error.
 func (f *fakeBackend) DestroyBox(_ context.Context, containerID string) error {
 	f.destroyedID = containerID
 	return f.destroyErr
 }
 
+// BoxLogs records the box ID and tail and returns the canned logs/error.
 func (f *fakeBackend) BoxLogs(_ context.Context, boxID string, tail int) (string, error) {
 	f.gotLogsID, f.gotLogsTail = boxID, tail
 	return f.logs, f.logsErr
 }
 
+// BoxExec records the box ID and command and returns the canned result/error.
 func (f *fakeBackend) BoxExec(_ context.Context, boxID, command string) (docker.ExecResult, error) {
 	f.gotExecID, f.gotExecCmd = boxID, command
 	return f.exec, f.execErr
+}
+
+// ProxyEnabled reports the canned proxy-enabled flag.
+func (f *fakeBackend) ProxyEnabled() bool { return f.proxyEnabled }
+
+// CreateProxy records the box ID and port and returns the canned proxy info/error.
+func (f *fakeBackend) CreateProxy(_ context.Context, boxID string, port int) (ProxyInfo, error) {
+	f.gotProxyBoxID, f.gotProxyPort = boxID, port
+	if f.createProxyErr != nil {
+		return ProxyInfo{}, f.createProxyErr
+	}
+	return f.createProxyInfo, nil
+}
+
+// DeleteProxy records the deleted box ID and port and returns the canned error.
+func (f *fakeBackend) DeleteProxy(_ context.Context, boxID string, port int) error {
+	f.deletedProxy = [2]any{boxID, port}
+	return f.deleteProxyErr
+}
+
+// ListProxies records the box-ID filter and returns the canned proxies/error.
+func (f *fakeBackend) ListProxies(_ context.Context, boxID string) ([]ProxyInfo, error) {
+	f.gotListBoxID = boxID
+	return f.proxies, f.listProxiesErr
+}
+
+// TestToolCreateProxy checks create_llmbox_proxy forwards its inputs and returns
+// the proxy URL.
+func TestToolCreateProxy(t *testing.T) {
+	f := &fakeBackend{
+		proxyEnabled:    true,
+		createProxyInfo: ProxyInfo{BoxID: "web-box", Port: 8000, URL: "https://slug123.proxy.example.com/", Slug: "slug123"},
+	}
+	h := &handlers{b: f}
+	_, out, err := h.toolCreateProxy(context.Background(), nil, createProxyInput{BoxID: "web-box", Port: 8000})
+	if err != nil {
+		t.Fatalf("toolCreateProxy: %v", err)
+	}
+	if f.gotProxyBoxID != "web-box" || f.gotProxyPort != 8000 {
+		t.Errorf("forwarded box/port = %q/%d", f.gotProxyBoxID, f.gotProxyPort)
+	}
+	if out.URL != "https://slug123.proxy.example.com/" {
+		t.Errorf("URL = %q", out.URL)
+	}
+}
+
+// TestToolCreateProxyRequiresBoxID rejects a create with no box ID or a bad port.
+func TestToolCreateProxyRequiresBoxID(t *testing.T) {
+	f := &fakeBackend{proxyEnabled: true}
+	h := &handlers{b: f}
+	if _, _, err := h.toolCreateProxy(context.Background(), nil, createProxyInput{Port: 8000}); err == nil {
+		t.Error("expected an error for an empty box ID")
+	}
+	if _, _, err := h.toolCreateProxy(context.Background(), nil, createProxyInput{BoxID: "web-box", Port: 0}); err == nil {
+		t.Error("expected an error for a non-positive port")
+	}
+}
+
+// TestToolCreateProxyDisabled surfaces a clear error when proxying is disabled.
+func TestToolCreateProxyDisabled(t *testing.T) {
+	h := &handlers{b: &fakeBackend{proxyEnabled: false}}
+	if _, _, err := h.toolCreateProxy(context.Background(), nil, createProxyInput{BoxID: "web-box", Port: 8000}); err == nil {
+		t.Error("expected an error when proxying is disabled")
+	}
+}
+
+// TestToolDeleteProxy disables a proxy by box and port.
+func TestToolDeleteProxy(t *testing.T) {
+	f := &fakeBackend{}
+	h := &handlers{b: f}
+	if _, _, err := h.toolDeleteProxy(context.Background(), nil, deleteProxyInput{BoxID: "web-box", Port: 8000}); err != nil {
+		t.Fatalf("toolDeleteProxy: %v", err)
+	}
+	if f.deletedProxy != [2]any{"web-box", 8000} {
+		t.Errorf("deleted = %v", f.deletedProxy)
+	}
+}
+
+// TestToolListProxies lists proxies, forwarding the optional box-ID filter.
+func TestToolListProxies(t *testing.T) {
+	f := &fakeBackend{proxies: []ProxyInfo{{BoxID: "web-box", Port: 8000, URL: "https://s.proxy.example.com/"}}}
+	h := &handlers{b: f}
+	_, out, err := h.toolListProxies(context.Background(), nil, listProxiesInput{BoxID: "web-box"})
+	if err != nil {
+		t.Fatalf("toolListProxies: %v", err)
+	}
+	if f.gotListBoxID != "web-box" {
+		t.Errorf("forwarded box ID = %q", f.gotListBoxID)
+	}
+	if len(out.Proxies) != 1 || out.Proxies[0].URL != "https://s.proxy.example.com/" {
+		t.Errorf("proxies = %+v", out.Proxies)
+	}
 }
 
 // TestToolCreate checks create_llmbox forwards its inputs, returns the auth page
@@ -309,7 +420,7 @@ func TestToolsRegistered(t *testing.T) {
 	for _, tl := range tools.Tools {
 		names[tl.Name] = true
 	}
-	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "list_spokes", "destroy_llmbox", "get_llmbox_logs", "exec_llmbox"} {
+	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "list_spokes", "destroy_llmbox", "get_llmbox_logs", "exec_llmbox", "create_llmbox_proxy", "delete_llmbox_proxy", "list_llmbox_proxies"} {
 		if !names[want] {
 			t.Errorf("tool %q not registered (have %v)", want, names)
 		}

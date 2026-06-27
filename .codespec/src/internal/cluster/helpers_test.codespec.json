@@ -137,6 +137,13 @@
 			"documentation_hash": "799d9594558b480f295f1b8a2a7627b121a20863ad7b843d5758b4f9ef3711a9",
 			"definition_hash": "6d15753de69997a50295885c965bb7b83bfe57639521e509d700fde95fbc79a5",
 			"reviewed_at": "2026-06-19T20:33:55.779123243Z"
+		},
+		{
+			"function_name": "DialBox",
+			"receiver": "fakeManager",
+			"documentation_hash": "c363e0d87453d46be2f1858bc66a2fbe6c0eeb4d14acc698ccde289688cfd73f",
+			"definition_hash": "7ef72c3f7b2b44bf5826380f19e6b3a70c26283eb0a84045a55d76c4e40bde3a",
+			"reviewed_at": "2026-06-27T17:27:44.156318954Z"
 		}
 	]
 }

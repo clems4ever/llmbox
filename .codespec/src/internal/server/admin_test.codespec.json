@@ -95,6 +95,36 @@
 			"documentation_hash": "a68e9651890de96f233dbf7557877d1e787d0482d33b953bf1f6a38990f473df",
 			"definition_hash": "1283b0a15e6681098907562fa7c5eec7b964a6a7fa846cf3f6334ba0e12b2980",
 			"reviewed_at": "2026-06-25T09:38:26.205878708Z"
+		},
+		{
+			"function_name": "newProxyAdminServer",
+			"documentation_hash": "ff60c81c3153e284c7690304c44964076260d8efb92f13832a28bd399aeb9454",
+			"definition_hash": "e745d22a6464ee37587362724696ff2454558a9577ab8efe8737c13a389a11d9",
+			"reviewed_at": "2026-06-27T17:02:38.535254284Z"
+		},
+		{
+			"function_name": "TestAdminCreateProxy",
+			"documentation_hash": "872478a80b413461348ef09ccb858e91f4d37346e801dbb8e4cb51a6a3ad671a",
+			"definition_hash": "6a45c797dfabfcce5055b2143ee7338f73db655eef6fa2ab8e756405e334b517",
+			"reviewed_at": "2026-06-27T17:02:38.536073239Z"
+		},
+		{
+			"function_name": "TestAdminCreateProxyValidates",
+			"documentation_hash": "35cbcd2d6eaba1d7eb0db1fae7c82ae7e3b7fb4a8129b4d5109e189a85624df2",
+			"definition_hash": "a9ace62a3bd2ef9f3b0913ae88adaa4c40ee980e248d1813c0ecbc035c3b5b4c",
+			"reviewed_at": "2026-06-27T17:02:38.536863504Z"
+		},
+		{
+			"function_name": "TestAdminDeleteProxy",
+			"documentation_hash": "d9c4d565dc889a3a6fa50568612f03e38154cb88a3bff5828ac3cc3f28caa268",
+			"definition_hash": "200bd519d7df4c1d2fc8f2846ea33709ee5aa37a902e888d0c0cd31221af9c68",
+			"reviewed_at": "2026-06-27T17:02:38.537923815Z"
+		},
+		{
+			"function_name": "TestAdminDashboardShowsProxies",
+			"documentation_hash": "1d41d60e515cdf088959d9d2dc4def0731ea01d3d27fe4f3edcf2b332b20eae9",
+			"definition_hash": "e22791a56b76355deeb805e0093db49382e09d3b7f5bc3d27a2f093d98d840f5",
+			"reviewed_at": "2026-06-27T17:02:38.538947375Z"
 		}
 	]
 }

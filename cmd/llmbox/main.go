@@ -192,10 +192,10 @@ func registryAuths(regs []config.RegistryConfig) map[string]registry.AuthConfig 
 // run assembles and serves the llmbox hub from cfg: it builds the Docker manager
 // (applying the configured per-box resource limits), opens the session store,
 // sets up optional lifecycle hooks and activation auth, optionally enables
-// hub-and-spoke clustering, restores persisted sessions, starts the orphan
-// reaper, and serves the MCP endpoint and the UI/API on their two separate ports
-// until the parent context is cancelled (SIGINT/SIGTERM) at which point both shut
-// down gracefully.
+// hub-and-spoke clustering and HTTP proxying of box ports, restores persisted
+// sessions, starts the orphan reaper, and serves the MCP endpoint and the UI/API
+// on their two separate ports until the parent context is cancelled
+// (SIGINT/SIGTERM) at which point both shut down gracefully.
 //
 // @arg parent The parent context whose cancellation (or a termination signal) triggers graceful shutdown.
 // @arg cfg The resolved configuration driving the manager, store, auth, clustering, and HTTP servers.
@@ -263,6 +263,10 @@ func run(parent context.Context, cfg *config.Config) error {
 	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store, authr)
 	srv.SetSpokeImage(cfg.Cluster.SpokeImage)
 	srv.SetBoxImage(boxImage)
+	srv.SetProxyBaseDomain(cfg.Proxy.BaseDomain)
+	if cfg.Proxy.BaseDomain != "" {
+		log.Printf("box HTTP proxying enabled at *.%s", cfg.Proxy.BaseDomain)
+	}
 
 	// Hub-and-spoke clustering: when enabled, accept spoke connections and let
 	// boxes be placed on remote spokes (boxes still default to the local spoke).

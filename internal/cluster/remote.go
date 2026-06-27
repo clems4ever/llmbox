@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"errors"
+	"net/http"
 	"sync"
 	"time"
 
@@ -261,6 +262,39 @@ func (r *remoteSpoke) Exec(ctx context.Context, idOrName string, cmd []string) (
 		return docker.ExecResult{}, err
 	}
 	return resp, nil
+}
+
+// ProxyHTTP forwards a buffered HTTP request to a box's port on the spoke and
+// returns the buffered response, implementing HTTPProxier over the cluster
+// transport. It is how the hub reaches a box's HTTP server on a remote spoke
+// (a box on the local spoke is proxied directly, with streaming).
+//
+// @arg ctx Context bounding the call.
+// @arg boxID The box whose port to reach.
+// @arg port The port inside the box.
+// @arg method The HTTP method.
+// @arg path The request URI (path plus raw query).
+// @arg header The request headers.
+// @arg body The request body (buffered).
+// @return status The response status code.
+// @return respHeader The response headers.
+// @return respBody The response body (buffered).
+// @error error if the call fails or the spoke returns an error.
+//
+// @testcase TestRemoteSpokeProxyHTTP round-trips a proxy request to the spoke.
+func (r *remoteSpoke) ProxyHTTP(ctx context.Context, boxID string, port int, method, path string, header http.Header, body []byte) (status int, respHeader http.Header, respBody []byte, err error) {
+	var resp proxyHTTPResp
+	if err := r.call(ctx, methodProxyHTTP, proxyHTTPReq{
+		BoxID:  boxID,
+		Port:   port,
+		Method: method,
+		Path:   path,
+		Header: header,
+		Body:   body,
+	}, &resp); err != nil {
+		return 0, nil, nil, err
+	}
+	return resp.Status, resp.Header, resp.Body, nil
 }
 
 // ReapOrphans reaps never-authenticated boxes on the spoke older than ttl.

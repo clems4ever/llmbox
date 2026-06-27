@@ -7,6 +7,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/mcpserver"
+	"github.com/clems4ever/llmbox/internal/store"
 )
 
 // MCPServer builds an MCP server exposing this server's box tools. It is a thin
@@ -164,4 +165,80 @@ func (b mcpBackend) BoxLogs(ctx context.Context, boxID string, tail int) (string
 // @testcase TestBoxExecByBoxID runs a command through the backend.
 func (b mcpBackend) BoxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error) {
 	return b.s.boxExec(ctx, boxID, command)
+}
+
+// ProxyEnabled reports whether the HTTP proxy feature is configured.
+//
+// @return bool True when proxying is enabled.
+//
+// @testcase TestMCPBackendProxies reports proxy enablement through the backend.
+func (b mcpBackend) ProxyEnabled() bool { return b.s.ProxyEnabled() }
+
+// CreateProxy enables an HTTP proxy to a box's port and flattens it (with its
+// public URL) into the mcpserver.ProxyInfo the tool returns.
+//
+// @arg _ Context (unused; the registry is in-memory and in the store).
+// @arg boxID The box ID whose port to expose.
+// @arg port The port inside the box to forward to.
+// @return mcpserver.ProxyInfo The new proxy's box ID, port, URL, slug, and spoke.
+// @error error if proxying is disabled, the port is invalid, or no box has that box ID.
+//
+// @testcase TestMCPBackendProxies enables a proxy through the backend.
+func (b mcpBackend) CreateProxy(_ context.Context, boxID string, port int) (mcpserver.ProxyInfo, error) {
+	rec, err := b.s.createProxy(boxID, port, "")
+	if err != nil {
+		return mcpserver.ProxyInfo{}, err
+	}
+	return b.proxyInfo(rec), nil
+}
+
+// DeleteProxy disables the proxy for a box and port.
+//
+// @arg _ Context (unused).
+// @arg boxID The box ID of the proxy to remove.
+// @arg port The port of the proxy to remove.
+// @error error if no such proxy exists.
+//
+// @testcase TestMCPBackendProxies disables a proxy through the backend.
+func (b mcpBackend) DeleteProxy(_ context.Context, boxID string, port int) error {
+	_, err := b.s.deleteProxy(boxID, port)
+	return err
+}
+
+// ListProxies returns the enabled proxies (optionally filtered to one box) as
+// mcpserver.ProxyInfo values carrying each proxy's public URL.
+//
+// @arg _ Context (unused).
+// @arg boxID The box ID to filter by, or "" for all proxies.
+// @return []mcpserver.ProxyInfo The matching proxies.
+// @error error if the proxies cannot be listed.
+//
+// @testcase TestMCPBackendProxies lists proxies through the backend.
+func (b mcpBackend) ListProxies(_ context.Context, boxID string) ([]mcpserver.ProxyInfo, error) {
+	recs, err := b.s.listProxies(boxID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]mcpserver.ProxyInfo, len(recs))
+	for i, rec := range recs {
+		out[i] = b.proxyInfo(rec)
+	}
+	return out, nil
+}
+
+// proxyInfo flattens a stored proxy record into the mcpserver.ProxyInfo the
+// tools surface, resolving the public URL from the slug.
+//
+// @arg rec The stored proxy record.
+// @return mcpserver.ProxyInfo The flattened proxy with its public URL.
+//
+// @testcase TestMCPBackendProxies checks the proxy info carries the URL.
+func (b mcpBackend) proxyInfo(rec store.ProxyRecord) mcpserver.ProxyInfo {
+	return mcpserver.ProxyInfo{
+		BoxID: rec.BoxID,
+		Port:  rec.Port,
+		URL:   b.s.proxyURL(rec.Slug),
+		Slug:  rec.Slug,
+		Spoke: rec.Spoke,
+	}
 }

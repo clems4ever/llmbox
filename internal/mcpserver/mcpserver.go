@@ -27,6 +27,16 @@ type BoxSession struct {
 	Error       string
 }
 
+// ProxyInfo describes one enabled HTTP proxy surfaced by the proxy tools: the
+// box and port it exposes and the URL the user opens to reach it.
+type ProxyInfo struct {
+	BoxID string `json:"box_id" jsonschema:"the box ID whose port is exposed"`
+	Port  int    `json:"port" jsonschema:"the port inside the box that is exposed"`
+	URL   string `json:"url" jsonschema:"the URL the user opens to reach the box's port"`
+	Slug  string `json:"slug" jsonschema:"the unguessable sub-domain label identifying the proxy"`
+	Spoke string `json:"spoke,omitempty" jsonschema:"the spoke the box runs on"`
+}
+
 // SpokeStatus describes one cluster spoke and its health for the list_spokes
 // tool. The in-process spoke is always present and connected; each enrolled
 // remote spoke is reported with whether it currently holds a live hub connection.
@@ -59,6 +69,14 @@ type Backend interface {
 	BoxLogs(ctx context.Context, boxID string, tail int) (string, error)
 	// BoxExec runs a shell command inside the box with the given box ID.
 	BoxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error)
+	// ProxyEnabled reports whether the HTTP proxy feature is configured.
+	ProxyEnabled() bool
+	// CreateProxy enables an HTTP proxy to a box's port and returns it.
+	CreateProxy(ctx context.Context, boxID string, port int) (ProxyInfo, error)
+	// DeleteProxy disables the proxy for a box and port.
+	DeleteProxy(ctx context.Context, boxID string, port int) error
+	// ListProxies returns the enabled proxies, optionally filtered to one box.
+	ListProxies(ctx context.Context, boxID string) ([]ProxyInfo, error)
 }
 
 // handlers binds the tool handlers to a backend so they can be registered on an
@@ -116,6 +134,23 @@ func NewServer(b Backend, name, version string) *mcp.Server {
 		Name:        "exec_llmbox",
 		Description: "Run a shell command inside an llmbox by its box ID (the one given to create_llmbox). The command runs via /bin/sh -c; returns its stdout, stderr, and exit code.",
 	}, h.toolExec)
+
+	mcp.AddTool(srv, &mcp.Tool{
+		Name: "create_llmbox_proxy",
+		Description: "Expose an HTTP server running inside an llmbox so the user can reach it from their browser. " +
+			"Give the box ID and the port the server listens on inside the box; returns a URL the user opens to reach it. " +
+			"No port is reachable until you enable it here (default-deny). Use this after starting a server in the box (e.g. via exec_llmbox or pm2).",
+	}, h.toolCreateProxy)
+
+	mcp.AddTool(srv, &mcp.Tool{
+		Name:        "delete_llmbox_proxy",
+		Description: "Disable a previously created llmbox proxy, identified by its box ID and port, so the URL stops working.",
+	}, h.toolDeleteProxy)
+
+	mcp.AddTool(srv, &mcp.Tool{
+		Name:        "list_llmbox_proxies",
+		Description: "List the enabled llmbox HTTP proxies and their URLs. Optionally filter to one box by its box ID.",
+	}, h.toolListProxies)
 
 	return srv
 }
@@ -361,6 +396,114 @@ func (h *handlers) toolExec(ctx context.Context, _ *mcp.CallToolRequest, in exec
 		Stderr:   res.Stderr,
 		ExitCode: res.ExitCode,
 	}, nil
+}
+
+type createProxyInput struct {
+	BoxID string `json:"box_id" jsonschema:"the box ID of the box running the server (the one passed to create_llmbox)"`
+	Port  int    `json:"port" jsonschema:"the TCP port the server listens on inside the box, e.g. 8000"`
+}
+
+type createProxyOutput struct {
+	BoxID        string `json:"box_id" jsonschema:"the box ID the proxy points at"`
+	Port         int    `json:"port" jsonschema:"the exposed port inside the box"`
+	URL          string `json:"url" jsonschema:"the URL to give the user to reach the box's server in their browser"`
+	Instructions string `json:"instructions" jsonschema:"human-readable next steps for the user"`
+}
+
+// toolCreateProxy handles create_llmbox_proxy: it enables an HTTP proxy to a
+// box's port and returns the URL the user opens to reach it.
+//
+// @arg ctx Context for the create.
+// @arg _ The MCP call request (unused).
+// @arg in The input carrying the box ID and port.
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return createProxyOutput The box ID, port, URL, and instructions.
+// @error error if box_id is empty, the port is invalid, proxying is disabled, or no box has that box ID.
+//
+// @testcase TestToolCreateProxy enables a proxy and returns its URL.
+// @testcase TestToolCreateProxyRequiresBoxID rejects an empty box ID.
+// @testcase TestToolCreateProxyDisabled surfaces the disabled-feature error.
+func (h *handlers) toolCreateProxy(ctx context.Context, _ *mcp.CallToolRequest, in createProxyInput) (*mcp.CallToolResult, createProxyOutput, error) {
+	if in.BoxID == "" {
+		return nil, createProxyOutput{}, fmt.Errorf("box_id is required")
+	}
+	if in.Port <= 0 {
+		return nil, createProxyOutput{}, fmt.Errorf("a positive port is required")
+	}
+	if !h.b.ProxyEnabled() {
+		return nil, createProxyOutput{}, fmt.Errorf("HTTP proxying is not enabled on this server")
+	}
+	p, err := h.b.CreateProxy(ctx, in.BoxID, in.Port)
+	if err != nil {
+		return nil, createProxyOutput{}, err
+	}
+	return nil, createProxyOutput{
+		BoxID:        p.BoxID,
+		Port:         p.Port,
+		URL:          p.URL,
+		Instructions: "Give the user this URL. They must be signed in to llmbox to open it, and the server must be listening on the given port inside the box.",
+	}, nil
+}
+
+type deleteProxyInput struct {
+	BoxID string `json:"box_id" jsonschema:"the box ID of the proxy to disable"`
+	Port  int    `json:"port" jsonschema:"the port of the proxy to disable"`
+}
+
+type deleteProxyOutput struct {
+	BoxID string `json:"box_id" jsonschema:"the box ID whose proxy was disabled"`
+	Port  int    `json:"port" jsonschema:"the port whose proxy was disabled"`
+}
+
+// toolDeleteProxy handles delete_llmbox_proxy: it disables the proxy for a box
+// and port.
+//
+// @arg ctx Context for the delete.
+// @arg _ The MCP call request (unused).
+// @arg in The input carrying the box ID and port.
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return deleteProxyOutput The box ID and port whose proxy was disabled.
+// @error error if box_id is empty, the port is invalid, or no such proxy exists.
+//
+// @testcase TestToolDeleteProxy disables a proxy by box and port.
+func (h *handlers) toolDeleteProxy(ctx context.Context, _ *mcp.CallToolRequest, in deleteProxyInput) (*mcp.CallToolResult, deleteProxyOutput, error) {
+	if in.BoxID == "" {
+		return nil, deleteProxyOutput{}, fmt.Errorf("box_id is required")
+	}
+	if in.Port <= 0 {
+		return nil, deleteProxyOutput{}, fmt.Errorf("a positive port is required")
+	}
+	if err := h.b.DeleteProxy(ctx, in.BoxID, in.Port); err != nil {
+		return nil, deleteProxyOutput{}, err
+	}
+	return nil, deleteProxyOutput{BoxID: in.BoxID, Port: in.Port}, nil
+}
+
+type listProxiesInput struct {
+	BoxID string `json:"box_id,omitempty" jsonschema:"optional box ID to filter by; omit to list every proxy"`
+}
+
+type listProxiesOutput struct {
+	Proxies []ProxyInfo `json:"proxies" jsonschema:"the enabled proxies and their URLs"`
+}
+
+// toolListProxies handles list_llmbox_proxies: it returns the enabled proxies,
+// optionally filtered to one box.
+//
+// @arg ctx Context for the list.
+// @arg _ The MCP call request (unused).
+// @arg in The input carrying an optional box ID filter.
+// @return *mcp.CallToolResult Always nil; structured output is returned instead.
+// @return listProxiesOutput The enabled proxies.
+// @error error if the proxies cannot be listed.
+//
+// @testcase TestToolListProxies lists proxies and filters by box ID.
+func (h *handlers) toolListProxies(ctx context.Context, _ *mcp.CallToolRequest, in listProxiesInput) (*mcp.CallToolResult, listProxiesOutput, error) {
+	proxies, err := h.b.ListProxies(ctx, in.BoxID)
+	if err != nil {
+		return nil, listProxiesOutput{}, err
+	}
+	return nil, listProxiesOutput{Proxies: proxies}, nil
 }
 
 // shortID truncates a Docker container ID to its conventional 12-character short

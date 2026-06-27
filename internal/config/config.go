@@ -90,6 +90,7 @@ type Config struct {
 	Cluster     ClusterConfig `yaml:"cluster"`
 	Spoke       SpokeConfig   `yaml:"spoke"`
 	Box         BoxConfig     `yaml:"box"`
+	Proxy       ProxyConfig   `yaml:"proxy"`
 	// Registries holds credentials for pulling box images from authenticated
 	// container registries. The manager selects the entry whose host matches the
 	// image being pulled; an image whose registry has no entry is pulled
@@ -135,6 +136,20 @@ type BoxConfig struct {
 	MaxBoxes int `yaml:"max_boxes"`
 }
 
+// ProxyConfig enables exposing box HTTP ports through the hub. When base_domain
+// is set, the hub serves a reverse proxy at https://<slug>.<base_domain>/ for
+// every enabled proxy (created over MCP or the admin UI), forwarding requests to
+// the box's port on its spoke. Each proxy gets its own subdomain so single-page
+// apps and servers that emit absolute paths work unchanged (no path rewriting).
+// A wildcard DNS record and TLS certificate for *.<base_domain> are required.
+// Empty base_domain disables the feature: no proxy is served and the MCP/admin
+// proxy tools report it as disabled.
+type ProxyConfig struct {
+	// BaseDomain is the parent domain proxy subdomains hang off, e.g.
+	// "proxy.example.com" (a proxy is then reached at <slug>.proxy.example.com).
+	BaseDomain string `yaml:"base_domain"`
+}
+
 // ClusterConfig enables hub-and-spoke clustering on the hub. When enabled, the
 // server exposes the /spoke/connect endpoint so remote spokes (started with
 // `llmbox spoke`) can join and run boxes; boxes still default to the in-process
@@ -167,6 +182,12 @@ type AuthConfig struct {
 	SessionTTL Duration     `yaml:"session_ttl"`
 	Google     GoogleConfig `yaml:"google"`
 	Admin      AdminConfig  `yaml:"admin"`
+	// CookieDomain, when set, is the Domain attribute placed on the login-session
+	// cookie so one sign-in is shared across sub-domains (e.g. ".example.com" lets
+	// the session reach both the main UI and the per-proxy <slug>.proxy.example.com
+	// hosts). Empty keeps the cookie host-only (the default), which is correct
+	// unless the proxy feature is used with sub-domain hosts.
+	CookieDomain string `yaml:"cookie_domain"`
 }
 
 // AdminConfig lists the signed-in identities allowed to use the admin web UI

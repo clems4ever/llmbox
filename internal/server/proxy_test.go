@@ -1,0 +1,465 @@
+package server
+
+import (
+	"context"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/clems4ever/llmbox/internal/auth"
+	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/store"
+	"github.com/clems4ever/llmbox/testutils"
+)
+
+// dialMgr is a FakeMgr that also satisfies boxDialer by dialing a fixed address,
+// standing in for the in-process docker manager reaching a box's port.
+type dialMgr struct {
+	*testutils.FakeMgr
+	target string // host:port DialBox connects to (a real test listener)
+}
+
+// DialBox dials the fixed target, ignoring the box identifier and port.
+func (d *dialMgr) DialBox(_ context.Context, _ string, _ int) (net.Conn, error) {
+	return net.Dial("tcp", d.target)
+}
+
+// newProxyServer builds a proxy-enabled Server backed by a real store and the
+// given manager and authenticator, and registers a "web-box" session on the
+// local spoke so proxies can be created for it.
+func newProxyServer(t *testing.T, mgr boxManager, a *auth.Authenticator) (*Server, Store) {
+	t.Helper()
+	st, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	s := New(mgr, nil, "https://boxes.example.com", 5*time.Minute, st, a)
+	s.SetProxyBaseDomain("proxy.example.com")
+	return s, st
+}
+
+// registerBox creates a tracked session for boxID on the given spoke.
+func registerBox(t *testing.T, s *Server, boxID, spoke string) {
+	t.Helper()
+	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: boxID, SpokeName: spoke}); err != nil {
+		t.Fatalf("createBox: %v", err)
+	}
+}
+
+// TestCreateProxyRegistersAndBuildsURL checks a proxy is registered with a slug,
+// the local spoke, and a sub-domain URL built from the base domain.
+func TestCreateProxyRegistersAndBuildsURL(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+
+	rec, err := s.createProxy("web-box", 8000, "dev@corp.com")
+	if err != nil {
+		t.Fatalf("createProxy: %v", err)
+	}
+	if rec.Slug == "" || rec.Port != 8000 || rec.BoxID != "web-box" {
+		t.Errorf("unexpected record: %+v", rec)
+	}
+	if rec.Spoke != localSpokeName {
+		t.Errorf("spoke = %q, want %q", rec.Spoke, localSpokeName)
+	}
+	if got, want := s.proxyURL(rec.Slug), "https://"+rec.Slug+".proxy.example.com/"; got != want {
+		t.Errorf("proxyURL = %q, want %q", got, want)
+	}
+}
+
+// TestCreateProxyDisabled checks createProxy and ProxyEnabled report disabled
+// when no base domain is configured.
+func TestCreateProxyDisabled(t *testing.T) {
+	s := newTestServer(&testutils.FakeMgr{})
+	if s.ProxyEnabled() {
+		t.Fatal("ProxyEnabled = true without a base domain")
+	}
+	if _, err := s.createProxy("web-box", 8000, ""); err == nil {
+		t.Error("expected an error when proxying is disabled")
+	}
+}
+
+// TestCreateProxyUnknownBox checks createProxy refuses a box with no session.
+func TestCreateProxyUnknownBox(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
+	if _, err := s.createProxy("nope", 8000, ""); err == nil {
+		t.Error("expected an error for an unknown box ID")
+	}
+}
+
+// TestCreateProxyRejectsBadPort checks createProxy validates the port range.
+func TestCreateProxyRejectsBadPort(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+	for _, port := range []int{0, -1, 70000} {
+		if _, err := s.createProxy("web-box", port, ""); err == nil {
+			t.Errorf("port %d: expected an error", port)
+		}
+	}
+}
+
+// TestCreateProxyIdempotent checks a repeated create for the same box/port
+// returns the existing proxy rather than a duplicate.
+func TestCreateProxyIdempotent(t *testing.T) {
+	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+
+	first, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatalf("createProxy #1: %v", err)
+	}
+	second, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatalf("createProxy #2: %v", err)
+	}
+	if first.Slug != second.Slug {
+		t.Errorf("slug changed on repeat: %q vs %q", first.Slug, second.Slug)
+	}
+	list, _ := st.ListProxies()
+	if len(list) != 1 {
+		t.Errorf("got %d proxies, want 1 (idempotent)", len(list))
+	}
+}
+
+// TestListProxiesFiltersByBox checks listProxies returns all proxies or only one
+// box's.
+func TestListProxiesFiltersByBox(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+	registerBox(t, s, "api-box", "")
+	if _, err := s.createProxy("web-box", 8000, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.createProxy("api-box", 9000, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	all, _ := s.listProxies("")
+	if len(all) != 2 {
+		t.Errorf("listProxies(\"\") = %d, want 2", len(all))
+	}
+	one, _ := s.listProxies("web-box")
+	if len(one) != 1 || one[0].BoxID != "web-box" {
+		t.Errorf("listProxies(web-box) = %+v", one)
+	}
+}
+
+// TestDeleteProxyRemoves checks deleteProxy removes a proxy by box and port.
+func TestDeleteProxyRemoves(t *testing.T) {
+	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+	rec, _ := s.createProxy("web-box", 8000, "")
+
+	slug, err := s.deleteProxy("web-box", 8000)
+	if err != nil {
+		t.Fatalf("deleteProxy: %v", err)
+	}
+	if slug != rec.Slug {
+		t.Errorf("deleted slug = %q, want %q", slug, rec.Slug)
+	}
+	if list, _ := st.ListProxies(); len(list) != 0 {
+		t.Errorf("proxy still present after delete: %+v", list)
+	}
+}
+
+// TestDeleteProxyUnknown checks deleteProxy errors when no proxy matches.
+func TestDeleteProxyUnknown(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
+	if _, err := s.deleteProxy("web-box", 8000); err == nil {
+		t.Error("expected an error deleting a non-existent proxy")
+	}
+}
+
+// TestDeleteProxyBySlug checks deleteProxyBySlug removes a proxy by its slug.
+func TestDeleteProxyBySlug(t *testing.T) {
+	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+	rec, _ := s.createProxy("web-box", 8000, "")
+	if err := s.deleteProxyBySlug(rec.Slug); err != nil {
+		t.Fatalf("deleteProxyBySlug: %v", err)
+	}
+	if list, _ := st.ListProxies(); len(list) != 0 {
+		t.Errorf("proxy still present: %+v", list)
+	}
+}
+
+// TestDestroyBoxRemovesProxies checks destroying a box also removes its proxies.
+func TestDestroyBoxRemovesProxies(t *testing.T) {
+	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+	if _, err := s.createProxy("web-box", 8000, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.destroyBox(context.Background(), "web-box"); err != nil {
+		t.Fatalf("destroyBox: %v", err)
+	}
+	if list, _ := st.ListProxies(); len(list) != 0 {
+		t.Errorf("proxies survived box destroy: %+v", list)
+	}
+}
+
+// TestProxySlugFromHost checks slug extraction matches proxy sub-domains and
+// rejects the main host, deeper sub-domains, and foreign domains.
+func TestProxySlugFromHost(t *testing.T) {
+	s := newTestServer(&testutils.FakeMgr{})
+	s.SetProxyBaseDomain("proxy.example.com")
+	cases := map[string]struct {
+		host     string
+		wantSlug string
+		wantOK   bool
+	}{
+		"match":      {"ab12.proxy.example.com", "ab12", true},
+		"match-port": {"ab12.proxy.example.com:8080", "ab12", true},
+		"uppercase":  {"AB12.Proxy.Example.com", "ab12", true},
+		"base-only":  {"proxy.example.com", "", false},
+		"deep":       {"a.b.proxy.example.com", "", false},
+		"foreign":    {"ab12.evil.com", "", false},
+		"main-host":  {"boxes.example.com", "", false},
+	}
+	for name, tc := range cases {
+		slug, ok := s.proxySlugFromHost(tc.host)
+		if ok != tc.wantOK || slug != tc.wantSlug {
+			t.Errorf("%s: proxySlugFromHost(%q) = (%q,%v), want (%q,%v)", name, tc.host, slug, ok, tc.wantSlug, tc.wantOK)
+		}
+	}
+}
+
+// TestHandleProxyForwards checks an authorized request to a proxy sub-domain is
+// reverse-proxied to the box's port and the upstream response is returned.
+func TestHandleProxyForwards(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Upstream", "box")
+		_, _ = w.Write([]byte("hello from box at " + r.URL.Path))
+	}))
+	defer upstream.Close()
+
+	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}, target: upstream.Listener.Addr().String()}
+	s, _ := newProxyServer(t, mgr, nil) // auth nil => proxy open
+	registerBox(t, s, "web-box", "")
+	rec, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srv := httptest.NewServer(s.APIHandler())
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/some/path", nil)
+	req.Host = rec.Slug + ".proxy.example.com"
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	if resp.Header.Get("X-Upstream") != "box" {
+		t.Errorf("missing upstream header; got %v", resp.Header)
+	}
+	body := make([]byte, 256)
+	n, _ := resp.Body.Read(body)
+	if got := string(body[:n]); got != "hello from box at /some/path" {
+		t.Errorf("body = %q", got)
+	}
+}
+
+// TestHandleProxyUnknownSlug checks a request for a slug with no proxy 404s.
+func TestHandleProxyUnknownSlug(t *testing.T) {
+	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{}}, nil)
+	srv := httptest.NewServer(s.APIHandler())
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+	req.Host = "deadbeef.proxy.example.com"
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", resp.StatusCode)
+	}
+}
+
+// TestHandleProxyRequiresLogin checks that, with activation auth enabled, an
+// unauthenticated proxy request is refused.
+func TestHandleProxyRequiresLogin(t *testing.T) {
+	a := auth.NewTestAuthenticator("admin@corp.com")
+	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}}
+	s, _ := newProxyServer(t, mgr, a)
+	registerBox(t, s, "web-box", "")
+	rec, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srv := httptest.NewServer(s.APIHandler())
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+	req.Host = rec.Slug + ".proxy.example.com"
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", resp.StatusCode)
+	}
+}
+
+// TestHandleProxyAuthorizedForwards checks a signed-in box-activator reaches the
+// box through the proxy when auth is enabled.
+func TestHandleProxyAuthorizedForwards(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer upstream.Close()
+
+	a := auth.NewTestAuthenticator("admin@corp.com")
+	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}, target: upstream.Listener.Addr().String()}
+	s, st := newProxyServer(t, mgr, a)
+	registerBox(t, s, "web-box", "")
+	rec, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Seed a signed-in box-activator session and present its cookie.
+	if err := st.SaveLoginSession("SID", store.LoginSession{Email: "dev@corp.com", Activate: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+
+	srv := httptest.NewServer(s.APIHandler())
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+	req.Host = rec.Slug + ".proxy.example.com"
+	req.AddCookie(&http.Cookie{Name: auth.LoginCookie, Value: "SID"})
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+}
+
+// proxySpokeMgr is a remote spoke that supports buffered HTTP proxying: it embeds
+// a FakeMgr for the box verbs and implements cluster.HTTPProxier, returning a
+// canned response and recording what it was asked to forward.
+type proxySpokeMgr struct {
+	*testutils.FakeMgr
+	gotMethod string
+	gotPath   string
+	gotBody   []byte
+}
+
+// ProxyHTTP records the forwarded request and returns a canned box response.
+func (p *proxySpokeMgr) ProxyHTTP(_ context.Context, _ string, _ int, method, path string, _ http.Header, body []byte) (int, http.Header, []byte, error) {
+	p.gotMethod, p.gotPath, p.gotBody = method, path, body
+	return http.StatusOK, http.Header{"X-Spoke": {"remote"}}, []byte("remote box at " + path), nil
+}
+
+// TestHandleProxyRemoteSpokeForwards checks a proxy whose box runs on a remote
+// spoke is forwarded over the cluster HTTPProxier (buffered) path.
+func TestHandleProxyRemoteSpokeForwards(t *testing.T) {
+	spoke := &proxySpokeMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}}
+	hub := &testutils.FakeHub{Connected: map[string]boxManager{"remote1": spoke}}
+	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{}}, nil)
+	s.SetHub(hub)
+	registerBox(t, s, "web-box", "remote1")
+	rec, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srv := httptest.NewServer(s.APIHandler())
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/page?x=1", nil)
+	req.Host = rec.Slug + ".proxy.example.com"
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	if resp.Header.Get("X-Spoke") != "remote" {
+		t.Errorf("missing spoke header; got %v", resp.Header)
+	}
+	body := make([]byte, 256)
+	n, _ := resp.Body.Read(body)
+	if got := string(body[:n]); got != "remote box at /page?x=1" {
+		t.Errorf("body = %q", got)
+	}
+	if spoke.gotPath != "/page?x=1" || spoke.gotMethod != http.MethodGet {
+		t.Errorf("spoke saw %s %q", spoke.gotMethod, spoke.gotPath)
+	}
+}
+
+// TestHandleProxyUnsupportedSpoke checks a proxy whose box runs on a spoke that
+// can neither dial boxes nor proxy HTTP is refused with 502.
+func TestHandleProxyUnsupportedSpoke(t *testing.T) {
+	hub := &testutils.FakeHub{Connected: map[string]boxManager{
+		"remote1": &testutils.FakeMgr{CreateID: "abcdef0123456789"},
+	}}
+	// The local manager can dial; the remote one (a plain FakeMgr) cannot.
+	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{}}, nil)
+	s.SetHub(hub)
+	registerBox(t, s, "web-box", "remote1")
+	rec, err := s.createProxy("web-box", 8000, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Spoke != "remote1" {
+		t.Fatalf("proxy spoke = %q, want remote1", rec.Spoke)
+	}
+
+	srv := httptest.NewServer(s.APIHandler())
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+	req.Host = rec.Slug + ".proxy.example.com"
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadGateway {
+		t.Errorf("status = %d, want 502", resp.StatusCode)
+	}
+}
+
+// TestMCPBackendProxies drives the MCP backend's proxy methods — enabling,
+// listing, and disabling a proxy through the adapter the MCP tools call.
+func TestMCPBackendProxies(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+	b := s.MCPBackend()
+
+	if !b.ProxyEnabled() {
+		t.Fatal("ProxyEnabled() = false, want true")
+	}
+	info, err := b.CreateProxy(context.Background(), "web-box", 8000)
+	if err != nil {
+		t.Fatalf("CreateProxy: %v", err)
+	}
+	if info.BoxID != "web-box" || info.Port != 8000 || info.URL == "" {
+		t.Errorf("proxy info = %+v", info)
+	}
+	list, err := b.ListProxies(context.Background(), "web-box")
+	if err != nil || len(list) != 1 {
+		t.Fatalf("ListProxies = %+v (err %v), want 1", list, err)
+	}
+	if err := b.DeleteProxy(context.Background(), "web-box", 8000); err != nil {
+		t.Fatalf("DeleteProxy: %v", err)
+	}
+	if rest, _ := b.ListProxies(context.Background(), ""); len(rest) != 0 {
+		t.Errorf("proxy survived delete: %+v", rest)
+	}
+}

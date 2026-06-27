@@ -11,6 +11,9 @@ in your client (see [Configuration](configuration.md#connecting-a-chatbot)).
 | `destroy_llmbox` | `box_id` | the destroyed box's box ID |
 | `get_llmbox_logs` | `box_id`, `tail?` | `box_id`, `logs` (the box's recent, ANSI-stripped console output) |
 | `exec_llmbox` | `box_id`, `command` | `box_id`, `stdout`, `stderr`, `exit_code` |
+| `create_llmbox_proxy` | `box_id`, `port` | `box_id`, `port`, `url` (open it in a browser), `instructions` |
+| `delete_llmbox_proxy` | `box_id`, `port` | `box_id`, `port` |
+| `list_llmbox_proxies` | `box_id?` | the enabled proxies (`box_id`, `port`, `url`, `slug`, `spoke`) |
 
 `box_id` and `description` on `create_llmbox` are optional. When set, `box_id`
 is the identifier you use to reference the box afterwards and is also applied as
@@ -27,3 +30,20 @@ the last `tail` lines (a sensible default applies when `tail` is omitted).
 its `stdout`, `stderr`, and `exit_code` (a non-zero exit is reported in the result,
 not as a tool error; each stream is capped to keep the payload bounded). Destroying
 a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removing it.
+
+## Exposing a box's HTTP server
+
+`create_llmbox_proxy` lets the user reach an HTTP server running **inside** a box
+from their browser. The agent starts a server in the box (e.g. via `exec_llmbox`
+or `pm2`), calls `create_llmbox_proxy` with the box's `box_id` and the `port` the
+server listens on, and hands the returned `url` to the user. The proxy is
+**default-deny**: a box port is unreachable until a proxy is enabled for it, and
+the proxy is removed automatically when the box is destroyed. `delete_llmbox_proxy`
+disables it; `list_llmbox_proxies` lists the enabled proxies and their URLs.
+
+Each proxy is served at its own sub-domain (`https://<slug>.<base_domain>/`) so
+single-page apps and servers that emit absolute paths work without rewriting. The
+feature is only available when the operator has configured `proxy.base_domain`
+(with the matching wildcard DNS and TLS); the tools report a clear error when it
+is disabled. Requests to a proxy are gated by the same sign-in that gates box
+activation. See [Proxying box HTTP ports](proxy.md).

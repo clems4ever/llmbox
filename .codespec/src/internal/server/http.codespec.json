@@ -32,8 +32,8 @@
 			"function_name": "APIHandler",
 			"receiver": "Server",
 			"documentation_hash": "db31f468c8236bbe7b76a7dfd9758a315b89c8200c8fc6d28f23546c7f7ba4a9",
-			"definition_hash": "5d14026bd323b959a580db24bbf40a99ec587d8fec788b7c986dc10f7c5548ef",
-			"reviewed_at": "2026-06-25T12:41:39.319413109Z"
+			"definition_hash": "a3cf8f1d2ad22c90eb5a7565e7aa4d3fb318c3f377979bf6c37e6db87f0f917e",
+			"reviewed_at": "2026-06-27T17:02:38.539436251Z"
 		},
 		{
 			"function_name": "registerMCPRoute",

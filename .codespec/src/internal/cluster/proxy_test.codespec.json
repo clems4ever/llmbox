@@ -1,0 +1,84 @@
+{
+	"functions": [
+		{
+			"function_name": "DialBox",
+			"receiver": "fixedDialer",
+			"documentation_hash": "479d6529e52ded936fc8eb6037ccf856a51a8b567e9ce4290938dc79ea667fb8",
+			"definition_hash": "755e7397dfe6a714b13901c2bbb6486e7d5abdfb429876e278ab3c5e782c8bbe",
+			"reviewed_at": "2026-06-27T17:31:02.788610892Z"
+		},
+		{
+			"function_name": "TestRoundTripToBox",
+			"documentation_hash": "a44c7fc96b4fb7ccf673215a37070c93a2d7bc4a85021500c1e07bb85fb70fcd",
+			"definition_hash": "a0aceb47bf99abbcfd10b2ccc439d2f829125bc49cec25f4f1b24081abd51a8e",
+			"reviewed_at": "2026-06-27T17:31:02.788911481Z"
+		},
+		{
+			"function_name": "TestRoundTripToBoxDialError",
+			"documentation_hash": "16d905704d1b6b00591d97c9ba5eb022f8903231f109b0f8f506b8f89068cd23",
+			"definition_hash": "711c78c3093ee8ca072e7ab342fef8a5919c6eae11650182087b63c2771155c5",
+			"reviewed_at": "2026-06-27T17:31:02.798624751Z"
+		},
+		{
+			"function_name": "TestRemoteSpokeProxyHTTP",
+			"documentation_hash": "df1d4097cebd3a543d0ddd2d6b6c5182555fad47c73f3bbd205a95acccf02950",
+			"definition_hash": "e6dce587513fbc3e272d05bd84dc728b946b40762868a1a466cbe5fc6ed4daea",
+			"reviewed_at": "2026-06-27T17:31:02.798982813Z"
+		},
+		{
+			"function_name": "TestProxyHTTPUnsupportedSpoke",
+			"documentation_hash": "b08971326d4ade58d0566e1480508f05718c8958980d5832f3045f3c3f97216a",
+			"definition_hash": "c7c87433b87f11df357a57ca7d5fc0829849bc8fecaea8457fff381875e7f6b4",
+			"reviewed_at": "2026-06-27T17:31:02.79930926Z"
+		},
+		{
+			"function_name": "Create",
+			"receiver": "bareManager",
+			"documentation_hash": "2f421531b1d1c9ff0fd5531afc18772dbf7592114b69cd995f8f7c6f212b66bf",
+			"definition_hash": "8d1c4e51e1b25ceed8506c5de1ae80216fdb8b83a42b69e0c38b6c94fc13708c",
+			"reviewed_at": "2026-06-27T17:31:02.799633051Z"
+		},
+		{
+			"function_name": "SubmitCode",
+			"receiver": "bareManager",
+			"documentation_hash": "fbaa02d4111ea4140bc01a3750521063b14720a654bc426f798fb698c2d456cf",
+			"definition_hash": "a5298db7369719e9c5c4aaf0f4380de1cfc94d063da4c03543b80ecb7a8ad99d",
+			"reviewed_at": "2026-06-27T17:31:02.7999576Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "bareManager",
+			"documentation_hash": "aed3ec9f8573133dd1a9aab0f378eb07e631a269ee07b61629877eec456a5787",
+			"definition_hash": "038903966d6b13d7fb0abd632a4889261a1612d82ce30bbdeac11a24dee7d39a",
+			"reviewed_at": "2026-06-27T17:31:02.800284886Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "bareManager",
+			"documentation_hash": "9608d9235f6398fbcc4294edda483f39adc928c44e8a4ee87232b6c3ab8d6443",
+			"definition_hash": "271971939ffe4fc78ef2f1ae75f4e56b5592c5bb7ce643dd24b5640fea6b9938",
+			"reviewed_at": "2026-06-27T17:31:02.800639908Z"
+		},
+		{
+			"function_name": "Logs",
+			"receiver": "bareManager",
+			"documentation_hash": "401b028804112b848f00ad7252d3f08752cf7f13c11ad4a1cd469e896d618ca4",
+			"definition_hash": "a320a1e56bc26f3335958498a8c5da5f9dd74b51008468d7273e5d4df7f4e4ad",
+			"reviewed_at": "2026-06-27T17:31:02.800959106Z"
+		},
+		{
+			"function_name": "Exec",
+			"receiver": "bareManager",
+			"documentation_hash": "75a13d8cc2434fb102f3c9d5fe2bd7830d7a6b5f8b81187e79df0c795e287ad9",
+			"definition_hash": "1faefeb83712b0bb321742c854714419951005b7cb5140c10b8dfc1ca44a7203",
+			"reviewed_at": "2026-06-27T17:31:02.801219045Z"
+		},
+		{
+			"function_name": "ReapOrphans",
+			"receiver": "bareManager",
+			"documentation_hash": "d947c1014cbec39aedaf52f870d2d023df55fd6572b2a5d2e19df53e9f64dc07",
+			"definition_hash": "98aad61e16000bdd06074ad12cab54a2f599daf3d89f298afb9eea97f0521b47",
+			"reviewed_at": "2026-06-27T17:31:02.801460565Z"
+		}
+	]
+}
