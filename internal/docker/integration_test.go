@@ -10,26 +10,23 @@ import (
 	"time"
 )
 
-// TestCreateIntegration drives a real container: it creates a box from a
-// plain glibc image with the standalone Claude binary injected, and verifies
-// that a genuine OAuth authorize URL is captured from the live `claude auth
-// login` flow. It then destroys the box.
+// TestCreateIntegration drives a real container: it creates a box from a box
+// image with the standalone Claude binary baked in (and tini as PID 1), and
+// verifies that a genuine OAuth authorize URL is captured from the live `claude
+// auth login` flow. It then destroys the box.
 //
-// Set LLMBOX_IT_IMAGE to override the base image and LLMBOX_IT_CLAUDE_BIN to
-// point at a Claude binary on the test host:
+// Set LLMBOX_IT_IMAGE to override the box image (it must bake in Claude, tini,
+// util-linux, and a CA bundle — see Dockerfile.box); it defaults to the built-in
+// box image:
 //
-//	LLMBOX_IT_CLAUDE_BIN=$HOME/.local/bin/claude go test -tags=integration -run Integration -v ./internal/docker/
+//	LLMBOX_IT_IMAGE=ghcr.io/clems4ever/llmbox-box:latest go test -tags=integration -run Integration -v ./internal/docker/
 func TestCreateIntegration(t *testing.T) {
 	image := os.Getenv("LLMBOX_IT_IMAGE")
 	if image == "" {
-		image = "debian:bookworm-slim"
-	}
-	claudeBin := os.Getenv("LLMBOX_IT_CLAUDE_BIN")
-	if claudeBin == "" {
-		t.Skip("set LLMBOX_IT_CLAUDE_BIN to the path of a standalone Claude binary to run this test")
+		image = DefaultImage
 	}
 
-	m, err := NewManager(image, "", claudeBin, nil)
+	m, err := NewManager(image, "", nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}

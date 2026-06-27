@@ -16,8 +16,8 @@ import (
 )
 
 // Default values applied to config fields left unset. The Docker manager applies
-// its own defaults for the image, Claude binary, and remote args, so those are
-// deliberately absent here (an empty value flows through to the manager).
+// its own defaults for the image and remote args, so those are deliberately
+// absent here (an empty value flows through to the manager).
 const (
 	DefaultHTTPAddr  = ":8080"
 	DefaultMCPAddr   = ":8081"
@@ -81,7 +81,6 @@ type Config struct {
 	MCPAddr     string        `yaml:"mcp_addr"`
 	PublicURL   string        `yaml:"public_url"`
 	ClaudeImage string        `yaml:"claude_image"`
-	ClaudeBin   string        `yaml:"claude_bin"`
 	RemoteArgs  string        `yaml:"remote_args"`
 	AuthTTL     Duration      `yaml:"auth_ttl"`
 	StateFile   string        `yaml:"state_file"`

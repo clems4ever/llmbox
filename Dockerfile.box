@@ -1,21 +1,49 @@
 # llmbox-box — the default base image launched per sandboxed box.
 #
-# llmbox does not need a Claude-specific box image: the server injects the
-# standalone Claude binary (and a small config seed) into every box at creation.
-# A box base therefore only needs the few things the box entrypoint and the tools
-# running inside a box rely on:
-#   - /bin/sh and util-linux (the entrypoint runs `script`), and
+# Each box runs Claude Code in remote-control mode, so this image bakes in the
+# standalone Claude native binary (no Node runtime) along with the few things the
+# box entrypoint relies on:
+#   - the standalone `claude` binary on PATH (the entrypoint runs `claude auth
+#     login` then `claude remote-control`),
+#   - tini, used as PID 1 so orphaned descendants of Claude (the many short-lived
+#     processes its tools spawn) are reaped instead of piling up as zombies,
+#   - /bin/sh and util-linux (the entrypoint runs `script` to allocate a PTY), and
 #   - the public CA-certificate bundle, so HTTPS calls from inside the box
 #     succeed. Plain debian:bookworm-slim ships WITHOUT ca-certificates, which
 #     leaves the trust store empty and makes every TLS call fail with
 #     "certificate signed by unknown authority"; this image adds it.
 #
-# It is intentionally minimal. To give boxes more tooling (git, curl, language
-# runtimes, …), build your own image FROM this one (or any glibc base meeting the
-# requirements above) and point `claude_image` at it.
+# To give boxes more tooling (git, language runtimes, …), build your own image
+# FROM this one (or any glibc base meeting the requirements above) and point
+# `claude_image` at it.
 #
 # Build:  docker build -f Dockerfile.box -t llmbox-box .
+
+# ---- claude stage ----
+# Fetch the standalone Claude native binary once in a throwaway stage that has
+# curl, so the final image stays free of build-only tooling. The binary is
+# glibc-linked; we validate it is a single self-contained file by running
+# `--version` here.
+FROM debian:bookworm-slim AS claude
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+# Pinned Claude Code version (stable channel). This is the single source of
+# truth for the version baked into the box image; the bump-claude workflow opens
+# a PR editing this line when a newer stable release appears. Override at build
+# time with --build-arg CLAUDE_VERSION=<x.y.z|stable|latest>.
+ARG CLAUDE_VERSION=2.1.170
+RUN set -eux; \
+    curl -fsSL https://claude.ai/install.sh | bash -s -- ${CLAUDE_VERSION}; \
+    bin="$(command -v claude || echo "$HOME/.local/bin/claude")"; \
+    real="$(readlink -f "$bin")"; \
+    install -D -m0755 "$real" /opt/llmbox/claude; \
+    /opt/llmbox/claude --version
+
+# ---- box image ----
 FROM debian:bookworm-slim
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates util-linux \
+    && apt-get install -y --no-install-recommends ca-certificates util-linux tini \
     && rm -rf /var/lib/apt/lists/*
+# Claude on PATH so the entrypoint can invoke `claude` directly.
+COPY --from=claude /opt/llmbox/claude /usr/local/bin/claude

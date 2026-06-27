@@ -15,8 +15,8 @@
 		{
 			"function_name": "TestLoad",
 			"documentation_hash": "a99b8ef269ef1371f85d255c1bddc9aede16586adc848343e03823d7dacce5d9",
-			"definition_hash": "8edf0495d070c2c6dfd5ec443ff1efdccbfee0dc347ba8d08f9bd04e24123cc7",
-			"reviewed_at": "2026-06-25T12:41:53.448411059Z"
+			"definition_hash": "b69b432470dd1bb2f7fb23f7dea71b6f57ffacb9e2ff40007877707d94191cdb",
+			"reviewed_at": "2026-06-27T14:00:47.63428894Z"
 		},
 		{
 			"function_name": "TestLoadAppliesDefaults",

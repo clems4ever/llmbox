@@ -1,7 +1,7 @@
 name: Bump Claude version
 
 # Resolves the latest stable Claude Code release and, when it differs from the
-# version pinned in the Dockerfile (ARG CLAUDE_VERSION), opens (or updates) a PR
+# version pinned in Dockerfile.box (ARG CLAUDE_VERSION), opens (or updates) a PR
 # bumping it. Runs daily and on demand. The branch is reused, so at most one open
 # bump PR exists at a time.
 #
@@ -28,7 +28,7 @@ jobs:
         id: ver
         run: |
           set -euo pipefail
-          current="$(grep -oP '^ARG CLAUDE_VERSION=\K.*' Dockerfile)"
+          current="$(grep -oP '^ARG CLAUDE_VERSION=\K.*' Dockerfile.box)"
           latest="$(curl -fsSL https://downloads.claude.ai/claude-code-releases/stable)"
           if [[ ! "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             echo "unexpected version response: '$latest'" >&2
@@ -44,9 +44,9 @@ jobs:
             echo "Pinned $current; latest stable is $latest."
           fi
 
-      - name: Update Dockerfile
+      - name: Update Dockerfile.box
         if: steps.ver.outputs.changed == 'true'
-        run: sed -i "s/^ARG CLAUDE_VERSION=.*/ARG CLAUDE_VERSION=${{ steps.ver.outputs.latest }}/" Dockerfile
+        run: sed -i "s/^ARG CLAUDE_VERSION=.*/ARG CLAUDE_VERSION=${{ steps.ver.outputs.latest }}/" Dockerfile.box
 
       - name: Create pull request
         if: steps.ver.outputs.changed == 'true'
@@ -59,7 +59,7 @@ jobs:
           title: "build: bump pinned Claude version to ${{ steps.ver.outputs.latest }}"
           labels: dependencies
           body: |
-            Automated bump of the pinned Claude Code version baked into the llmbox image.
+            Automated bump of the pinned Claude Code version baked into the llmbox box image.
 
             - Previously pinned: `${{ steps.ver.outputs.current }}`
             - Latest stable: `${{ steps.ver.outputs.latest }}`

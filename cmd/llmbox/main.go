@@ -18,8 +18,7 @@
 //	http_addr:    ":8080"                  # UI/API listen address
 //	mcp_addr:     ":8081"                  # MCP listen address (put behind an auth proxy)
 //	public_url:   "http://localhost:8080"  # external base URL for auth links
-//	claude_image: "ghcr.io/clems4ever/llmbox-box:latest"  # base image per box; any glibc image with a CA bundle works — Claude is injected, not baked in
-//	claude_bin:   "/opt/llmbox/claude"     # standalone Claude binary injected into each box
+//	claude_image: "ghcr.io/clems4ever/llmbox-box:latest"  # base image per box; must bake in Claude, tini, util-linux, and a CA bundle (see Dockerfile.box)
 //	remote_args:  "--spawn same-dir"       # args passed to `claude remote-control`
 //	auth_ttl:     "5m"                      # how long a box may stay un-authenticated (Go duration)
 //	state_file:   "llmbox-sessions.db"     # bbolt file persisting the session registry
@@ -215,7 +214,7 @@ func run(parent context.Context, cfg *config.Config) error {
 		boxImage = docker.DefaultImage
 	}
 
-	mgr, err := docker.NewManager(boxImage, cfg.RemoteArgs, cfg.ClaudeBin, cfg.BoxPeers)
+	mgr, err := docker.NewManager(boxImage, cfg.RemoteArgs, cfg.BoxPeers)
 	if err != nil {
 		return err
 	}

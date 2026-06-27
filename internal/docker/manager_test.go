@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -254,34 +252,10 @@ func (readConn) SetReadDeadline(time.Time) error { return nil }
 // SetWriteDeadline is a no-op; the fake conn ignores deadlines.
 func (readConn) SetWriteDeadline(time.Time) error { return nil }
 
-// testClaudeBin is the path to a stand-in Claude binary written once by TestMain,
-// so the always-on injection in Create has a real file to read.
-var testClaudeBin string
-
-// testClaudeBinContent is the stand-in binary's bytes, asserted on as the
-// injected payload.
-var testClaudeBinContent = []byte("#!/bin/sh\necho fake-claude\n")
-
-// TestMain writes a stand-in Claude binary to a temp file the whole package
-// shares, then runs the tests.
-func TestMain(m *testing.M) {
-	dir, err := os.MkdirTemp("", "llmbox-test-claude")
-	if err != nil {
-		panic(err)
-	}
-	testClaudeBin = filepath.Join(dir, "claude")
-	if err := os.WriteFile(testClaudeBin, testClaudeBinContent, 0o755); err != nil {
-		panic(err)
-	}
-	code := m.Run()
-	_ = os.RemoveAll(dir)
-	os.Exit(code)
-}
-
-// newTestManager builds a Manager backed by the given fake Docker client, with
-// the stand-in Claude binary wired in so box creation can inject it.
+// newTestManager builds a Manager backed by the given fake Docker client. The
+// box image is expected to bake in Claude, so no binary path is wired in.
 func newTestManager(f *fakeDocker) *Manager {
-	return &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: testClaudeBin}
+	return &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs}
 }
 
 // TestListMapsPhaseFromName checks List maps phase, shortened container ID, box ID, and description.
@@ -369,7 +343,7 @@ func TestCreateCapturesURL(t *testing.T) {
 	}
 	// The two post-login gates (workspace trust and "Enable Remote Control?") are
 	// pre-answered by the injected ~/.claude.json seed now, not the entrypoint, so
-	// the entrypoint stays node-free. See TestCreateInjectsClaude.
+	// the entrypoint stays node-free. See TestCreateInjectsConfigSeed.
 	if !f.createConfig.Tty || !f.createConfig.OpenStdin {
 		t.Error("box needs Tty and OpenStdin")
 	}
@@ -956,7 +930,7 @@ func TestSetupBoxNetworkConnectsPeers(t *testing.T) {
 		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
 		attachConn: managerEnd,
 	}
-	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: testClaudeBin, peers: []string{"peer-svc"}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"peer-svc"}}
 	go func() { _, _ = testEnd.Write([]byte(realAuthorizeURL + "\r\n")) }()
 
 	id, _, err := m.Create(context.Background(), CreateOptions{})
@@ -989,7 +963,7 @@ func TestDestroyRemovesBoxNetwork(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{
 		{ID: "abcdef0123456789", Names: []string{"/llmbox-pending-abcdef012345"}},
 	}}
-	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: testClaudeBin, peers: []string{"peer-svc"}}
+	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, peers: []string{"peer-svc"}}
 	if err := m.Destroy(context.Background(), "abcdef012345"); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
@@ -1084,10 +1058,11 @@ func TestCreateInjectsFiles(t *testing.T) {
 	}
 }
 
-// TestCreateInjectsClaude checks the standalone Claude binary and the
-// ~/.claude.json seed are injected into every box, and that the box is forced to
-// run as root with a fixed HOME/WorkingDir.
-func TestCreateInjectsClaude(t *testing.T) {
+// TestCreateInjectsConfigSeed checks the ~/.claude.json seed is injected into
+// every box, that the entrypoint is fronted by tini (PID 1) and stays node-free,
+// and that the box is forced to run as root with a fixed HOME/WorkingDir. The
+// Claude binary itself is baked into the box image, so it is NOT injected.
+func TestCreateInjectsConfigSeed(t *testing.T) {
 	managerEnd, testEnd := net.Pipe()
 	f := &fakeDocker{
 		createResp: container.CreateResponse{ID: "abcdef0123456789ffff"},
@@ -1113,7 +1088,11 @@ func TestCreateInjectsClaude(t *testing.T) {
 	if !slicesContains(f.createConfig.Env, "HOME="+boxHome) {
 		t.Errorf("env missing HOME=%s: %v", boxHome, f.createConfig.Env)
 	}
-	// Entrypoint is node-free (the seed file answers the gates, not a node step).
+	// tini runs as PID 1 (reaps Claude's orphaned descendants), and the entrypoint
+	// is node-free (the seed file answers the gates, not a node step).
+	if len(f.createConfig.Entrypoint) == 0 || f.createConfig.Entrypoint[0] != "tini" {
+		t.Errorf("entrypoint should start with tini: %v", f.createConfig.Entrypoint)
+	}
 	ep := strings.Join(f.createConfig.Entrypoint, " ")
 	if strings.Contains(ep, "node ") {
 		t.Errorf("entrypoint should not use node: %q", ep)
@@ -1124,19 +1103,9 @@ func TestCreateInjectsClaude(t *testing.T) {
 	}
 	entries := tarEntries(t, f.copyToCalls[0].archive)
 
-	// The Claude binary lands on PATH, executable, owned by root.
-	bin, ok := entries[strings.TrimPrefix(claudeBinTarget, "/")]
-	if !ok {
-		t.Fatalf("claude binary not in archive: %v keys", entries)
-	}
-	if !bytes.Equal(bin.body, testClaudeBinContent) {
-		t.Errorf("claude binary content mismatch")
-	}
-	if bin.hdr.Mode != 0o755 {
-		t.Errorf("claude binary mode = %o, want 0755", bin.hdr.Mode)
-	}
-	if bin.hdr.Uid != 0 || bin.hdr.Gid != 0 {
-		t.Errorf("claude binary owner = %d:%d, want 0:0", bin.hdr.Uid, bin.hdr.Gid)
+	// The Claude binary is baked into the image, not injected.
+	if _, ok := entries["usr/local/bin/claude"]; ok {
+		t.Errorf("claude binary should not be injected; it is baked into the box image: %v keys", entries)
 	}
 
 	// The ~/.claude.json seed pre-answers the trust and remote-control gates.
@@ -1160,21 +1129,6 @@ func slicesContains(s []string, v string) bool {
 		}
 	}
 	return false
-}
-
-// TestCreateMissingClaudeBinary checks create fails cleanly, without making
-// a container, when the Claude binary to inject cannot be read.
-func TestCreateMissingClaudeBinary(t *testing.T) {
-	f := &fakeDocker{createResp: container.CreateResponse{ID: "doomed0000000000"}}
-	m := &Manager{cli: f, defaultImage: DefaultImage, remoteArgs: defaultRemoteArgs, claudeBinSrc: filepath.Join(t.TempDir(), "does-not-exist")}
-
-	_, _, err := m.Create(context.Background(), CreateOptions{})
-	if err == nil {
-		t.Fatal("expected an error when the claude binary is unreadable")
-	}
-	if f.createCalls != 0 {
-		t.Errorf("no container should be created on a bad binary path, got %d creates", f.createCalls)
-	}
 }
 
 // TestTarFilesCreatesParentDirs checks tarFiles emits an owned parent directory

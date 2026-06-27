@@ -20,30 +20,10 @@
 #
 # Configuration is a YAML file (see llmbox.example.yaml and the README); at a
 # minimum set public_url. llmbox reads no environment variables of its own.
-
-# ---- claude stage ----
-# Fetch the standalone Claude native binary (no Node runtime) once, so the server
-# can inject it into every box at creation. This is a glibc stage because the
-# binary is glibc-linked; we validate it is a single self-contained file by
-# running `--version` here (it never runs in the distroless runtime below — it is
-# only stored there as bytes to copy into boxes).
-FROM debian:bookworm-slim AS claude
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
-    && rm -rf /var/lib/apt/lists/*
-# Pinned Claude Code version (stable channel). This is the single source of
-# truth for the version baked into the image; the bump-claude workflow opens a
-# PR editing this line when a newer stable release appears. Override at build
-# time with --build-arg CLAUDE_VERSION=<x.y.z|stable|latest>.
-ARG CLAUDE_VERSION=2.1.170
-RUN set -eux; \
-    curl -fsSL https://claude.ai/install.sh | bash -s -- ${CLAUDE_VERSION}; \
-    bin="$(command -v claude || echo "$HOME/.local/bin/claude")"; \
-    real="$(readlink -f "$bin")"; \
-    mkdir -p /opt/llmbox; \
-    cp "$real" /opt/llmbox/claude; \
-    chmod 0755 /opt/llmbox/claude; \
-    /opt/llmbox/claude --version
+#
+# The server neither runs nor ships Claude itself: each box image bakes in the
+# standalone Claude binary (see Dockerfile.box), so this image only carries the
+# llmbox server binary.
 
 # ---- build stage ----
 FROM golang:1.26-bookworm AS build
@@ -68,7 +48,5 @@ FROM gcr.io/distroless/static-debian12:nonroot
 EXPOSE 8080 8081
 
 COPY --from=build /out/llmbox /usr/local/bin/llmbox
-# The standalone Claude binary the server injects into each box (see claude stage).
-COPY --from=claude /opt/llmbox/claude /opt/llmbox/claude
 
 ENTRYPOINT ["/usr/local/bin/llmbox"]
