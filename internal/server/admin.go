@@ -86,20 +86,22 @@ type adminBox struct {
 
 // adminProxy is one enabled proxy rendered in the admin UI (pre-formatted).
 type adminProxy struct {
-	Slug      string
-	URL       string
-	BoxID     string
-	Port      int
-	Spoke     string
-	CreatedBy string
-	Created   string
+	Slug        string
+	URL         string
+	BoxID       string
+	Port        int
+	Spoke       string
+	CreatedBy   string
+	Created     string
+	Description string
 }
 
 // newProxyResult is the one-time output shown after enabling a proxy.
 type newProxyResult struct {
-	BoxID string `json:"boxId"`
-	Port  int    `json:"port"`
-	URL   string `json:"url"`
+	BoxID       string `json:"boxId"`
+	Port        int    `json:"port"`
+	URL         string `json:"url"`
+	Description string `json:"description,omitempty"`
 }
 
 // newSpokeResult is the one-time output shown after minting a join token.
@@ -229,18 +231,19 @@ func (s *Server) adminDashboard(r *http.Request, ls LoginSession) adminPageData 
 // @arg s The server used to resolve each proxy's public URL.
 // @return []adminProxy The display rows.
 //
-// @testcase TestAdminCreateProxy renders the proxies card for an admin.
+// @testcase TestAdminCreateProxy renders the proxies card (including the description) for an admin.
 func toAdminProxies(proxies []store.ProxyRecord, s *Server) []adminProxy {
 	out := make([]adminProxy, 0, len(proxies))
 	for _, p := range proxies {
 		out = append(out, adminProxy{
-			Slug:      p.Slug,
-			URL:       s.proxyURL(p.Slug),
-			BoxID:     p.BoxID,
-			Port:      p.Port,
-			Spoke:     p.Spoke,
-			CreatedBy: p.CreatedBy,
-			Created:   p.CreatedAt.UTC().Format(time.RFC3339),
+			Slug:        p.Slug,
+			URL:         s.proxyURL(p.Slug),
+			BoxID:       p.BoxID,
+			Port:        p.Port,
+			Spoke:       p.Spoke,
+			CreatedBy:   p.CreatedBy,
+			Created:     p.CreatedAt.UTC().Format(time.RFC3339),
+			Description: p.Description,
 		})
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -532,9 +535,9 @@ func (s *Server) handleAdminDeleteBox(w http.ResponseWriter, r *http.Request) {
 // URL as JSON. The signed-in admin's email is recorded as the proxy's creator.
 //
 // @arg w The response writer the JSON result is written to.
-// @arg r The request carrying the box ID and port.
+// @arg r The request carrying the box ID, port, and optional description.
 //
-// @testcase TestAdminCreateProxy enables a proxy and returns its URL.
+// @testcase TestAdminCreateProxy enables a proxy, records the description, and returns its URL.
 // @testcase TestAdminCreateProxyValidates rejects a missing box ID or bad port.
 func (s *Server) handleAdminCreateProxy(w http.ResponseWriter, r *http.Request) {
 	ls, ok := s.requireAdminPost(w, r)
@@ -551,15 +554,17 @@ func (s *Server) handleAdminCreateProxy(w http.ResponseWriter, r *http.Request) 
 		writeResult(w, "", "a valid port is required")
 		return
 	}
-	rec, err := s.createProxy(boxID, port, ls.Email)
+	description := strings.TrimSpace(r.PostFormValue("description"))
+	rec, err := s.createProxy(boxID, port, ls.Email, description)
 	if err != nil {
 		writeResult(w, "", "creating proxy: "+err.Error())
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true, "newProxy": &newProxyResult{
-		BoxID: rec.BoxID,
-		Port:  rec.Port,
-		URL:   s.proxyURL(rec.Slug),
+		BoxID:       rec.BoxID,
+		Port:        rec.Port,
+		URL:         s.proxyURL(rec.Slug),
+		Description: rec.Description,
 	}})
 }
 

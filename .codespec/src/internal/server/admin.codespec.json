@@ -117,16 +117,16 @@
 		},
 		{
 			"function_name": "toAdminProxies",
-			"documentation_hash": "9334d5029e7212f1b78658f23c2c7119eb8895109a720c73f9368abf06ae2756",
-			"definition_hash": "41cafe0a780cbbbf1fa3e8ace56d51d046afac7384ff3f03c87bd7b9722efdcd",
-			"reviewed_at": "2026-06-27T17:02:38.532404783Z"
+			"documentation_hash": "020ac99c53dc48df49280015ef5fb70a2a754aa9c391fca269a81aba4f908f1e",
+			"definition_hash": "2d75317244c09728b7bd21d52f71922e456f848abe41cec47458798f805b3694",
+			"reviewed_at": "2026-06-28T14:33:00.025653Z"
 		},
 		{
 			"function_name": "handleAdminCreateProxy",
 			"receiver": "Server",
-			"documentation_hash": "a9ef0013b74b76e05796c7e0348018b71d5baebd751a51ee5f1e4c5321d36de9",
-			"definition_hash": "4434f421239ec0de11491f18bbf428c28431b57e202f3cacb07afe592cd956bd",
-			"reviewed_at": "2026-06-27T17:02:38.533486175Z"
+			"documentation_hash": "8150de201195c01fe18ac01ef5f8d26e98b339620686140dedfb2b2ba0180a26",
+			"definition_hash": "584984dec942aac0c7f2aadf3554bab39d88e1b246a49bd5aac98f6ebd363a25",
+			"reviewed_at": "2026-06-28T14:33:00.025653Z"
 		},
 		{
 			"function_name": "handleAdminDeleteProxy",

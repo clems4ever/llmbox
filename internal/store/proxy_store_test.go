@@ -1,7 +1,9 @@
 package store
 
 import (
+	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -23,6 +25,7 @@ func TestProxyStoreRoundTrip(t *testing.T) {
 		Spoke:       "local",
 		CreatedAt:   time.Unix(1700000000, 0).UTC(),
 		CreatedBy:   "dev@example.com",
+		Description: "preview server",
 	}
 	if err := st.SaveProxy(rec); err != nil {
 		t.Fatalf("SaveProxy: %v", err)
@@ -57,5 +60,39 @@ func TestProxyStoreRoundTrip(t *testing.T) {
 	// Deleting a missing slug is a no-op.
 	if err := st.DeleteProxy("nope"); err != nil {
 		t.Errorf("DeleteProxy(missing): %v", err)
+	}
+}
+
+// TestProxyRecordDescriptionOmitEmpty checks the Description field is omitted from
+// the on-disk JSON when empty, and that a record written before the field existed
+// (its JSON lacks the "description" key) decodes with an empty Description, keeping
+// old records backward compatible.
+func TestProxyRecordDescriptionOmitEmpty(t *testing.T) {
+	// An empty Description must not appear in the marshalled JSON.
+	data, err := json.Marshal(ProxyRecord{Slug: "s", BoxID: "b", Port: 1})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if got := string(data); strings.Contains(got, "description") {
+		t.Errorf("empty description was serialized: %s", got)
+	}
+
+	// A legacy record (no description key) decodes with an empty Description.
+	var legacy ProxyRecord
+	const legacyJSON = `{"slug":"s","box_id":"b","port":8000,"created_at":"2023-11-14T22:13:20Z"}`
+	if err := json.Unmarshal([]byte(legacyJSON), &legacy); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if legacy.Description != "" {
+		t.Errorf("legacy record Description = %q, want empty", legacy.Description)
+	}
+
+	// A record with a description round-trips through JSON.
+	var withDesc ProxyRecord
+	if err := json.Unmarshal([]byte(`{"slug":"s","description":"note"}`), &withDesc); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if withDesc.Description != "note" {
+		t.Errorf("Description = %q, want %q", withDesc.Description, "note")
 	}
 }

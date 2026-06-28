@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewServer",
 			"documentation_hash": "957a8c39c7ff98c7bf90c9e182e0c23df8b64993a30ac108eecf271ab7a7303e",
-			"definition_hash": "d641f27fe2cd26128cbbd189364840b692be00b4080c61c00ad7ad1094d56e96",
-			"reviewed_at": "2026-06-27T17:02:38.52809298Z"
+			"definition_hash": "821423c923dfda019623387fc5e31ee8991e78e6eebe849a53f1bb9f5788faff",
+			"reviewed_at": "2026-06-28T14:33:00.025653Z"
 		},
 		{
 			"function_name": "shortID",
@@ -64,9 +64,9 @@
 		{
 			"function_name": "toolCreateProxy",
 			"receiver": "handlers",
-			"documentation_hash": "e86861da738ebfcb8d02ef61279e00d3b58ca6d7ef6475cc3ec9d6b34ca771dc",
-			"definition_hash": "12ca5544d6495f35ae3d56526f5b55e4d314c7f0c726c9ef0b039a9c685200f0",
-			"reviewed_at": "2026-06-27T17:02:38.528648034Z"
+			"documentation_hash": "e6dabaff2ced32df538d2e8dfe8a2c6a973131cdd8409eb10e430399aa3cea80",
+			"definition_hash": "b03d92a68b7b38349be234c0d3164c3d9bbb3a75c81d01547b458d32351f8b3e",
+			"reviewed_at": "2026-06-28T14:33:00.025653Z"
 		},
 		{
 			"function_name": "toolDeleteProxy",

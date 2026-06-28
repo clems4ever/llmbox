@@ -232,13 +232,14 @@
     <h2>HTTP proxies</h2>
     <p class="note">Expose a port of a running box so the user can reach it in their browser. Each proxy gets its own sub-domain.</p>
     <table>
-      <thead><tr><th>Box ID</th><th>Port</th><th>URL</th><th>Created by</th><th></th></tr></thead>
+      <thead><tr><th>Box ID</th><th>Port</th><th>URL</th><th>Description</th><th>Created by</th><th></th></tr></thead>
       <tbody>
       {{range .Proxies}}
         <tr>
           <td class="mono">{{.BoxID}}</td>
           <td class="mono">{{.Port}}</td>
           <td class="mono"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.URL}}</a></td>
+          <td>{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
           <td class="mono">{{if .CreatedBy}}{{.CreatedBy}}{{else}}—{{end}}</td>
           <td>
             <form class="inline" method="post" action="/admin/proxies/delete" onsubmit="return confirm('Remove proxy for {{.BoxID}}:{{.Port}}?')">
@@ -249,7 +250,7 @@
           </td>
         </tr>
       {{else}}
-        <tr><td colspan="5" class="empty">No proxies.</td></tr>
+        <tr><td colspan="6" class="empty">No proxies.</td></tr>
       {{end}}
       </tbody>
     </table>
@@ -258,6 +259,7 @@
       <input type="hidden" name="csrf" value="{{.CSRF}}">
       <div class="field"><label>Box ID</label><input type="text" name="box_id" placeholder="refactor-auth" autocomplete="off" required></div>
       <div class="field"><label>Port</label><input type="text" name="port" placeholder="8000" autocomplete="off" required></div>
+      <div class="field"><label>Description</label><input type="text" name="description" placeholder="optional note" autocomplete="off"></div>
       <button type="submit">Enable proxy</button>
     </form>
   </div>

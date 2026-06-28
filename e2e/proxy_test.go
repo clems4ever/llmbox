@@ -68,12 +68,16 @@ func TestEndToEndProxy(t *testing.T) {
 	callTool(t, cs, "create_llmbox", map[string]any{"box_id": "proxy-box"})
 
 	proxyOut := callTool(t, cs, "create_llmbox_proxy", map[string]any{
-		"box_id": "proxy-box",
-		"port":   8000,
+		"box_id":      "proxy-box",
+		"port":        8000,
+		"description": "hello server",
 	})
 	proxyURL, _ := proxyOut["url"].(string)
 	if proxyURL == "" {
 		t.Fatalf("create_llmbox_proxy returned no url: %+v", proxyOut)
+	}
+	if desc, _ := proxyOut["description"].(string); desc != "hello server" {
+		t.Errorf("create_llmbox_proxy description = %q, want %q", desc, "hello server")
 	}
 	u, err := url.Parse(proxyURL)
 	if err != nil {
@@ -105,8 +109,13 @@ func TestEndToEndProxy(t *testing.T) {
 
 	// --- the proxy is listed, then disabled, after which the URL stops working ---
 	listOut := callTool(t, cs, "list_llmbox_proxies", map[string]any{"box_id": "proxy-box"})
-	if proxies, _ := listOut["proxies"].([]any); len(proxies) != 1 {
+	proxies, _ := listOut["proxies"].([]any)
+	if len(proxies) != 1 {
 		t.Errorf("list_llmbox_proxies returned %d proxies, want 1", len(proxies))
+	} else if first, ok := proxies[0].(map[string]any); ok {
+		if desc, _ := first["description"].(string); desc != "hello server" {
+			t.Errorf("listed proxy description = %q, want %q", desc, "hello server")
+		}
 	}
 
 	callTool(t, cs, "delete_llmbox_proxy", map[string]any{"box_id": "proxy-box", "port": 8000})

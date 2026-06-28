@@ -180,12 +180,13 @@ func (b mcpBackend) ProxyEnabled() bool { return b.s.ProxyEnabled() }
 // @arg _ Context (unused; the registry is in-memory and in the store).
 // @arg boxID The box ID whose port to expose.
 // @arg port The port inside the box to forward to.
-// @return mcpserver.ProxyInfo The new proxy's box ID, port, URL, slug, and spoke.
+// @arg description An optional human-readable note for the proxy, or "" for none.
+// @return mcpserver.ProxyInfo The new proxy's box ID, port, URL, slug, spoke, and description.
 // @error error if proxying is disabled, the port is invalid, or no box has that box ID.
 //
-// @testcase TestMCPBackendProxies enables a proxy through the backend.
-func (b mcpBackend) CreateProxy(_ context.Context, boxID string, port int) (mcpserver.ProxyInfo, error) {
-	rec, err := b.s.createProxy(boxID, port, "")
+// @testcase TestMCPBackendProxies enables a proxy through the backend and carries its description.
+func (b mcpBackend) CreateProxy(_ context.Context, boxID string, port int, description string) (mcpserver.ProxyInfo, error) {
+	rec, err := b.s.createProxy(boxID, port, "", description)
 	if err != nil {
 		return mcpserver.ProxyInfo{}, err
 	}
@@ -227,18 +228,20 @@ func (b mcpBackend) ListProxies(_ context.Context, boxID string) ([]mcpserver.Pr
 }
 
 // proxyInfo flattens a stored proxy record into the mcpserver.ProxyInfo the
-// tools surface, resolving the public URL from the slug.
+// tools surface, resolving the public URL from the slug and carrying the
+// optional description through.
 //
 // @arg rec The stored proxy record.
-// @return mcpserver.ProxyInfo The flattened proxy with its public URL.
+// @return mcpserver.ProxyInfo The flattened proxy with its public URL and description.
 //
-// @testcase TestMCPBackendProxies checks the proxy info carries the URL.
+// @testcase TestMCPBackendProxies checks the proxy info carries the URL and description.
 func (b mcpBackend) proxyInfo(rec store.ProxyRecord) mcpserver.ProxyInfo {
 	return mcpserver.ProxyInfo{
-		BoxID: rec.BoxID,
-		Port:  rec.Port,
-		URL:   b.s.proxyURL(rec.Slug),
-		Slug:  rec.Slug,
-		Spoke: rec.Spoke,
+		BoxID:       rec.BoxID,
+		Port:        rec.Port,
+		URL:         b.s.proxyURL(rec.Slug),
+		Slug:        rec.Slug,
+		Spoke:       rec.Spoke,
+		Description: rec.Description,
 	}
 }

@@ -80,9 +80,9 @@
 		{
 			"function_name": "CreateProxy",
 			"receiver": "mcpBackend",
-			"documentation_hash": "70488c51eaa13bcd763a5e0aab3bbddb81fb0867e920744b0e11bbcb3d8ebb1f",
-			"definition_hash": "829ece74adbdb5e9496a28d17a289949379d8809b9a1d9f8dc89bbb0cfb17ced",
-			"reviewed_at": "2026-06-27T17:14:20.059286411Z"
+			"documentation_hash": "9742fe83fb24f2702cf41d2da709168cb8ad7e91af8d970427ffa7121f9735de",
+			"definition_hash": "06e814508d04d9fcf458d7fb5618a5b00d1fd251bff13da573468b1906410139",
+			"reviewed_at": "2026-06-28T14:33:00.025653Z"
 		},
 		{
 			"function_name": "DeleteProxy",
@@ -101,9 +101,9 @@
 		{
 			"function_name": "proxyInfo",
 			"receiver": "mcpBackend",
-			"documentation_hash": "47ef300417ba5b082e2399ad4ac84345d3c5cdb7833d11c1593eeb31e899b91a",
-			"definition_hash": "f878593b878833dd06cc4379a866bd10ceafea192670acd13dd946fbd8b1dba9",
-			"reviewed_at": "2026-06-27T17:14:20.069897971Z"
+			"documentation_hash": "4d3cdbe6e4c9cb7c48857bf0c69c0a52bf55f8754ddaff1c2c66370dbd4e6401",
+			"definition_hash": "f71bce111a2dac89677126d8a878b3b965ef8a6aa7d3df0e36e97dae51fb966f",
+			"reviewed_at": "2026-06-28T14:33:00.025653Z"
 		}
 	]
 }
