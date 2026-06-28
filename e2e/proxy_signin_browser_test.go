@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -111,6 +112,21 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	href, _ := signInBtn.GetAttribute("href")
 	if !strings.Contains(href, "return=") || !strings.Contains(href, u.Host) {
 		t.Fatalf("sign-in button href = %q, want a login link returning to the proxy host %q", href, u.Host)
+	}
+
+	// Capture the proxy sign-in page for the docs when a screenshot dir is set (CI
+	// does this); a plain run writes nothing. Desktop first, then a phone viewport,
+	// then back to desktop so the size is restored for the rest of the test.
+	shotDir, err := resolveScreenshotDir(os.Getenv("LLMBOX_E2E_SCREENSHOT_DIR"))
+	if err != nil {
+		t.Fatalf("resolving screenshot dir: %v", err)
+	}
+	if shotDir != "" {
+		b.resizeForScreenshot(t)
+		b.saveScreenshot(t, shotDir, "signin-page.png")
+		b.resizeForMobileScreenshot(t)
+		b.saveScreenshot(t, shotDir, "signin-page-mobile.png")
+		b.resizeForScreenshot(t)
 	}
 
 	// --- sign in: drop the shared login cookie (scoped to example.com, as the real
