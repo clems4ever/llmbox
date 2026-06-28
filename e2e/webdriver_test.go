@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -33,34 +32,6 @@ type browser struct {
 // @return *browser A ready browser whose session drives the auth UI.
 func newBrowser(t *testing.T) *browser {
 	t.Helper()
-	return newBrowserWithArgs(t)
-}
-
-// newBrowserResolving starts a headless Chrome that resolves every hostname to
-// hostPort (a "127.0.0.1:<port>"). It lets a browser test reach the named hosts
-// the proxy feature depends on — the public host and the per-box <slug>.<base>
-// sub-domains — without real DNS, all served by the one test listener.
-//
-// @arg t The test, used for fatal errors and cleanup.
-// @arg hostPort The "host:port" every hostname resolves to (the test listener).
-// @return *browser A ready browser whose name resolution is pinned to hostPort.
-func newBrowserResolving(t *testing.T, hostPort string) *browser {
-	t.Helper()
-	return newBrowserWithArgs(t, "--host-resolver-rules=MAP * "+hostPort)
-}
-
-// newBrowserWithArgs starts ChromeDriver and a headless Chrome session, appending
-// extra to the standard headless flags. It backs newBrowser (no extras) and
-// newBrowserResolving (a host-resolver rule). A missing chromedriver is fatal,
-// never skipped: the e2e suite is opt-in (it only builds under `-tags e2e`, i.e.
-// `make test-e2e`), so if you asked to run it and the browser is not there, that
-// is a failure to surface — not a green no-op that leaves the README stale.
-//
-// @arg t The test, used for fatal errors and cleanup.
-// @arg extra Additional Chrome command-line flags to append.
-// @return *browser A ready browser whose session drives the auth UI.
-func newBrowserWithArgs(t *testing.T, extra ...string) *browser {
-	t.Helper()
 	driver := findChromeDriver()
 	if driver == "" {
 		t.Fatal("chromedriver not found: the e2e suite needs Chrome + ChromeDriver. " +
@@ -78,18 +49,16 @@ func newBrowserWithArgs(t *testing.T, extra ...string) *browser {
 		t.Fatalf("starting chromedriver (%s): %v", driver, err)
 	}
 
-	args := []string{
-		"--headless=new",
-		"--no-sandbox",
-		"--disable-dev-shm-usage",
-		"--disable-gpu",
-		"--window-size=1280,1024",
-	}
-	args = append(args, extra...)
 	caps := selenium.Capabilities{"browserName": "chrome"}
 	caps.AddChrome(chrome.Capabilities{
 		Path: findChromeBinary(),
-		Args: args,
+		Args: []string{
+			"--headless=new",
+			"--no-sandbox",
+			"--disable-dev-shm-usage",
+			"--disable-gpu",
+			"--window-size=1280,1024",
+		},
 	})
 	wd, err := selenium.NewRemote(caps, fmt.Sprintf("http://127.0.0.1:%d/wd/hub", port))
 	if err != nil {
@@ -127,29 +96,6 @@ func (b *browser) waitFor(t *testing.T, by, value string) selenium.WebElement {
 		if time.Now().After(deadline) {
 			src, _ := b.wd.PageSource()
 			t.Fatalf("timed out waiting for element %s=%q; page was:\n%s", by, value, src)
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-}
-
-// waitForText polls the page source until it contains want or the timeout
-// elapses, returning the matching source. It suits a page whose body is plain
-// text (e.g. a proxied box response Chrome renders in a <pre>), which has no tidy
-// element selector to wait on.
-//
-// @arg t The test, failed when want never appears.
-// @arg want The substring the page source must contain.
-// @return string The page source once it contains want.
-func (b *browser) waitForText(t *testing.T, want string) string {
-	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
-	for {
-		src, _ := b.wd.PageSource()
-		if strings.Contains(src, want) {
-			return src
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("timed out waiting for page text %q; page was:\n%s", want, src)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
