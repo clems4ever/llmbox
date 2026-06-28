@@ -276,12 +276,39 @@ func TestAdminAllowlist(t *testing.T) {
 	}
 }
 
-// TestAdminButtonsReturnPath checks AdminButtons builds a login link carrying the URL-encoded return path.
-func TestAdminButtonsReturnPath(t *testing.T) {
+// TestReturnButtonsPath checks ReturnButtons builds a login link carrying the URL-encoded return target.
+func TestReturnButtonsPath(t *testing.T) {
 	a := &Authenticator{providers: map[string]*provider{"google": {label: "Google"}}, order: []string{"google"}}
-	btns := a.AdminButtons("/admin")
+	btns := a.ReturnButtons("/admin")
 	if len(btns) != 1 || btns[0].LoginPath != "/auth/google/login?return=%2Fadmin" {
-		t.Errorf("AdminButtons = %+v", btns)
+		t.Errorf("ReturnButtons = %+v", btns)
+	}
+}
+
+// TestSafeReturnURL checks local paths and cookie-domain sub-domains are accepted
+// while foreign hosts and non-http schemes are rejected (no open redirect).
+func TestSafeReturnURL(t *testing.T) {
+	a := &Authenticator{cookieDomain: "example.com"}
+	cases := map[string]string{
+		"/admin":                          "/admin",
+		"https://x.proxy.example.com/app": "https://x.proxy.example.com/app",
+		"https://example.com/y":           "https://example.com/y",
+		"http://x.example.com/z":          "http://x.example.com/z",
+		"https://evil.com/x":              "",
+		"https://example.com.evil.com/":   "",
+		"ftp://x.example.com/":            "",
+		"//x.example.com/":                "",
+		"":                                "",
+	}
+	for in, want := range cases {
+		if got := a.SafeReturnURL(in); got != want {
+			t.Errorf("SafeReturnURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+	// With no cookie domain, only local paths are safe.
+	noDomain := &Authenticator{}
+	if got := noDomain.SafeReturnURL("https://x.example.com/"); got != "" {
+		t.Errorf("SafeReturnURL without cookie domain = %q, want \"\"", got)
 	}
 }
 
@@ -318,8 +345,8 @@ func TestNewTestAuthenticator(t *testing.T) {
 	if a.isAdmin("nobody@corp.com") {
 		t.Error("isAdmin should reject an unlisted email")
 	}
-	if btns := a.AdminButtons("/admin"); len(btns) != 1 || btns[0].Label != "Google" {
-		t.Errorf("AdminButtons = %+v, want a single Google button", btns)
+	if btns := a.ReturnButtons("/admin"); len(btns) != 1 || btns[0].Label != "Google" {
+		t.Errorf("ReturnButtons = %+v, want a single Google button", btns)
 	}
 }
 

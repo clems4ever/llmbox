@@ -100,6 +100,8 @@ func (s *Server) registerAppRoutes(mux *http.ServeMux) {
 	if s.auth != nil {
 		mux.HandleFunc("GET /auth/{provider}/login", s.auth.HandleLogin)
 		mux.HandleFunc("GET /auth/{provider}/callback", s.auth.HandleCallback)
+		// Stand-alone sign-in page an unauthenticated proxy visitor is bounced to.
+		mux.HandleFunc("GET /signin", s.handleSignIn)
 	}
 
 	// Admin web UI (only when an admin allow-list is configured): manage cluster
@@ -288,6 +290,53 @@ var authTmplSrc string
 
 // authTmpl is the parsed auth page template.
 var authTmpl = template.Must(template.New("auth").Parse(authTmplSrc))
+
+// signInData is the state rendered by the stand-alone sign-in page.
+type signInData struct {
+	// Providers is one sign-in button per configured provider, each returning to
+	// the sanitized destination after login; empty when the return target is
+	// missing or unsafe, in which case the page shows an explanatory notice.
+	Providers []auth.ProviderButton
+}
+
+// handleSignIn renders the stand-alone sign-in page an unauthenticated proxy
+// visitor is bounced to: it lists each provider's sign-in button, all returning
+// to the ?return= target once the shared login cookie is set. A visitor who is
+// already signed in is redirected straight to the return target. The return
+// target is sanitized via SafeReturnURL; a missing or unsafe one yields a page
+// with no buttons (and no redirect), never an open redirect.
+//
+// @arg w The response writer the page is rendered to.
+// @arg r The request whose ?return= names where to go after sign-in.
+//
+// @testcase TestSignInPageRendersButtons renders a provider button carrying the return target.
+// @testcase TestSignInPageRedirectsWhenSignedIn bounces an already-signed-in visitor to the return target.
+// @testcase TestSignInPageRejectsUnsafeReturn renders no buttons for an unsafe return target.
+func (s *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
+	returnTo := s.auth.SafeReturnURL(r.URL.Query().Get("return"))
+	if _, ok := s.auth.CurrentLogin(r); ok && returnTo != "" {
+		http.Redirect(w, r, returnTo, http.StatusFound)
+		return
+	}
+	var buttons []auth.ProviderButton
+	if returnTo != "" {
+		buttons = s.auth.ReturnButtons(returnTo)
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	if err := signInTmpl.Execute(w, signInData{Providers: buttons}); err != nil {
+		s.logger().Warn("failed to render sign-in page", "err", err)
+	}
+}
+
+// signInTmplSrc is the sign-in page template, embedded at build time from
+// signin.html.tmpl so the server ships as a single self-contained executable.
+//
+//go:embed templates/signin.html.tmpl
+var signInTmplSrc string
+
+// signInTmpl is the parsed sign-in page template.
+var signInTmpl = template.Must(template.New("signin").Parse(signInTmplSrc))
 
 // faviconSVG is the server favicon, embedded into the binary at build time from
 // favicon.svg and served at /favicon.ico and /favicon.svg.

@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "TestProxySignInRedirectInBrowser",
+			"documentation_hash": "03542f225e46e2adf2c76964b105f10bbef8848fc2a40fde01cd39ad064a074b",
+			"definition_hash": "67b346b0fd20d4587885f7d9773d802152dbd13b1e932ab320969b961d898554",
+			"reviewed_at": "2026-06-27T22:03:07.264489003Z"
+		}
+	]
+}

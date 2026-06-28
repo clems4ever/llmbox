@@ -3,8 +3,8 @@
 		{
 			"function_name": "newBrowser",
 			"documentation_hash": "1cc34f2756189502eaf1894c867a967930157b0964fda0ed39bf7d3e7cb3a54e",
-			"definition_hash": "87928d60678c8b39c73243fb8b52e845835c9d376e984ce419eed145be1b0339",
-			"reviewed_at": "2026-06-23T09:06:32.319187054Z"
+			"definition_hash": "eacb0d9d285e6270e46a58ff00be7167aaf07e7d41412c7cdd3046f3a8106a6c",
+			"reviewed_at": "2026-06-27T22:00:35.102651061Z"
 		},
 		{
 			"function_name": "close",
@@ -70,6 +70,25 @@
 			"documentation_hash": "4cf48fb6b6c3ab508d181cbac034b0abe5f8ced4848e4d38cd52c17a1617de07",
 			"definition_hash": "8cd44c55c4d1f01b30602038ec0acf7fe0475bf4b98c6657d675e6e176d9af68",
 			"reviewed_at": "2026-06-23T09:06:48.291635669Z"
+		},
+		{
+			"function_name": "newBrowserResolving",
+			"documentation_hash": "a034e4a88f736612487e320c69640b88f776b8f53a68ab6d94e12cfb1d4746d0",
+			"definition_hash": "5f9ce3f113b8840db93c5df9aeca12e46be583319e20bc8ace1e2d4b4f778376",
+			"reviewed_at": "2026-06-27T22:00:35.103167504Z"
+		},
+		{
+			"function_name": "newBrowserWithArgs",
+			"documentation_hash": "9b27509d1af2ff02a14b5900da8b2276701dcf09fd1be81fbcd7bdbb468f8149",
+			"definition_hash": "0640aedac35bac9c927b1cd691799af49b36ad5d6aca7ed6d7f3f4e6f2c15b35",
+			"reviewed_at": "2026-06-27T22:00:35.112640792Z"
+		},
+		{
+			"function_name": "waitForText",
+			"receiver": "browser",
+			"documentation_hash": "78e2af7bee0b894abf2234b30ca7b06c83804bf33227aff5170f30d658a00fbe",
+			"definition_hash": "116ad9546e08a2d9d587a54421263a6d6b9d51606d99781971d164e6ff11d50b",
+			"reviewed_at": "2026-06-27T22:00:35.11315095Z"
 		}
 	]
 }

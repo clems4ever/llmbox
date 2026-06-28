@@ -216,6 +216,21 @@ func (a *Authenticator) Bind(s store.LoginStore, log *slog.Logger) {
 	a.log = log
 }
 
+// SetCookieDomain overrides the cookie domain the login cookie is scoped to (and
+// the suffix SafeReturnURL trusts for cross-sub-domain returns). It exists so a
+// test can configure the shared-cookie behaviour the per-proxy hosts rely on
+// without going through full OIDC config. It is a no-op on a nil Authenticator.
+//
+// @arg domain The cookie domain (e.g. "example.com"); trimmed of surrounding space.
+//
+// @testcase TestSafeReturnURL relies on a configured cookie domain to accept sub-domains.
+func (a *Authenticator) SetCookieDomain(domain string) {
+	if a == nil {
+		return
+	}
+	a.cookieDomain = strings.TrimSpace(domain)
+}
+
 // logger returns the Authenticator's logger, or slog.Default() when none was set.
 //
 // @return *slog.Logger The configured logger, or the slog default.
@@ -288,14 +303,17 @@ func (a *Authenticator) isAdmin(email string) bool {
 	return a.adminEmails[strings.ToLower(strings.TrimSpace(email))]
 }
 
-// AdminButtons returns the sign-in buttons for the admin UI, each returning to
-// returnTo (a local path) after sign-in rather than to a box activation page.
+// ReturnButtons returns the sign-in buttons for a flow that comes back to a fixed
+// destination after login (the admin UI, or the proxy sign-in page) rather than
+// to a box activation page. Each button carries returnTo as its post-login return
+// target.
 //
-// @arg returnTo The local path to return to after sign-in (e.g. "/admin").
+// @arg returnTo The target to return to after sign-in — a local path (e.g.
+//   "/admin") or an absolute proxy URL under the cookie domain.
 // @return []ProviderButton One button per enabled provider, in config order.
 //
-// @testcase TestAdminButtonsReturnPath builds login links carrying the return path.
-func (a *Authenticator) AdminButtons(returnTo string) []ProviderButton {
+// @testcase TestReturnButtonsPath builds login links carrying the return target.
+func (a *Authenticator) ReturnButtons(returnTo string) []ProviderButton {
 	if a == nil {
 		return nil
 	}
@@ -332,6 +350,36 @@ func safeReturnPath(p string) string {
 	return p
 }
 
+// SafeReturnURL returns to when it is a safe place to redirect after sign-in, or
+// "" otherwise. It admits a same-origin local path (see safeReturnPath) and, when
+// a cookie domain is configured, an absolute http(s) URL whose host is that domain
+// or a sub-domain of it — the per-proxy hosts the shared login cookie already
+// spans. Everything else (foreign hosts, non-http schemes) is rejected, so it
+// cannot be turned into an open redirect.
+//
+// @arg to The candidate return target from a login or sign-in request.
+// @return string The target when safe to redirect to, or "" when it must not be used.
+//
+// @testcase TestSafeReturnURL accepts local paths and cookie-domain sub-domains, rejects foreign hosts.
+func (a *Authenticator) SafeReturnURL(to string) string {
+	if p := safeReturnPath(to); p != "" {
+		return p
+	}
+	if a == nil || a.cookieDomain == "" {
+		return ""
+	}
+	u, err := url.Parse(to)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+		return ""
+	}
+	host := strings.ToLower(u.Hostname())
+	cd := strings.ToLower(a.cookieDomain)
+	if host == cd || strings.HasSuffix(host, "."+cd) {
+		return to
+	}
+	return ""
+}
+
 // oidcVerifier adapts *oidc.IDTokenVerifier to idTokenVerifier, checking the
 // nonce and extracting the claims llmbox cares about.
 type oidcVerifier struct{ v *oidc.IDTokenVerifier }
@@ -366,8 +414,9 @@ func (o oidcVerifier) verify(ctx context.Context, rawIDToken, nonce string) (idC
 
 // HandleLogin begins an OIDC handshake: it persists fresh state (PKCE verifier +
 // nonce + where to return) and redirects to the provider. The return target is
-// either a box activation token (?token=, the activation flow) or a safe local
-// path (?return=, the admin flow); exactly one is required.
+// either a box activation token (?token=, the activation flow) or a safe return
+// URL (?return=, the admin and proxy sign-in flows — a local path or a proxy
+// sub-domain under the cookie domain, see SafeReturnURL); exactly one is required.
 //
 // @arg w The response writer (redirected to the provider).
 // @arg r The request carrying {provider} and either a token or return query param.
@@ -381,7 +430,7 @@ func (a *Authenticator) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := r.URL.Query().Get("token")
-	returnTo := safeReturnPath(r.URL.Query().Get("return"))
+	returnTo := a.SafeReturnURL(r.URL.Query().Get("return"))
 	if token == "" && returnTo == "" {
 		http.Error(w, "missing box token or return path", http.StatusBadRequest)
 		return
