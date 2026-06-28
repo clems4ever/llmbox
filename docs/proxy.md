@@ -55,6 +55,20 @@ auth:
   cookie_domain: ".example.com"
 ```
 
+A signed-out **browser** that opens a proxy URL is redirected to a sign-in page
+on the main host, carrying the proxy URL as the return target; once signed in,
+the shared cookie lets the same URL through and the user lands back where they
+started. (Non-browser requests — XHR, WebSocket, anything that isn't a top-level
+navigation — get a plain `401` instead, so a redirect to HTML can't corrupt
+them.) The sign-in page is responsive, dropping the card framing to fill a phone
+screen. Like the [activation page](architecture.md#the-activation-page), these
+images are **captured by the end-to-end test** and refreshed by CI on the pull
+request that changes the UI; see [Testing](development.md#testing).
+
+| Sign in | On mobile |
+|---------|-----------|
+| ![The proxy sign-in page](../.github/screenshots/signin-page.png) | ![The proxy sign-in page on a phone-sized screen](../.github/screenshots/signin-page-mobile.png) |
+
 With no auth provider configured, proxying is open (like the rest of the server,
 which then relies on a front authenticating proxy) — do not expose it to
 untrusted networks in that mode.

@@ -72,23 +72,23 @@
 		{
 			"function_name": "proxyAuthorized",
 			"receiver": "Server",
-			"documentation_hash": "3b0518119429e08ba9f11a12d7e6d41043ee2702069fff751d5bcf9912c96c7f",
-			"definition_hash": "4cba9512a4f06c35966b047b55bb955d93515d36c968bd36ab579349423e1a03",
-			"reviewed_at": "2026-06-27T17:15:37.299181028Z"
+			"documentation_hash": "b89e1d4ca7ba42e6d9d731e8732d51d8aabb1d3e50af07bcb1967b4e1f329d41",
+			"definition_hash": "5bc4a9f449e0d5f30b305e30887700a88bd1825b87e8886f47b957c5c42e864a",
+			"reviewed_at": "2026-06-27T21:14:59.776357239Z"
 		},
 		{
 			"function_name": "handleProxy",
 			"receiver": "Server",
 			"documentation_hash": "6494713f54aedd36f60e664a0e318fe0ee0d41871cf9e3ebfd7e0d0532c88625",
-			"definition_hash": "baee63d2f2416351d1bdb14470dae3b4feeadb37541c03410253495a9f0f0e81",
-			"reviewed_at": "2026-06-27T17:32:04.107625679Z"
+			"definition_hash": "d24ccea183e6ad55b8222d790a7d68e8907d65fc002ce581eb7005c257ef08ce",
+			"reviewed_at": "2026-06-27T21:48:23.892118717Z"
 		},
 		{
 			"function_name": "boxTransport",
 			"receiver": "Server",
-			"documentation_hash": "f74299f8a8d74dafc61472df951f500cdd2818a51fd7938c556f186acfa4d4a8",
-			"definition_hash": "2a599c42b0d5754a6f37084da229551ff8a556ded4dbf3ed790246702083e3fd",
-			"reviewed_at": "2026-06-27T17:27:44.157324412Z"
+			"documentation_hash": "6cf43a015f805395b6e5f1a8cc84d619389ae20cf5771c4ce46b8e95dea8f9f2",
+			"definition_hash": "0051876186c0da54b697e71787375be10a3e45d060856112e1d0ccc9025f88ff",
+			"reviewed_at": "2026-06-27T21:14:59.780689004Z"
 		},
 		{
 			"function_name": "RoundTrip",
@@ -96,6 +96,19 @@
 			"documentation_hash": "a0d20e332339d8cfc254cb96d92c6475508ab30f91f6ea2870939a70e5473df4",
 			"definition_hash": "49454ac9bc2b3fd1cc0677160816b6a96526e98b17bb6bfed1e80062bad409be",
 			"reviewed_at": "2026-06-27T17:27:44.194385393Z"
+		},
+		{
+			"function_name": "isBrowserNavigation",
+			"documentation_hash": "d4b5c1956aa0d0907f18957194edca697bf8b5c8703c883359874d6b2540b157",
+			"definition_hash": "d5b28a3d3ae40a6ea39440edb3b88179f167b18e6703b5102ddea13cdff504f8",
+			"reviewed_at": "2026-06-27T21:48:23.890151374Z"
+		},
+		{
+			"function_name": "signInURL",
+			"receiver": "Server",
+			"documentation_hash": "290acdb24755b285f7076c2c00fbb43e963f85056de4ba838dcb75760be1170e",
+			"definition_hash": "d091abc4283dc8f241e5af817f792ed62b777104acf9aef1ec02cde5851ac865",
+			"reviewed_at": "2026-06-27T21:48:23.891095985Z"
 		}
 	]
 }

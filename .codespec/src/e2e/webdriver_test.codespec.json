@@ -4,7 +4,7 @@
 			"function_name": "newBrowser",
 			"documentation_hash": "1cc34f2756189502eaf1894c867a967930157b0964fda0ed39bf7d3e7cb3a54e",
 			"definition_hash": "87928d60678c8b39c73243fb8b52e845835c9d376e984ce419eed145be1b0339",
-			"reviewed_at": "2026-06-23T09:06:32.319187054Z"
+			"reviewed_at": "2026-06-28T13:45:25.431959306Z"
 		},
 		{
 			"function_name": "close",

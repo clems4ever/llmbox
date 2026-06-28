@@ -46,8 +46,15 @@
 			"function_name": "registerAppRoutes",
 			"receiver": "Server",
 			"documentation_hash": "9b42222a915bf0c96e77c7424c07d421496ca49e80a6a3a22f6efe01ce99e1a2",
-			"definition_hash": "4850f5097f8ccc2026790f9cd9f45716774c1347413a3b657934a7b3d1e9e539",
-			"reviewed_at": "2026-06-27T11:23:44.897909883Z"
+			"definition_hash": "ff98b31a1eba575c7d513ed00172a27cfea775a2d582432c15a72d37057339dd",
+			"reviewed_at": "2026-06-27T21:48:18.774651155Z"
+		},
+		{
+			"function_name": "handleSignIn",
+			"receiver": "Server",
+			"documentation_hash": "4acb4be21c0b3bfda6c9a4a1f2eac52d36ed646d76a6c4372bf79161315d4c0c",
+			"definition_hash": "6589270a19d06695a5cb721c16d4ae928fc78f3f1e7e20b78288a36a8cdefaed",
+			"reviewed_at": "2026-06-27T21:48:18.775189027Z"
 		}
 	]
 }

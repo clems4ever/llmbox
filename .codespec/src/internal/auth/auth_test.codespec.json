@@ -68,12 +68,6 @@
 			"reviewed_at": "2026-06-27T11:26:36.283075747Z"
 		},
 		{
-			"function_name": "TestAdminButtonsReturnPath",
-			"documentation_hash": "168deffb4163cb062970f4f4ac75e36180b15cf0c2ae154f3c46899bca91c4a6",
-			"definition_hash": "b0ae173299b57d45830a73ae32935f2de61223bfc867b84aa74ed8cadbc10086",
-			"reviewed_at": "2026-06-27T11:26:36.310383855Z"
-		},
-		{
 			"function_name": "TestSafeReturnPath",
 			"documentation_hash": "4fc6a5e0337e525f2989f28f066a5f2c2764f4ae462625e4002ec9e9f23ce2e3",
 			"definition_hash": "2b6997a7c1c31be561f0a3650acee0f29791363d549d8d47e91f7f67cfd79f9d",
@@ -82,8 +76,8 @@
 		{
 			"function_name": "TestNewTestAuthenticator",
 			"documentation_hash": "f84e98f369d1c9c61e57f915a72ea58008c974c7243ba46da984a60a11fce7d1",
-			"definition_hash": "62ff8a71588c02698b366556812a091526fc2b06df381587578258831a96a331",
-			"reviewed_at": "2026-06-27T17:06:23.252641048Z"
+			"definition_hash": "2e48fdd778317a6c9db70b087f26f54e342e615cd78434c46867d7933c3760be",
+			"reviewed_at": "2026-06-27T21:48:10.862414528Z"
 		},
 		{
 			"function_name": "TestButtons",
@@ -96,6 +90,18 @@
 			"documentation_hash": "5b0499a4ff58b8f4f693988cfe2a80fc0bae1ab1791977b2d7f12f07efdaa895",
 			"definition_hash": "7acf4a631f5b9be3b7992a575ec4b984c084face1c4519568d474cfaab9eebee",
 			"reviewed_at": "2026-06-27T17:09:19.665274054Z"
+		},
+		{
+			"function_name": "TestReturnButtonsPath",
+			"documentation_hash": "4c9a28717cfa815c3064cada1ae0871526cda3c51c1b0be462d894e5ff340fd5",
+			"definition_hash": "5941a48935ee7585f4a39ca9b1464795684668de1212c3f45d1013eb5e97a5df",
+			"reviewed_at": "2026-06-27T21:48:10.855602851Z"
+		},
+		{
+			"function_name": "TestSafeReturnURL",
+			"documentation_hash": "107ae77b0dc8929def41078f9b7288d03061b255dc1b4da80b5c9ab6877e235c",
+			"definition_hash": "0af61abefdbf0b0b64bad897c584012c812e25e818714e9813b092c5de491b71",
+			"reviewed_at": "2026-06-27T21:48:10.861701222Z"
 		}
 	]
 }

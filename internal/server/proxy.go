@@ -76,6 +76,42 @@ func (s *Server) proxyURL(slug string) string {
 	return scheme + "://" + slug + "." + s.proxyBaseDomain + "/"
 }
 
+// isBrowserNavigation reports whether r is a top-level browser navigation — a GET
+// for an HTML document that is not a WebSocket handshake. Only such requests are
+// safe to answer with a redirect to the sign-in page; an XHR/fetch, WebSocket
+// upgrade, or non-GET would be broken (or silently looped) by an HTML redirect.
+//
+// @arg r The incoming proxy request.
+// @return bool True when r is a top-level HTML navigation that may be redirected.
+//
+// @testcase TestIsBrowserNavigation accepts an HTML GET and rejects XHR, WebSocket, and POST.
+func isBrowserNavigation(r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		return false
+	}
+	if strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+		return false
+	}
+	return strings.Contains(r.Header.Get("Accept"), "text/html")
+}
+
+// signInURL builds the absolute sign-in page URL an unauthenticated proxy visitor
+// is redirected to, carrying the current proxy request URL as the ?return= target
+// so login bounces the visitor straight back to where they were.
+//
+// @arg r The incoming proxy request (its Host and URI form the return target).
+// @return string The absolute {publicURL}/signin?return=<this request> URL.
+//
+// @testcase TestSignInURLCarriesReturn builds a sign-in URL whose return is the proxy request.
+func (s *Server) signInURL(r *http.Request) string {
+	scheme := "https"
+	if strings.HasPrefix(s.publicURL, "http://") {
+		scheme = "http"
+	}
+	ret := scheme + "://" + r.Host + r.URL.RequestURI()
+	return s.publicURL + "/signin?return=" + url.QueryEscape(ret)
+}
+
 // createProxy enables an HTTP proxy to a box's port and returns the persisted
 // record. It is idempotent: when a proxy for the same box and port already
 // exists, that record is returned rather than a duplicate created. The box must
@@ -285,22 +321,22 @@ func (s *Server) proxySlugFromHost(host string) (string, bool) {
 //
 // @arg r The incoming proxy request.
 // @return bool True when the request is authorized to use the proxy.
-// @return string A human-readable reason when not authorized.
+// @return int The HTTP status to reply with when not authorized (0 when authorized).
 //
 // @testcase TestHandleProxyRequiresLogin refuses an unauthenticated request when auth is on.
 // @testcase TestHandleProxyForwards forwards when authorized.
-func (s *Server) proxyAuthorized(r *http.Request) (bool, string) {
+func (s *Server) proxyAuthorized(r *http.Request) (bool, int) {
 	if s.auth == nil {
-		return true, ""
+		return true, 0
 	}
 	ls, ok := s.auth.CurrentLogin(r)
 	if !ok {
-		return false, "Please sign in to llmbox before using this proxy."
+		return false, http.StatusUnauthorized
 	}
 	if !ls.Activate {
-		return false, fmt.Sprintf("Signed in as %s, but that account is not authorized to use boxes here.", ls.Email)
+		return false, http.StatusForbidden
 	}
-	return true, ""
+	return true, 0
 }
 
 // handleProxy serves one request to a proxy sub-domain: it resolves the slug to
@@ -330,12 +366,17 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, slug string
 		http.Error(w, "Unknown or disabled proxy.", http.StatusNotFound)
 		return
 	}
-	if allowed, reason := s.proxyAuthorized(r); !allowed {
-		code := http.StatusUnauthorized
-		if strings.HasPrefix(reason, "Signed in") {
-			code = http.StatusForbidden
+	if allowed, code := s.proxyAuthorized(r); !allowed {
+		// Bounce a browser navigation that merely lacks a session to the sign-in
+		// page; it returns here once the shared login cookie is set. Anything that
+		// isn't a top-level navigation (XHR, WebSocket) — and the signed-in-but-not-
+		// authorized case (403) — gets the bare status instead, since redirecting it
+		// to an HTML page would corrupt the response or loop.
+		if code == http.StatusUnauthorized && s.auth != nil && isBrowserNavigation(r) {
+			http.Redirect(w, r, s.signInURL(r), http.StatusFound)
+			return
 		}
-		http.Error(w, reason, code)
+		http.Error(w, "Unauthorized", code)
 		return
 	}
 

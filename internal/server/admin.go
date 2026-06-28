@@ -148,7 +148,7 @@ type adminPageData struct {
 func (s *Server) handleAdmin(w http.ResponseWriter, r *http.Request) {
 	ls, ok := s.auth.CurrentLogin(r)
 	if !ok {
-		s.renderAdmin(w, adminPageData{SignIn: s.auth.AdminButtons("/admin")})
+		s.renderAdmin(w, adminPageData{SignIn: s.auth.ReturnButtons("/admin")})
 		return
 	}
 	if !ls.Admin {

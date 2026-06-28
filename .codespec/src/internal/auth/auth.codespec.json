@@ -68,13 +68,6 @@
 			"reviewed_at": "2026-06-27T11:25:39.011080523Z"
 		},
 		{
-			"function_name": "AdminButtons",
-			"receiver": "Authenticator",
-			"documentation_hash": "561ac768d0fc800617b00acb74e0263b4287d51c3b40c0f00d9f0b0b730ec50e",
-			"definition_hash": "c6c3f930a1d7d9f0b96fc5b7ef2244ad2a04d348ad64ae4629209f2dd05da534",
-			"reviewed_at": "2026-06-27T11:25:39.036831905Z"
-		},
-		{
 			"function_name": "safeReturnPath",
 			"documentation_hash": "d09d224cca260e9bbddeec4dd3228ad78c1a9829e0cdd3e8ab39163fb370a675",
 			"definition_hash": "0b10a60925e4089dc491079620b185f6a2279c52b3701a6b053488eab8b7c968",
@@ -90,9 +83,9 @@
 		{
 			"function_name": "HandleLogin",
 			"receiver": "Authenticator",
-			"documentation_hash": "6f2005f755eef9f76e83d0cfac8aa0d261a4d7d76291b64285e16b4416dbdf41",
-			"definition_hash": "fc2b96dbd69e0f3a2c58d2a0d432e7e81bfdf5243bf21bc5e3402c55bfa6fa32",
-			"reviewed_at": "2026-06-27T11:25:39.133386473Z"
+			"documentation_hash": "5acbf87aa92fcfb9df27c0bdc377e6c8bffc365e297a3e8433f1861fbee9e745",
+			"definition_hash": "590069004e54ce59ee0ba38df933019e3812229d16abf98cf9b15d4ac41201ae",
+			"reviewed_at": "2026-06-27T21:48:07.171021661Z"
 		},
 		{
 			"function_name": "HandleCallback",
@@ -119,6 +112,27 @@
 			"documentation_hash": "c377b834a539d07b0c21dbda74cc7457cc2e29c6a9c88c656c14bcbb73578389",
 			"definition_hash": "d529be2beeba1897d20ca9b4d1b68ba7d6c5ef24282d8d8e88880a7c66992557",
 			"reviewed_at": "2026-06-27T11:25:39.253650993Z"
+		},
+		{
+			"function_name": "ReturnButtons",
+			"receiver": "Authenticator",
+			"documentation_hash": "f7bf197ca4fc066b4a2dbafbb64d1f175f524bebdfd109f39dd18c0a465edb2c",
+			"definition_hash": "7199512339a73d89b0501cb6b74516db7cc22774a359147d97f52047f02cdf39",
+			"reviewed_at": "2026-06-27T21:48:07.169097535Z"
+		},
+		{
+			"function_name": "SafeReturnURL",
+			"receiver": "Authenticator",
+			"documentation_hash": "10bb34ef8d9ee17e335198fe492bf36d67e320d4c9d2e514d086232e3882fd22",
+			"definition_hash": "29f9967428dd72a34623f9612a2a4dbba86e982b39693655bbab8d3e210be699",
+			"reviewed_at": "2026-06-27T21:48:07.170153199Z"
+		},
+		{
+			"function_name": "SetCookieDomain",
+			"receiver": "Authenticator",
+			"documentation_hash": "b52b0438d7c3c8a89e43159147bd3b636b5e1680194647fb8f437c2628202712",
+			"definition_hash": "d399d3ea98b2c03f0a58f231b540c73f038a46181ab6b63e5c035ccaa25529e4",
+			"reviewed_at": "2026-06-27T22:02:50.865196256Z"
 		}
 	]
 }

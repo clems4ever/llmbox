@@ -70,12 +70,13 @@ no `chromedriver` is available (on `$CHROMEWEBDRIVER` or `$PATH`), it **fails**
 rather than skipping — running the suite is an explicit request, so a missing
 browser is an error, not a silent pass.
 
-When `$LLMBOX_E2E_SCREENSHOT_DIR` is set, the test also saves PNG screenshots of
+When `$LLMBOX_E2E_SCREENSHOT_DIR` is set, the tests also save PNG screenshots of
 the auth page (`auth-page.png`, `auth-ready.png`, and a phone-sized
-`auth-page-mobile.png`) to that directory. CI sets it
+`auth-page-mobile.png`) and of the proxy sign-in page (`signin-page.png` and the
+phone-sized `signin-page-mobile.png`) to that directory. CI sets it
 to [`.github/screenshots/`](../.github/screenshots) and, **on pull requests** (from
 this repo), commits the refreshed images straight onto the PR branch and posts a
 sticky comment previewing the changed images inline, so the
-[activation page](architecture.md#the-activation-page) shown in the architecture
-docs always matches the live UI and the change is easy to review together with the
-code that caused it.
+[activation page](architecture.md#the-activation-page) and the
+[proxy sign-in page](proxy.md#authentication) shown in the docs always match the
+live UI and the change is easy to review together with the code that caused it.
