@@ -35,6 +35,8 @@ type ProxyInfo struct {
 	URL   string `json:"url" jsonschema:"the URL the user opens to reach the box's port"`
 	Slug  string `json:"slug" jsonschema:"the unguessable sub-domain label identifying the proxy"`
 	Spoke string `json:"spoke,omitempty" jsonschema:"the spoke the box runs on"`
+	// Description is the optional human-readable note supplied when the proxy was created.
+	Description string `json:"description,omitempty" jsonschema:"the optional human-readable note supplied when the proxy was created"`
 }
 
 // SpokeStatus describes one cluster spoke and its health for the list_spokes
@@ -71,8 +73,9 @@ type Backend interface {
 	BoxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error)
 	// ProxyEnabled reports whether the HTTP proxy feature is configured.
 	ProxyEnabled() bool
-	// CreateProxy enables an HTTP proxy to a box's port and returns it.
-	CreateProxy(ctx context.Context, boxID string, port int) (ProxyInfo, error)
+	// CreateProxy enables an HTTP proxy to a box's port and returns it. description
+	// is an optional human-readable note stamped onto the proxy, or "" for none.
+	CreateProxy(ctx context.Context, boxID string, port int, description string) (ProxyInfo, error)
 	// DeleteProxy disables the proxy for a box and port.
 	DeleteProxy(ctx context.Context, boxID string, port int) error
 	// ListProxies returns the enabled proxies, optionally filtered to one box.
@@ -139,6 +142,7 @@ func NewServer(b Backend, name, version string) *mcp.Server {
 		Name: "create_llmbox_proxy",
 		Description: "Expose an HTTP server running inside an llmbox so the user can reach it from their browser. " +
 			"Give the box ID and the port the server listens on inside the box; returns a URL the user opens to reach it. " +
+			"Optionally attach a human-readable description to record what the proxy is for; it is shown by list_llmbox_proxies. " +
 			"No port is reachable until you enable it here (default-deny). Use this after starting a server in the box (e.g. via exec_llmbox or pm2).",
 	}, h.toolCreateProxy)
 
@@ -149,7 +153,7 @@ func NewServer(b Backend, name, version string) *mcp.Server {
 
 	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "list_llmbox_proxies",
-		Description: "List the enabled llmbox HTTP proxies and their URLs. Optionally filter to one box by its box ID.",
+		Description: "List the enabled llmbox HTTP proxies, their URLs, and any descriptions. Optionally filter to one box by its box ID.",
 	}, h.toolListProxies)
 
 	return srv
@@ -399,14 +403,16 @@ func (h *handlers) toolExec(ctx context.Context, _ *mcp.CallToolRequest, in exec
 }
 
 type createProxyInput struct {
-	BoxID string `json:"box_id" jsonschema:"the box ID of the box running the server (the one passed to create_llmbox)"`
-	Port  int    `json:"port" jsonschema:"the TCP port the server listens on inside the box, e.g. 8000"`
+	BoxID       string `json:"box_id" jsonschema:"the box ID of the box running the server (the one passed to create_llmbox)"`
+	Port        int    `json:"port" jsonschema:"the TCP port the server listens on inside the box, e.g. 8000"`
+	Description string `json:"description,omitempty" jsonschema:"optional human-readable description of what the proxy is for, shown by list_llmbox_proxies"`
 }
 
 type createProxyOutput struct {
 	BoxID        string `json:"box_id" jsonschema:"the box ID the proxy points at"`
 	Port         int    `json:"port" jsonschema:"the exposed port inside the box"`
 	URL          string `json:"url" jsonschema:"the URL to give the user to reach the box's server in their browser"`
+	Description  string `json:"description,omitempty" jsonschema:"the optional description recorded for the proxy"`
 	Instructions string `json:"instructions" jsonschema:"human-readable next steps for the user"`
 }
 
@@ -415,12 +421,12 @@ type createProxyOutput struct {
 //
 // @arg ctx Context for the create.
 // @arg _ The MCP call request (unused).
-// @arg in The input carrying the box ID and port.
+// @arg in The input carrying the box ID, port, and optional description.
 // @return *mcp.CallToolResult Always nil; structured output is returned instead.
-// @return createProxyOutput The box ID, port, URL, and instructions.
+// @return createProxyOutput The box ID, port, URL, description, and instructions.
 // @error error if box_id is empty, the port is invalid, proxying is disabled, or no box has that box ID.
 //
-// @testcase TestToolCreateProxy enables a proxy and returns its URL.
+// @testcase TestToolCreateProxy enables a proxy, passes the description through, and returns its URL.
 // @testcase TestToolCreateProxyRequiresBoxID rejects an empty box ID.
 // @testcase TestToolCreateProxyDisabled surfaces the disabled-feature error.
 func (h *handlers) toolCreateProxy(ctx context.Context, _ *mcp.CallToolRequest, in createProxyInput) (*mcp.CallToolResult, createProxyOutput, error) {
@@ -433,7 +439,7 @@ func (h *handlers) toolCreateProxy(ctx context.Context, _ *mcp.CallToolRequest, 
 	if !h.b.ProxyEnabled() {
 		return nil, createProxyOutput{}, fmt.Errorf("HTTP proxying is not enabled on this server")
 	}
-	p, err := h.b.CreateProxy(ctx, in.BoxID, in.Port)
+	p, err := h.b.CreateProxy(ctx, in.BoxID, in.Port, in.Description)
 	if err != nil {
 		return nil, createProxyOutput{}, err
 	}
@@ -441,6 +447,7 @@ func (h *handlers) toolCreateProxy(ctx context.Context, _ *mcp.CallToolRequest, 
 		BoxID:        p.BoxID,
 		Port:         p.Port,
 		URL:          p.URL,
+		Description:  p.Description,
 		Instructions: "Give the user this URL. They must be signed in to llmbox to open it, and the server must be listening on the given port inside the box.",
 	}, nil
 }

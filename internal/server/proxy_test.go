@@ -60,7 +60,7 @@ func TestCreateProxyRegistersAndBuildsURL(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
 	registerBox(t, s, "web-box", "")
 
-	rec, err := s.createProxy("web-box", 8000, "dev@corp.com")
+	rec, err := s.createProxy("web-box", 8000, "dev@corp.com", "web preview")
 	if err != nil {
 		t.Fatalf("createProxy: %v", err)
 	}
@@ -69,6 +69,9 @@ func TestCreateProxyRegistersAndBuildsURL(t *testing.T) {
 	}
 	if rec.Spoke != localSpokeName {
 		t.Errorf("spoke = %q, want %q", rec.Spoke, localSpokeName)
+	}
+	if rec.Description != "web preview" {
+		t.Errorf("description = %q, want %q", rec.Description, "web preview")
 	}
 	if got, want := s.proxyURL(rec.Slug), "https://"+rec.Slug+".proxy.example.com/"; got != want {
 		t.Errorf("proxyURL = %q, want %q", got, want)
@@ -82,7 +85,7 @@ func TestCreateProxyDisabled(t *testing.T) {
 	if s.ProxyEnabled() {
 		t.Fatal("ProxyEnabled = true without a base domain")
 	}
-	if _, err := s.createProxy("web-box", 8000, ""); err == nil {
+	if _, err := s.createProxy("web-box", 8000, "", ""); err == nil {
 		t.Error("expected an error when proxying is disabled")
 	}
 }
@@ -90,7 +93,7 @@ func TestCreateProxyDisabled(t *testing.T) {
 // TestCreateProxyUnknownBox checks createProxy refuses a box with no session.
 func TestCreateProxyUnknownBox(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
-	if _, err := s.createProxy("nope", 8000, ""); err == nil {
+	if _, err := s.createProxy("nope", 8000, "", ""); err == nil {
 		t.Error("expected an error for an unknown box ID")
 	}
 }
@@ -100,7 +103,7 @@ func TestCreateProxyRejectsBadPort(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
 	registerBox(t, s, "web-box", "")
 	for _, port := range []int{0, -1, 70000} {
-		if _, err := s.createProxy("web-box", port, ""); err == nil {
+		if _, err := s.createProxy("web-box", port, "", ""); err == nil {
 			t.Errorf("port %d: expected an error", port)
 		}
 	}
@@ -112,11 +115,11 @@ func TestCreateProxyIdempotent(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
 	registerBox(t, s, "web-box", "")
 
-	first, err := s.createProxy("web-box", 8000, "")
+	first, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatalf("createProxy #1: %v", err)
 	}
-	second, err := s.createProxy("web-box", 8000, "")
+	second, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatalf("createProxy #2: %v", err)
 	}
@@ -126,6 +129,49 @@ func TestCreateProxyIdempotent(t *testing.T) {
 	list, _ := st.ListProxies()
 	if len(list) != 1 {
 		t.Errorf("got %d proxies, want 1 (idempotent)", len(list))
+	}
+}
+
+// TestCreateProxyIdempotentKeepsDescription checks that a repeated create for the
+// same box/port and container returns the original record unchanged, so a
+// description supplied only on the second call is ignored (and an original
+// description is preserved).
+func TestCreateProxyIdempotentKeepsDescription(t *testing.T) {
+	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+
+	first, err := s.createProxy("web-box", 8000, "", "original note")
+	if err != nil {
+		t.Fatalf("createProxy #1: %v", err)
+	}
+	second, err := s.createProxy("web-box", 8000, "", "ignored note")
+	if err != nil {
+		t.Fatalf("createProxy #2: %v", err)
+	}
+	if second.Slug != first.Slug {
+		t.Errorf("slug changed on repeat: %q vs %q", first.Slug, second.Slug)
+	}
+	if second.Description != "original note" {
+		t.Errorf("description = %q, want the original %q", second.Description, "original note")
+	}
+	stored, ok, _ := st.GetProxy(first.Slug)
+	if !ok || stored.Description != "original note" {
+		t.Errorf("stored description = %q (ok=%v), want %q", stored.Description, ok, "original note")
+	}
+}
+
+// TestCreateProxyEmptyDescription checks an empty description is accepted and
+// stored as the zero value (so the field is omitted from on-disk JSON).
+func TestCreateProxyEmptyDescription(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
+	registerBox(t, s, "web-box", "")
+
+	rec, err := s.createProxy("web-box", 8000, "", "")
+	if err != nil {
+		t.Fatalf("createProxy: %v", err)
+	}
+	if rec.Description != "" {
+		t.Errorf("description = %q, want empty", rec.Description)
 	}
 }
 
@@ -143,7 +189,7 @@ func TestCreateProxyReplacesStaleContainer(t *testing.T) {
 	}
 	registerBox(t, s, "web-box", "") // session's container is "newcontainer00000"
 
-	rec, err := s.createProxy("web-box", 8000, "")
+	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatalf("createProxy: %v", err)
 	}
@@ -213,10 +259,10 @@ func TestListProxiesFiltersByBox(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
 	registerBox(t, s, "web-box", "")
 	registerBox(t, s, "api-box", "")
-	if _, err := s.createProxy("web-box", 8000, ""); err != nil {
+	if _, err := s.createProxy("web-box", 8000, "", ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.createProxy("api-box", 9000, ""); err != nil {
+	if _, err := s.createProxy("api-box", 9000, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -234,7 +280,7 @@ func TestListProxiesFiltersByBox(t *testing.T) {
 func TestDeleteProxyRemoves(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
 	registerBox(t, s, "web-box", "")
-	rec, _ := s.createProxy("web-box", 8000, "")
+	rec, _ := s.createProxy("web-box", 8000, "", "")
 
 	slug, err := s.deleteProxy("web-box", 8000)
 	if err != nil {
@@ -260,7 +306,7 @@ func TestDeleteProxyUnknown(t *testing.T) {
 func TestDeleteProxyBySlug(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
 	registerBox(t, s, "web-box", "")
-	rec, _ := s.createProxy("web-box", 8000, "")
+	rec, _ := s.createProxy("web-box", 8000, "", "")
 	if err := s.deleteProxyBySlug(rec.Slug); err != nil {
 		t.Fatalf("deleteProxyBySlug: %v", err)
 	}
@@ -273,7 +319,7 @@ func TestDeleteProxyBySlug(t *testing.T) {
 func TestDestroyBoxRemovesProxies(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
 	registerBox(t, s, "web-box", "")
-	if _, err := s.createProxy("web-box", 8000, ""); err != nil {
+	if _, err := s.createProxy("web-box", 8000, "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.destroyBox(context.Background(), "web-box"); err != nil {
@@ -322,7 +368,7 @@ func TestHandleProxyForwards(t *testing.T) {
 	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}, target: upstream.Listener.Addr().String()}
 	s, _ := newProxyServer(t, mgr, nil) // auth nil => proxy open
 	registerBox(t, s, "web-box", "")
-	rec, err := s.createProxy("web-box", 8000, "")
+	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,7 +412,7 @@ func TestHandleProxyDialsByContainerID(t *testing.T) {
 	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "container-id-9999"}, target: upstream.Listener.Addr().String()}
 	s, _ := newProxyServer(t, mgr, nil) // auth nil => proxy open
 	registerBox(t, s, "web-box", "")
-	rec, err := s.createProxy("web-box", 8000, "")
+	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +463,7 @@ func TestHandleProxyRequiresLogin(t *testing.T) {
 	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}}
 	s, _ := newProxyServer(t, mgr, a)
 	registerBox(t, s, "web-box", "")
-	rec, err := s.createProxy("web-box", 8000, "")
+	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -449,7 +495,7 @@ func TestHandleProxyAuthorizedForwards(t *testing.T) {
 	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}, target: upstream.Listener.Addr().String()}
 	s, st := newProxyServer(t, mgr, a)
 	registerBox(t, s, "web-box", "")
-	rec, err := s.createProxy("web-box", 8000, "")
+	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -500,7 +546,7 @@ func TestHandleProxyRemoteSpokeForwards(t *testing.T) {
 	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{}}, nil)
 	s.SetHub(hub)
 	registerBox(t, s, "web-box", "remote1")
-	rec, err := s.createProxy("web-box", 8000, "")
+	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -543,7 +589,7 @@ func TestHandleProxyUnsupportedSpoke(t *testing.T) {
 	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{}}, nil)
 	s.SetHub(hub)
 	registerBox(t, s, "web-box", "remote1")
-	rec, err := s.createProxy("web-box", 8000, "")
+	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -575,16 +621,22 @@ func TestMCPBackendProxies(t *testing.T) {
 	if !b.ProxyEnabled() {
 		t.Fatal("ProxyEnabled() = false, want true")
 	}
-	info, err := b.CreateProxy(context.Background(), "web-box", 8000)
+	info, err := b.CreateProxy(context.Background(), "web-box", 8000, "preview server")
 	if err != nil {
 		t.Fatalf("CreateProxy: %v", err)
 	}
 	if info.BoxID != "web-box" || info.Port != 8000 || info.URL == "" {
 		t.Errorf("proxy info = %+v", info)
 	}
+	if info.Description != "preview server" {
+		t.Errorf("CreateProxy description = %q, want %q", info.Description, "preview server")
+	}
 	list, err := b.ListProxies(context.Background(), "web-box")
 	if err != nil || len(list) != 1 {
 		t.Fatalf("ListProxies = %+v (err %v), want 1", list, err)
+	}
+	if list[0].Description != "preview server" {
+		t.Errorf("ListProxies description = %q, want %q", list[0].Description, "preview server")
 	}
 	if err := b.DeleteProxy(context.Background(), "web-box", 8000); err != nil {
 		t.Fatalf("DeleteProxy: %v", err)

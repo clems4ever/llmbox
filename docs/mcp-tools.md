@@ -11,9 +11,9 @@ in your client (see [Configuration](configuration.md#connecting-a-chatbot)).
 | `destroy_llmbox` | `box_id` | the destroyed box's box ID |
 | `get_llmbox_logs` | `box_id`, `tail?` | `box_id`, `logs` (the box's recent, ANSI-stripped console output) |
 | `exec_llmbox` | `box_id`, `command` | `box_id`, `stdout`, `stderr`, `exit_code` |
-| `create_llmbox_proxy` | `box_id`, `port` | `box_id`, `port`, `url` (open it in a browser), `instructions` |
+| `create_llmbox_proxy` | `box_id`, `port`, `description?` | `box_id`, `port`, `url` (open it in a browser), `description`, `instructions` |
 | `delete_llmbox_proxy` | `box_id`, `port` | `box_id`, `port` |
-| `list_llmbox_proxies` | `box_id?` | the enabled proxies (`box_id`, `port`, `url`, `slug`, `spoke`) |
+| `list_llmbox_proxies` | `box_id?` | the enabled proxies (`box_id`, `port`, `url`, `slug`, `spoke`, `description`) |
 
 `box_id` and `description` on `create_llmbox` are optional. When set, `box_id`
 is the identifier you use to reference the box afterwards and is also applied as
@@ -36,10 +36,16 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 `create_llmbox_proxy` lets the user reach an HTTP server running **inside** a box
 from their browser. The agent starts a server in the box (e.g. via `exec_llmbox`
 or `pm2`), calls `create_llmbox_proxy` with the box's `box_id` and the `port` the
-server listens on, and hands the returned `url` to the user. The proxy is
+server listens on, and hands the returned `url` to the user. An optional
+`description` can be attached at creation to record what the proxy is for; it is
+echoed back by `create_llmbox_proxy` and surfaced by `list_llmbox_proxies` (and
+in the admin UI). The description is set only on first creation — a repeated
+`create_llmbox_proxy` for the same box and port returns the existing proxy
+unchanged and ignores a newly supplied description. The proxy is
 **default-deny**: a box port is unreachable until a proxy is enabled for it, and
 the proxy is removed automatically when the box is destroyed. `delete_llmbox_proxy`
-disables it; `list_llmbox_proxies` lists the enabled proxies and their URLs.
+disables it; `list_llmbox_proxies` lists the enabled proxies, their URLs, and any
+descriptions.
 
 Each proxy is served at its own sub-domain (`https://<slug>.<base_domain>/`) so
 single-page apps and servers that emit absolute paths work without rewriting. The

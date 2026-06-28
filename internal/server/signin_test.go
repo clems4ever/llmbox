@@ -54,7 +54,7 @@ func TestHandleProxyRedirectsBrowserToSignIn(t *testing.T) {
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}}, a)
 	registerBox(t, s, "web-box", "")
-	rec, err := s.createProxy("web-box", 8000, "")
+	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

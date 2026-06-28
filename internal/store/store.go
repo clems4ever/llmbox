@@ -81,6 +81,10 @@ type ProxyRecord struct {
 	// CreatedBy is the identity (email) that enabled the proxy, when known (e.g.
 	// an admin acting through the UI); empty for proxies enabled over MCP.
 	CreatedBy string `json:"created_by,omitempty"`
+	// Description is an optional human-readable note about the proxy, supplied at
+	// creation. It is omitted from the on-disk JSON when empty, so records written
+	// before this field existed decode with an empty Description (backward compatible).
+	Description string `json:"description,omitempty"`
 }
 
 // ProxyStore persists the enabled-proxy registry across restarts, keyed by the

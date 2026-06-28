@@ -114,23 +114,27 @@ func (s *Server) signInURL(r *http.Request) string {
 
 // createProxy enables an HTTP proxy to a box's port and returns the persisted
 // record. It is idempotent: when a proxy for the same box and port already
-// exists, that record is returned rather than a duplicate created. The box must
-// be a currently tracked box (looked up by its box ID); the port is validated.
-// createdBy records who enabled the proxy (an admin email, or "" over MCP).
+// exists, that record is returned unchanged rather than a duplicate created (so a
+// description supplied on a repeat call is ignored). The box must be a currently
+// tracked box (looked up by its box ID); the port is validated. createdBy records
+// who enabled the proxy (an admin email, or "" over MCP) and description is an
+// optional note stamped onto the record on first creation.
 //
 // @arg boxID The box ID of the box whose port to expose.
 // @arg port The TCP port inside the box to forward to.
 // @arg createdBy The identity enabling the proxy, or "" when unknown (MCP).
+// @arg description An optional human-readable note for the proxy, or "" for none.
 // @return store.ProxyRecord The new (or pre-existing) proxy record.
 // @error error if proxying is disabled, the port is invalid, no box has that box ID, or persistence fails.
 //
-// @testcase TestCreateProxyRegistersAndBuildsURL registers a proxy for a known box.
+// @testcase TestCreateProxyRegistersAndBuildsURL registers a proxy for a known box and stamps the description.
 // @testcase TestCreateProxyDisabled errors when proxying is not enabled.
 // @testcase TestCreateProxyUnknownBox errors when no box has the given box ID.
 // @testcase TestCreateProxyRejectsBadPort rejects an out-of-range port.
 // @testcase TestCreateProxyIdempotent returns the existing proxy for a repeated box/port on the same container.
+// @testcase TestCreateProxyIdempotentKeepsDescription keeps the original description when a repeat create supplies a new one.
 // @testcase TestCreateProxyReplacesStaleContainer mints a fresh slug when a same-id box has a new container.
-func (s *Server) createProxy(boxID string, port int, createdBy string) (store.ProxyRecord, error) {
+func (s *Server) createProxy(boxID string, port int, createdBy, description string) (store.ProxyRecord, error) {
 	if !s.ProxyEnabled() {
 		return store.ProxyRecord{}, fmt.Errorf("proxying is not enabled on this server")
 	}
@@ -169,6 +173,7 @@ func (s *Server) createProxy(boxID string, port int, createdBy string) (store.Pr
 		Spoke:       sess.SpokeName,
 		CreatedAt:   time.Now(),
 		CreatedBy:   createdBy,
+		Description: description,
 	}
 	if err := s.store.SaveProxy(rec); err != nil {
 		return store.ProxyRecord{}, fmt.Errorf("saving proxy: %w", err)

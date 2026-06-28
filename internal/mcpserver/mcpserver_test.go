@@ -46,6 +46,7 @@ type fakeBackend struct {
 	createProxyErr  error
 	gotProxyBoxID   string
 	gotProxyPort    int
+	gotProxyDesc    string
 	deletedProxy    [2]any // {boxID, port} of the last DeleteProxy
 	deleteProxyErr  error
 	proxies         []ProxyInfo
@@ -105,9 +106,10 @@ func (f *fakeBackend) BoxExec(_ context.Context, boxID, command string) (docker.
 // ProxyEnabled reports the canned proxy-enabled flag.
 func (f *fakeBackend) ProxyEnabled() bool { return f.proxyEnabled }
 
-// CreateProxy records the box ID and port and returns the canned proxy info/error.
-func (f *fakeBackend) CreateProxy(_ context.Context, boxID string, port int) (ProxyInfo, error) {
-	f.gotProxyBoxID, f.gotProxyPort = boxID, port
+// CreateProxy records the box ID, port, and description and returns the canned
+// proxy info/error.
+func (f *fakeBackend) CreateProxy(_ context.Context, boxID string, port int, description string) (ProxyInfo, error) {
+	f.gotProxyBoxID, f.gotProxyPort, f.gotProxyDesc = boxID, port, description
 	if f.createProxyErr != nil {
 		return ProxyInfo{}, f.createProxyErr
 	}
@@ -131,18 +133,24 @@ func (f *fakeBackend) ListProxies(_ context.Context, boxID string) ([]ProxyInfo,
 func TestToolCreateProxy(t *testing.T) {
 	f := &fakeBackend{
 		proxyEnabled:    true,
-		createProxyInfo: ProxyInfo{BoxID: "web-box", Port: 8000, URL: "https://slug123.proxy.example.com/", Slug: "slug123"},
+		createProxyInfo: ProxyInfo{BoxID: "web-box", Port: 8000, URL: "https://slug123.proxy.example.com/", Slug: "slug123", Description: "preview server"},
 	}
 	h := &handlers{b: f}
-	_, out, err := h.toolCreateProxy(context.Background(), nil, createProxyInput{BoxID: "web-box", Port: 8000})
+	_, out, err := h.toolCreateProxy(context.Background(), nil, createProxyInput{BoxID: "web-box", Port: 8000, Description: "preview server"})
 	if err != nil {
 		t.Fatalf("toolCreateProxy: %v", err)
 	}
 	if f.gotProxyBoxID != "web-box" || f.gotProxyPort != 8000 {
 		t.Errorf("forwarded box/port = %q/%d", f.gotProxyBoxID, f.gotProxyPort)
 	}
+	if f.gotProxyDesc != "preview server" {
+		t.Errorf("forwarded description = %q, want %q", f.gotProxyDesc, "preview server")
+	}
 	if out.URL != "https://slug123.proxy.example.com/" {
 		t.Errorf("URL = %q", out.URL)
+	}
+	if out.Description != "preview server" {
+		t.Errorf("output description = %q, want %q", out.Description, "preview server")
 	}
 }
 
@@ -180,7 +188,7 @@ func TestToolDeleteProxy(t *testing.T) {
 
 // TestToolListProxies lists proxies, forwarding the optional box-ID filter.
 func TestToolListProxies(t *testing.T) {
-	f := &fakeBackend{proxies: []ProxyInfo{{BoxID: "web-box", Port: 8000, URL: "https://s.proxy.example.com/"}}}
+	f := &fakeBackend{proxies: []ProxyInfo{{BoxID: "web-box", Port: 8000, URL: "https://s.proxy.example.com/", Description: "preview server"}}}
 	h := &handlers{b: f}
 	_, out, err := h.toolListProxies(context.Background(), nil, listProxiesInput{BoxID: "web-box"})
 	if err != nil {
@@ -191,6 +199,9 @@ func TestToolListProxies(t *testing.T) {
 	}
 	if len(out.Proxies) != 1 || out.Proxies[0].URL != "https://s.proxy.example.com/" {
 		t.Errorf("proxies = %+v", out.Proxies)
+	}
+	if out.Proxies[0].Description != "preview server" {
+		t.Errorf("listed description = %q, want %q", out.Proxies[0].Description, "preview server")
 	}
 }
 

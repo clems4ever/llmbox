@@ -438,7 +438,7 @@ func TestAdminCreateProxy(t *testing.T) {
 	h := s.APIHandler()
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/proxies", strings.NewReader(url.Values{
-		"box_id": {"web-box"}, "port": {"8000"}, "csrf": {"CSRF"},
+		"box_id": {"web-box"}, "port": {"8000"}, "description": {"preview server"}, "csrf": {"CSRF"},
 	}.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
@@ -449,7 +449,8 @@ func TestAdminCreateProxy(t *testing.T) {
 	var out struct {
 		OK       bool `json:"ok"`
 		NewProxy *struct {
-			URL string `json:"url"`
+			URL         string `json:"url"`
+			Description string `json:"description"`
 		} `json:"newProxy"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
@@ -458,9 +459,29 @@ func TestAdminCreateProxy(t *testing.T) {
 	if !out.OK || out.NewProxy == nil || !strings.HasSuffix(out.NewProxy.URL, ".proxy.example.com/") {
 		t.Fatalf("unexpected result %+v", out)
 	}
+	if out.NewProxy.Description != "preview server" {
+		t.Errorf("newProxy description = %q, want %q", out.NewProxy.Description, "preview server")
+	}
 	proxies, _ := st.ListProxies()
 	if len(proxies) != 1 || proxies[0].CreatedBy != "admin@corp.com" {
 		t.Errorf("proxies = %+v, want one created by admin@corp.com", proxies)
+	}
+	if proxies[0].Description != "preview server" {
+		t.Errorf("stored description = %q, want %q", proxies[0].Description, "preview server")
+	}
+}
+
+// TestAdminProxyRendersDescription checks the rendered admin dashboard shows a
+// proxy's description in the proxies card.
+func TestAdminProxyRendersDescription(t *testing.T) {
+	s, _ := newProxyAdminServer(t)
+	if _, err := s.createProxy("web-box", 8000, "admin@corp.com", "preview server"); err != nil {
+		t.Fatalf("createProxy: %v", err)
+	}
+	proxies, _ := s.listProxies("")
+	rows := toAdminProxies(proxies, s)
+	if len(rows) != 1 || rows[0].Description != "preview server" {
+		t.Errorf("admin rows = %+v, want one with description %q", rows, "preview server")
 	}
 }
 
@@ -491,7 +512,7 @@ func TestAdminCreateProxyValidates(t *testing.T) {
 func TestAdminDeleteProxy(t *testing.T) {
 	s, st := newProxyAdminServer(t)
 	h := s.APIHandler()
-	rec, err := s.createProxy("web-box", 8000, "admin@corp.com")
+	rec, err := s.createProxy("web-box", 8000, "admin@corp.com", "")
 	if err != nil {
 		t.Fatalf("createProxy: %v", err)
 	}
@@ -515,7 +536,7 @@ func TestAdminDeleteProxy(t *testing.T) {
 // for an admin when proxying is enabled.
 func TestAdminDashboardShowsProxies(t *testing.T) {
 	s, st := newProxyAdminServer(t)
-	if _, err := s.createProxy("web-box", 8000, "admin@corp.com"); err != nil {
+	if _, err := s.createProxy("web-box", 8000, "admin@corp.com", ""); err != nil {
 		t.Fatal(err)
 	}
 	h := s.APIHandler()
