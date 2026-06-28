@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "codespec": {
-      "command": "codespec",
-      "args": ["mcp"]
-    }
-  }
-}

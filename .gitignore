@@ -5,6 +5,10 @@
 # VSCode configuration
 .vscode/
 
+# Claude Code config (keep locally, don't track)
+.claude/
+CLAUDE.md
+
 # Per-deployment config (copy from llmbox.example.yaml)
 /llmbox.yaml
 
