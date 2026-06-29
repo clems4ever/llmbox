@@ -18,8 +18,8 @@
 			"function_name": "CreateBox",
 			"receiver": "mcpBackend",
 			"documentation_hash": "d2d90af9131217b88fb1b39b969ab03fc2002325f76f27455bd7a14b387e3271",
-			"definition_hash": "6d7c4b9cdacc17d656285758a2a66d660010645398bc3b7d93124d44b3a83a69",
-			"reviewed_at": "2026-06-25T11:47:13.634528551Z"
+			"definition_hash": "7dcf41c9b2fde478543a09ea26d82a17cc09836c80800926de75813c2eeee82b",
+			"reviewed_at": "2026-06-29T15:39:25.228705029Z"
 		},
 		{
 			"function_name": "AuthPageURL",
@@ -38,9 +38,9 @@
 		{
 			"function_name": "ListBoxes",
 			"receiver": "mcpBackend",
-			"documentation_hash": "27801c19797251b9c23ce066634e462e5bc5463292431275ec513a1664a2e1c8",
-			"definition_hash": "7691cfa9c22f2c10600d2da83f8b379c3feaa703cf34959c6fb2f6a4efcd92bf",
-			"reviewed_at": "2026-06-25T11:47:13.636544156Z"
+			"documentation_hash": "6d1ac978d30421a98246e75d3bef6dac96114c487e4a902b325259203e5b071d",
+			"definition_hash": "661e7dc67431a015446442f97070e2b1fba388c87e728ffbcaa152968a6531d0",
+			"reviewed_at": "2026-06-29T15:39:25.229046338Z"
 		},
 		{
 			"function_name": "SpokeStatuses",
@@ -66,9 +66,9 @@
 		{
 			"function_name": "BoxExec",
 			"receiver": "mcpBackend",
-			"documentation_hash": "5bc45136b7c9ad2d5a8cbb4c5586b489fd5900a982b36ff44da57b303a106ff2",
-			"definition_hash": "4e9aec8475421a7b515dce640de07684bf6e4b712cb49144eca76ddc53779828",
-			"reviewed_at": "2026-06-25T11:47:13.637433024Z"
+			"documentation_hash": "794b36ccf7999bb54774994c3b207279dc4cf607961b8b3f29728c2ea26a6889",
+			"definition_hash": "25f17f6750995707c439604bd96d2142b2e86121d15309fefaeaaeb7e34e994b",
+			"reviewed_at": "2026-06-29T15:39:25.229376419Z"
 		},
 		{
 			"function_name": "ProxyEnabled",

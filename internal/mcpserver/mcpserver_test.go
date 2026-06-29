@@ -8,7 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // fakeBackend is an in-memory Backend used to drive the tool handlers in
@@ -17,12 +17,12 @@ import (
 type fakeBackend struct {
 	createSess   BoxSession
 	createErr    error
-	gotCreate    docker.CreateOptions
+	gotCreate    sandbox.CreateOptions
 	createCalled bool
 
 	sessions map[string]BoxSession // keyed by lowercased box ID
 
-	boxes   []docker.Box
+	boxes   []sandbox.Box
 	listErr error
 
 	spokes    []SpokeStatus
@@ -36,7 +36,7 @@ type fakeBackend struct {
 	gotLogsTail int
 	logsErr     error
 
-	exec       docker.ExecResult
+	exec       sandbox.ExecResult
 	gotExecID  string
 	gotExecCmd string
 	execErr    error
@@ -55,7 +55,7 @@ type fakeBackend struct {
 }
 
 // CreateBox records the create options and returns the canned session/error.
-func (f *fakeBackend) CreateBox(_ context.Context, opts docker.CreateOptions) (BoxSession, error) {
+func (f *fakeBackend) CreateBox(_ context.Context, opts sandbox.CreateOptions) (BoxSession, error) {
 	f.createCalled = true
 	f.gotCreate = opts
 	if f.createErr != nil {
@@ -76,7 +76,7 @@ func (f *fakeBackend) LookupByBoxID(boxID string) (BoxSession, bool) {
 }
 
 // ListBoxes returns the canned boxes and list error.
-func (f *fakeBackend) ListBoxes(context.Context) ([]docker.Box, error) {
+func (f *fakeBackend) ListBoxes(context.Context) ([]sandbox.Box, error) {
 	return f.boxes, f.listErr
 }
 
@@ -98,7 +98,7 @@ func (f *fakeBackend) BoxLogs(_ context.Context, boxID string, tail int) (string
 }
 
 // BoxExec records the box ID and command and returns the canned result/error.
-func (f *fakeBackend) BoxExec(_ context.Context, boxID, command string) (docker.ExecResult, error) {
+func (f *fakeBackend) BoxExec(_ context.Context, boxID, command string) (sandbox.ExecResult, error) {
 	f.gotExecID, f.gotExecCmd = boxID, command
 	return f.exec, f.execErr
 }
@@ -284,7 +284,7 @@ func TestToolGet(t *testing.T) {
 // TestToolList checks list_llmboxes returns the backend's boxes and propagates a
 // listing error.
 func TestToolList(t *testing.T) {
-	f := &fakeBackend{boxes: []docker.Box{
+	f := &fakeBackend{boxes: []sandbox.Box{
 		{ContainerID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
 		{ContainerID: "0123456789abcdef"},
 	}}
@@ -385,7 +385,7 @@ func TestToolLogs(t *testing.T) {
 // TestToolExec checks exec_llmbox forwards the box ID and command, returns the
 // captured output, and errors on an empty box ID and a run failure.
 func TestToolExec(t *testing.T) {
-	f := &fakeBackend{exec: docker.ExecResult{Stdout: "hi\n", ExitCode: 0}}
+	f := &fakeBackend{exec: sandbox.ExecResult{Stdout: "hi\n", ExitCode: 0}}
 	h := &handlers{b: f}
 
 	_, out, err := h.toolExec(context.Background(), nil, execInput{BoxID: "web-box", Command: "echo hi"})

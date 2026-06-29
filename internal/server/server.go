@@ -25,6 +25,7 @@ import (
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // localSpokeName is the registry name of the in-process spoke (the Docker
@@ -344,7 +345,7 @@ func (s *Server) allSpokes() map[string]boxManager {
 // settles (the registered session in byToken then carries the claim).
 //
 // @arg boxID The caller-assigned box ID to claim, or "" for an unnamed box.
-// @return error if the box ID is already in use or being created.
+// @error if the box ID is already in use or being created.
 //
 // @testcase TestCreateBoxRejectsDuplicateBoxIDSameSpoke rejects a duplicate on one spoke.
 // @testcase TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes rejects a duplicate on another spoke.
@@ -372,6 +373,9 @@ func (s *Server) reserveBoxID(boxID string) error {
 // claim and the registered session are tracked separately.
 //
 // @arg boxID The box ID whose in-flight claim to release.
+//
+// @testcase TestCreateBoxConcurrentSameBoxIDOnlyOneWins pairs reserve with release across racing creates.
+// @testcase TestCreateBoxRegistersSession runs the deferred release once a box registers.
 func (s *Server) releaseBoxID(boxID string) {
 	if boxID == "" {
 		return
@@ -444,7 +448,7 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 
 	// List each reachable spoke. The local spoke must succeed; a remote spoke that
 	// errors is treated as unreachable (its sessions are kept, not dropped).
-	boxesBySpoke := map[string][]docker.Box{}
+	boxesBySpoke := map[string][]sandbox.Box{}
 	for name, bm := range s.allSpokes() {
 		boxes, err := bm.List(ctx)
 		if err != nil {
@@ -517,7 +521,7 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 // @arg boxesBySpoke The boxes listed per reachable spoke, keyed by spoke name.
 //
 // @testcase TestRestoreReconcilesProxies drops a proxy whose box is gone and keeps a live one.
-func (s *Server) reconcileProxies(boxesBySpoke map[string][]docker.Box) {
+func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 	proxies, err := s.store.ListProxies()
 	if err != nil {
 		s.logger().Warn("listing proxies to reconcile during restore", "err", err)
@@ -576,7 +580,7 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]docker.Box) {
 // @testcase TestCreateBoxUnknownSpoke errors when the named spoke is not connected.
 // @testcase TestCreateBoxDefaultsImageToBoxImage stamps the hub's box image when the request names none.
 // @testcase TestCreateBoxKeepsExplicitImage leaves a request's explicit image untouched.
-func (s *Server) createBox(ctx context.Context, opts docker.CreateOptions) (*session, error) {
+func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*session, error) {
 	// Resolve the box image on the hub so remote spokes stay config-free and
 	// defaultless: a request that names no image inherits the hub's resolved box
 	// image (claude_image, or the built-in default). Spokes reject an imageless
@@ -613,7 +617,7 @@ func (s *Server) createBox(ctx context.Context, opts docker.CreateOptions) (*ses
 		}
 		hookState = state
 		for _, f := range files {
-			opts.Files = append(opts.Files, docker.InjectFile{
+			opts.Files = append(opts.Files, sandbox.InjectFile{
 				Path:    f.Path,
 				Content: f.Content,
 				Mode:    f.Mode,
@@ -744,6 +748,8 @@ func (s *Server) lookupByBoxID(boxID string) *session {
 //
 // @arg name The spoke name ("" or "local" for the in-process spoke).
 // @return bool True when the spoke can currently be reached.
+//
+// @testcase TestLookupByBoxIDPrefersReachableSpoke distinguishes a reachable spoke from an unreachable one.
 func (s *Server) spokeReachable(name string) bool {
 	_, err := s.spoke(name)
 	return err == nil
@@ -758,6 +764,8 @@ func (s *Server) spokeReachable(name string) bool {
 // @arg best The current best session.
 // @arg bestReachable Whether best's spoke is currently reachable.
 // @return bool True when c is the better match.
+//
+// @testcase TestLookupByBoxIDPrefersReachableSpoke exercises the reachable-then-newer-then-token ordering.
 func betterBoxIDMatch(c *session, cReachable bool, best *session, bestReachable bool) bool {
 	if cReachable != bestReachable {
 		return cReachable
@@ -818,12 +826,12 @@ func (s *Server) submitCode(ctx context.Context, tok, code string) error {
 // whole listing.
 //
 // @arg ctx Context for the list request.
-// @return []docker.Box The boxes managed by this server, tagged with their spoke.
+// @return []sandbox.Box The boxes managed by this server, tagged with their spoke.
 // @error error if the local spoke cannot be listed.
 //
 // @testcase TestMCPToolsRegisteredAndCreate exercises the server's box wiring.
 // @testcase TestListFansOutAcrossSpokes aggregates and tags boxes from every spoke.
-func (s *Server) listBoxes(ctx context.Context) ([]docker.Box, error) {
+func (s *Server) listBoxes(ctx context.Context) ([]sandbox.Box, error) {
 	out, err := s.mgr.List(ctx)
 	if err != nil {
 		return nil, err
@@ -879,21 +887,21 @@ func (s *Server) boxLogs(ctx context.Context, boxID string, tail int) (string, e
 // @arg ctx Context for the exec request.
 // @arg boxID The box ID of the box to run the command in.
 // @arg command The shell command line to run inside the box.
-// @return docker.ExecResult The command's stdout, stderr, and exit code.
+// @return sandbox.ExecResult The command's stdout, stderr, and exit code.
 // @error error if the command is empty, no box has that box ID, its spoke is not connected, or the command cannot be run.
 //
 // @testcase TestBoxExecByBoxID runs a command in a box looked up by box ID.
-func (s *Server) boxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error) {
+func (s *Server) boxExec(ctx context.Context, boxID, command string) (sandbox.ExecResult, error) {
 	if strings.TrimSpace(command) == "" {
-		return docker.ExecResult{}, fmt.Errorf("command is required")
+		return sandbox.ExecResult{}, fmt.Errorf("command is required")
 	}
 	sess := s.lookupByBoxID(boxID)
 	if sess == nil {
-		return docker.ExecResult{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
+		return sandbox.ExecResult{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
 	}
 	mgr, err := s.spoke(sess.SpokeName)
 	if err != nil {
-		return docker.ExecResult{}, err
+		return sandbox.ExecResult{}, err
 	}
 	return mgr.Exec(ctx, sess.ContainerID, []string{"/bin/sh", "-c", command})
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/tebeka/selenium"
 
 	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // TestAdminRemoveBoxInBrowser drives the cluster-admin "Remove" button through a
@@ -30,7 +30,7 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 	s, f, st := newAdminServer(t)
 	// Seed one box so the dashboard renders a Remove button; the fake manager's
 	// Destroy just records the id, so a successful click flashes "removed box foo".
-	f.ListResult = []docker.Box{{
+	f.ListResult = []sandbox.Box{{
 		BoxID: "foo", Spoke: "local", Image: "img", State: "running", Phase: "ready",
 	}}
 	cookie := signIn(t, st, true, false) // admin session "SID" with CSRF "CSRF"

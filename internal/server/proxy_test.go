@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/store"
 	"github.com/clems4ever/llmbox/testutils"
 )
@@ -49,7 +49,7 @@ func newProxyServer(t *testing.T, mgr boxManager, a *auth.Authenticator) (*Serve
 // registerBox creates a tracked session for boxID on the given spoke.
 func registerBox(t *testing.T, s *Server, boxID, spoke string) {
 	t.Helper()
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: boxID, SpokeName: spoke}); err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: boxID, SpokeName: spoke}); err != nil {
 		t.Fatalf("createBox: %v", err)
 	}
 }
@@ -229,7 +229,7 @@ func TestDestroySessionlessBoxRemovesProxies(t *testing.T) {
 // no longer exists on its spoke while keeping a proxy whose box is still alive —
 // closing the reuse window where a box vanishes out of band before a restart.
 func TestRestoreReconcilesProxies(t *testing.T) {
-	mgr := &testutils.FakeMgr{ListResult: []docker.Box{
+	mgr := &testutils.FakeMgr{ListResult: []sandbox.Box{
 		{ContainerID: "live123", BoxID: "live-box", State: "running", Phase: "ready"},
 	}}
 	s, st := newProxyServer(t, mgr, nil)

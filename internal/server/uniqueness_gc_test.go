@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/store"
 	"github.com/clems4ever/llmbox/testutils"
 )
@@ -53,10 +53,10 @@ func mustSaveProxy(t *testing.T, st Store, slug, boxID, spoke string) {
 // per-spoke docker check.
 func TestCreateBoxRejectsDuplicateBoxIDSameSpoke(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "c1"}, nil)
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "dup"}); err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "dup"}); err != nil {
 		t.Fatalf("first create: %v", err)
 	}
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "dup"}); err == nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "dup"}); err == nil {
 		t.Fatal("second create with the same box ID succeeded, want rejection")
 	}
 }
@@ -71,10 +71,10 @@ func TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "c-local"}, nil)
 	s.SetHub(hub)
 
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "dup"}); err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "dup"}); err != nil {
 		t.Fatalf("local create: %v", err)
 	}
-	_, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "dup", SpokeName: "remote1"})
+	_, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "dup", SpokeName: "remote1"})
 	if err == nil {
 		t.Fatal("duplicate box ID on another spoke succeeded, want hub-wide rejection")
 	}
@@ -92,7 +92,7 @@ func TestCreateBoxConcurrentSameBoxIDOnlyOneWins(t *testing.T) {
 	for i := 0; i < n; i++ {
 		go func() {
 			defer wg.Done()
-			if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "race"}); err == nil {
+			if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "race"}); err == nil {
 				success.Add(1)
 			}
 		}()

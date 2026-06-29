@@ -30,14 +30,14 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
 // browserSpokeMgr is an in-memory cluster.BoxManager used as a spoke's simulated
 // Docker layer in the browser tests. It keeps boxes so the admin dashboard
 // reflects creates and removals, and mirrors the real manager by failing a
-// Destroy of an absent box with docker.ErrBoxNotFound.
+// Destroy of an absent box with sandbox.ErrBoxNotFound.
 type browserSpokeMgr struct {
 	name string
 
@@ -60,7 +60,7 @@ func newBrowserSpokeMgr(name string) *browserSpokeMgr {
 // @return string The fake container ID.
 // @return string A canned authorize URL.
 // @error error Always nil.
-func (m *browserSpokeMgr) Create(ctx context.Context, opts docker.CreateOptions) (string, string, error) {
+func (m *browserSpokeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (string, string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := randContainerID()
@@ -82,24 +82,24 @@ func (m *browserSpokeMgr) SubmitCode(ctx context.Context, idOrName, code string)
 // List returns the spoke's in-memory boxes as ready boxes.
 //
 // @arg ctx Context (unused by the fake).
-// @return []docker.Box One entry per in-memory box.
+// @return []sandbox.Box One entry per in-memory box.
 // @error error Always nil.
-func (m *browserSpokeMgr) List(ctx context.Context) ([]docker.Box, error) {
+func (m *browserSpokeMgr) List(ctx context.Context) ([]sandbox.Box, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var out []docker.Box
+	var out []sandbox.Box
 	for id, boxID := range m.boxes {
-		out = append(out, docker.Box{ContainerID: id, BoxID: boxID, State: "running", Phase: "ready"})
+		out = append(out, sandbox.Box{ContainerID: id, BoxID: boxID, State: "running", Phase: "ready"})
 	}
 	return out, nil
 }
 
 // Destroy removes a matching in-memory box, by box ID or container-ID prefix, and
-// fails with docker.ErrBoxNotFound when none matches (the human-removed case).
+// fails with sandbox.ErrBoxNotFound when none matches (the human-removed case).
 //
 // @arg ctx Context (unused by the fake).
 // @arg idOrName The box ID or container ID to destroy.
-// @error error docker.ErrBoxNotFound when no box matches.
+// @error error sandbox.ErrBoxNotFound when no box matches.
 func (m *browserSpokeMgr) Destroy(ctx context.Context, idOrName string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -109,7 +109,7 @@ func (m *browserSpokeMgr) Destroy(ctx context.Context, idOrName string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("%w %q", docker.ErrBoxNotFound, idOrName)
+	return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
 // Logs returns canned output.
@@ -128,10 +128,10 @@ func (m *browserSpokeMgr) Logs(ctx context.Context, idOrName string, tail int) (
 // @arg ctx Context (unused by the fake).
 // @arg idOrName The box identifier (ignored).
 // @arg cmd The command (ignored).
-// @return docker.ExecResult Canned exec output.
+// @return sandbox.ExecResult Canned exec output.
 // @error error Always nil.
-func (m *browserSpokeMgr) Exec(ctx context.Context, idOrName string, cmd []string) (docker.ExecResult, error) {
-	return docker.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
+func (m *browserSpokeMgr) Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error) {
+	return sandbox.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
 }
 
 // ReapOrphans reaps nothing in the simulation.

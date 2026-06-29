@@ -4,23 +4,23 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // TestFrameRoundTrip checks each payload type encodes and decodes back to an
 // equal value through the frame payload helpers.
 func TestFrameRoundTrip(t *testing.T) {
 	cases := []any{
-		&createReq{Opts: docker.CreateOptions{BoxID: "b1", Image: "img", SpokeName: "edge", Files: []docker.InjectFile{{Path: "/x", Content: []byte("hi"), Mode: 0o600}}}},
+		&createReq{Opts: sandbox.CreateOptions{BoxID: "b1", Image: "img", SpokeName: "edge", Files: []sandbox.InjectFile{{Path: "/x", Content: []byte("hi"), Mode: 0o600}}}},
 		&createResp{ID: "abc123", AuthorizeURL: "https://auth"},
 		&submitCodeReq{ID: "abc123", Code: "code-xyz"},
 		&submitCodeResp{SessionURL: "https://session"},
-		&listResp{Boxes: []docker.Box{{ContainerID: "c1", BoxID: "b1", Spoke: "edge"}}},
+		&listResp{Boxes: []sandbox.Box{{ContainerID: "c1", BoxID: "b1", Spoke: "edge"}}},
 		&destroyReq{IDOrName: "b1"},
 		&logsReq{IDOrName: "b1", Tail: 50},
 		&logsResp{Logs: "line1\nline2"},
 		&execReq{IDOrName: "b1", Cmd: []string{"/bin/sh", "-c", "echo hi"}},
-		&docker.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 2},
+		&sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 2},
 		&reapReq{TTLNanos: int64(90)},
 		&reapResp{Reaped: []string{"a", "b"}},
 		&enrollReq{JoinToken: "tok"},

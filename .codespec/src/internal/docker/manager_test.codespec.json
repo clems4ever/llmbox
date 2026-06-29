@@ -3,9 +3,9 @@
 		{
 			"function_name": "ContainerList",
 			"receiver": "fakeDocker",
-			"documentation_hash": "f3494448d894c9c5d13470f3597ae89cbcca339fa22003bd9c8f9f7755ce412c",
-			"definition_hash": "744979081d377f90a223b0c9224385974d94dbc9ca5b4946ad7630785c51f8c3",
-			"reviewed_at": "2026-06-18T13:14:37.051121549Z"
+			"documentation_hash": "e00ae84c4b5b3ea5a7364c302a9b9a0e7bc6b9d6f730fa752d54c8eae26a5851",
+			"definition_hash": "b629c37e032c90ea6383b0865b8672ad758337c4a16612b0e5d388c7eac57f8a",
+			"reviewed_at": "2026-06-29T15:39:25.074245841Z"
 		},
 		{
 			"function_name": "ContainerCreate",
@@ -345,12 +345,6 @@
 			"reviewed_at": "2026-06-19T20:04:57.61087821Z"
 		},
 		{
-			"function_name": "TestValidBoxID",
-			"documentation_hash": "f2a18872f404552a253619c37196677fe4b84854ffd3b2d23b3551ffec9492d1",
-			"definition_hash": "337f061d8a3639b0a71105d404794d11e1484115ecceea6e0dac2e9f117c4464",
-			"reviewed_at": "2026-06-21T14:39:24.371141909Z"
-		},
-		{
 			"function_name": "TestCreateRejectsBadBoxID",
 			"documentation_hash": "302fc23219ab2cefab0927cd7c0f7be3e93b064f3643772a86c0e893188ebebb",
 			"definition_hash": "59de5a97379ecfe8752d9e2224ea1000fc95024c4ca6c722d7c35d95491203d9",
@@ -446,6 +440,30 @@
 			"documentation_hash": "42ce48aa3bfc32b99b7c2167775126415e66b09e26b928a45cc12e2d691d1696",
 			"definition_hash": "a3ade5d9252b09b11bb24c9bd1af2225a66e7affee95b14974eb2a8ea79f8879",
 			"reviewed_at": "2026-06-27T17:02:38.527353333Z"
+		},
+		{
+			"function_name": "labelsSatisfy",
+			"documentation_hash": "77bcc42856c7ad70593e427ffa5e8cf848169ff946576e2eb0a856962c7ec84d",
+			"definition_hash": "f8cf124c800f3723f1343ea3946bc4c809c8f5ceb0cd58883cbb7ba7667068b1",
+			"reviewed_at": "2026-06-29T15:39:25.077301499Z"
+		},
+		{
+			"function_name": "TestListRequestsManagedFilter",
+			"documentation_hash": "ca9c0c875e062d23c759859faf2005366ec5829e29432bedd75f322a7870732f",
+			"definition_hash": "2adfb8bc89c5b598f516ef4d06b241588f6795a718dfa714da06cc590ab30886",
+			"reviewed_at": "2026-06-29T15:39:25.081276854Z"
+		},
+		{
+			"function_name": "TestDialBoxRejectsUnmanagedContainer",
+			"documentation_hash": "905090ab10acadf8ef03b751ebd348ea57de76c79f0c37a4f20272b3b91f9ff7",
+			"definition_hash": "391607160c22fcf4d80df91d894bf6f074039cfed971178ce4fb72219b29e059",
+			"reviewed_at": "2026-06-29T15:39:25.114364526Z"
+		},
+		{
+			"function_name": "labelsRequested",
+			"documentation_hash": "d2b8333e7cbbef241b65f069bb42ad336fcd2da7350e4aa35c2aa79b6134a813",
+			"definition_hash": "4f0c6babc5e0a38211760f597b3de66ede21bce5b8d8b79906e8786ed5ab8b22",
+			"reviewed_at": "2026-06-29T15:39:25.117194692Z"
 		}
 	]
 }

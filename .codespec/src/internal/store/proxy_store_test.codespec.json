@@ -3,8 +3,14 @@
 		{
 			"function_name": "TestProxyStoreRoundTrip",
 			"documentation_hash": "8421a43bf9e9b62181b4d707dea4ab708746b2809e73a9fe0916d88506579b8f",
-			"definition_hash": "ba728863ce3a0522d7ee3b608433faaaaa724c20157536639ea3941c507443b1",
-			"reviewed_at": "2026-06-27T18:01:57.346983608Z"
+			"definition_hash": "05da589db5201f9e1d56537b82e35c68d998bb517036b914bfca182a7782c748",
+			"reviewed_at": "2026-06-29T15:39:25.682598056Z"
+		},
+		{
+			"function_name": "TestProxyRecordDescriptionOmitEmpty",
+			"documentation_hash": "167f7e43125294ef36e05ab8a88d70e6d79b3b72c7ae2acee039177196d519f4",
+			"definition_hash": "b69df343db11c06a78d4545644fa9e5b7def9d250f0690473070ea8842f7d75b",
+			"reviewed_at": "2026-06-29T15:39:25.720253484Z"
 		}
 	]
 }

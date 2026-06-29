@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // startSpoke wires a remoteSpoke (hub side) to a serve loop (spoke side) backed
@@ -31,15 +31,15 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 		createID:   "cid",
 		createURL:  "https://auth",
 		sessionURL: "https://session",
-		boxes:      []docker.Box{{ContainerID: "c1", BoxID: "b1"}},
+		boxes:      []sandbox.Box{{ContainerID: "c1", BoxID: "b1"}},
 		logsOut:    "log output",
-		execResult: docker.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 3},
+		execResult: sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 3},
 		reaped:     []string{"r1", "r2"},
 	}
 	rs := startSpoke(t, fake)
 	ctx := context.Background()
 
-	id, url, err := rs.Create(ctx, docker.CreateOptions{BoxID: "b1", Image: "img:1", SpokeName: "s"})
+	id, url, err := rs.Create(ctx, sandbox.CreateOptions{BoxID: "b1", Image: "img:1", SpokeName: "s"})
 	if err != nil || id != "cid" || url != "https://auth" {
 		t.Fatalf("Create = (%q,%q,%v)", id, url, err)
 	}
@@ -105,7 +105,7 @@ func TestRemoteSpokeDisconnect(t *testing.T) {
 	// A call in flight (no serve loop answers) fails once the connection drops.
 	errc := make(chan error, 1)
 	go func() {
-		_, _, err := rs.Create(context.Background(), docker.CreateOptions{})
+		_, _, err := rs.Create(context.Background(), sandbox.CreateOptions{})
 		errc <- err
 	}()
 	// Let the call register, then drop the connection.
@@ -147,9 +147,9 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 		createID:   "cid",
 		createURL:  "https://auth",
 		sessionURL: "https://session",
-		boxes:      []docker.Box{{ContainerID: "c1"}},
+		boxes:      []sandbox.Box{{ContainerID: "c1"}},
 		logsOut:    "logz",
-		execResult: docker.ExecResult{Stdout: "o", ExitCode: 1},
+		execResult: sandbox.ExecResult{Stdout: "o", ExitCode: 1},
 		reaped:     []string{"x"},
 	}
 	ctx := context.Background()

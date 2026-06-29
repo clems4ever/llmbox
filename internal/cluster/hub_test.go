@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // waitForSpoke polls the hub until a spoke with name connects, or fails the test.
@@ -40,7 +40,7 @@ func TestHubEnrollAndRoute(t *testing.T) {
 	defer srv.Close()
 	url := "ws" + srv.URL[len("http"):] + "/"
 
-	fake := &fakeManager{boxes: []docker.Box{{ContainerID: "c1", BoxID: "b1"}}}
+	fake := &fakeManager{boxes: []sandbox.Box{{ContainerID: "c1", BoxID: "b1"}}}
 	spokeCtx, spokeCancel := context.WithCancel(context.Background())
 	defer spokeCancel()
 	saved := make(chan Credentials, 1)

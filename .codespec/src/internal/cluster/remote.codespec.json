@@ -45,8 +45,8 @@
 			"function_name": "Create",
 			"receiver": "remoteSpoke",
 			"documentation_hash": "1f2307be6db8570e6adf0e69173fb89220b8fbade6aeb229a7727cd9aa9356ba",
-			"definition_hash": "76fe040a7af1dba1a410e986d461a998de034c4a6c68cc93a9e4e4c3acb880d8",
-			"reviewed_at": "2026-06-27T17:27:56.728714606Z"
+			"definition_hash": "f11b24ed7c45bd394dd4cb7e8c70b76972a7853ef82f025af1c3494bc9e1f4e9",
+			"reviewed_at": "2026-06-29T15:39:25.032991828Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -58,9 +58,9 @@
 		{
 			"function_name": "List",
 			"receiver": "remoteSpoke",
-			"documentation_hash": "cd4c9536bc4557bf447714876556c0829b7f6010fe48c1f56cf023c4b5fd401f",
-			"definition_hash": "5fae1bbc3fe7ce21bd32567922f6df319466a0f7203a554e6ec6c80009581758",
-			"reviewed_at": "2026-06-27T17:27:56.729402545Z"
+			"documentation_hash": "8fa906501e75f5967204d0d32d73c3c4c4f02238c64bab6e49f52361e28664c3",
+			"definition_hash": "4cf24b79d0454b7ae2238f6b81658f480ac22aa4df5b3cbeee0d3e5095865f3e",
+			"reviewed_at": "2026-06-29T15:39:25.033597677Z"
 		},
 		{
 			"function_name": "Destroy",
@@ -79,9 +79,9 @@
 		{
 			"function_name": "Exec",
 			"receiver": "remoteSpoke",
-			"documentation_hash": "df3e3cd54c629b82e2ed9a77b0f75456deeff0239a9ccc8365fe1447afa4ce53",
-			"definition_hash": "21e35a73873a6686e9fddc56da179171c59312596d0915426dff0e6d5bc35ced",
-			"reviewed_at": "2026-06-27T17:27:56.730821519Z"
+			"documentation_hash": "07fa128d63c477ddcf652e80222f5d0447d466a8dcefb926d6d456f1ab71a1e2",
+			"definition_hash": "12ba297d8552c536f8ca45a73dd7550e58b3b42fb8701eb186eac500c054b466",
+			"reviewed_at": "2026-06-29T15:39:25.034052687Z"
 		},
 		{
 			"function_name": "ProxyHTTP",

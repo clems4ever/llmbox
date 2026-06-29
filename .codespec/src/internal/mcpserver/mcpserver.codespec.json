@@ -16,8 +16,8 @@
 			"function_name": "toolCreate",
 			"receiver": "handlers",
 			"documentation_hash": "2229f1801ba1d79d0ffffcb8e7b940be601d2201d9237dae9397ce3e2b6977a9",
-			"definition_hash": "633d8edfde04ca06e4a352d064ca622578b49374cda6cd5fb90af30022fc47f3",
-			"reviewed_at": "2026-06-25T11:48:57.863987952Z"
+			"definition_hash": "03a6ccd15657f863b9e66b1e055de3b47a67cb2c731e8580c4debf56818ce917",
+			"reviewed_at": "2026-06-29T15:39:25.117870512Z"
 		},
 		{
 			"function_name": "toolGet",

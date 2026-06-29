@@ -9,8 +9,8 @@
 		{
 			"function_name": "TestSpokeRunEnrollsAndServes",
 			"documentation_hash": "eec11a6331582028da1c427c87a2e1bcb004840df1078524b9858fba939042c2",
-			"definition_hash": "6a0de7f4d5405f1bb3de1dafd44dccb41d6ddc284bc2d4a3e6ef48b4cf2ea5d0",
-			"reviewed_at": "2026-06-19T20:34:02.669764606Z"
+			"definition_hash": "9c025c563b845a06825983963a6d52d0646b3bb29f135b9efb4878475944dfe2",
+			"reviewed_at": "2026-06-29T15:39:25.035212302Z"
 		},
 		{
 			"function_name": "TestSpokeRunReconnectsWithCreds",

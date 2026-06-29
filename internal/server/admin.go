@@ -13,7 +13,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/store"
 )
 
@@ -293,7 +293,7 @@ func toAdminTokens(tokens []cluster.JoinTokenInfo, now time.Time) []adminToken {
 // @return []adminBox The display rows.
 //
 // @testcase TestToAdminBoxes formats and sorts boxes for display.
-func toAdminBoxes(boxes []docker.Box) []adminBox {
+func toAdminBoxes(boxes []sandbox.Box) []adminBox {
 	out := make([]adminBox, 0, len(boxes))
 	for _, b := range boxes {
 		id := b.BoxID
@@ -491,7 +491,7 @@ func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
 		writeResult(w, "", "box id is required")
 		return
 	}
-	sess, err := s.createBox(r.Context(), docker.CreateOptions{
+	sess, err := s.createBox(r.Context(), sandbox.CreateOptions{
 		BoxID:       boxID,
 		Image:       strings.TrimSpace(r.PostFormValue("image")),
 		Description: strings.TrimSpace(r.PostFormValue("description")),

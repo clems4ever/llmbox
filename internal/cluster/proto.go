@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // frameType tags every message on the wire.
@@ -67,7 +67,7 @@ type welcomeResp struct {
 // Per-verb request/response payloads. They mirror the BoxManager signatures.
 
 type createReq struct {
-	Opts docker.CreateOptions `json:"opts"`
+	Opts sandbox.CreateOptions `json:"opts"`
 }
 type createResp struct {
 	ID           string `json:"id"`
@@ -83,7 +83,7 @@ type submitCodeResp struct {
 }
 
 type listResp struct {
-	Boxes []docker.Box `json:"boxes"`
+	Boxes []sandbox.Box `json:"boxes"`
 }
 
 type destroyReq struct {

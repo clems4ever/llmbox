@@ -12,7 +12,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // BoxManager is the box-lifecycle surface the hub needs from a spoke. The local
@@ -21,11 +21,11 @@ import (
 // the complete RPC allowlist of the cluster protocol — no operation outside it
 // can cross the hub/spoke boundary.
 type BoxManager interface {
-	Create(ctx context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error)
+	Create(ctx context.Context, opts sandbox.CreateOptions) (id, authorizeURL string, err error)
 	SubmitCode(ctx context.Context, idOrName, code string) (sessionURL string, err error)
-	List(ctx context.Context) ([]docker.Box, error)
+	List(ctx context.Context) ([]sandbox.Box, error)
 	Destroy(ctx context.Context, idOrName string) error
 	Logs(ctx context.Context, idOrName string, tail int) (string, error)
-	Exec(ctx context.Context, idOrName string, cmd []string) (docker.ExecResult, error)
+	Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error)
 	ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error)
 }

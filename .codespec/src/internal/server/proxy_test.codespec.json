@@ -3,9 +3,9 @@
 		{
 			"function_name": "DialBox",
 			"receiver": "dialMgr",
-			"documentation_hash": "7353376f9903703478c1b50adcae24ef20abc08532200af48db33eae167a53d4",
-			"definition_hash": "afaa2bd1d14d838df88e6b5e3194ad2661a139dcfc9a2da19d8ec7ede38c7999",
-			"reviewed_at": "2026-06-27T17:15:57.791584435Z"
+			"documentation_hash": "f1061a30a5761d584b19d1afb39841eb91e9ef091ce989b637b983283084a309",
+			"definition_hash": "64b408911c7d9ac541ae121d6ad8c8828d64c1929e9b32cbeb44dc7cff2238a9",
+			"reviewed_at": "2026-06-29T15:39:25.260571163Z"
 		},
 		{
 			"function_name": "newProxyServer",
@@ -16,50 +16,50 @@
 		{
 			"function_name": "registerBox",
 			"documentation_hash": "4e03a2321608daa4c88d1e2641237ecf329869f1eaea4f5e9284a2283a7f0948",
-			"definition_hash": "1e5d6149e3972661383f627ff10d1f8f290fcef26d5cf7b4a5f39fd8850eb96a",
-			"reviewed_at": "2026-06-27T17:15:57.793006935Z"
+			"definition_hash": "c1bc54b24164ec9cfc3bd1433980f95aae8efd4af33f72f3d82ca9363f9b1a1a",
+			"reviewed_at": "2026-06-29T15:39:25.261624717Z"
 		},
 		{
 			"function_name": "TestCreateProxyRegistersAndBuildsURL",
 			"documentation_hash": "7701ac78f04d6ff9d01d8a686f6e8be6183ced9d56eb97d214449214366ec4df",
-			"definition_hash": "7a3186036e87280efa43eaad5763f830e05b505916c38303c07177b8d88b48c0",
-			"reviewed_at": "2026-06-27T17:15:57.793673381Z"
+			"definition_hash": "2475029eba44e6e6c941c51a8ef6e4b2c22b67df22f90d666181ae64515e89ed",
+			"reviewed_at": "2026-06-29T15:39:25.262918453Z"
 		},
 		{
 			"function_name": "TestCreateProxyDisabled",
 			"documentation_hash": "7d10f0dc734a64ee3f5dcc2f7457165b38cae9e8d76a30344730eec480ac95b4",
-			"definition_hash": "e6882a7278af712eebbf383f5d880c1f879a9037178c401ad20e8010acf5d12a",
-			"reviewed_at": "2026-06-27T17:15:57.794768635Z"
+			"definition_hash": "9fad59527d936979d2a83c0672a95ac910d0ff0533be26b7db98401252e45690",
+			"reviewed_at": "2026-06-29T15:39:25.263876953Z"
 		},
 		{
 			"function_name": "TestCreateProxyUnknownBox",
 			"documentation_hash": "289e125c315def31351c45e2c339404bd8dbf836fde2a956b346261b15a3ca91",
-			"definition_hash": "319c2db8ac345ca24482d37d644a6336be60a62e092f0b68ca194e5f4cc859d1",
-			"reviewed_at": "2026-06-27T17:15:57.795475495Z"
+			"definition_hash": "b2b0e04e4833d4ca9ad10037872dd81d0f22c33c43a3f0e7cbc6dcb4f079c2c0",
+			"reviewed_at": "2026-06-29T15:39:25.265013961Z"
 		},
 		{
 			"function_name": "TestCreateProxyRejectsBadPort",
 			"documentation_hash": "1b125f1e4be88226f51ea2d6e25ae48165a56e15f5ef72aa1892521108185940",
-			"definition_hash": "c367c005179edba0401d8c97b0f78b3806d25ca12a4970ea6d13c44fa1e802b0",
-			"reviewed_at": "2026-06-27T17:15:57.796171414Z"
+			"definition_hash": "da77d1345316acf6f6aa30fbcea61effdb95a702f02126e0555a69cdffacba1f",
+			"reviewed_at": "2026-06-29T15:39:25.265921442Z"
 		},
 		{
 			"function_name": "TestCreateProxyIdempotent",
 			"documentation_hash": "f24334784a78729a9f68bc22f8bdc8dcd74f0aa2d63351a9077d593b186fe184",
-			"definition_hash": "78b9c0cbffe7dff2e06e9795f8c1a511b76958a6c895df74ec4c873ed64f703c",
-			"reviewed_at": "2026-06-27T17:15:57.79684598Z"
+			"definition_hash": "5c263627ed00d9b326cbaba7e9e75448caa47f76c76a1e5d5f202aaaaca4ee64",
+			"reviewed_at": "2026-06-29T15:39:25.267075657Z"
 		},
 		{
 			"function_name": "TestListProxiesFiltersByBox",
 			"documentation_hash": "f24de0667f3b64a86587f4ffe9e607c6f57f457064869b994633da32266539a4",
-			"definition_hash": "259143a07d155b3d0e228d8b2b7d7c7fd4854aa36d7ad4a68b3d500e844473b4",
-			"reviewed_at": "2026-06-27T17:15:57.797550173Z"
+			"definition_hash": "8ece6daa3fe00e07bf4cc79b0238b37f42ab281d6a09ab44a4eb3394cd634fc8",
+			"reviewed_at": "2026-06-29T15:39:25.302106093Z"
 		},
 		{
 			"function_name": "TestDeleteProxyRemoves",
 			"documentation_hash": "6e8fef55201cfd2352d08940a27bafb9cb93377c1b454d5a487b6d2cac72f0e7",
-			"definition_hash": "f07336e269e9de7a77337e93fb2728fa1ffe6ea412e307c6e39f30e9f9dba1ac",
-			"reviewed_at": "2026-06-27T17:15:57.798627811Z"
+			"definition_hash": "fdc341800e9b23632f9079fa87cec80c9702f0c187a6c12ad2c172c8eebc54a3",
+			"reviewed_at": "2026-06-29T15:39:25.302987006Z"
 		},
 		{
 			"function_name": "TestDeleteProxyUnknown",
@@ -70,14 +70,14 @@
 		{
 			"function_name": "TestDeleteProxyBySlug",
 			"documentation_hash": "d9bafd7b91db5c0042a32f5136cbe6b97b9d39950a478b8e17a0ef54ac123193",
-			"definition_hash": "f3da24249d8c8aa893bb46c2f2819ef734e96e51dd8065f410dc26822dd4cf71",
-			"reviewed_at": "2026-06-27T17:15:57.800149403Z"
+			"definition_hash": "0cf7581ba19cb93ae344cd5a8b52e74ae3eaae4b2fdddca99fa94c8238ba0ba6",
+			"reviewed_at": "2026-06-29T15:39:25.30424924Z"
 		},
 		{
 			"function_name": "TestDestroyBoxRemovesProxies",
 			"documentation_hash": "45dedfb35d6ca519319906a36acbc90084934e1a09a055529009962da944da2a",
-			"definition_hash": "10db3efe34abb8cce233b81fa0afc23386fdbfc772ee18752a0c4e246dd13810",
-			"reviewed_at": "2026-06-27T17:15:57.800860072Z"
+			"definition_hash": "471865d8e9110c785b64c887cca6a96fd5470d7e69f6d0dafe9ca405761d079b",
+			"reviewed_at": "2026-06-29T15:39:25.305161251Z"
 		},
 		{
 			"function_name": "TestProxySlugFromHost",
@@ -88,8 +88,8 @@
 		{
 			"function_name": "TestHandleProxyForwards",
 			"documentation_hash": "89eedeed2c6aa7d4c9284dada1638fc28042c066733deef9c68e90b73b4d3324",
-			"definition_hash": "25da0abd8894e95d4f0b11913e5fc7793f1cf78742820095ee44e62786a28ab4",
-			"reviewed_at": "2026-06-27T17:15:57.802557396Z"
+			"definition_hash": "0f99d6c5eeae62b105a3b67231cd5b8063eb5d218592dbf3956888ed93be734b",
+			"reviewed_at": "2026-06-29T15:39:25.306253148Z"
 		},
 		{
 			"function_name": "TestHandleProxyUnknownSlug",
@@ -100,45 +100,45 @@
 		{
 			"function_name": "TestHandleProxyRequiresLogin",
 			"documentation_hash": "487b6356d6b8877ac93cf9c40c042ecdf80f71a0d9ec1880c0a536cc6d4a8e64",
-			"definition_hash": "9963e528cb120163a788c99e655a6b48fe8cc611fdca1e954b048bed4e7c833a",
-			"reviewed_at": "2026-06-27T17:15:57.804189384Z"
+			"definition_hash": "ce86d15303b9faa58be765cd3bfcf4590ea129c9c46e9d92a79453fbc230e14f",
+			"reviewed_at": "2026-06-29T15:39:25.308131641Z"
 		},
 		{
 			"function_name": "TestHandleProxyAuthorizedForwards",
 			"documentation_hash": "78b241e38dd89a80100b11f102b4c020d8431b483a02349f191c62eaf0e45459",
-			"definition_hash": "2937c31f422faa37372dec189436592da4309dbf809c0082821f207f447c7a7b",
-			"reviewed_at": "2026-06-27T17:15:57.805057179Z"
+			"definition_hash": "8e8e037f6a46834bfe67bd2f2590e5c60856575496fc5cca0b36786b2736ab13",
+			"reviewed_at": "2026-06-29T15:39:25.339534239Z"
 		},
 		{
 			"function_name": "TestMCPBackendProxies",
 			"documentation_hash": "8d276a91081c04476b914dafa8eeb98c00bf0b890661f037c1ea2fd04464a478",
-			"definition_hash": "dc8e709b35f25aca9df8ed9ee5aa4a3fe7f9c8f74e75749ad932542de27bb14f",
-			"reviewed_at": "2026-06-27T17:15:57.806980212Z"
+			"definition_hash": "21a74e32b3f3844e46e076727da3ea29f1ed5cc24cfde4cf4c246544d51136b0",
+			"reviewed_at": "2026-06-29T15:39:25.343829028Z"
 		},
 		{
 			"function_name": "ProxyHTTP",
 			"receiver": "proxySpokeMgr",
-			"documentation_hash": "f85b638edc36df1924f4c7fb9038e7cd1f3bc053a3590b5734b8f009ab338583",
-			"definition_hash": "56a86973f33fdedac4a3c5b809211e0040ebe0223c8dd8aeffc3e22b3c8522d4",
-			"reviewed_at": "2026-06-27T17:27:44.196736827Z"
+			"documentation_hash": "e18626afe8513054f39faa28c3bd60be24b4dd87357fa1be9f6f9900c59b2858",
+			"definition_hash": "fc8e04f0b7e4dc535518535f4ce00c3e5c8bb3329aab5d0ebb19f3acf540184b",
+			"reviewed_at": "2026-06-29T15:39:25.340462095Z"
 		},
 		{
 			"function_name": "TestHandleProxyRemoteSpokeForwards",
 			"documentation_hash": "b396acdaffa87aa75ba81090c862247515413cc2bc28457b20be265125305ffe",
-			"definition_hash": "b56b0cc21b8ea0c3a92cafaa26ef8a759350079227a34d1fc54aa084a06172cb",
-			"reviewed_at": "2026-06-27T17:27:44.199770817Z"
+			"definition_hash": "a06dc494ede60b1089aa5fb2595b96ff9477a35107879b80e1b454bc0514e4d2",
+			"reviewed_at": "2026-06-29T15:39:25.341735863Z"
 		},
 		{
 			"function_name": "TestHandleProxyUnsupportedSpoke",
 			"documentation_hash": "146b960037b57805295968111edb7662c56854d9e6315feb65272b6a8d7ec28d",
-			"definition_hash": "aaedc566948c169b567dec79c4395f131b2cfdc884ee7830cbd46f3a536311ef",
-			"reviewed_at": "2026-06-27T17:27:44.202113135Z"
+			"definition_hash": "48585f7aa783e86a278c7bb176976005e4d0f30859c9a77c3d2f2faa3285a41d",
+			"reviewed_at": "2026-06-29T15:39:25.342656048Z"
 		},
 		{
 			"function_name": "TestCreateProxyReplacesStaleContainer",
 			"documentation_hash": "53d6bb5cf75daec23f36523d5f1753ab8d3881da896243d755cc78d2339fd96a",
-			"definition_hash": "68ab54eb4bb23db35d08afa6dea84a41aacd3eac15fd1835fcfdbfadee2be723",
-			"reviewed_at": "2026-06-27T18:01:57.340629513Z"
+			"definition_hash": "9bf1c5360eba34ba1a54c1e41b5ffa35b5e1febedb806f03ce90eb3d28a1bdcb",
+			"reviewed_at": "2026-06-29T15:39:25.299965605Z"
 		},
 		{
 			"function_name": "TestDestroySessionlessBoxRemovesProxies",
@@ -149,8 +149,26 @@
 		{
 			"function_name": "TestRestoreReconcilesProxies",
 			"documentation_hash": "f04dc9dbd3d0ff79038fc13210b0972c1e8c2d45418bea0666a84bd10d7b1ab4",
-			"definition_hash": "cd3d01611d9d0ca105663e01d611caf298be3431875eac5a087744d54e572218",
-			"reviewed_at": "2026-06-27T18:01:57.342567135Z"
+			"definition_hash": "f4f5dfbf33e16dab1c7ed2f8c092dea129a966b244ba30872182fd18af5f9989",
+			"reviewed_at": "2026-06-29T15:39:25.300899288Z"
+		},
+		{
+			"function_name": "TestCreateProxyIdempotentKeepsDescription",
+			"documentation_hash": "074175379c4b02618f8e4e50f9f04c45234ebfe65b20496c082c403f2beeb674",
+			"definition_hash": "9559e7cf32b4cab5fc53063328e237e425ab0201e7cc54940c0cae5894eec5d2",
+			"reviewed_at": "2026-06-29T15:39:25.268309461Z"
+		},
+		{
+			"function_name": "TestCreateProxyEmptyDescription",
+			"documentation_hash": "0658fdbbb9e43a3ba8558bf08957b06f738324375ccb161259f4ceca47cbe80f",
+			"definition_hash": "ce9b0c9492db0d50ce26ac9c0c7e47466b102dc1a8e015706a61d3e2f998525f",
+			"reviewed_at": "2026-06-29T15:39:25.269218541Z"
+		},
+		{
+			"function_name": "TestHandleProxyDialsByContainerID",
+			"documentation_hash": "3071b08bc2e665412deacb8f65ad3b11b92d38a1e30b4e0f4ea491dc014d4ca6",
+			"definition_hash": "f6223481a71bf11556c9dd33cfcce2c70cc20a0e9b454aed95764682ee624c41",
+			"reviewed_at": "2026-06-29T15:39:25.307139917Z"
 		}
 	]
 }

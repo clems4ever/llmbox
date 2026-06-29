@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -14,7 +14,7 @@ import (
 func TestServerWithoutStore(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?z=1", SubmitURL: "https://claude.ai/code/s/1"}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
 
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "h", Description: "d"})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "h", Description: "d"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestRestoreLoadsAndReconciles(t *testing.T) {
 	}
 
 	// Docker only reports the live box (short 12-char ID).
-	f := &testutils.FakeMgr{ListResult: []docker.Box{{ContainerID: "aaaaaaaaaaaa"}}}
+	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{ContainerID: "aaaaaaaaaaaa"}}}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
 
 	n, err := s.Restore(context.Background())

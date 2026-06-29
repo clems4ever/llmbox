@@ -11,7 +11,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // BoxSession is the subset of a box's state the MCP tools surface. It is a flat
@@ -55,14 +55,14 @@ type SpokeStatus struct {
 // the public auth page URL, so no secret ever flows through a tool.
 type Backend interface {
 	// CreateBox launches a box and returns its registered auth session.
-	CreateBox(ctx context.Context, opts docker.CreateOptions) (BoxSession, error)
+	CreateBox(ctx context.Context, opts sandbox.CreateOptions) (BoxSession, error)
 	// AuthPageURL is the URL the user opens to finish authenticating a box.
 	AuthPageURL(token string) string
 	// LookupByBoxID finds a box's session by its caller-assigned box ID
 	// (case-insensitive); ok is false when none matches.
 	LookupByBoxID(boxID string) (sess BoxSession, ok bool)
 	// ListBoxes returns all boxes managed across every spoke.
-	ListBoxes(ctx context.Context) ([]docker.Box, error)
+	ListBoxes(ctx context.Context) ([]sandbox.Box, error)
 	// SpokeStatuses returns every spoke and whether it is currently connected.
 	SpokeStatuses(ctx context.Context) ([]SpokeStatus, error)
 	// DestroyBox stops and removes the box with the given container ID.
@@ -70,7 +70,7 @@ type Backend interface {
 	// BoxLogs returns the recent console output of the box with the given box ID.
 	BoxLogs(ctx context.Context, boxID string, tail int) (string, error)
 	// BoxExec runs a shell command inside the box with the given box ID.
-	BoxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error)
+	BoxExec(ctx context.Context, boxID, command string) (sandbox.ExecResult, error)
 	// ProxyEnabled reports whether the HTTP proxy feature is configured.
 	ProxyEnabled() bool
 	// CreateProxy enables an HTTP proxy to a box's port and returns it. description
@@ -192,7 +192,7 @@ func (h *handlers) toolCreate(ctx context.Context, _ *mcp.CallToolRequest, in cr
 	if in.BoxID == "" {
 		return nil, createOutput{}, fmt.Errorf("box_id is required")
 	}
-	sess, err := h.b.CreateBox(ctx, docker.CreateOptions{
+	sess, err := h.b.CreateBox(ctx, sandbox.CreateOptions{
 		Image:       in.Image,
 		BoxID:       in.BoxID,
 		Description: in.Description,
@@ -253,7 +253,7 @@ func (h *handlers) toolGet(_ context.Context, _ *mcp.CallToolRequest, in getInpu
 }
 
 type listOutput struct {
-	Boxes []docker.Box `json:"boxes" jsonschema:"the boxes managed by this server"`
+	Boxes []sandbox.Box `json:"boxes" jsonschema:"the boxes managed by this server"`
 }
 
 // toolList handles the list_llmboxes tool: it returns all managed boxes.

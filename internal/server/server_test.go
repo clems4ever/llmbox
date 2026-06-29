@@ -12,8 +12,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -53,7 +53,7 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?x=1"}
 	s := newTestServer(f)
 
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "my-box", Description: "scratch"})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "my-box", Description: "scratch"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestCreateBoxDefaultsImageToBoxImage(t *testing.T) {
 	s := newTestServer(f)
 	s.SetBoxImage("ghcr.io/clems4ever/granular-llmbox-box:latest")
 
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "my-box"}); err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "my-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 	if f.GotOpts.Image != "ghcr.io/clems4ever/granular-llmbox-box:latest" {
@@ -101,7 +101,7 @@ func TestCreateBoxKeepsExplicitImage(t *testing.T) {
 	s := newTestServer(f)
 	s.SetBoxImage("ghcr.io/clems4ever/granular-llmbox-box:latest")
 
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "my-box", Image: "custom:tag"}); err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "my-box", Image: "custom:tag"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 	if f.GotOpts.Image != "custom:tag" {
@@ -114,7 +114,7 @@ func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 	// Hard to force token failure; instead verify create error propagates.
 	f := &testutils.FakeMgr{CreateErr: errors.New("no image")}
 	s := newTestServer(f)
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{}); err == nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{}); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -133,7 +133,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 	}
 	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
 
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 		t.Errorf("session hook state = %v, want granular-hook=subj-xyz", sess.HookState)
 	}
 	// Index the injected files by path.
-	byPath := map[string]docker.InjectFile{}
+	byPath := map[string]sandbox.InjectFile{}
 	for _, fl := range f.GotOpts.Files {
 		byPath[fl.Path] = fl
 	}
@@ -172,7 +172,7 @@ func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-doomed"}}
 	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
 
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{}); err == nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{}); err == nil {
 		t.Fatal("expected error")
 	}
 	if len(h.destroyed) != 1 || h.destroyed[0]["granular-hook"] != "subj-doomed" {
@@ -187,7 +187,7 @@ func TestDestroyRunsDestroyHooks(t *testing.T) {
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-live"}}
 	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
 
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestDestroyRunsDestroyHooks(t *testing.T) {
 func TestSubmitCodeSuccess(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
 
 	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
@@ -221,7 +221,7 @@ func TestSubmitCodeSuccess(t *testing.T) {
 func TestSubmitCodeFailureRecorded(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u", SubmitErr: errors.New("invalid code")}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
 
 	if err := s.submitCode(context.Background(), sess.Token, "BAD"); err == nil {
 		t.Fatal("expected error")
@@ -244,7 +244,7 @@ func TestSubmitCodeUnknownToken(t *testing.T) {
 func TestSubmitCodeEmpty(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err := s.submitCode(context.Background(), sess.Token, "   "); err == nil {
 		t.Fatal("expected error for empty code")
 	}
@@ -254,7 +254,7 @@ func TestSubmitCodeEmpty(t *testing.T) {
 func TestDestroyForgetsSession(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
 
 	if err := s.destroyBox(context.Background(), "abcdef0123456789"); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
@@ -268,7 +268,7 @@ func TestDestroyForgetsSession(t *testing.T) {
 func TestPruneSessionsAfterReap(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
 	s.pruneSessions([]string{"abcdef012345"}) // short ID prefix, as the reaper returns
 	if s.lookup(sess.Token) != nil {
 		t.Error("session for reaped box should be pruned")
@@ -281,7 +281,7 @@ func TestPruneSessionsAfterReap(t *testing.T) {
 func TestAuthPageRendersAndSubmits(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "https://claude.com/cai/oauth/authorize?a=b", SubmitURL: "https://claude.ai/code/s/9"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
 	h := s.APIHandler()
 
 	// GET the page: shows the authorize link and a paste form.
@@ -320,7 +320,7 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 // spoke it runs on, so the user can tell which box they are activating.
 func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{CreateID: "id1", CreateURL: "https://c", SubmitURL: "https://s"})
-	sess, _ := s.createBox(context.Background(), docker.CreateOptions{BoxID: "refactor-auth"})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "refactor-auth"})
 	h := s.APIHandler()
 
 	req := httptest.NewRequest(http.MethodGet, "/auth/"+sess.Token, nil)
@@ -429,7 +429,7 @@ func TestGetByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
 	b := s.MCPBackend()
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box", Description: "d"})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box", Description: "d"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -460,7 +460,7 @@ func TestGetByBoxID(t *testing.T) {
 // TestListLlmboxesReturnsBoxID checks the MCP backend's box listing surfaces
 // each box's box ID (the hostname the user sees) along with its description.
 func TestListLlmboxesReturnsBoxID(t *testing.T) {
-	f := &testutils.FakeMgr{ListResult: []docker.Box{
+	f := &testutils.FakeMgr{ListResult: []sandbox.Box{
 		{ContainerID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
 		{ContainerID: "0123456789abcdef"},
 	}}
@@ -487,7 +487,7 @@ func TestBoxLogsByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", LogsResult: "Ready\nlistening\n"}
 	s := newTestServer(f)
 	b := s.MCPBackend()
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
@@ -516,11 +516,11 @@ func TestBoxExecByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{
 		CreateID:   "abcdef0123456789",
 		CreateURL:  "u",
-		ExecResult: docker.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
+		ExecResult: sandbox.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
 	}
 	s := newTestServer(f)
 	b := s.MCPBackend()
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 

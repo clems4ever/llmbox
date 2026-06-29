@@ -4,29 +4,29 @@
 			"function_name": "Create",
 			"receiver": "browserSpokeMgr",
 			"documentation_hash": "5158ba468ff665ac9ad5a4ec9fe3a36cf8b606be785c81fc07c6b09e65379f41",
-			"definition_hash": "0b2a16540e711f9043f7465fda3e3f11f5b9d302c0c1fcf28e971a0eef781c3d",
-			"reviewed_at": "2026-06-27T10:01:06.212043688Z"
+			"definition_hash": "ed3357b61922f7e419f30f82d04dacb46f9fae10d94ea22022c88acf2ffe282e",
+			"reviewed_at": "2026-06-29T15:39:24.963872702Z"
 		},
 		{
 			"function_name": "Destroy",
 			"receiver": "browserSpokeMgr",
-			"documentation_hash": "cfec2425441feed521d4c593441c4394298b23aff770b995ae13e2d16138c768",
-			"definition_hash": "9c3a7ebb342ea2ab1e6e8401a3f1d276b311fe788df49575f0f16108b1b08a1e",
-			"reviewed_at": "2026-06-27T10:01:06.214453141Z"
+			"documentation_hash": "7751db1a50ec5f1a0bcd7f533337c32cad90543ba7e2855aa2189f570e588ace",
+			"definition_hash": "ecc1b5e5d5dd60aeb3470b7e66c81e8c5f7bf72e06a20b0c809b82270117e53c",
+			"reviewed_at": "2026-06-29T15:39:24.965245132Z"
 		},
 		{
 			"function_name": "Exec",
 			"receiver": "browserSpokeMgr",
-			"documentation_hash": "d7694a7f371537cda31e239e0b31ef29b54f14ff2a90fb806285060afcd3a6c6",
-			"definition_hash": "eef18048eccb8fe471328fd787f6858bead7afaf7aa7e45498dd02b70b5e8bbc",
-			"reviewed_at": "2026-06-27T10:01:06.216099729Z"
+			"documentation_hash": "fdf92724a968d607e32464661962708bd275d8e9ae37dccf74ac23b9a9c1309c",
+			"definition_hash": "2dc26910cce4d4f2b56d3f80c53d08089c4719cb310a5fafdf6936f0673817bd",
+			"reviewed_at": "2026-06-29T15:39:24.96638605Z"
 		},
 		{
 			"function_name": "List",
 			"receiver": "browserSpokeMgr",
-			"documentation_hash": "4ddd7b474f85b86b3adf6e5408c8562200f8ad8af1dccb736dbe0a588cbfccd8",
-			"definition_hash": "3ed81e0d3e329d20385ccfc1ca411aa7ee1c33dfe8190066c110ceda10035d53",
-			"reviewed_at": "2026-06-27T10:01:06.217558346Z"
+			"documentation_hash": "f82104cf626537c1579eabd33066a3e8e2866d90c890170ff0b596e0035a2f1e",
+			"definition_hash": "e49e982c755d465ff5b0c9039cde90bb22cf6571b2ec3c2b2f95f9dd845f8356",
+			"reviewed_at": "2026-06-29T15:39:24.964546922Z"
 		},
 		{
 			"function_name": "Logs",
