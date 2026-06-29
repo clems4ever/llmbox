@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // errSpokeDisconnected is returned by in-flight (and subsequent) verb calls when
@@ -179,7 +179,7 @@ func (r *remoteSpoke) call(ctx context.Context, method string, req, resp any) er
 // @error error if the call fails or the spoke returns an error.
 //
 // @testcase TestRemoteSpokeRoundTrip creates a box through the remote spoke.
-func (r *remoteSpoke) Create(ctx context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error) {
+func (r *remoteSpoke) Create(ctx context.Context, opts sandbox.CreateOptions) (id, authorizeURL string, err error) {
 	var resp createResp
 	if err := r.call(ctx, methodCreate, createReq{Opts: opts}, &resp); err != nil {
 		return "", "", err
@@ -207,11 +207,11 @@ func (r *remoteSpoke) SubmitCode(ctx context.Context, id, code string) (sessionU
 // List returns the boxes the spoke manages.
 //
 // @arg ctx Context for the call.
-// @return []docker.Box The spoke's managed boxes.
+// @return []sandbox.Box The spoke's managed boxes.
 // @error error if the call fails or the spoke returns an error.
 //
 // @testcase TestRemoteSpokeRoundTrip lists boxes through the remote spoke.
-func (r *remoteSpoke) List(ctx context.Context) ([]docker.Box, error) {
+func (r *remoteSpoke) List(ctx context.Context) ([]sandbox.Box, error) {
 	var resp listResp
 	if err := r.call(ctx, methodList, struct{}{}, &resp); err != nil {
 		return nil, err
@@ -252,14 +252,14 @@ func (r *remoteSpoke) Logs(ctx context.Context, idOrName string, tail int) (stri
 // @arg ctx Context for the call.
 // @arg idOrName The box ID or name.
 // @arg cmd The command and arguments.
-// @return docker.ExecResult The command's captured output and exit code.
+// @return sandbox.ExecResult The command's captured output and exit code.
 // @error error if the call fails or the spoke returns an error.
 //
 // @testcase TestRemoteSpokeRoundTrip execs a command through the remote spoke.
-func (r *remoteSpoke) Exec(ctx context.Context, idOrName string, cmd []string) (docker.ExecResult, error) {
-	var resp docker.ExecResult
+func (r *remoteSpoke) Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error) {
+	var resp sandbox.ExecResult
 	if err := r.call(ctx, methodExec, execReq{IDOrName: idOrName, Cmd: cmd}, &resp); err != nil {
-		return docker.ExecResult{}, err
+		return sandbox.ExecResult{}, err
 	}
 	return resp, nil
 }

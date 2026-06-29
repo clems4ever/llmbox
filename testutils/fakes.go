@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // FakeMgr is a stand-in for *docker.Manager: it records the calls it receives
@@ -27,7 +27,7 @@ type FakeMgr struct {
 	SubmitErr error
 	GotCode   string
 
-	ListResult []docker.Box
+	ListResult []sandbox.Box
 	Destroyed  []string
 	DestroyErr error
 	Reaped     []string
@@ -37,12 +37,12 @@ type FakeMgr struct {
 	GotLogsID  string
 	GotLogsN   int
 
-	ExecResult docker.ExecResult
+	ExecResult sandbox.ExecResult
 	ExecErr    error
 	GotExecID  string
 	GotExecCmd []string
 
-	GotOpts docker.CreateOptions
+	GotOpts sandbox.CreateOptions
 }
 
 // Create records the requested options and returns the canned ID/URL/error.
@@ -54,7 +54,7 @@ type FakeMgr struct {
 // @error error The canned create error, if any.
 //
 // @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
-func (f *FakeMgr) Create(ctx context.Context, opts docker.CreateOptions) (string, string, error) {
+func (f *FakeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (string, string, error) {
 	f.mu.Lock()
 	f.GotOpts = opts
 	f.mu.Unlock()
@@ -80,11 +80,11 @@ func (f *FakeMgr) SubmitCode(ctx context.Context, idOrName, code string) (string
 // List returns the canned boxes.
 //
 // @arg ctx Context (unused by the fake).
-// @return []docker.Box The canned ListResult slice.
+// @return []sandbox.Box The canned ListResult slice.
 // @error error Always nil.
 //
 // @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
-func (f *FakeMgr) List(ctx context.Context) ([]docker.Box, error) { return f.ListResult, nil }
+func (f *FakeMgr) List(ctx context.Context) ([]sandbox.Box, error) { return f.ListResult, nil }
 
 // Destroy records the destroyed ID and returns the canned DestroyErr (nil by
 // default), letting a test simulate a spoke whose box is already gone.
@@ -123,11 +123,11 @@ func (f *FakeMgr) Logs(ctx context.Context, id string, tail int) (string, error)
 // @arg ctx Context (unused by the fake).
 // @arg id The box identifier, recorded into GotExecID.
 // @arg cmd The command, recorded into GotExecCmd.
-// @return docker.ExecResult The canned ExecResult.
+// @return sandbox.ExecResult The canned ExecResult.
 // @error error The canned exec error, if any.
 //
 // @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
-func (f *FakeMgr) Exec(ctx context.Context, id string, cmd []string) (docker.ExecResult, error) {
+func (f *FakeMgr) Exec(ctx context.Context, id string, cmd []string) (sandbox.ExecResult, error) {
 	f.mu.Lock()
 	f.GotExecID = id
 	f.GotExecCmd = cmd

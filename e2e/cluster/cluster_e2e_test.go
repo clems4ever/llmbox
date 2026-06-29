@@ -28,7 +28,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
@@ -188,7 +188,7 @@ func newFakeSpokeMgr(name string) *fakeSpokeMgr {
 }
 
 // Create simulates launching a box, recording the call and returning a fake container ID.
-func (m *fakeSpokeMgr) Create(_ context.Context, opts docker.CreateOptions) (string, string, error) {
+func (m *fakeSpokeMgr) Create(_ context.Context, opts sandbox.CreateOptions) (string, string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := randHex(20)
@@ -211,12 +211,12 @@ func (m *fakeSpokeMgr) SubmitCode(_ context.Context, _, _ string) (string, error
 }
 
 // List returns the spoke's in-memory boxes.
-func (m *fakeSpokeMgr) List(_ context.Context) ([]docker.Box, error) {
+func (m *fakeSpokeMgr) List(_ context.Context) ([]sandbox.Box, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var out []docker.Box
+	var out []sandbox.Box
 	for id, boxID := range m.boxes {
-		out = append(out, docker.Box{ContainerID: id, BoxID: boxID, State: "running", Phase: "ready"})
+		out = append(out, sandbox.Box{ContainerID: id, BoxID: boxID, State: "running", Phase: "ready"})
 	}
 	return out, nil
 }
@@ -233,7 +233,7 @@ func (m *fakeSpokeMgr) Destroy(_ context.Context, idOrName string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("%w %q", docker.ErrBoxNotFound, idOrName)
+	return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
 // humanDestroy simulates an operator removing a box's container directly on the
@@ -267,11 +267,11 @@ func (m *fakeSpokeMgr) Logs(_ context.Context, _ string, _ int) (string, error) 
 }
 
 // Exec records the call and returns canned output identifying this spoke.
-func (m *fakeSpokeMgr) Exec(_ context.Context, _ string, _ []string) (docker.ExecResult, error) {
+func (m *fakeSpokeMgr) Exec(_ context.Context, _ string, _ []string) (sandbox.ExecResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.execCount++
-	return docker.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
+	return sandbox.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
 }
 
 // ReapOrphans reaps nothing in the simulation.
@@ -308,7 +308,7 @@ func (m *fakeSpokeMgr) DialBox(ctx context.Context, idOrName string, _ int) (net
 	}
 	m.mu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("%w %q", docker.ErrBoxNotFound, idOrName)
+		return nil, fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 	}
 	if target == "" {
 		return nil, fmt.Errorf("no dial target configured for spoke %q", m.name)

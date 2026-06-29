@@ -4,8 +4,8 @@
 			"function_name": "CreateBox",
 			"receiver": "fakeBackend",
 			"documentation_hash": "efcc7ddeaa65c47da849b22a5bf608f42d8a995dbbc4414de7a46b043438bbe8",
-			"definition_hash": "86cb2576aa573e3dda70b571b142dbb60589fdbd3b567fcdb1e502937e3937ae",
-			"reviewed_at": "2026-06-27T17:12:53.629508668Z"
+			"definition_hash": "f1d93e587261027fba8199d887fc9b1a1f1eb342b7bf4292179827bd4bad1c0c",
+			"reviewed_at": "2026-06-29T15:39:25.118830388Z"
 		},
 		{
 			"function_name": "AuthPageURL",
@@ -25,8 +25,8 @@
 			"function_name": "ListBoxes",
 			"receiver": "fakeBackend",
 			"documentation_hash": "d85e478663fc39b24cdc0f1fa83deca700db816d8bfcbc6d23098edea00a4c1c",
-			"definition_hash": "0f4d48bd7c7a3a96220b0534ded1300d60fad69e91d82f185306aa7811bd8322",
-			"reviewed_at": "2026-06-27T17:12:53.670491115Z"
+			"definition_hash": "e98227c463337f06f94349fa31b43fd5f776edc59a1e9b682b5e08114ce19c6d",
+			"reviewed_at": "2026-06-29T15:39:25.119623447Z"
 		},
 		{
 			"function_name": "SpokeStatuses",
@@ -53,8 +53,8 @@
 			"function_name": "BoxExec",
 			"receiver": "fakeBackend",
 			"documentation_hash": "11affddfb2884204d1ec52585291c4e9f5dcf72ecd56fe63397f4663fe213b8f",
-			"definition_hash": "348be806d046e18e61761693190161bc39c815622b7b0f8b0c70871025f1be0d",
-			"reviewed_at": "2026-06-27T17:12:53.673847822Z"
+			"definition_hash": "568709dc8b353dc0bebd408186babf7bed294e21796709075fe7b9b28e264479",
+			"reviewed_at": "2026-06-29T15:39:25.120394271Z"
 		},
 		{
 			"function_name": "ProxyEnabled",
@@ -66,9 +66,9 @@
 		{
 			"function_name": "CreateProxy",
 			"receiver": "fakeBackend",
-			"documentation_hash": "42f2a4f73376126f67312824987527543d5725d887f4062e1d3c079b9f2f757c",
-			"definition_hash": "c288a1549641b31df1a57b99edc1d45079b7825d17025f9c8a4f16025b2554b4",
-			"reviewed_at": "2026-06-27T17:12:53.675724671Z"
+			"documentation_hash": "af2242caf2c2284a7786a50f06d92ec21df356f38848c58a8566a86660c74bae",
+			"definition_hash": "63cd3ffc386b60a42454c6eee3a4e02409bba093f055c4219f366221d6572979",
+			"reviewed_at": "2026-06-29T15:39:25.121670417Z"
 		},
 		{
 			"function_name": "DeleteProxy",
@@ -87,8 +87,8 @@
 		{
 			"function_name": "TestToolCreateProxy",
 			"documentation_hash": "ba5e05ced8aafd8466a667d5cdd9f98a736e7ef18b499bf15b33fac931777cfb",
-			"definition_hash": "ab3be70b1f8e61a1572a97ec6c070af127ecaa2b0365dff352e94585e383b508",
-			"reviewed_at": "2026-06-27T17:12:53.678147168Z"
+			"definition_hash": "084f25a87d06f32b4536fd5624ff7f8100e764db34a4a684f9f3d9908fb62458",
+			"reviewed_at": "2026-06-29T15:39:25.122446323Z"
 		},
 		{
 			"function_name": "TestToolCreateProxyRequiresBoxID",
@@ -111,8 +111,8 @@
 		{
 			"function_name": "TestToolListProxies",
 			"documentation_hash": "9c6e141979aba3cccce4daa33189a7975667d1ff437998f9e56de0ca12e5efb4",
-			"definition_hash": "61b89a2d9e680d08ac97d8df33e9a598d1a84c4aebeee925c67b9da4218cfede",
-			"reviewed_at": "2026-06-27T17:12:53.681085296Z"
+			"definition_hash": "645e434fcc45585e578f7fbf83b5740247d04e7abb772cdee757054a047989db",
+			"reviewed_at": "2026-06-29T15:39:25.123485134Z"
 		},
 		{
 			"function_name": "TestToolCreate",
@@ -141,8 +141,8 @@
 		{
 			"function_name": "TestToolList",
 			"documentation_hash": "470e0d8c27f8caf188bf1d4fc7d03748a843c723fd96f226f6a62d44036dcc9e",
-			"definition_hash": "a612db4a02048709c87f8feac2d316256d3d4be5517b3ecb200af2a84d384d75",
-			"reviewed_at": "2026-06-27T17:12:53.684858751Z"
+			"definition_hash": "c5bfea371ed149e923406e416a987668f2f5f726e85d651804b192058943ff79",
+			"reviewed_at": "2026-06-29T15:39:25.124326722Z"
 		},
 		{
 			"function_name": "TestToolListSpokes",
@@ -165,8 +165,8 @@
 		{
 			"function_name": "TestToolExec",
 			"documentation_hash": "f42c258fafddfd762fe096910554fba2fa799dfde07da17b1fd67befda189fa0",
-			"definition_hash": "11f7fcd64dd2c94556ba28bd5b974ea6c64ed3e73f37cfd06596d79614ea3d48",
-			"reviewed_at": "2026-06-27T17:12:53.688145181Z"
+			"definition_hash": "4092fb7560b6659f86619dd7c0a77fc3ac4de5fa7bbc509b81d30400b9c24ea2",
+			"reviewed_at": "2026-06-29T15:39:25.154986588Z"
 		},
 		{
 			"function_name": "TestShortID",

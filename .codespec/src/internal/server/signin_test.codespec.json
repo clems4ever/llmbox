@@ -15,8 +15,8 @@
 		{
 			"function_name": "TestHandleProxyRedirectsBrowserToSignIn",
 			"documentation_hash": "b73e644ee1c2f283e465b0201d998a8ee2de7bf05edee7670c9e991bf4639a6e",
-			"definition_hash": "f21f6d70ae3fb0a35c73f81a746cd815ea2a89328776a817acc12ddd053fc83d",
-			"reviewed_at": "2026-06-27T21:48:34.813056131Z"
+			"definition_hash": "c7f833eee9f772f8dc23b46d561835751317436496142fca301c27ff29c48b05",
+			"reviewed_at": "2026-06-29T15:39:25.567701834Z"
 		},
 		{
 			"function_name": "signInServer",

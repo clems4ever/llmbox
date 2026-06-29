@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // errPipeClosed is returned by a memTransport once either end is closed.
@@ -75,16 +75,16 @@ type fakeManager struct {
 	createID   string
 	createURL  string
 	sessionURL string
-	boxes      []docker.Box
+	boxes      []sandbox.Box
 	logsOut    string
-	execResult docker.ExecResult
+	execResult sandbox.ExecResult
 	reaped     []string
 	dialTarget string // address DialBox connects to (for proxy_http tests)
 	dialErr    error  // when set, DialBox returns it
 	err        error
 
 	// recorded inputs
-	lastCreate  docker.CreateOptions
+	lastCreate  sandbox.CreateOptions
 	lastSubmit  [2]string // id, code
 	lastDestroy string
 	lastLogs    [2]any // idOrName, tail
@@ -109,7 +109,7 @@ func (f *fakeManager) DialBox(ctx context.Context, _ string, _ int) (net.Conn, e
 }
 
 // Create is a test helper.
-func (f *fakeManager) Create(_ context.Context, opts docker.CreateOptions) (string, string, error) {
+func (f *fakeManager) Create(_ context.Context, opts sandbox.CreateOptions) (string, string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.lastCreate = opts
@@ -131,7 +131,7 @@ func (f *fakeManager) SubmitCode(_ context.Context, id, code string) (string, er
 }
 
 // List is a test helper.
-func (f *fakeManager) List(_ context.Context) ([]docker.Box, error) {
+func (f *fakeManager) List(_ context.Context) ([]sandbox.Box, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.err != nil {
@@ -160,13 +160,13 @@ func (f *fakeManager) Logs(_ context.Context, idOrName string, tail int) (string
 }
 
 // Exec is a test helper.
-func (f *fakeManager) Exec(_ context.Context, idOrName string, cmd []string) (docker.ExecResult, error) {
+func (f *fakeManager) Exec(_ context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.lastExec.idOrName = idOrName
 	f.lastExec.cmd = cmd
 	if f.err != nil {
-		return docker.ExecResult{}, f.err
+		return sandbox.ExecResult{}, f.err
 	}
 	return f.execResult, nil
 }

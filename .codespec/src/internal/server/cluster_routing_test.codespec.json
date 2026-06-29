@@ -9,26 +9,26 @@
 		{
 			"function_name": "TestCreateBoxRoutesToSpoke",
 			"documentation_hash": "f3ef3636a0c47df8becb3c2b69325697dc573c5122fa48759e840398c338e589",
-			"definition_hash": "e539af87c8ab99c0bc084081766d05dd5f94be3f389ea4ec4cea75acc5b9f5bc",
-			"reviewed_at": "2026-06-25T10:51:16.08000041Z"
+			"definition_hash": "a1b75642e5a693994abc49dea2648742abf92e979c76994e738f8b6324d81818",
+			"reviewed_at": "2026-06-29T15:39:25.19509801Z"
 		},
 		{
 			"function_name": "TestCreateBoxUnknownSpoke",
 			"documentation_hash": "75c9b631cf1ff59f2cc2edbda05614c7b82b09b1307d82e2412950bf252bfa1a",
-			"definition_hash": "3dee5470448800437d780e7b19cc4f9c82a78cb6e93594a16c607ba46ae37392",
-			"reviewed_at": "2026-06-25T10:51:16.081356128Z"
+			"definition_hash": "a84d2980d7166011c12d8c4d5e10fa7f8ee3ae76786f8148dd0a6870730a601f",
+			"reviewed_at": "2026-06-29T15:39:25.195530376Z"
 		},
 		{
 			"function_name": "TestCreateBoxDefaultsToLocalSpoke",
 			"documentation_hash": "6716b88424d386abdd08ce7f7b2ab953aebb1bdf020a035c038d08502f426af5",
-			"definition_hash": "4fe6594ac1176930415d551a69b69199a58caf052bcf09d58603c96c56c26b25",
-			"reviewed_at": "2026-06-25T10:51:16.082580406Z"
+			"definition_hash": "530f7bc694053a613b9bc7945e329395c74a5f9c2c56a9284acf9b644f201ec3",
+			"reviewed_at": "2026-06-29T15:39:25.19594441Z"
 		},
 		{
 			"function_name": "TestListFansOutAcrossSpokes",
 			"documentation_hash": "8393a920927eb5095fe21ac621cd1c38e3695579cd8345ae209262554d97b8a9",
-			"definition_hash": "4f7b6a735b1d2a24ea7dbafe03112cc30da8b4901b1c762246aa69c068b46dcc",
-			"reviewed_at": "2026-06-25T10:51:16.083800075Z"
+			"definition_hash": "5293f81f3a1ec6504dd173b90547269ea9f4e70d51074ff43fd23b02d92424f8",
+			"reviewed_at": "2026-06-29T15:39:25.196351887Z"
 		},
 		{
 			"function_name": "TestReapFansOutAcrossSpokes",
@@ -39,8 +39,8 @@
 		{
 			"function_name": "TestDestroyRoutesToSpoke",
 			"documentation_hash": "5f5db8479f01713668a71f310aac664e4aec497eae25fb6b1a525d32e16a4782",
-			"definition_hash": "9282746d767ff85afb588a07a6502b1bfc3d8207cc1928b1119ceb3283c28481",
-			"reviewed_at": "2026-06-25T10:51:16.086146501Z"
+			"definition_hash": "96a4c4d7a4461c7b7b4ce7617a0b765ae344437c79f3f827920ab1bb3bb15752",
+			"reviewed_at": "2026-06-29T15:39:25.196809703Z"
 		},
 		{
 			"function_name": "TestSpokeStatusesReportsHealth",
@@ -63,20 +63,20 @@
 		{
 			"function_name": "TestDestroyBoxByBoxIDRoutesToSpoke",
 			"documentation_hash": "e621c13faf106c9bb2629bd45ac9c6e2366702793d782f934bf4f6ba36cfde2b",
-			"definition_hash": "9ece112a6e0cefcce944713ae0aa74d310e361812b56e4be93cc691a1ca0008c",
-			"reviewed_at": "2026-06-25T10:51:16.088863891Z"
+			"definition_hash": "2eb5b73d70e8341604a000f913087d817380265009721cd671fa640dfa4ed8ac",
+			"reviewed_at": "2026-06-29T15:39:25.226776091Z"
 		},
 		{
 			"function_name": "TestDestroySessionlessBoxFindsSpoke",
 			"documentation_hash": "f5f614ef4247eea921fa2cc45e4a17585f493e82a647223ede8600ea062a8d58",
-			"definition_hash": "53d89a5fe9408159849cb23483f42fe61ba24b532acc13f9e67ce96f5540e47e",
-			"reviewed_at": "2026-06-26T12:33:43.049792353Z"
+			"definition_hash": "4ce185e8c4e175afe8cee47cfffd4fef4213c02db2752c428c184c061c72b5c9",
+			"reviewed_at": "2026-06-29T15:39:25.227291367Z"
 		},
 		{
 			"function_name": "TestDestroyAlreadyGoneBoxSucceeds",
 			"documentation_hash": "2277ef3a62ee090c4e8e7f2840e4e3979a87cee42d3513cea87a8417fc7b957a",
-			"definition_hash": "660b001c8f2afb9ed6a9f258996ca5d13fa61687275a3da381b66233fdef6b44",
-			"reviewed_at": "2026-06-27T09:31:33.756605479Z"
+			"definition_hash": "b982fb37b764aea0eeb9733f57fad359343ae40e2540d66dacffbf873ece6583",
+			"reviewed_at": "2026-06-29T15:39:25.22774203Z"
 		}
 	]
 }

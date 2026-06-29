@@ -34,9 +34,9 @@
 		{
 			"function_name": "List",
 			"receiver": "Manager",
-			"documentation_hash": "34b394d48f965ed55b9aeff2a8ad442b3dbaf24efbc25c0b47dbe99a98a442c4",
+			"documentation_hash": "3db310ad242f1d1b2e2cceaa0a5e50e14407b161841b44e94164958a0ca29d4d",
 			"definition_hash": "dc41f9ac6859057d6c7ee0f2ca5a4b14bf3eb2142c9fd345f85897ebf2f6d124",
-			"reviewed_at": "2026-06-18T16:59:05.427274662Z"
+			"reviewed_at": "2026-06-29T15:39:25.068034103Z"
 		},
 		{
 			"function_name": "injectFiles",
@@ -173,12 +173,6 @@
 			"reviewed_at": "2026-06-21T14:39:24.341956948Z"
 		},
 		{
-			"function_name": "ValidBoxID",
-			"documentation_hash": "d3db639a781a38e72f17e6114ad8939ccbadd68ef7aebd76e1a086895df8db71",
-			"definition_hash": "7ef3cfd6a334edf1c575a37acfb975be3ad3106078ef3aebf8533c5b5f845c02",
-			"reviewed_at": "2026-06-21T14:39:24.346693066Z"
-		},
-		{
 			"function_name": "SetBoxGPUs",
 			"receiver": "Manager",
 			"documentation_hash": "6eda4dcd5153efeaec5d2792935d6c1f0374fbaa28ea6f4eac0c3013e8e25f02",
@@ -214,15 +208,15 @@
 		{
 			"function_name": "IsNotFound",
 			"documentation_hash": "db957289bc7baf55daf70679534b101d3ee27a564f071c008a29dde3ee47e343",
-			"definition_hash": "fe5368bff4d70aa8a2f73136c8e38a2f10d63d6ca9c1d873afd3626dc13a72e8",
-			"reviewed_at": "2026-06-27T09:31:33.751872913Z"
+			"definition_hash": "2c1b3ca336681dd83a57914b73ce048f26765ef11cac62cfd0868f04ca731382",
+			"reviewed_at": "2026-06-29T15:39:25.072630002Z"
 		},
 		{
 			"function_name": "DialBox",
 			"receiver": "Manager",
-			"documentation_hash": "8448db30dd5e73f936b27289177b67a0e6619a162b2af28c788a21df566ccc4c",
+			"documentation_hash": "129b3ac853528ef7b46b434c08c53dce5c4ed7178cac6f69625ffd407f79de6f",
 			"definition_hash": "e5ba56ba184c605ad758f5d3d90d5bf4082c2d1a28323332fe6a8918acd67041",
-			"reviewed_at": "2026-06-27T17:02:38.501572555Z"
+			"reviewed_at": "2026-06-29T15:39:25.070520104Z"
 		},
 		{
 			"function_name": "boxAddr",

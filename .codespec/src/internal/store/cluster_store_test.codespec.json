@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "TestClusterStoreJoinTokenRoundTrip",
+			"documentation_hash": "b54459c1c2645d98d1fa75bc91734c9dc8fd2f1f31ec602a01585e48df06c9be",
+			"definition_hash": "867ee895c66786ba3dadc84e38e2c727e531c5832d99693a7960be1e6e88b5ad",
+			"reviewed_at": "2026-06-29T15:39:25.68213736Z"
+		},
+		{
+			"function_name": "TestClusterStoreJoinTokenListAndDelete",
+			"documentation_hash": "dd90191de73b049c197127a867b3061672cd416577b1780aede50c471d7ac1b1",
+			"definition_hash": "9ea255c7dd0765ae017257350f9314131c46fd0a41fd5a74fa5de90f5068e5bf",
+			"reviewed_at": "2026-06-29T15:39:25.682286139Z"
+		},
+		{
+			"function_name": "TestClusterStoreSpokeRoundTrip",
+			"documentation_hash": "4872e49e896babe2ea523888829e1d376df43b520b2532ed01a77b669cf184c0",
+			"definition_hash": "4ca82bac47840f7fd94fefeaf5403a0ce32f6e525d4fbf1e4d7cd67655f4a941",
+			"reviewed_at": "2026-06-29T15:39:25.68244052Z"
+		}
+	]
+}

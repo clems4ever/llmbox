@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "ValidBoxID",
+			"documentation_hash": "d3db639a781a38e72f17e6114ad8939ccbadd68ef7aebd76e1a086895df8db71",
+			"definition_hash": "7ef3cfd6a334edf1c575a37acfb975be3ad3106078ef3aebf8533c5b5f845c02",
+			"reviewed_at": "2026-06-29T15:39:25.15530717Z"
+		}
+	]
+}

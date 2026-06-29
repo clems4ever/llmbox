@@ -5,8 +5,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/mcpserver"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/store"
 )
 
@@ -48,7 +48,7 @@ type mcpBackend struct{ s *Server }
 // @error error if the box cannot be created.
 //
 // @testcase TestMCPToolsRegisteredAndCreate creates a box through the backend.
-func (b mcpBackend) CreateBox(ctx context.Context, opts docker.CreateOptions) (mcpserver.BoxSession, error) {
+func (b mcpBackend) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (mcpserver.BoxSession, error) {
 	sess, err := b.s.createBox(ctx, opts)
 	if err != nil {
 		return mcpserver.BoxSession{}, err
@@ -97,11 +97,11 @@ func (b mcpBackend) LookupByBoxID(boxID string) (mcpserver.BoxSession, bool) {
 // ListBoxes returns all boxes managed across every spoke.
 //
 // @arg ctx Context for the list request.
-// @return []docker.Box The boxes managed by this server.
+// @return []sandbox.Box The boxes managed by this server.
 // @error error if listing boxes fails.
 //
 // @testcase TestListLlmboxesReturnsBoxID lists boxes through the backend.
-func (b mcpBackend) ListBoxes(ctx context.Context) ([]docker.Box, error) {
+func (b mcpBackend) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
 	return b.s.listBoxes(ctx)
 }
 
@@ -159,11 +159,11 @@ func (b mcpBackend) BoxLogs(ctx context.Context, boxID string, tail int) (string
 // @arg ctx Context for the exec request.
 // @arg boxID The box ID of the box to run the command in.
 // @arg command The shell command line to run inside the box.
-// @return docker.ExecResult The command's stdout, stderr, and exit code.
+// @return sandbox.ExecResult The command's stdout, stderr, and exit code.
 // @error error if the command is empty, no box has that box ID, or it cannot be run.
 //
 // @testcase TestBoxExecByBoxID runs a command through the backend.
-func (b mcpBackend) BoxExec(ctx context.Context, boxID, command string) (docker.ExecResult, error) {
+func (b mcpBackend) BoxExec(ctx context.Context, boxID, command string) (sandbox.ExecResult, error) {
 	return b.s.boxExec(ctx, boxID, command)
 }
 

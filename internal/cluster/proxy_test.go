@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // errDial is a canned dial failure.
@@ -114,7 +114,7 @@ func TestProxyHTTPUnsupportedSpoke(t *testing.T) {
 type bareManager struct{}
 
 // Create is a no-op stub.
-func (bareManager) Create(context.Context, docker.CreateOptions) (string, string, error) {
+func (bareManager) Create(context.Context, sandbox.CreateOptions) (string, string, error) {
 	return "", "", nil
 }
 
@@ -122,7 +122,7 @@ func (bareManager) Create(context.Context, docker.CreateOptions) (string, string
 func (bareManager) SubmitCode(context.Context, string, string) (string, error) { return "", nil }
 
 // List is a no-op stub.
-func (bareManager) List(context.Context) ([]docker.Box, error) { return nil, nil }
+func (bareManager) List(context.Context) ([]sandbox.Box, error) { return nil, nil }
 
 // Destroy is a no-op stub.
 func (bareManager) Destroy(context.Context, string) error { return nil }
@@ -131,8 +131,8 @@ func (bareManager) Destroy(context.Context, string) error { return nil }
 func (bareManager) Logs(context.Context, string, int) (string, error) { return "", nil }
 
 // Exec is a no-op stub.
-func (bareManager) Exec(context.Context, string, []string) (docker.ExecResult, error) {
-	return docker.ExecResult{}, nil
+func (bareManager) Exec(context.Context, string, []string) (sandbox.ExecResult, error) {
+	return sandbox.ExecResult{}, nil
 }
 
 // ReapOrphans is a no-op stub.

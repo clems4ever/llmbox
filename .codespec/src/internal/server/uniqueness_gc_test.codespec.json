@@ -1,0 +1,52 @@
+{
+	"functions": [
+		{
+			"function_name": "seedSession",
+			"documentation_hash": "c3dcb0fd6bff7c489537ab099342fa97826965b39571ced14b6dbe09212c639a",
+			"definition_hash": "0cad06260ea77b509495383e79e74e1743f8d115fb1cdf2c26c2bd1d0aa952ad",
+			"reviewed_at": "2026-06-29T15:39:25.606171835Z"
+		},
+		{
+			"function_name": "mustSaveProxy",
+			"documentation_hash": "61a918705245bf8f723f8f9f443101f8d136668eff583084d729f41ffa824722",
+			"definition_hash": "08467d08ee9370578e258d81a8f0f7039befafefee3af9ad4c88574d89ab86d4",
+			"reviewed_at": "2026-06-29T15:39:25.606440558Z"
+		},
+		{
+			"function_name": "TestCreateBoxRejectsDuplicateBoxIDSameSpoke",
+			"documentation_hash": "ba828a2523738642dfde3524102a5f5b2b5036d8b5732fc9e299f81559205e19",
+			"definition_hash": "1a8b93da8e237b0a563b0113aa1985373f14e6800594fc300a9427bd06febc77",
+			"reviewed_at": "2026-06-29T15:39:25.643104148Z"
+		},
+		{
+			"function_name": "TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes",
+			"documentation_hash": "9d491b5d8b7cc88e831549b60b9a20cc18d74576c6630f1d67589e0bf14f28be",
+			"definition_hash": "786ab10e3056e829a3f4c189e8f07211ebef55178dd157ec3fbcbe538bcd77ec",
+			"reviewed_at": "2026-06-29T15:39:25.643416377Z"
+		},
+		{
+			"function_name": "TestCreateBoxConcurrentSameBoxIDOnlyOneWins",
+			"documentation_hash": "e18f15a3e275c90f9a7cb27a1d4cb5ce2f5c9d81a240ed66b42bae319d261f2b",
+			"definition_hash": "08e5e0c0dc36d92c9b5b6a73368e0721f7b84a903454e3d3c4c41c00e7afaa16",
+			"reviewed_at": "2026-06-29T15:39:25.643733242Z"
+		},
+		{
+			"function_name": "TestLookupByBoxIDPrefersReachableSpoke",
+			"documentation_hash": "34858629d436766638bd220f0cfb6eb485ba525aa241138697b82ce32728e47f",
+			"definition_hash": "9246ea4b348dfff2683774dd1c085147dd506a0f11b4d348581510a53e0c419d",
+			"reviewed_at": "2026-06-29T15:39:25.644214814Z"
+		},
+		{
+			"function_name": "TestPruneDepartedSpokesRemovesStaleObjects",
+			"documentation_hash": "e02768fabfd5a6231cb7e9b069b6f9a9290ca99b65ff94a66fe7b57a77988246",
+			"definition_hash": "b690776e0c20bdcc4991d333af51a11dc3f68546d51d8ac24789d051b60fbbbf",
+			"reviewed_at": "2026-06-29T15:39:25.644563381Z"
+		},
+		{
+			"function_name": "TestPruneDepartedSpokesKeepsOfflineEnrolledSpoke",
+			"documentation_hash": "d3583f12d54181215bb625d7f8804befcbae954f3f0fb4fa4b064057ac697e4b",
+			"definition_hash": "8906a948632ef0bfcf4c5b7059dc2b7958262f1c5a7d8a6d8e7bfe63b5404c67",
+			"reviewed_at": "2026-06-29T15:39:25.68185486Z"
+		}
+	]
+}

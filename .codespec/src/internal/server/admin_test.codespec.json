@@ -51,8 +51,8 @@
 		{
 			"function_name": "TestAdminDeleteBox",
 			"documentation_hash": "4777d21cd41d8c3af6ab4492e3d411d5b6250e49ebfac668346e0223cd18cadf",
-			"definition_hash": "605d2ad7c77783a18ef34d90d16735be8c449db67a9de166fccd1aa73f61b0ee",
-			"reviewed_at": "2026-06-25T12:45:28.907021587Z"
+			"definition_hash": "a4e02218b0aaa913327aec38be7284966e4fefb14bf95b653c9773e84cd4c547",
+			"reviewed_at": "2026-06-29T15:39:25.15877372Z"
 		},
 		{
 			"function_name": "TestToAdminTokens",
@@ -63,8 +63,8 @@
 		{
 			"function_name": "TestToAdminBoxes",
 			"documentation_hash": "c2bae2f5dcaa007b25fd683a2b2cbc941d02e7af45afc4b180bb229d6030a97a",
-			"definition_hash": "8a0d4dd49d9ff41d0d7a3ab223d57982364c9fc7f612d3b177ccd935676915e7",
-			"reviewed_at": "2026-06-21T13:32:40.48128355Z"
+			"definition_hash": "1768bfeee288d95b81a828de53bad755c4395f0e8caed5c4c62eb5af5fe2b1bb",
+			"reviewed_at": "2026-06-29T15:39:25.159578687Z"
 		},
 		{
 			"function_name": "TestSpokeConnectURL",
@@ -75,8 +75,8 @@
 		{
 			"function_name": "TestAdminDashboardShowsActivationURL",
 			"documentation_hash": "306ab681b602d622d2c198322495f04d566763dc098fbb3b36156d2024d7ada8",
-			"definition_hash": "3a13488d1556603c498953f25547175da7f834ddab09e14dc6d4fd2c02eeb512",
-			"reviewed_at": "2026-06-25T12:45:27.778394168Z"
+			"definition_hash": "ce4f47b0169b82a92578e7c527846e10c3cddac1c76c81988bee9a5f493a1edb",
+			"reviewed_at": "2026-06-29T15:39:25.157675027Z"
 		},
 		{
 			"function_name": "TestAdminActionJSON",
@@ -99,14 +99,14 @@
 		{
 			"function_name": "newProxyAdminServer",
 			"documentation_hash": "ff60c81c3153e284c7690304c44964076260d8efb92f13832a28bd399aeb9454",
-			"definition_hash": "e745d22a6464ee37587362724696ff2454558a9577ab8efe8737c13a389a11d9",
-			"reviewed_at": "2026-06-27T17:02:38.535254284Z"
+			"definition_hash": "9a6da238dd9fe2ca141518f5f64deb56cdd63a9ebd8e81a509aed977b48607f2",
+			"reviewed_at": "2026-06-29T15:39:25.160708636Z"
 		},
 		{
 			"function_name": "TestAdminCreateProxy",
 			"documentation_hash": "872478a80b413461348ef09ccb858e91f4d37346e801dbb8e4cb51a6a3ad671a",
-			"definition_hash": "6a45c797dfabfcce5055b2143ee7338f73db655eef6fa2ab8e756405e334b517",
-			"reviewed_at": "2026-06-27T17:02:38.536073239Z"
+			"definition_hash": "9c7609564fc5d663e86b15d6bd84d8c7113ebe82d5eef8bf5b4327378ad27fac",
+			"reviewed_at": "2026-06-29T15:39:25.161576076Z"
 		},
 		{
 			"function_name": "TestAdminCreateProxyValidates",
@@ -117,14 +117,20 @@
 		{
 			"function_name": "TestAdminDeleteProxy",
 			"documentation_hash": "d9c4d565dc889a3a6fa50568612f03e38154cb88a3bff5828ac3cc3f28caa268",
-			"definition_hash": "200bd519d7df4c1d2fc8f2846ea33709ee5aa37a902e888d0c0cd31221af9c68",
-			"reviewed_at": "2026-06-27T17:02:38.537923815Z"
+			"definition_hash": "b7d1d404539191ae5fa8d51e2a3d83076c972d8a35b05e797029b0d2f659dfa3",
+			"reviewed_at": "2026-06-29T15:39:25.193287286Z"
 		},
 		{
 			"function_name": "TestAdminDashboardShowsProxies",
 			"documentation_hash": "1d41d60e515cdf088959d9d2dc4def0731ea01d3d27fe4f3edcf2b332b20eae9",
-			"definition_hash": "e22791a56b76355deeb805e0093db49382e09d3b7f5bc3d27a2f093d98d840f5",
-			"reviewed_at": "2026-06-27T17:02:38.538947375Z"
+			"definition_hash": "e876411f99d15f54dca3e8288d3139f98b5a00f7e89745642004fb4bd5f3335e",
+			"reviewed_at": "2026-06-29T15:39:25.194347536Z"
+		},
+		{
+			"function_name": "TestAdminProxyRendersDescription",
+			"documentation_hash": "ba24c4c254ca2c355068766098c5ed266d580ba0a40fe2eb874c8f070403eee0",
+			"definition_hash": "65eda40450f8c200fdec1a78d18db73abac5f1eae66eae3fe67fec7143badb89",
+			"reviewed_at": "2026-06-29T15:39:25.192459069Z"
 		}
 	]
 }

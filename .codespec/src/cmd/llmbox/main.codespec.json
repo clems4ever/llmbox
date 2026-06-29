@@ -26,9 +26,9 @@
 		},
 		{
 			"function_name": "boxLimits",
-			"documentation_hash": "48938171db45ad3afb0a5361db80924ddd7854d5b77673e327764fe10c740876",
-			"definition_hash": "82e09fdce0eac99147974b2f630afd8d674fdae61bfca2016811159ee0e75339",
-			"reviewed_at": "2026-06-21T14:38:15.036007337Z"
+			"documentation_hash": "fb3625cf0dfd4aad32f7bbec81cca4d9eabdcd7a45b53af6b5569274a0dbc11f",
+			"definition_hash": "19b3af1b4dfe0c094b97e34c773ad82c57e80a8f26b7be5dee845513df3882b5",
+			"reviewed_at": "2026-06-29T15:39:16.02107949Z"
 		},
 		{
 			"function_name": "registryAuths",

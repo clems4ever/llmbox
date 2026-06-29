@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -19,7 +19,7 @@ func TestCreateBoxRoutesToSpoke(t *testing.T) {
 	s := newTestServer(local)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestCreateBoxRoutesToSpoke(t *testing.T) {
 func TestCreateBoxUnknownSpoke(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "ghost"}); err == nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "ghost"}); err == nil {
 		t.Fatal("expected error for unconnected spoke")
 	}
 }
@@ -50,7 +50,7 @@ func TestCreateBoxUnknownSpoke(t *testing.T) {
 func TestCreateBoxDefaultsToLocalSpoke(t *testing.T) {
 	local := &testutils.FakeMgr{CreateID: "local-id"}
 	s := newTestServer(local)
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1"})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -64,8 +64,8 @@ func TestCreateBoxDefaultsToLocalSpoke(t *testing.T) {
 
 // TestListFansOutAcrossSpokes checks list aggregates boxes from every spoke, each tagged.
 func TestListFansOutAcrossSpokes(t *testing.T) {
-	local := &testutils.FakeMgr{ListResult: []docker.Box{{ContainerID: "L", BoxID: "lbox"}}}
-	edge := &testutils.FakeMgr{ListResult: []docker.Box{{ContainerID: "E", BoxID: "ebox"}}}
+	local := &testutils.FakeMgr{ListResult: []sandbox.Box{{ContainerID: "L", BoxID: "lbox"}}}
+	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{ContainerID: "E", BoxID: "ebox"}}}
 	s := newTestServer(local)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
@@ -108,7 +108,7 @@ func TestDestroyRoutesToSpoke(t *testing.T) {
 	s := newTestServer(local)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
 	s := newTestServer(local)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
 func TestDestroySessionlessBoxFindsSpoke(t *testing.T) {
 	local := &testutils.FakeMgr{}
 	// The edge spoke reports a box "test" with no session tracking it.
-	edge := &testutils.FakeMgr{ListResult: []docker.Box{{BoxID: "test", ContainerID: "edgecid"}}}
+	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{BoxID: "test", ContainerID: "edgecid"}}}
 	s := newTestServer(local)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
@@ -182,11 +182,11 @@ func TestDestroyAlreadyGoneBoxSucceeds(t *testing.T) {
 	local := &testutils.FakeMgr{}
 	// The edge spoke no longer has the box: any destroy fails not-found, mirroring
 	// the real docker manager once the container has been removed out of band.
-	edge := &testutils.FakeMgr{CreateID: "edge-id", DestroyErr: docker.ErrBoxNotFound}
+	edge := &testutils.FakeMgr{CreateID: "edge-id", DestroyErr: sandbox.ErrBoxNotFound}
 	s := newTestServer(local)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}

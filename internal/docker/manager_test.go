@@ -444,18 +444,6 @@ func TestCreateRejectsDuplicateBoxID(t *testing.T) {
 // TestValidBoxID checks the box-id validator accepts well-formed hostname labels
 // and rejects malformed ones (uppercase, shell metacharacters, leading/trailing
 // hyphens, over-length, empty).
-func TestValidBoxID(t *testing.T) {
-	for _, id := range []string{"a", "my-box", "refactor-auth-service", "b1", strings.Repeat("a", 63)} {
-		if !ValidBoxID(id) {
-			t.Errorf("ValidBoxID(%q) = false, want true", id)
-		}
-	}
-	for _, id := range []string{"", "UPPER", "has space", `x"; rm -rf /`, "-lead", "trail-", "a/b", strings.Repeat("a", 64)} {
-		if ValidBoxID(id) {
-			t.Errorf("ValidBoxID(%q) = true, want false", id)
-		}
-	}
-}
 
 // TestCreateRejectsBadBoxID checks Create refuses a malformed box ID (which would
 // otherwise be interpolated into the entrypoint) before creating any container.

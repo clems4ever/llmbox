@@ -35,8 +35,8 @@
 			"function_name": "Create",
 			"receiver": "bareManager",
 			"documentation_hash": "2f421531b1d1c9ff0fd5531afc18772dbf7592114b69cd995f8f7c6f212b66bf",
-			"definition_hash": "8d1c4e51e1b25ceed8506c5de1ae80216fdb8b83a42b69e0c38b6c94fc13708c",
-			"reviewed_at": "2026-06-27T17:31:02.799633051Z"
+			"definition_hash": "c4542fe211bb3927156ffecd6e3853450fd55e6f8d4ce20adf3d31820ba57ba2",
+			"reviewed_at": "2026-06-29T15:39:25.000291076Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -49,8 +49,8 @@
 			"function_name": "List",
 			"receiver": "bareManager",
 			"documentation_hash": "aed3ec9f8573133dd1a9aab0f378eb07e631a269ee07b61629877eec456a5787",
-			"definition_hash": "038903966d6b13d7fb0abd632a4889261a1612d82ce30bbdeac11a24dee7d39a",
-			"reviewed_at": "2026-06-27T17:31:02.800284886Z"
+			"definition_hash": "28b4417406f0018d33fb9793bc08614e6a01472763cabe4b44bb0c7b46c1a93d",
+			"reviewed_at": "2026-06-29T15:39:25.032184217Z"
 		},
 		{
 			"function_name": "Destroy",
@@ -70,8 +70,8 @@
 			"function_name": "Exec",
 			"receiver": "bareManager",
 			"documentation_hash": "75a13d8cc2434fb102f3c9d5fe2bd7830d7a6b5f8b81187e79df0c795e287ad9",
-			"definition_hash": "1faefeb83712b0bb321742c854714419951005b7cb5140c10b8dfc1ca44a7203",
-			"reviewed_at": "2026-06-27T17:31:02.801219045Z"
+			"definition_hash": "db12ce552a2bf9fe235f59acc5da7e2fa4a4d81bf7161b6e7fd4ab48defecea7",
+			"reviewed_at": "2026-06-29T15:39:25.032509469Z"
 		},
 		{
 			"function_name": "ReapOrphans",

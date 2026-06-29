@@ -3,7 +3,7 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // ValidationPolicy is the spoke-side admission policy applied to box-creation
@@ -30,8 +30,8 @@ type ValidationPolicy struct {
 // @testcase TestValidateCreateRejectsBadBoxID rejects a malformed box id.
 // @testcase TestValidateCreateImageAllowlist allows listed images and rejects others.
 // @testcase TestValidateCreateRejectsEmptyImage rejects a create that names no image.
-func (p ValidationPolicy) validateCreate(opts docker.CreateOptions) error {
-	if !docker.ValidBoxID(opts.BoxID) {
+func (p ValidationPolicy) validateCreate(opts sandbox.CreateOptions) error {
+	if !sandbox.ValidBoxID(opts.BoxID) {
 		return fmt.Errorf("invalid box id %q: must be 1-63 chars of lowercase letters, digits, or hyphens (not starting or ending with a hyphen)", opts.BoxID)
 	}
 	if opts.Image == "" {

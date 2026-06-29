@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -35,7 +35,7 @@ func newAuthServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 // visitor sees the sign-in buttons and not the code-entry form.
 func TestAuthPageRequiresLogin(t *testing.T) {
 	s, _, _ := newAuthServer(t)
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestAuthPageRequiresLogin(t *testing.T) {
 // when both are present.
 func TestActivationGatedByLogin(t *testing.T) {
 	s, f, st := newAuthServer(t)
-	sess, err := s.createBox(context.Background(), docker.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}

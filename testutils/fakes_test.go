@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // TestFakeMgr checks FakeMgr satisfies cluster.BoxManager and that each verb
@@ -18,12 +18,12 @@ func TestFakeMgr(t *testing.T) {
 	f := m.(*FakeMgr)
 	f.CreateID, f.CreateURL = "cid", "https://auth"
 	f.SubmitURL = "https://session"
-	f.ListResult = []docker.Box{{BoxID: "b1"}}
+	f.ListResult = []sandbox.Box{{BoxID: "b1"}}
 	f.LogsResult = "logs"
-	f.ExecResult = docker.ExecResult{ExitCode: 0}
+	f.ExecResult = sandbox.ExecResult{ExitCode: 0}
 	f.Reaped = []string{"r1"}
 
-	if id, url, err := m.Create(context.Background(), docker.CreateOptions{BoxID: "b1"}); err != nil || id != "cid" || url != "https://auth" {
+	if id, url, err := m.Create(context.Background(), sandbox.CreateOptions{BoxID: "b1"}); err != nil || id != "cid" || url != "https://auth" {
 		t.Errorf("Create = %q, %q, %v", id, url, err)
 	}
 	if f.GotOpts.BoxID != "b1" {

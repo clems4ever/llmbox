@@ -30,8 +30,8 @@
 		{
 			"function_name": "toAdminBoxes",
 			"documentation_hash": "a9f6ccd440feedd219a80ca54ff81d7e36bceeeac34861d4d235463f55e584ba",
-			"definition_hash": "98b7a17c1158e431c276e95df0898fdc8fd17230b1f61003f278627ab34f0b7b",
-			"reviewed_at": "2026-06-21T13:24:14.205817449Z"
+			"definition_hash": "b4adbb113fac6bd4453ef77251ed18c99d8083dfc936e5398c093b697d81108b",
+			"reviewed_at": "2026-06-29T15:39:25.156027604Z"
 		},
 		{
 			"function_name": "requireAdminPost",
@@ -65,8 +65,8 @@
 			"function_name": "handleAdminCreateBox",
 			"receiver": "Server",
 			"documentation_hash": "410774d8208112ca01a93cbd0543402253e03bef9c1efeecebbbb3e23c3779f8",
-			"definition_hash": "ac161fddea8a9c5e056557dc5aef82db9e2b24a5de3e9c314c2863ef2470eded",
-			"reviewed_at": "2026-06-25T10:50:51.60247259Z"
+			"definition_hash": "e146b1887d181339a6ec6a40448f596204e94b64692a5390fc46d72d193bbd9f",
+			"reviewed_at": "2026-06-29T15:39:25.156797066Z"
 		},
 		{
 			"function_name": "handleAdminDeleteBox",

@@ -3,26 +3,26 @@
 		{
 			"function_name": "TestValidateCreateRejectsBadBoxID",
 			"documentation_hash": "ea437c48d2a68ec69e05d57ca7e4b2b9e27bf1cbde607851666546b074ade62e",
-			"definition_hash": "821c269e3c45abe3a8c9e0ebd83dd64a6c2c18172ec3d24b9ff12232638edf43",
-			"reviewed_at": "2026-06-22T13:02:15.53919294Z"
+			"definition_hash": "eabd45c7798c97036d484f7805578e560b18045b7b8b3ab9bcf68d9841fe8e92",
+			"reviewed_at": "2026-06-29T15:39:25.065715403Z"
 		},
 		{
 			"function_name": "TestValidateCreateImageAllowlist",
 			"documentation_hash": "7cd3da13877970af665bf2ebad3af395540d66d90dd806478114741b6eb7a1fb",
-			"definition_hash": "2b866c2cdc3db5a8294336dbbee6ca7a6ba480c8ead0c5ca70419c6bbb6bd22a",
-			"reviewed_at": "2026-06-19T20:38:25.999880447Z"
+			"definition_hash": "579fa5a5860722778a0723f02763019b73df77f0098c97837e1efaf06af343bb",
+			"reviewed_at": "2026-06-29T15:39:25.065920917Z"
 		},
 		{
 			"function_name": "TestDispatchRejectsInvalidCreate",
 			"documentation_hash": "cf41c4dc60b5e20e5f90008afb902fc5f687d43dc7314997a4d8eb82033bcb26",
-			"definition_hash": "67bfad4e3b6e3e9a121bf28d76e191dac1a4825b6060fd3649d710071fc85dba",
-			"reviewed_at": "2026-06-19T20:38:26.000515146Z"
+			"definition_hash": "c9031630a5cd45d94ae7d6faf95eb936da2486aee6dbb28c0071e09cac303ca9",
+			"reviewed_at": "2026-06-29T15:39:25.066345473Z"
 		},
 		{
 			"function_name": "TestValidateCreateRejectsEmptyImage",
 			"documentation_hash": "e86676120828684598631e6a182783b43fb911aed16e9efc56b302988af0a75b",
-			"definition_hash": "b6ca4ae079dd4bda6d1e0cba1cdd96bcc290f9042452bf78f0b49df12d76093b",
-			"reviewed_at": "2026-06-22T13:02:15.543182778Z"
+			"definition_hash": "239d2184f824592c5f6f65098b3daa5963fc5331531f41c8243d684ed589b0b8",
+			"reviewed_at": "2026-06-29T15:39:25.066184056Z"
 		}
 	]
 }

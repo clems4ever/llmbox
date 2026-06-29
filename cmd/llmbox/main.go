@@ -57,6 +57,7 @@ import (
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
@@ -154,11 +155,11 @@ func loadConfig(path string, explicit bool) (*config.Config, error) {
 // (unlimited) so the conversion preserves "no limit" semantics.
 //
 // @arg b The box resource configuration from the YAML config.
-// @return docker.BoxLimits The equivalent per-box caps and max-box ceiling.
+// @return sandbox.Limits The equivalent per-box caps and max-box ceiling.
 //
 // @testcase TestBoxLimitsConvertsUnits converts mebibytes and CPUs to bytes and nano-CPUs.
-func boxLimits(b config.BoxConfig) docker.BoxLimits {
-	return docker.BoxLimits{
+func boxLimits(b config.BoxConfig) sandbox.Limits {
+	return sandbox.Limits{
 		MemoryBytes: int64(b.MemoryMB) * 1024 * 1024,
 		NanoCPUs:    int64(b.CPUs * 1e9),
 		PidsLimit:   b.PidsLimit,

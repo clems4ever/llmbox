@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
 // fakeBoxManager simulates the Docker box-lifecycle layer. The real
@@ -68,7 +69,7 @@ func newFakeBoxManager(platform *fakeAnthropic) *fakeBoxManager {
 // @return id The simulated container ID of the new box.
 // @return authorizeURL The OAuth authorize URL for the box's login.
 // @error error if the requested box ID is already in use.
-func (m *fakeBoxManager) Create(_ context.Context, opts docker.CreateOptions) (id, authorizeURL string, err error) {
+func (m *fakeBoxManager) Create(_ context.Context, opts sandbox.CreateOptions) (id, authorizeURL string, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if opts.BoxID != "" {
@@ -126,19 +127,19 @@ func (m *fakeBoxManager) SubmitCode(_ context.Context, id, code string) (session
 // phase and a phase-encoding name derived from each box's readiness.
 //
 // @arg ctx Context (unused by the simulation).
-// @return []docker.Box One Box per simulated box.
+// @return []sandbox.Box One Box per simulated box.
 // @error error never; present to satisfy the interface.
-func (m *fakeBoxManager) List(_ context.Context) ([]docker.Box, error) {
+func (m *fakeBoxManager) List(_ context.Context) ([]sandbox.Box, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	out := make([]docker.Box, 0, len(m.boxes))
+	out := make([]sandbox.Box, 0, len(m.boxes))
 	for _, b := range m.boxes {
 		short := b.containerID[:12]
 		name, phase := "llmbox-pending-"+short, "pending"
 		if b.ready {
 			name, phase = "llmbox-"+short, "ready"
 		}
-		out = append(out, docker.Box{
+		out = append(out, sandbox.Box{
 			ContainerID: short,
 			Name:        name,
 			BoxID:       b.boxID,
@@ -193,22 +194,22 @@ func (m *fakeBoxManager) Logs(_ context.Context, idOrName string, _ int) (string
 // @arg ctx Context (unused by the simulation).
 // @arg idOrName The ID or name identifying the box.
 // @arg cmd The command to run, as the server passes it (/bin/sh -c <line>).
-// @return docker.ExecResult The simulated stdout, stderr, and exit code.
+// @return sandbox.ExecResult The simulated stdout, stderr, and exit code.
 // @error error if no simulated box matches.
-func (m *fakeBoxManager) Exec(_ context.Context, idOrName string, cmd []string) (docker.ExecResult, error) {
+func (m *fakeBoxManager) Exec(_ context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.find(idOrName) == nil {
-		return docker.ExecResult{}, fmt.Errorf("no managed box matches %q", idOrName)
+		return sandbox.ExecResult{}, fmt.Errorf("no managed box matches %q", idOrName)
 	}
 	line := ""
 	if len(cmd) > 0 {
 		line = cmd[len(cmd)-1]
 	}
 	if rest, ok := strings.CutPrefix(line, "echo "); ok {
-		return docker.ExecResult{Stdout: rest + "\n"}, nil
+		return sandbox.ExecResult{Stdout: rest + "\n"}, nil
 	}
-	return docker.ExecResult{}, nil
+	return sandbox.ExecResult{}, nil
 }
 
 // DialBox connects to the fake's dialTarget, standing in for a real box's port.

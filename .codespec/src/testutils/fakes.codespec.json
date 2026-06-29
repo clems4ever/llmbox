@@ -32,8 +32,8 @@
 			"function_name": "Create",
 			"receiver": "FakeMgr",
 			"documentation_hash": "c237ccfe9277a532f942c7328bc213f013b4fbf6fb621d99c3789d7596de2f6e",
-			"definition_hash": "c41f1e2da89f4eea4ead15e6c228a78f8c1cf7f61df8592159a35d9b8036d8a1",
-			"reviewed_at": "2026-06-27T09:42:16.311721473Z"
+			"definition_hash": "646733ff5c300a5db48c2aa860123b66c864aa6915c526125ef82a4f84fda6af",
+			"reviewed_at": "2026-06-29T15:39:25.758192243Z"
 		},
 		{
 			"function_name": "Destroy",
@@ -45,16 +45,16 @@
 		{
 			"function_name": "Exec",
 			"receiver": "FakeMgr",
-			"documentation_hash": "3ba7a98624dfeb0e1bac70b48c0d8fc87dd1b5b9f1b83f9a6895f8d911e70bd4",
-			"definition_hash": "d6a76a179a70c81f6ce3dbc47974be6b66ce851a1ff15f0a567e86fe851443a9",
-			"reviewed_at": "2026-06-27T09:42:16.313875255Z"
+			"documentation_hash": "f4481704b25de7d7a552d04cf75cb11abc08057e100ab5c496f45e4a11f18718",
+			"definition_hash": "dcd88f033ca8649f7e9f926c23162130c99a0923aed02a2ce3c085fd2210a559",
+			"reviewed_at": "2026-06-29T15:39:25.758920671Z"
 		},
 		{
 			"function_name": "List",
 			"receiver": "FakeMgr",
-			"documentation_hash": "b567f58ae89e337d91f0cd093f8587fa1ac911eb47cf997379197806b8689bb1",
-			"definition_hash": "f4263e252a47b859ed39c6756b1abe23df1c6cfe17a6186a7d2306f85b3bb1e6",
-			"reviewed_at": "2026-06-27T09:42:16.314860522Z"
+			"documentation_hash": "78201e3545fd968e7aa69dd4fcaf0c6e24dd931d49dc5c9f6ab4e321dc3dc9ec",
+			"definition_hash": "ac8988223f2ac47de74bcb4b3c07bfd4864d737c89decad148da75b82508f0e4",
+			"reviewed_at": "2026-06-29T15:39:25.758466333Z"
 		},
 		{
 			"function_name": "Logs",

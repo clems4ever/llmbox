@@ -13,7 +13,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/docker"
+	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -237,8 +237,8 @@ func TestAdminJSServed(t *testing.T) {
 // shown in the dashboard table, so it survives a page refresh.
 func TestAdminDashboardShowsActivationURL(t *testing.T) {
 	s, f, st := newAdminServer(t)
-	f.ListResult = []docker.Box{{ContainerID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
-	sess, err := s.createBox(t.Context(), docker.CreateOptions{BoxID: "foo"})
+	f.ListResult = []sandbox.Box{{ContainerID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
+	sess, err := s.createBox(t.Context(), sandbox.CreateOptions{BoxID: "foo"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -354,7 +354,7 @@ func TestAdminCreateBox(t *testing.T) {
 // destroys the box by ID — the path the admin page's urlencoded fetch takes.
 func TestAdminDeleteBox(t *testing.T) {
 	s, f, st := newAdminServer(t)
-	if _, err := s.createBox(t.Context(), docker.CreateOptions{BoxID: "foo"}); err != nil {
+	if _, err := s.createBox(t.Context(), sandbox.CreateOptions{BoxID: "foo"}); err != nil {
 		t.Fatal(err)
 	}
 	h := s.APIHandler()
@@ -395,7 +395,7 @@ func TestToAdminTokens(t *testing.T) {
 
 // TestToAdminBoxes checks boxes are sorted by ID and fall back to the container name when no box ID is set.
 func TestToAdminBoxes(t *testing.T) {
-	out := toAdminBoxes([]docker.Box{
+	out := toAdminBoxes([]sandbox.Box{
 		{Name: "c2", BoxID: "beta", Spoke: "edge", Image: "img", State: "running", Phase: "ready", Created: 0},
 		{Name: "c1", Spoke: "local", Created: 0},
 	})
@@ -425,7 +425,7 @@ func newProxyAdminServer(t *testing.T) (*Server, Store) {
 	t.Helper()
 	s, _, st := newAdminServer(t)
 	s.SetProxyBaseDomain("proxy.example.com")
-	if _, err := s.createBox(context.Background(), docker.CreateOptions{BoxID: "web-box"}); err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("createBox: %v", err)
 	}
 	return s, st
