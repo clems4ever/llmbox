@@ -75,8 +75,9 @@ COPY --from=agent /opt/llmbox/llmbox-agent /usr/local/bin/llmbox-agent
 # remote-control prompts (HOME=/root and WORKDIR=/workspace are forced by the
 # provisioner). claude merges its account fields into this file at login without
 # clobbering these keys.
-RUN mkdir -p /workspace \
-    && printf '%s' '{"projects":{"/workspace":{"hasTrustDialogAccepted":true}},"remoteDialogSeen":true}' > /root/.claude.json
+RUN mkdir -p /workspace
+ADD docker/claude.json /root/.claude.json
+
 WORKDIR /workspace
 # Default entrypoint for standalone runs; the llmbox provisioner overrides this
 # with the same command plus an explicit --socket path.
