@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "TestAgentFixtureDrivesLifecycle",
+			"documentation_hash": "9b2ab8a69e1a554a7def856fbad8c5151fddfd0dda223465b1c11158ba6faa86",
+			"definition_hash": "c98c4ec64f38373a087c9690693c57bddaead30db653f81f40b8f40905443e02",
+			"reviewed_at": "2026-06-30T12:29:47.915344629Z"
+		},
+		{
+			"function_name": "TestAgentFixtureSeedsCredentials",
+			"documentation_hash": "7d2d697239266895b0310b79e5e6f9df838852d9810573c3709e64c024e164e4",
+			"definition_hash": "a9315621f4f299c6bd37a6c73f662f52295dd5f5cd8aaf3d32b0b7f70df71673",
+			"reviewed_at": "2026-06-30T12:29:47.915485915Z"
+		}
+	]
+}

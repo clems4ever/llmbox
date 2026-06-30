@@ -14,13 +14,6 @@
 			"reviewed_at": "2026-06-29T19:22:53.360983033Z"
 		},
 		{
-			"function_name": "Serve",
-			"receiver": "Agent",
-			"documentation_hash": "a9f406d3cb35b876408e78c789068f2b5a92cf5bb830fb07d8f37f9e15cb8a46",
-			"definition_hash": "5cce27db9d81c99ff2a39592875377d921f3d5cf8df5df46af5104c89c722096",
-			"reviewed_at": "2026-06-29T19:22:53.370615132Z"
-		},
-		{
 			"function_name": "Shutdown",
 			"receiver": "Agent",
 			"documentation_hash": "cbc468662691bbd9c32855440310ae6c8f81cab9a224ca4bbed864119285f629",

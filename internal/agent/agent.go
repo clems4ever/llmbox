@@ -127,31 +127,6 @@ func (a *Agent) ListenAndServe(ctx context.Context, path string) error {
 	}
 }
 
-// Serve handles connections from an existing listener until ctx is cancelled.
-// It exists so tests can supply their own net.Listener.
-//
-// @arg ctx Context whose cancellation stops the accept loop.
-// @arg ln The listener to accept control connections on.
-// @error error if the accept loop fails for a reason other than ctx cancellation.
-//
-// @testcase TestAgentLifecycle serves connections over a test listener.
-func (a *Agent) Serve(ctx context.Context, ln net.Listener) error {
-	go func() {
-		<-ctx.Done()
-		ln.Close()
-	}()
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			return fmt.Errorf("accepting control connection: %w", err)
-		}
-		go a.handleConn(ctx, conn)
-	}
-}
-
 // Shutdown closes the box's PTY (so the claude process sees EOF and exits) and
 // kills and reaps the process. It is idempotent and safe to call when the box
 // never started.
