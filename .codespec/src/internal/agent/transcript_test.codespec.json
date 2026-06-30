@@ -1,0 +1,40 @@
+{
+	"functions": [
+		{
+			"function_name": "TestStripANSI",
+			"documentation_hash": "4c2118321e10320c2ee2c45b4d2f967584d081fe7d312339b087b425173340e0",
+			"definition_hash": "c97f619731ef589febd1dfcf952fc66518c048b679db1baf3255bee66a0679a9",
+			"reviewed_at": "2026-06-30T15:04:22.547630435Z"
+		},
+		{
+			"function_name": "TestTranscriptWaitForFindsMatch",
+			"documentation_hash": "c4e805055fc73719a460f7207c5c9a1432d1bedc8ae1acfd980c2e238fe0cbeb",
+			"definition_hash": "6e31f97a23c465e515db0e40fe9cc28fa11417b57d16240a7543ec93823b969f",
+			"reviewed_at": "2026-06-30T15:04:22.54780134Z"
+		},
+		{
+			"function_name": "TestTranscriptWaitForStreamEnds",
+			"documentation_hash": "3c4438d61967cea877a027a5bb93423aa2a8efa6b82b6c6fec49df937c0748c2",
+			"definition_hash": "b948049522ed255544889f77b80687458968cf9b33efdc2c4f6912163aaa815f",
+			"reviewed_at": "2026-06-30T15:04:22.583487508Z"
+		},
+		{
+			"function_name": "TestTranscriptWaitForTimesOut",
+			"documentation_hash": "9c8c0b2e64b5d9c5d1eaf3193a2baef65e4077781801178fb83162886a1e8ae0",
+			"definition_hash": "62db4e328d0d8266ceace4928eda7b2745bcc5c1a649319f11e23c9d3a9ad4b8",
+			"reviewed_at": "2026-06-30T15:04:22.583710872Z"
+		},
+		{
+			"function_name": "TestTranscriptLogsTail",
+			"documentation_hash": "ffda9e8005370f18cafae791311f5ec1315d912292e365a824efe3a848320c31",
+			"definition_hash": "3c02da9bd3b52f0c2e769c87350e2ce1c91535f335e389afd635edc4f74d0f1b",
+			"reviewed_at": "2026-06-30T15:04:22.583878586Z"
+		},
+		{
+			"function_name": "TestExecCapsOutput",
+			"documentation_hash": "b0ef9d5f861b7336fb2f19b43da2e30c8239b50ee7fe4ff300284bbaf72aab9c",
+			"definition_hash": "8b9bdb71c7b5d3101d9ce5e91e95dbcc177db075f4e0639bcc6d688bd5966ec5",
+			"reviewed_at": "2026-06-30T15:04:22.584051089Z"
+		}
+	]
+}
