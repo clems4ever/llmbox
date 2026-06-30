@@ -1,8 +1,8 @@
 // Package store persists llmbox's durable state — the auth-session registry, the
 // activation login state, and the cluster enrollment records — behind a small set
-// of interfaces. bbolt is the only implementation today (see Open), but the
-// interfaces are deliberately backend-agnostic so another engine (SQLite,
-// Postgres, …) can be added without touching the server.
+// of interfaces. SQLite is the only implementation today (see Open), but the
+// interfaces are deliberately backend-agnostic so another engine (Postgres, …)
+// can be added without touching the server.
 package store
 
 import (
@@ -118,7 +118,7 @@ type SessionStore interface {
 // Store is the aggregate persistence contract the server depends on: the session
 // registry, the activation login state, and the cluster enrollment records, plus
 // a Close that releases the backend. All methods must be safe for concurrent use.
-// Use Open for a bbolt-backed implementation.
+// Use Open for a SQLite-backed implementation.
 type Store interface {
 	SessionStore
 	LoginStore

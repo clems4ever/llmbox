@@ -1,0 +1,188 @@
+{
+	"functions": [
+		{
+			"function_name": "Open",
+			"documentation_hash": "0c5bec02f0c13602a9c92b964af60a5b402c2af48e3555815c8223165dcecbcb",
+			"definition_hash": "6ce77902c47c0b94e738c68fba99c8768d05422c9a3cd35eb583391e089524cc",
+			"reviewed_at": "2026-06-30T21:45:26.195624554Z"
+		},
+		{
+			"function_name": "openSQLite",
+			"documentation_hash": "583d95e813dd18e9cb4e25521c06eab8412b58add6865be51aab34c5a54ccc00",
+			"definition_hash": "646c637575e40ac402f8488ced8ff59fccfb4ddb51522e45ce6e5640d94f27ea",
+			"reviewed_at": "2026-06-30T21:45:26.199880515Z"
+		},
+		{
+			"function_name": "encodeTime",
+			"documentation_hash": "cd58bc7655fee93f79567abef67f8a3aaf85c937bcafedbcf8a9f209ac4429df",
+			"definition_hash": "dcd3ef6cb7459ac0426be828eaecd0b50fcad34259c13cb632f645c0c71f9306",
+			"reviewed_at": "2026-06-30T21:45:26.203378564Z"
+		},
+		{
+			"function_name": "decodeTime",
+			"documentation_hash": "1e34016d69bc146e6e31ecad19093b040a6c0de9d446da9379293244437fbcd0",
+			"definition_hash": "2b65ff5008393c1215800212264f4741401e4f228bd09476fbdcf3930478bb04",
+			"reviewed_at": "2026-06-30T21:45:26.207005013Z"
+		},
+		{
+			"function_name": "scanProxy",
+			"documentation_hash": "ce5630f046b6d3eed254d48a8a8fba6f7c7c2f2a93d75dbb8e17529f65e1d49a",
+			"definition_hash": "b880708eb682fac16968f43b090425f90f43336b0be1c161cd6d209fd5288eef",
+			"reviewed_at": "2026-06-30T21:45:26.210475388Z"
+		},
+		{
+			"function_name": "Save",
+			"receiver": "sqliteStore",
+			"documentation_hash": "25a135089be55cc8edfd10ff654eb5ce7c6be5ac4924803ec9af573ce164990c",
+			"definition_hash": "de26b27d6ae2036c20d7c7b3f2cfa5681a8add0d835fc3e9592e8410d49e514f",
+			"reviewed_at": "2026-06-30T21:45:32.615435336Z"
+		},
+		{
+			"function_name": "Delete",
+			"receiver": "sqliteStore",
+			"documentation_hash": "809707e20dbdca8007c2cbe83643d2a9ccd79f4e35da964ae152a651bb3dd938",
+			"definition_hash": "f312665bc416d9ef3d06aa24fde36c6a0738e6b86bbd6f06b3b297941d6c013e",
+			"reviewed_at": "2026-06-30T21:45:32.618749143Z"
+		},
+		{
+			"function_name": "LoadAll",
+			"receiver": "sqliteStore",
+			"documentation_hash": "9735bb5eebcb71635ed81d409bf8793606014c57644af98c4526c3e11848affc",
+			"definition_hash": "49a47456507b8be6ab1f4ef2146c4ac6f8b5e133084cf5badabb4badf748a8d0",
+			"reviewed_at": "2026-06-30T21:45:32.628078663Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "sqliteStore",
+			"documentation_hash": "e84f1690b459ac4208c94533b25857fb1badf747d31cd26fccfb66f03c713c09",
+			"definition_hash": "121ee27bfd2cac75a4376c0917226591ef64ceccaca508bdffa92a28b8e2c475",
+			"reviewed_at": "2026-06-30T21:45:32.630579775Z"
+		},
+		{
+			"function_name": "SaveLoginFlow",
+			"receiver": "sqliteStore",
+			"documentation_hash": "add4e7f7fe8fb2806903d1350a38f084ac895133c03970cc266ee2c7e378271b",
+			"definition_hash": "032dda0c766e155cbce527487578aadedee19251a31c20c9f1a3bb6f8369adbd",
+			"reviewed_at": "2026-06-30T21:45:32.632906507Z"
+		},
+		{
+			"function_name": "TakeLoginFlow",
+			"receiver": "sqliteStore",
+			"documentation_hash": "b1a60f4242c9decc0325d7c7db95e449ef4aca2eacc4803f5ea15ae006112ea6",
+			"definition_hash": "f4fe7ecaf736fb492b10dad26a0cb675b1daa2f274ca8344c56e3e03aa63d62a",
+			"reviewed_at": "2026-06-30T21:45:32.635277728Z"
+		},
+		{
+			"function_name": "SaveLoginSession",
+			"receiver": "sqliteStore",
+			"documentation_hash": "1c6db85357059bb8c8418835dd3a45c9ad1afac9df3542c4baa8dea806d77f87",
+			"definition_hash": "a7b194d665f83e7e4ced3c7bb2394f52b77eedd510475220c6738d3c36994986",
+			"reviewed_at": "2026-06-30T21:45:32.637719881Z"
+		},
+		{
+			"function_name": "LoginSession",
+			"receiver": "sqliteStore",
+			"documentation_hash": "0275bf8e9517c90986dcf0630c7b158ec7607cf83a66a767ae26e1b5bef8362f",
+			"definition_hash": "8273ad217aa6705500b2bb7234e8f4620e5f5d082399d507556b80472b501fad",
+			"reviewed_at": "2026-06-30T21:45:32.640111432Z"
+		},
+		{
+			"function_name": "DeleteLoginSession",
+			"receiver": "sqliteStore",
+			"documentation_hash": "50ee8d9e5168f21fc1f80e4db159d5ac21565de9cd79fb34f17b07853dc794ad",
+			"definition_hash": "dd145c442ee5dcd7d27d5d11276a4b551f2158a6d54cacce87d139e85902ead6",
+			"reviewed_at": "2026-06-30T21:45:32.642703588Z"
+		},
+		{
+			"function_name": "PurgeExpiredLogins",
+			"receiver": "sqliteStore",
+			"documentation_hash": "c03d1e0a2113e0cadd5a7b7eb99a622a1942732a2907c821dd40b03229720c08",
+			"definition_hash": "a87bfa276a4d96ed157354b2b596e6103818ff01c72be565a9468c94c609fc21",
+			"reviewed_at": "2026-06-30T21:45:32.645084128Z"
+		},
+		{
+			"function_name": "PutJoinToken",
+			"receiver": "sqliteStore",
+			"documentation_hash": "684c8bb3e57ad0ea2574f8d7e599d49b06e8fbb485b760c56c2fa737b885b9db",
+			"definition_hash": "6433210198992b4dace2c9be42bd3d50fed2e2455d629314f2db33cdad106d72",
+			"reviewed_at": "2026-06-30T21:45:32.647566682Z"
+		},
+		{
+			"function_name": "TakeJoinToken",
+			"receiver": "sqliteStore",
+			"documentation_hash": "41a722df794748b83a88addbd7dbc39ebc937ca6635eb956e1965692718851d3",
+			"definition_hash": "459e68d0e627571c47e1954407f0cce87d81d07b2ee2162b895a1caf58c2fc7d",
+			"reviewed_at": "2026-06-30T21:45:32.649963334Z"
+		},
+		{
+			"function_name": "ListJoinTokens",
+			"receiver": "sqliteStore",
+			"documentation_hash": "a919bee97789d08211e0f4f5558f4ed14fe264e0f5c5cffc16bc8ec54e293385",
+			"definition_hash": "7557c03812e9f8daa2da30f5208ed0f8a43bfd0f28377f2e6e82042f69fb6ef5",
+			"reviewed_at": "2026-06-30T21:45:32.652390473Z"
+		},
+		{
+			"function_name": "DeleteJoinToken",
+			"receiver": "sqliteStore",
+			"documentation_hash": "01675dd9dcebcbacfaf29d0371a508c21a51cfd666aea5b42406e013d6416b16",
+			"definition_hash": "8f49b210c94462386dea0a098ac367749e78c36a6bf30cb77f5b532245041380",
+			"reviewed_at": "2026-06-30T21:45:32.654865484Z"
+		},
+		{
+			"function_name": "PutSpoke",
+			"receiver": "sqliteStore",
+			"documentation_hash": "b6a6fee4cffaaf6762480821ea1a8a2ec18db1480247547d73bc9d64d9a5f84f",
+			"definition_hash": "fb21572ed82ee4745471ab1b4f03c6e52ce65a13257592ec57996d15f56991c3",
+			"reviewed_at": "2026-06-30T21:45:32.657281142Z"
+		},
+		{
+			"function_name": "GetSpoke",
+			"receiver": "sqliteStore",
+			"documentation_hash": "2ea5c9a3acaf621cc157b63fbbd76c8ebad9e138e3903e2084348090a2dedf83",
+			"definition_hash": "4eeb502e87957a95a8803cb68e2e763b168a269b00aa36ae0139f8b6f542b771",
+			"reviewed_at": "2026-06-30T21:45:32.660092916Z"
+		},
+		{
+			"function_name": "ListSpokes",
+			"receiver": "sqliteStore",
+			"documentation_hash": "95ca7a8cf40fc0f30b7001c7ead1773faaad2368c6c10e7e4c38fd1ea731298a",
+			"definition_hash": "0baacf99ab87fba0b2c4f685e6e6dbe6b2fa70c0a054af41960e56714a0333d5",
+			"reviewed_at": "2026-06-30T21:45:32.662544129Z"
+		},
+		{
+			"function_name": "DeleteSpoke",
+			"receiver": "sqliteStore",
+			"documentation_hash": "f2f15b5062ca07792b1b4a0d3ab6222b399bb6f46d47f3c19042c517fe9ba42f",
+			"definition_hash": "38e5fb1b16dbabece4c61c3acfc71260072d879f18d0e8962c504a1caac85ab7",
+			"reviewed_at": "2026-06-30T21:45:32.665177423Z"
+		},
+		{
+			"function_name": "SaveProxy",
+			"receiver": "sqliteStore",
+			"documentation_hash": "4f69a1a656740094c2795fe1adca5b463e3427a3ff66c7e9a3d324947ecf9842",
+			"definition_hash": "ba2dc67a7a1a78ec323a72954f4d73f4349002f3dbd1ad88947d3e600586a886",
+			"reviewed_at": "2026-06-30T21:45:32.667630665Z"
+		},
+		{
+			"function_name": "GetProxy",
+			"receiver": "sqliteStore",
+			"documentation_hash": "f1b46692afb6885a2ab05e9702c111225a33c126d69195c7768571b6ae51b63f",
+			"definition_hash": "485b3daa16648e99081b0377703ad5a6eab9d38205ea8ff25faa8e356b97f4cd",
+			"reviewed_at": "2026-06-30T21:45:32.670217025Z"
+		},
+		{
+			"function_name": "ListProxies",
+			"receiver": "sqliteStore",
+			"documentation_hash": "a401633cebde66c3fd353e3b504872facbe8ff6c027c94b898bbddd848896a0b",
+			"definition_hash": "c52b0e46d3a6509e056e204f790feb8d1ceb9962439191ebcf1571167768cf7d",
+			"reviewed_at": "2026-06-30T21:45:32.672649705Z"
+		},
+		{
+			"function_name": "DeleteProxy",
+			"receiver": "sqliteStore",
+			"documentation_hash": "be138d50984fc1f386ea6b0d8839b39d076e2adaf8d581d2420b5cc4ebccda67",
+			"definition_hash": "08257ecd85da656ee9f1365b098cabde0a102437d2049ce6f8902a38e3a9e380",
+			"reviewed_at": "2026-06-30T21:45:32.675176918Z"
+		}
+	]
+}

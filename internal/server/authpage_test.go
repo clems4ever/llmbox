@@ -15,7 +15,7 @@ import (
 	"github.com/clems4ever/llmbox/testutils"
 )
 
-// newAuthServer builds an auth-enabled Server backed by a real bbolt store, using
+// newAuthServer builds an auth-enabled Server backed by a real SQLite store, using
 // the offline test authenticator (a single "google" sign-in button, no admin
 // allow-list). The OIDC handshake itself is covered in the auth package; these
 // tests exercise the server's auth-page gating around a signed-in session.

@@ -42,7 +42,7 @@ func decodeAdminResult(t *testing.T, rec *httptest.ResponseRecorder) adminResult
 }
 
 // newAdminServer builds an admin-enabled Server (admin@corp.com on the allow
-// list) backed by a real bbolt store and a fake box manager.
+// list) backed by a real SQLite store and a fake box manager.
 func newAdminServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 	t.Helper()
 	st, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))

@@ -15,9 +15,9 @@
 		},
 		{
 			"function_name": "newTestAuth",
-			"documentation_hash": "92af375f432b6be82c07b612aca78884d58d86e3d23191c6c9259006a55fb7d6",
+			"documentation_hash": "25477728f1fa19af68e1a17f62c13ea999a73102dd3ea113b31b891ee3e8b495",
 			"definition_hash": "8ccdfa2c4bc3773e760a53fd2e91961d57860b4e3c17b221ce4ace201461e0ae",
-			"reviewed_at": "2026-06-27T11:26:36.071323492Z"
+			"reviewed_at": "2026-06-30T21:45:26.166486822Z"
 		},
 		{
 			"function_name": "TestAuthorize",

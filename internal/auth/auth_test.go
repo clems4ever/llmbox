@@ -53,7 +53,7 @@ func googleTestProvider(t *testing.T, claims idClaims, verr error) *provider {
 	}
 }
 
-// newTestAuth builds an Authenticator wrapping p and bound to a fresh bbolt store,
+// newTestAuth builds an Authenticator wrapping p and bound to a fresh SQLite store,
 // plus a mux mounting the login/callback handlers, so the OIDC flow can be driven
 // over HTTP without a Server.
 func newTestAuth(t *testing.T, p *provider) (*Authenticator, http.Handler, store.Store) {

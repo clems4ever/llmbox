@@ -15,7 +15,7 @@ import (
 )
 
 // newAdminServer builds an admin-enabled Server (admin@corp.com on the allow
-// list) backed by a real bbolt store and a fake box manager, using the exported
+// list) backed by a real SQLite store and a fake box manager, using the exported
 // server test seams so the e2e package can wire it from outside package server.
 //
 // @arg t The test, failed if the store cannot be opened.
