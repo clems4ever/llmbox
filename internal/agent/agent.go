@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/creack/pty"
@@ -102,13 +103,19 @@ func (a *Agent) ListenAndServe(ctx context.Context, path string) error {
 	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("removing stale socket: %w", err)
 	}
+	// Create the socket with owner-only permissions from birth. net.Listen would
+	// otherwise create it with the umask-default mode and leave a window before a
+	// follow-up Chmod during which another local user could open it; tightening
+	// umask around the Listen closes that race. (The 0700 parent dir already
+	// blocks non-owners, so this is defense-in-depth.) Umask is process-global, so
+	// it is restored immediately, including on the error path.
+	oldMask := syscall.Umask(0o177)
 	ln, err := net.Listen("unix", path)
+	syscall.Umask(oldMask)
 	if err != nil {
 		return fmt.Errorf("listening on control socket: %w", err)
 	}
 	defer ln.Close()
-	// The bind mount is owner-only, but tighten the socket itself too.
-	_ = os.Chmod(path, 0o600)
 
 	go func() {
 		<-ctx.Done()

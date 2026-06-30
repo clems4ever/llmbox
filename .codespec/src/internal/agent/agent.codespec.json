@@ -10,8 +10,8 @@
 			"function_name": "ListenAndServe",
 			"receiver": "Agent",
 			"documentation_hash": "f4064d48009b852902a064ba34c348f8268926ff687def9114c3077bdcaac2f7",
-			"definition_hash": "a4bbe02a3019a88a58876be6be7a9cac63b3e7e0d74b8f6a700606dfe48cc16c",
-			"reviewed_at": "2026-06-29T19:22:53.360983033Z"
+			"definition_hash": "5b8b86cee8f71160db4ba291eff083814d2910446f2d4f81b7678965ab15a136",
+			"reviewed_at": "2026-06-30T12:42:29.572207378Z"
 		},
 		{
 			"function_name": "Shutdown",

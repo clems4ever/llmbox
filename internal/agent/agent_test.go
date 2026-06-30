@@ -139,6 +139,45 @@ func TestAgentLifecycle(t *testing.T) {
 	}
 }
 
+// TestListenAndServeSocketPerms checks the control socket is owner-only (0600)
+// inside an owner-only (0700) directory, so a non-owner local user cannot reach
+// it. The socket is created with these perms from birth (tight umask around
+// Listen), not loosened-then-tightened.
+func TestListenAndServeSocketPerms(t *testing.T) {
+	a := New(Options{ClaudeCmd: writeMockClaude(t)})
+	sock := filepath.Join(t.TempDir(), "sockdir", "control.sock")
+	ctx, cancel := context.WithCancel(context.Background())
+	errc := make(chan error, 1)
+	go func() { errc <- a.ListenAndServe(ctx, sock) }()
+	t.Cleanup(func() { a.Shutdown(); cancel(); <-errc })
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if _, err := os.Stat(sock); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("control socket did not appear")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	si, err := os.Stat(sock)
+	if err != nil {
+		t.Fatalf("stat socket: %v", err)
+	}
+	if si.Mode().Perm() != 0o600 {
+		t.Fatalf("socket mode = %v, want 0600", si.Mode().Perm())
+	}
+	di, err := os.Stat(filepath.Dir(sock))
+	if err != nil {
+		t.Fatalf("stat socket dir: %v", err)
+	}
+	if di.Mode().Perm() != 0o700 {
+		t.Fatalf("socket dir mode = %v, want 0700", di.Mode().Perm())
+	}
+}
+
 // TestAgentStartAlreadyAuthenticated returns a session URL (not an authorize URL)
 // when the box already has credentials on disk.
 func TestAgentStartAlreadyAuthenticated(t *testing.T) {

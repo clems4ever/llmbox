@@ -77,6 +77,12 @@
 			"documentation_hash": "9c9082c3cfcb08e3586c5b1405229e091040a9fdf7b071bc95142d63ebf99f3f",
 			"definition_hash": "f02c129cdce7dcfbcbb2592b0e1b5b171880ef53795c93838b0f1ad5ee9fdc66",
 			"reviewed_at": "2026-06-29T19:22:53.487856789Z"
+		},
+		{
+			"function_name": "TestListenAndServeSocketPerms",
+			"documentation_hash": "f058ae5a6a5ee40ed390fcc1556df0251b4b45ae7678e6d1da1574455e6453b3",
+			"definition_hash": "17826e961f39d2fb8b58ed71172a01652d54c394ebf2a74ec635ab7cb2adcfa1",
+			"reviewed_at": "2026-06-30T12:42:29.573543182Z"
 		}
 	]
 }
