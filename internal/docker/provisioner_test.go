@@ -372,7 +372,7 @@ func TestListMapsManagedContainers(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{{
 		ID:     "abcdef0123456789",
 		Names:  []string{"/" + readyPrefix + "abcdef012345"},
-		Labels: map[string]string{ManagedLabel: "true", BoxIDLabel: "b1", SocketLabel: "tok1"},
+		Labels: map[string]string{ManagedLabel: "true", BoxIDLabel: "b1", socketLabel: "tok1"},
 		Image:  "img",
 		State:  "running",
 	}}}
@@ -392,7 +392,7 @@ func TestFindResolvesByIDAndBoxID(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{{
 		ID:     "abcdef0123456789",
 		Names:  []string{"/" + pendingPrefix + "abcdef012345"},
-		Labels: map[string]string{ManagedLabel: "true", BoxIDLabel: "mybox", SocketLabel: "tok"},
+		Labels: map[string]string{ManagedLabel: "true", BoxIDLabel: "mybox", socketLabel: "tok"},
 	}}}
 	p := newTestProvisioner(t, f)
 	if _, err := p.Find(context.Background(), "abcdef012345"); err != nil {
@@ -403,11 +403,11 @@ func TestFindResolvesByIDAndBoxID(t *testing.T) {
 	}
 }
 
-// TestFindUnknownBox errors with ErrBoxNotFound when no managed box matches.
+// TestFindUnknownBox errors with sandbox.ErrBoxNotFound when no managed box matches.
 func TestFindUnknownBox(t *testing.T) {
 	p := newTestProvisioner(t, &fakeDocker{})
-	if _, err := p.Find(context.Background(), "nope"); !errors.Is(err, ErrBoxNotFound) {
-		t.Fatalf("err = %v, want ErrBoxNotFound", err)
+	if _, err := p.Find(context.Background(), "nope"); !errors.Is(err, sandbox.ErrBoxNotFound) {
+		t.Fatalf("err = %v, want sandbox.ErrBoxNotFound", err)
 	}
 }
 
@@ -464,23 +464,23 @@ func TestDestroyRemovesNetworkAndSocket(t *testing.T) {
 	}
 }
 
-// TestDestroyAlreadyGone reports ErrBoxNotFound when the container is missing.
+// TestDestroyAlreadyGone reports sandbox.ErrBoxNotFound when the container is missing.
 func TestDestroyAlreadyGone(t *testing.T) {
 	f := &fakeDocker{stopMissing: true}
 	p := newTestProvisioner(t, f)
 	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}}
-	if err := inst.Destroy(context.Background()); !errors.Is(err, ErrBoxNotFound) {
-		t.Fatalf("err = %v, want ErrBoxNotFound", err)
+	if err := inst.Destroy(context.Background()); !errors.Is(err, sandbox.ErrBoxNotFound) {
+		t.Fatalf("err = %v, want sandbox.ErrBoxNotFound", err)
 	}
 }
 
 // TestIsNotFound recognizes the sentinel, a wrapped error, a wire string, and
 // rejects others.
 func TestIsNotFound(t *testing.T) {
-	if !IsNotFound(ErrBoxNotFound) {
+	if !IsNotFound(sandbox.ErrBoxNotFound) {
 		t.Error("sentinel should be not-found")
 	}
-	if !IsNotFound(errors.New(ErrBoxNotFound.Error() + " \"x\"")) {
+	if !IsNotFound(errors.New(sandbox.ErrBoxNotFound.Error() + " \"x\"")) {
 		t.Error("wire string should be not-found")
 	}
 	if IsNotFound(errors.New("other")) {

@@ -49,10 +49,10 @@ const (
 	BoxIDLabel       = "com.llmbox.box-id"
 	DescriptionLabel = "com.llmbox.description"
 
-	// SocketLabel persists the per-box socket token (the subdirectory under the
+	// socketLabel persists the per-box socket token (the subdirectory under the
 	// provisioner's socket dir holding the box's control socket), so List/Find can
 	// reconstruct the socket path from a container summary alone.
-	SocketLabel = "com.llmbox.socket"
+	socketLabel = "com.llmbox.socket"
 
 	// DefaultImage is launched when the caller does not specify one. It bakes in
 	// the standalone Claude binary, the llmbox-agent binary (its entrypoint),
@@ -272,7 +272,7 @@ func (p *Provisioner) List(ctx context.Context) ([]box.Instance, error) {
 	}
 	out := make([]box.Instance, 0, len(cs))
 	for _, c := range cs {
-		out = append(out, &dockerInstance{prov: p, box: boxFromSummary(c), socketToken: c.Labels[SocketLabel]})
+		out = append(out, &dockerInstance{prov: p, box: boxFromSummary(c), socketToken: c.Labels[socketLabel]})
 	}
 	return out, nil
 }
@@ -302,7 +302,7 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 			return inst, nil
 		}
 	}
-	return nil, fmt.Errorf("%w %q", ErrBoxNotFound, idOrName)
+	return nil, fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
 // Provision creates and starts a box: a container whose entrypoint is the guest
@@ -344,7 +344,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		return nil, fmt.Errorf("creating box socket dir: %w", err)
 	}
 
-	labels := map[string]string{ManagedLabel: "true", SocketLabel: token}
+	labels := map[string]string{ManagedLabel: "true", socketLabel: token}
 	if opts.BoxID != "" {
 		labels[BoxIDLabel] = opts.BoxID
 	}
@@ -472,7 +472,7 @@ func waitForSocket(ctx context.Context, path string, timeout time.Duration) erro
 }
 
 // newSocketToken returns a random hex token used as a box's socket subdirectory
-// name (and SocketLabel value).
+// name (and socketLabel value).
 //
 // @return string A 16-char random hex token.
 // @error error if the system random source fails.
@@ -645,11 +645,6 @@ func splitGPUList(list string) []string {
 	return ids
 }
 
-// ErrBoxNotFound is the backend-neutral sentinel (defined in internal/sandbox)
-// reporting that no managed box matches a given identifier. Re-exported here so
-// existing callers (docker.ErrBoxNotFound) keep working.
-var ErrBoxNotFound = sandbox.ErrBoxNotFound
-
 // IsNotFound reports whether err indicates that no managed box matched the
 // identifier. It recognizes both the typed ErrBoxNotFound (local calls) and an
 // error that round-tripped over the cluster transport as a bare string.
@@ -659,7 +654,7 @@ var ErrBoxNotFound = sandbox.ErrBoxNotFound
 //
 // @testcase TestIsNotFound recognizes the sentinel, a wrapped error, a wire string, and rejects others.
 func IsNotFound(err error) bool {
-	return err != nil && (errors.Is(err, ErrBoxNotFound) || strings.Contains(err.Error(), ErrBoxNotFound.Error()))
+	return err != nil && (errors.Is(err, sandbox.ErrBoxNotFound) || strings.Contains(err.Error(), sandbox.ErrBoxNotFound.Error()))
 }
 
 // dockerInstance is a handle to one managed Docker box.
@@ -727,13 +722,13 @@ func (i *dockerInstance) Destroy(ctx context.Context) error {
 	timeout := int(stopTimeout.Seconds())
 	if err := i.prov.cli.ContainerStop(ctx, id, container.StopOptions{Timeout: &timeout}); err != nil {
 		if errdefs.IsNotFound(err) {
-			return fmt.Errorf("%w %q", ErrBoxNotFound, id)
+			return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, id)
 		}
 		return fmt.Errorf("stopping box %s: %w", id, err)
 	}
 	if err := i.prov.cli.ContainerRemove(ctx, id, container.RemoveOptions{RemoveVolumes: true}); err != nil {
 		if errdefs.IsNotFound(err) {
-			return fmt.Errorf("%w %q", ErrBoxNotFound, id)
+			return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, id)
 		}
 		return fmt.Errorf("removing box %s: %w", id, err)
 	}

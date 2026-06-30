@@ -142,20 +142,20 @@
 		{
 			"function_name": "TestListMapsManagedContainers",
 			"documentation_hash": "e803bf2bc49f1973156fdd59e0c2709965cd651adff70babfde355ce49d382e1",
-			"definition_hash": "8f79045f6d1b8f591d224a41a1b2cfff1264ce24a6788c8a92ae733a867a2090",
-			"reviewed_at": "2026-06-30T16:11:46.371992829Z"
+			"definition_hash": "53faa9cb99f55e47ddee2127cacfd8cde2b2f912913889d3871541954aa6a87b",
+			"reviewed_at": "2026-06-30T16:44:28.401201637Z"
 		},
 		{
 			"function_name": "TestFindResolvesByIDAndBoxID",
 			"documentation_hash": "78a8b777c59bb9c1c2cc895454560d7308fba2de189009ae2547fa7faa795e13",
-			"definition_hash": "1b29c5ce438c75a591fb407ddf36478f2516f22110ef8f6cb562e878dda80132",
-			"reviewed_at": "2026-06-30T16:11:46.37274224Z"
+			"definition_hash": "670865ac51b69cfd4932e2fc83ac1f3450252ac1e5ba9d2667ab5755ca63e0ef",
+			"reviewed_at": "2026-06-30T16:44:28.402651477Z"
 		},
 		{
 			"function_name": "TestFindUnknownBox",
-			"documentation_hash": "2a7d2e440a89ee63467be3a3ca2943ac875c7e4f707fa3ddf6c77c1d4fe5bd35",
-			"definition_hash": "20fc06b4e3f6bcecd2ed20f6e542edd80381320b79b4360a7d091526dfbbc3d3",
-			"reviewed_at": "2026-06-30T16:11:46.373605098Z"
+			"documentation_hash": "8d4bd41c7a59bf46b2147aa0c62f4737e1cfe8af18e40f6fbcaf81feda05bb0e",
+			"definition_hash": "2207f24d0443c218074c4852354e9fac98e3585df4fb28506bc4b446db90b0b1",
+			"reviewed_at": "2026-06-30T16:43:41.279559752Z"
 		},
 		{
 			"function_name": "TestSetBoxGPUsParsesSpec",
@@ -177,15 +177,15 @@
 		},
 		{
 			"function_name": "TestDestroyAlreadyGone",
-			"documentation_hash": "048fc5d7fec7df42d9b54daee7f52553d0a3fdf9d4b79da97d2d1deafe3e53a2",
-			"definition_hash": "d1ee4dc7a68aa2d9d1e315c01911837ee669a44db4e79d894a35815148c362f2",
-			"reviewed_at": "2026-06-30T16:11:46.410900842Z"
+			"documentation_hash": "22dc3961ef4dab362f2bf38025c8ad562074befe1150d6d92c7364d25ffaf9ef",
+			"definition_hash": "0168bf980892963829cc7b2bc8f634ae0286abc96649b3e24b6afd892a1529be",
+			"reviewed_at": "2026-06-30T16:43:41.281108777Z"
 		},
 		{
 			"function_name": "TestIsNotFound",
 			"documentation_hash": "863e54d88f5e596e0cbbf1c8241e38547103f724bbb36878c0d614569c0740db",
-			"definition_hash": "f43ccc0fbdadd3ad0a9dfbbdf3f3577e7c88833c59f8ca53a741821a087f8de3",
-			"reviewed_at": "2026-06-30T16:11:46.411692933Z"
+			"definition_hash": "96ce4dbd5de0d04eea4dbd2c54300ade8388585f159e1ac74a507dfde393cfef",
+			"reviewed_at": "2026-06-30T16:43:41.28227464Z"
 		},
 		{
 			"function_name": "TestNewProvisionerDefaults",

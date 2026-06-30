@@ -74,7 +74,7 @@ func TestHandleStartBeforeInit(t *testing.T) {
 // TestHandleLogsBeforeStart returns empty logs before the box starts.
 func TestHandleLogsBeforeStart(t *testing.T) {
 	a := New(Options{})
-	if out := a.handleLogs(LogsReq{}); out != "" {
+	if out := a.handleLogs(logsReq{}); out != "" {
 		t.Fatalf("logs before start = %q, want empty", out)
 	}
 }

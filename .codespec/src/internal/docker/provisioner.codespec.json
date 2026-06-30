@@ -63,22 +63,22 @@
 			"function_name": "List",
 			"receiver": "Provisioner",
 			"documentation_hash": "1f236b1df15f5e704ad22e7af5f83cc02e389d427a3e8d97592f0d35de5f277d",
-			"definition_hash": "384d0d355228c0646b42285277743c935df8e44530b6df1885ecb728686a2623",
-			"reviewed_at": "2026-06-30T16:10:22.278889322Z"
+			"definition_hash": "a62bddb87320d1d81248910b149abde7cad5a6fa99c2da3129ab0119196776a3",
+			"reviewed_at": "2026-06-30T16:43:41.272961121Z"
 		},
 		{
 			"function_name": "Find",
 			"receiver": "Provisioner",
 			"documentation_hash": "fa34903cf403ad9f962e61d831f130b4ff25809231cf2e1caab522f5723b1e23",
-			"definition_hash": "a7c75c10db2a0131088e703fd547522ad283ff00febcca31c6cf3d61cc782b4a",
-			"reviewed_at": "2026-06-30T16:10:22.309747022Z"
+			"definition_hash": "d57b820d36b1148dbd0cbfb471e6ad758725b2cc75df7e66dc72a3ce1a461020",
+			"reviewed_at": "2026-06-30T16:43:41.274070583Z"
 		},
 		{
 			"function_name": "Provision",
 			"receiver": "Provisioner",
 			"documentation_hash": "0148ab5a5d410928c46af4557862667e6fff66dbd54d844751bab5b865411970",
-			"definition_hash": "d08453d0943ce9a94a8b0bee90a09ad15efd4cbcf9940f732f424fffd969f6ff",
-			"reviewed_at": "2026-06-30T16:10:22.31075713Z"
+			"definition_hash": "2b71f0d76feb7b09f448a5e90a1556dd7a199f0a9b00e4e0d51f9d8f6ed6d167",
+			"reviewed_at": "2026-06-30T16:43:41.27517154Z"
 		},
 		{
 			"function_name": "waitForSocket",
@@ -88,9 +88,9 @@
 		},
 		{
 			"function_name": "newSocketToken",
-			"documentation_hash": "5e2b1967f161121b3ebb87e545759d6b43d2577deb5f1206675468acfe58e8ad",
+			"documentation_hash": "7571750422e74887260914227692d51412d20aad26ca388ea575f89b16302568",
 			"definition_hash": "49d7de938b8c94fb13dfd3fbb71953f381ad9aac5f468d7114c8e2522ef3f899",
-			"reviewed_at": "2026-06-30T16:10:22.312771547Z"
+			"reviewed_at": "2026-06-30T16:43:41.27649513Z"
 		},
 		{
 			"function_name": "boxNetworkName",
@@ -141,8 +141,8 @@
 		{
 			"function_name": "IsNotFound",
 			"documentation_hash": "4bf006b4df53e08909835fc72dde8cdf6213d61aaf34ab4c30094aaec55f926d",
-			"definition_hash": "2c1b3ca336681dd83a57914b73ce048f26765ef11cac62cfd0868f04ca731382",
-			"reviewed_at": "2026-06-30T16:10:22.352393844Z"
+			"definition_hash": "be8a5ec415cf373a5dadc17946fbb7381b4ffc79e72f6dcb7fc5756039c54ef8",
+			"reviewed_at": "2026-06-30T16:43:41.277455276Z"
 		},
 		{
 			"function_name": "socketPath",
@@ -176,8 +176,8 @@
 			"function_name": "Destroy",
 			"receiver": "dockerInstance",
 			"documentation_hash": "be8d138ca940f21935dfc3d664ebea4b082071c1017ac5e32168f0f55c71d594",
-			"definition_hash": "1b46b638eeaba2712e9c84c4797774b3aa0665690e85fb9eff60ef58c37c63d4",
-			"reviewed_at": "2026-06-30T16:10:22.358143533Z"
+			"definition_hash": "32744fe4ecbd4c1693762b02783ddf58ab3e4bb7a27c5d1a098e06e609beca5e",
+			"reviewed_at": "2026-06-30T16:43:41.27868125Z"
 		}
 	]
 }

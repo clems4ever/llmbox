@@ -262,7 +262,7 @@ func (a *Agent) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 		}
 		return json.Marshal(out)
 	case verbSubmitCode:
-		var in SubmitCodeReq
+		var in submitCodeReq
 		if err := json.Unmarshal(r.Data, &in); err != nil {
 			return nil, fmt.Errorf("decoding submit_code: %w", err)
 		}
@@ -272,7 +272,7 @@ func (a *Agent) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 		}
 		return json.Marshal(out)
 	case verbExec:
-		var in ExecReq
+		var in execReq
 		if err := json.Unmarshal(r.Data, &in); err != nil {
 			return nil, fmt.Errorf("decoding exec: %w", err)
 		}
@@ -282,11 +282,11 @@ func (a *Agent) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 		}
 		return json.Marshal(out)
 	case verbLogs:
-		var in LogsReq
+		var in logsReq
 		if err := json.Unmarshal(r.Data, &in); err != nil {
 			return nil, fmt.Errorf("decoding logs: %w", err)
 		}
-		return json.Marshal(LogsResp{Output: a.handleLogs(in)})
+		return json.Marshal(logsResp{Output: a.handleLogs(in)})
 	default:
 		return nil, fmt.Errorf("unknown verb %q", r.Verb)
 	}
@@ -366,29 +366,29 @@ func (a *Agent) handleStart() (StartResp, error) {
 // the remote-control session URL.
 //
 // @arg in The submit-code request carrying the OAuth code.
-// @return SubmitCodeResp The session URL printed once login completes.
+// @return submitCodeResp The session URL printed once login completes.
 // @error error if Start has not run, the code cannot be written, or no session URL appears before the timeout.
 //
 // @testcase TestAgentLifecycle submits the code and returns the session URL.
 // @testcase TestAgentSubmitCodeBeforeStart errors when called before Start.
-func (a *Agent) handleSubmitCode(in SubmitCodeReq) (SubmitCodeResp, error) {
+func (a *Agent) handleSubmitCode(in submitCodeReq) (submitCodeResp, error) {
 	a.mu.Lock()
 	started, ptmx, tr := a.started, a.ptmx, a.tr
 	a.mu.Unlock()
 	if !started {
-		return SubmitCodeResp{}, errors.New("not started")
+		return submitCodeResp{}, errors.New("not started")
 	}
 	if _, err := ptmx.Write([]byte(strings.TrimSpace(in.Code) + "\r")); err != nil {
-		return SubmitCodeResp{}, fmt.Errorf("submitting code: %w", err)
+		return submitCodeResp{}, fmt.Errorf("submitting code: %w", err)
 	}
 	match, _, tail, err := tr.waitForAny([]*regexp.Regexp{sessionURLRe}, submitTimeout)
 	if err != nil {
 		if tail != "" {
-			return SubmitCodeResp{}, fmt.Errorf("login did not complete; box said: %s", tail)
+			return submitCodeResp{}, fmt.Errorf("login did not complete; box said: %s", tail)
 		}
-		return SubmitCodeResp{}, fmt.Errorf("login did not complete: %w", err)
+		return submitCodeResp{}, fmt.Errorf("login did not complete: %w", err)
 	}
-	return SubmitCodeResp{SessionURL: match}, nil
+	return submitCodeResp{SessionURL: match}, nil
 }
 
 // handleExec runs cmd inside the box as a separate process (not the claude PTY)
@@ -401,7 +401,7 @@ func (a *Agent) handleSubmitCode(in SubmitCodeReq) (SubmitCodeResp, error) {
 //
 // @testcase TestAgentLifecycle runs a command via Exec and captures its output.
 // @testcase TestAgentExecNonZeroExit reports a non-zero exit code without erroring.
-func (a *Agent) handleExec(ctx context.Context, in ExecReq) (sandbox.ExecResult, error) {
+func (a *Agent) handleExec(ctx context.Context, in execReq) (sandbox.ExecResult, error) {
 	if len(in.Cmd) == 0 {
 		return sandbox.ExecResult{}, errors.New("empty command")
 	}
@@ -429,7 +429,7 @@ func (a *Agent) handleExec(ctx context.Context, in ExecReq) (sandbox.ExecResult,
 // @return string The trailing transcript lines (empty before Start).
 //
 // @testcase TestAgentLifecycle reads back the box transcript via Logs.
-func (a *Agent) handleLogs(in LogsReq) string {
+func (a *Agent) handleLogs(in logsReq) string {
 	a.mu.Lock()
 	tr := a.tr
 	a.mu.Unlock()
@@ -445,12 +445,12 @@ func (a *Agent) handleLogs(in LogsReq) string {
 // returns without splicing.
 //
 // @arg conn The control connection to splice to the dialled port.
-// @arg data The JSON-encoded DialReq naming the port.
+// @arg data The JSON-encoded dialReq naming the port.
 //
 // @testcase TestClientDialPort forwards bytes between the conn and a localhost listener.
 // @testcase TestAgentDialRejectsBadPort writes an error response for an out-of-range port.
 func (a *Agent) handleDial(conn net.Conn, data json.RawMessage) {
-	var in DialReq
+	var in dialReq
 	if err := json.Unmarshal(data, &in); err != nil {
 		_ = writeFrame(conn, resp{Err: fmt.Sprintf("decoding dial: %v", err)})
 		return

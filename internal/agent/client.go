@@ -110,8 +110,8 @@ func (c *Client) Start(ctx context.Context) (StartResp, error) {
 //
 // @testcase TestClientOverUnixSocket submits the code and reads back the session URL.
 func (c *Client) SubmitCode(ctx context.Context, code string) (string, error) {
-	var out SubmitCodeResp
-	err := c.call(ctx, verbSubmitCode, SubmitCodeReq{Code: code}, &out)
+	var out submitCodeResp
+	err := c.call(ctx, verbSubmitCode, submitCodeReq{Code: code}, &out)
 	return out.SessionURL, err
 }
 
@@ -125,7 +125,7 @@ func (c *Client) SubmitCode(ctx context.Context, code string) (string, error) {
 // @testcase TestClientOverUnixSocket runs a command through Exec.
 func (c *Client) Exec(ctx context.Context, cmd []string) (sandbox.ExecResult, error) {
 	var out sandbox.ExecResult
-	err := c.call(ctx, verbExec, ExecReq{Cmd: cmd}, &out)
+	err := c.call(ctx, verbExec, execReq{Cmd: cmd}, &out)
 	return out, err
 }
 
@@ -138,8 +138,8 @@ func (c *Client) Exec(ctx context.Context, cmd []string) (sandbox.ExecResult, er
 //
 // @testcase TestClientOverUnixSocket reads back the box transcript through Logs.
 func (c *Client) Logs(ctx context.Context, tail int) (string, error) {
-	var out LogsResp
-	err := c.call(ctx, verbLogs, LogsReq{Tail: tail}, &out)
+	var out logsResp
+	err := c.call(ctx, verbLogs, logsReq{Tail: tail}, &out)
 	return out.Output, err
 }
 
@@ -158,7 +158,7 @@ func (c *Client) DialPort(ctx context.Context, port int) (net.Conn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("connecting to box agent: %w", err)
 	}
-	data, _ := json.Marshal(DialReq{Port: port})
+	data, _ := json.Marshal(dialReq{Port: port})
 	if err := writeFrame(conn, req{Verb: verbDial, Data: data}); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("sending dial: %w", err)

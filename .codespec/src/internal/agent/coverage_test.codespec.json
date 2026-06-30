@@ -33,8 +33,8 @@
 		{
 			"function_name": "TestHandleLogsBeforeStart",
 			"documentation_hash": "b11bb5994fa30dfa05d27f3ffd20b3aa5ce6d19bbbecf9f79a992d9c7da8ae5b",
-			"definition_hash": "cbdd81288b7f0367dc86ec562f761f6a6bd9dbd305ba8fc53dda0b4090ba66ce",
-			"reviewed_at": "2026-06-30T16:37:03.449515932Z"
+			"definition_hash": "736e9a0114fb69f7320cfda9d3a10525db1dbff11e3d8fee9ae98f82cf28c3f2",
+			"reviewed_at": "2026-06-30T16:43:41.240048494Z"
 		},
 		{
 			"function_name": "TestDialPortUnreachable",
