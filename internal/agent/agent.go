@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/creack/pty"
@@ -40,6 +39,11 @@ type Options struct {
 	ClaudeCmd string
 	// Shell is the shell used to run the entrypoint (default "/bin/sh").
 	Shell string
+	// Home overrides $HOME for the box's claude process and Exec commands. Empty
+	// inherits the home the agent itself was started with (a real container sets
+	// HOME=/root); the in-process test fake sets a per-box home so concurrent
+	// boxes stay isolated.
+	Home string
 	// Log records best-effort failures; nil falls back to slog.Default().
 	Log *slog.Logger
 }
@@ -51,6 +55,7 @@ type Options struct {
 type Agent struct {
 	claudeCmd string
 	shell     string
+	home      string
 	log       *slog.Logger
 
 	mu      sync.Mutex // guards the init/start lifecycle fields below
@@ -72,6 +77,7 @@ func New(opts Options) *Agent {
 	a := &Agent{
 		claudeCmd: opts.ClaudeCmd,
 		shell:     opts.Shell,
+		home:      opts.Home,
 		log:       opts.Log,
 	}
 	if a.claudeCmd == "" {
@@ -84,6 +90,54 @@ func New(opts Options) *Agent {
 		a.log = slog.Default()
 	}
 	return a
+}
+
+// entryEnv builds the environment for the box's claude process and Exec commands.
+// It starts from the host-supplied Init env, then fills in HOME (preferring an
+// explicit Init HOME, else the configured Options.Home, else the ambient HOME the
+// box was started with) and PATH (from the ambient env) only when absent. It
+// deliberately does not inherit the rest of the agent's ambient environment, so a
+// stray host variable (e.g. CLAUDE_CODE_OAUTH_TOKEN) cannot leak into the box and
+// change the login flow.
+//
+// @return []string The environment for the box's processes.
+//
+// @testcase TestAgentEntryEnvFillsHomeAndPath fills HOME/PATH when Init omits them.
+// @testcase TestAgentEntryEnvKeepsInitValues keeps an Init-supplied HOME over Options.Home.
+func (a *Agent) entryEnv() []string {
+	env := append([]string(nil), a.initReq.Env...)
+	if !hasEnvKey(env, "HOME") {
+		home := a.home
+		if home == "" {
+			home = os.Getenv("HOME")
+		}
+		if home != "" {
+			env = append(env, "HOME="+home)
+		}
+	}
+	if !hasEnvKey(env, "PATH") {
+		if p := os.Getenv("PATH"); p != "" {
+			env = append(env, "PATH="+p)
+		}
+	}
+	return env
+}
+
+// hasEnvKey reports whether env contains an assignment for key (a "key=" prefix).
+//
+// @arg env The environment slice to search.
+// @arg key The variable name to look for.
+// @return bool True when env assigns key.
+//
+// @testcase TestAgentEntryEnvKeepsInitValues relies on hasEnvKey to detect an Init HOME.
+func hasEnvKey(env []string, key string) bool {
+	prefix := key + "="
+	for _, e := range env {
+		if strings.HasPrefix(e, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // ListenAndServe creates the control socket at path (replacing any stale socket),
@@ -103,19 +157,21 @@ func (a *Agent) ListenAndServe(ctx context.Context, path string) error {
 	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("removing stale socket: %w", err)
 	}
-	// Create the socket with owner-only permissions from birth. net.Listen would
-	// otherwise create it with the umask-default mode and leave a window before a
-	// follow-up Chmod during which another local user could open it; tightening
-	// umask around the Listen closes that race. (The 0700 parent dir already
-	// blocks non-owners, so this is defense-in-depth.) Umask is process-global, so
-	// it is restored immediately, including on the error path.
-	oldMask := syscall.Umask(0o177)
 	ln, err := net.Listen("unix", path)
-	syscall.Umask(oldMask)
 	if err != nil {
 		return fmt.Errorf("listening on control socket: %w", err)
 	}
 	defer ln.Close()
+	// The access gate is the 0700 parent directory, owned by the host process
+	// (the spoke): only it (and root) can traverse into it, so no other local user
+	// can reach the socket. The socket itself is made group/other-accessible
+	// because, across the container bind mount, the in-box agent runs as a
+	// different uid (root) than the host spoke, and a connect() needs write
+	// permission on the socket. The pre-chmod mode is only ever more restrictive
+	// than this, so there is no window where the socket is wider than intended.
+	if err := os.Chmod(path, 0o666); err != nil {
+		return fmt.Errorf("setting control socket mode: %w", err)
+	}
 
 	go func() {
 		<-ctx.Done()
@@ -206,7 +262,7 @@ func (a *Agent) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 		}
 		return json.Marshal(out)
 	case verbSubmitCode:
-		var in SubmitCodeReq
+		var in submitCodeReq
 		if err := json.Unmarshal(r.Data, &in); err != nil {
 			return nil, fmt.Errorf("decoding submit_code: %w", err)
 		}
@@ -216,7 +272,7 @@ func (a *Agent) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 		}
 		return json.Marshal(out)
 	case verbExec:
-		var in ExecReq
+		var in execReq
 		if err := json.Unmarshal(r.Data, &in); err != nil {
 			return nil, fmt.Errorf("decoding exec: %w", err)
 		}
@@ -226,11 +282,11 @@ func (a *Agent) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 		}
 		return json.Marshal(out)
 	case verbLogs:
-		var in LogsReq
+		var in logsReq
 		if err := json.Unmarshal(r.Data, &in); err != nil {
 			return nil, fmt.Errorf("decoding logs: %w", err)
 		}
-		return json.Marshal(LogsResp{Output: a.handleLogs(in)})
+		return json.Marshal(logsResp{Output: a.handleLogs(in)})
 	default:
 		return nil, fmt.Errorf("unknown verb %q", r.Verb)
 	}
@@ -281,7 +337,7 @@ func (a *Agent) handleStart() (StartResp, error) {
 	}
 	entry := a.entrypoint(a.initReq)
 	cmd := exec.Command(a.shell, "-c", entry)
-	cmd.Env = a.initReq.Env
+	cmd.Env = a.entryEnv()
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
 		a.mu.Unlock()
@@ -310,29 +366,29 @@ func (a *Agent) handleStart() (StartResp, error) {
 // the remote-control session URL.
 //
 // @arg in The submit-code request carrying the OAuth code.
-// @return SubmitCodeResp The session URL printed once login completes.
+// @return submitCodeResp The session URL printed once login completes.
 // @error error if Start has not run, the code cannot be written, or no session URL appears before the timeout.
 //
 // @testcase TestAgentLifecycle submits the code and returns the session URL.
 // @testcase TestAgentSubmitCodeBeforeStart errors when called before Start.
-func (a *Agent) handleSubmitCode(in SubmitCodeReq) (SubmitCodeResp, error) {
+func (a *Agent) handleSubmitCode(in submitCodeReq) (submitCodeResp, error) {
 	a.mu.Lock()
 	started, ptmx, tr := a.started, a.ptmx, a.tr
 	a.mu.Unlock()
 	if !started {
-		return SubmitCodeResp{}, errors.New("not started")
+		return submitCodeResp{}, errors.New("not started")
 	}
 	if _, err := ptmx.Write([]byte(strings.TrimSpace(in.Code) + "\r")); err != nil {
-		return SubmitCodeResp{}, fmt.Errorf("submitting code: %w", err)
+		return submitCodeResp{}, fmt.Errorf("submitting code: %w", err)
 	}
 	match, _, tail, err := tr.waitForAny([]*regexp.Regexp{sessionURLRe}, submitTimeout)
 	if err != nil {
 		if tail != "" {
-			return SubmitCodeResp{}, fmt.Errorf("login did not complete; box said: %s", tail)
+			return submitCodeResp{}, fmt.Errorf("login did not complete; box said: %s", tail)
 		}
-		return SubmitCodeResp{}, fmt.Errorf("login did not complete: %w", err)
+		return submitCodeResp{}, fmt.Errorf("login did not complete: %w", err)
 	}
-	return SubmitCodeResp{SessionURL: match}, nil
+	return submitCodeResp{SessionURL: match}, nil
 }
 
 // handleExec runs cmd inside the box as a separate process (not the claude PTY)
@@ -345,12 +401,12 @@ func (a *Agent) handleSubmitCode(in SubmitCodeReq) (SubmitCodeResp, error) {
 //
 // @testcase TestAgentLifecycle runs a command via Exec and captures its output.
 // @testcase TestAgentExecNonZeroExit reports a non-zero exit code without erroring.
-func (a *Agent) handleExec(ctx context.Context, in ExecReq) (sandbox.ExecResult, error) {
+func (a *Agent) handleExec(ctx context.Context, in execReq) (sandbox.ExecResult, error) {
 	if len(in.Cmd) == 0 {
 		return sandbox.ExecResult{}, errors.New("empty command")
 	}
 	cmd := exec.CommandContext(ctx, in.Cmd[0], in.Cmd[1:]...)
-	cmd.Env = a.initReq.Env
+	cmd.Env = a.entryEnv()
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()
@@ -373,7 +429,7 @@ func (a *Agent) handleExec(ctx context.Context, in ExecReq) (sandbox.ExecResult,
 // @return string The trailing transcript lines (empty before Start).
 //
 // @testcase TestAgentLifecycle reads back the box transcript via Logs.
-func (a *Agent) handleLogs(in LogsReq) string {
+func (a *Agent) handleLogs(in logsReq) string {
 	a.mu.Lock()
 	tr := a.tr
 	a.mu.Unlock()
@@ -389,12 +445,12 @@ func (a *Agent) handleLogs(in LogsReq) string {
 // returns without splicing.
 //
 // @arg conn The control connection to splice to the dialled port.
-// @arg data The JSON-encoded DialReq naming the port.
+// @arg data The JSON-encoded dialReq naming the port.
 //
 // @testcase TestClientDialPort forwards bytes between the conn and a localhost listener.
 // @testcase TestAgentDialRejectsBadPort writes an error response for an out-of-range port.
 func (a *Agent) handleDial(conn net.Conn, data json.RawMessage) {
-	var in DialReq
+	var in dialReq
 	if err := json.Unmarshal(data, &in); err != nil {
 		_ = writeFrame(conn, resp{Err: fmt.Sprintf("decoding dial: %v", err)})
 		return

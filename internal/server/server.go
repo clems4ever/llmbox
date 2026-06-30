@@ -34,7 +34,7 @@ import (
 const localSpokeName = "local"
 
 // boxManager is the behaviour Server needs from a spoke's box layer. The local
-// implementation is *docker.Manager; a remote spoke is reached over the cluster
+// implementation is *box.Manager; a remote spoke is reached over the cluster
 // transport. Tests fake it. It is an alias of cluster.BoxManager so the same
 // interface is the cluster RPC surface.
 type boxManager = cluster.BoxManager

@@ -3,15 +3,15 @@
 		{
 			"function_name": "New",
 			"documentation_hash": "624cceaa4f8f8e776a13419a6cc5454da945461f4f19bad9b95a90fe8291d5e2",
-			"definition_hash": "bb2138883ad7af63069a4c1afcbec3f4092815dc6a581b676318ff2d38d02f9d",
-			"reviewed_at": "2026-06-29T19:22:53.360428093Z"
+			"definition_hash": "cb560a48e69699d997a42691cbacf56a82b486f5d297750c21ec29e991e0e56d",
+			"reviewed_at": "2026-06-30T15:27:10.613557867Z"
 		},
 		{
 			"function_name": "ListenAndServe",
 			"receiver": "Agent",
 			"documentation_hash": "f4064d48009b852902a064ba34c348f8268926ff687def9114c3077bdcaac2f7",
-			"definition_hash": "5b8b86cee8f71160db4ba291eff083814d2910446f2d4f81b7678965ab15a136",
-			"reviewed_at": "2026-06-30T12:42:29.572207378Z"
+			"definition_hash": "0e444b532d6fb627b453e00e39d96c289a9bb30fe3ac3b1aef08ea6ce7547dde",
+			"reviewed_at": "2026-06-30T16:10:22.19652829Z"
 		},
 		{
 			"function_name": "Shutdown",
@@ -31,8 +31,8 @@
 			"function_name": "dispatch",
 			"receiver": "Agent",
 			"documentation_hash": "402acebdfa9b26f1f3d0df51fca0cfd507149d57b91bc3d0adc4540e1602a3a3",
-			"definition_hash": "f71c3b1ff2eb8ddecca10a31cf9c9e57b31a1fe82d69008aabd1523afa2d3a55",
-			"reviewed_at": "2026-06-29T19:22:53.375669835Z"
+			"definition_hash": "7875ab7e02a56e4c1bfd6c1e56d4f6e4620e8cc866a272a766f01c5f7c8d733c",
+			"reviewed_at": "2026-06-30T16:43:41.235304258Z"
 		},
 		{
 			"function_name": "handleInit",
@@ -45,36 +45,36 @@
 			"function_name": "handleStart",
 			"receiver": "Agent",
 			"documentation_hash": "586293fc47382313eba5c894da49e639d8f8cacbdcbbe213b1ef16fb3f4c2ff2",
-			"definition_hash": "984093d5aac22086d81189e992ff43b456b3f63a8d9d03169e8be7e935464b17",
-			"reviewed_at": "2026-06-29T19:22:53.377980867Z"
+			"definition_hash": "253b0fc1a0d3056ba92498447629519450c7d05d7eeceb5a291820d9b7b1a27d",
+			"reviewed_at": "2026-06-30T15:27:10.62486315Z"
 		},
 		{
 			"function_name": "handleSubmitCode",
 			"receiver": "Agent",
-			"documentation_hash": "e44b5ca1e8a21eae3b60bb91efa1009bfc5cd97a3132bb6116b502b14a61c452",
-			"definition_hash": "8bc4ea513b8053bca4551db73bc77cee361836a7e260ae9f565d23a8d413fd32",
-			"reviewed_at": "2026-06-29T19:22:53.379477889Z"
+			"documentation_hash": "dd9a1ac0557650e1a893ee7df7feacdce2030ecfc66d5661865d3a7b51b604fc",
+			"definition_hash": "d7dae136f24e9eaaeac1d06568b892bd0e7a81e68fb41b93860750dec0a71fe8",
+			"reviewed_at": "2026-06-30T16:43:41.236163561Z"
 		},
 		{
 			"function_name": "handleExec",
 			"receiver": "Agent",
 			"documentation_hash": "6c26c1821113acd823ef1c529d877d45781607cc20f707e1afe1a86a2c1a2fec",
-			"definition_hash": "ae453b3a4b04a8f1e0990d135505ca83abfc362273e3cc7f267700959d2b95ac",
-			"reviewed_at": "2026-06-29T19:22:53.444963042Z"
+			"definition_hash": "64aa8b9f839176f95237df28859487368c45923c3971df46bb2e37e2a5647541",
+			"reviewed_at": "2026-06-30T16:43:41.237365982Z"
 		},
 		{
 			"function_name": "handleLogs",
 			"receiver": "Agent",
 			"documentation_hash": "5d0b652b4ef41f57c2c936e8e40f03660a844314acb73a248e766f1c85154c89",
-			"definition_hash": "757b5605f945bd8b0a2c7b0d60df9e446f8a6870137fdbc5c5abdd89c57627f5",
-			"reviewed_at": "2026-06-29T19:22:53.446042489Z"
+			"definition_hash": "df0182f0cd15fb3b2de83ed8b3a5e8b773523ab71e13417694439b88e83a5f55",
+			"reviewed_at": "2026-06-30T16:43:41.238045165Z"
 		},
 		{
 			"function_name": "handleDial",
 			"receiver": "Agent",
-			"documentation_hash": "10659cac5a803322ab32d3aaac4fa13d3741ab769f27f19a21d6cd85cef72565",
-			"definition_hash": "326727ba307a3740a9db0602d8412b33e64958594cdb605fb92171b39f9d668f",
-			"reviewed_at": "2026-06-29T19:22:53.446981549Z"
+			"documentation_hash": "cfd305005e1b036285c3fc39c5827d18785c0c8cd4d73d36ea566d5d11d8e584",
+			"definition_hash": "d589eaf2451de786620a82f5aeecd29356caeb022b7d951903e62b4621d92cc0",
+			"reviewed_at": "2026-06-30T16:43:41.238640135Z"
 		},
 		{
 			"function_name": "entrypoint",
@@ -100,6 +100,19 @@
 			"documentation_hash": "35fa931939b0d5d4aa98381fa91b9c43b1d67e408962734ea0c5fcb97121193e",
 			"definition_hash": "c3a989810d46a4937a99a1b2f37e58c0654e220b7223b2be742d9b2a218bb1cd",
 			"reviewed_at": "2026-06-29T19:22:53.45001061Z"
+		},
+		{
+			"function_name": "entryEnv",
+			"receiver": "Agent",
+			"documentation_hash": "48f21585de6b0a6aaca289b66eddc33f4611add449c401536a87edf196a2ec26",
+			"definition_hash": "44c5e5117410e0f54c8e1ab3373c4d1444bc867064ada89bd58b51c4099042ae",
+			"reviewed_at": "2026-06-30T15:27:10.614277288Z"
+		},
+		{
+			"function_name": "hasEnvKey",
+			"documentation_hash": "5897581859666baa503a6c31be361c1596888c6a4206d064c84229b892da3dfa",
+			"definition_hash": "862f37b0f3bb1ca826f6069ae12c856b4b059ab158e4ff2be121749afaece211",
+			"reviewed_at": "2026-06-30T15:27:10.624181844Z"
 		}
 	]
 }

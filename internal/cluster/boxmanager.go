@@ -2,7 +2,7 @@
 // MCP front-end the chatbot talks to) drives box operations on one or more
 // spokes, each of which owns a local Docker daemon. A spoke dials the hub over
 // a WebSocket and the hub pushes box verbs down that connection; the spoke
-// executes them against its local *docker.Manager and replies.
+// executes them against its local *box.Manager and replies.
 //
 // The wire surface is deliberately the seven box verbs (BoxManager) and nothing
 // more: a spoke is never a generic Docker proxy. See docs/hub-and-spoke.md.
@@ -16,7 +16,7 @@ import (
 )
 
 // BoxManager is the box-lifecycle surface the hub needs from a spoke. The local
-// in-process implementation is *docker.Manager; the remote implementation
+// in-process implementation is *box.Manager; the remote implementation
 // (remoteSpoke) round-trips each call over a transport to a spoke process. It is
 // the complete RPC allowlist of the cluster protocol — no operation outside it
 // can cross the hub/spoke boundary.

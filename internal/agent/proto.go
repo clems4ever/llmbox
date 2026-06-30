@@ -70,36 +70,36 @@ type StartResp struct {
 	SessionURL   string `json:"session_url,omitempty"`
 }
 
-// SubmitCodeReq carries the OAuth code to write to claude's login prompt.
-type SubmitCodeReq struct {
+// submitCodeReq carries the OAuth code to write to claude's login prompt.
+type submitCodeReq struct {
 	Code string `json:"code"`
 }
 
-// SubmitCodeResp carries the remote-control session URL printed once login
+// submitCodeResp carries the remote-control session URL printed once login
 // completes.
-type SubmitCodeResp struct {
+type submitCodeResp struct {
 	SessionURL string `json:"session_url"`
 }
 
-// ExecReq is a command to run inside the box.
-type ExecReq struct {
+// execReq is a command to run inside the box.
+type execReq struct {
 	Cmd []string `json:"cmd"`
 }
 
-// LogsReq requests the last Tail lines of the box's console transcript; a
+// logsReq requests the last Tail lines of the box's console transcript; a
 // non-positive Tail uses the agent default.
-type LogsReq struct {
+type logsReq struct {
 	Tail int `json:"tail"`
 }
 
-// LogsResp carries the requested transcript tail.
-type LogsResp struct {
+// logsResp carries the requested transcript tail.
+type logsResp struct {
 	Output string `json:"output"`
 }
 
-// DialReq names a TCP port on localhost inside the box to splice the control
+// dialReq names a TCP port on localhost inside the box to splice the control
 // connection to.
-type DialReq struct {
+type dialReq struct {
 	Port int `json:"port"`
 }
 

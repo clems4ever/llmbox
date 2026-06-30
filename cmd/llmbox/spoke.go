@@ -17,6 +17,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/clems4ever/llmbox/internal/box"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
@@ -316,21 +317,22 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 	// default included) and sends it with every create, and validateCreate rejects
 	// any create that arrives without one. Pass no default here so nothing local
 	// can stand in for what the hub sends.
-	mgr, err := docker.NewManager("", cfg.RemoteArgs, cfg.BoxPeers)
+	prov, err := docker.NewProvisioner("", cfg.Box.SocketDir, cfg.BoxPeers)
 	if err != nil {
 		return err
 	}
-	mgr.SetBoxLimits(boxLimits(cfg.Box))
-	mgr.SetRegistryAuths(registryAuths(cfg.Registries))
+	prov.SetPerBoxLimits(boxLimits(cfg.Box))
+	prov.SetRegistryAuths(registryAuths(cfg.Registries))
 	// GPUs are machine-local: attach the host's GPUs to every box this spoke runs.
-	if err := mgr.SetBoxGPUs(boxGPUs); err != nil {
+	if err := prov.SetBoxGPUs(boxGPUs); err != nil {
 		return err
 	}
 	defer func() {
-		if err := mgr.Close(); err != nil {
-			log.Printf("closing docker manager: %v", err)
+		if err := prov.Close(); err != nil {
+			log.Printf("closing docker provisioner: %v", err)
 		}
 	}()
+	mgr := box.NewManager(prov, box.Config{RemoteArgs: cfg.RemoteArgs, MaxBoxes: cfg.Box.MaxBoxes})
 
 	creds, err := loadSpokeCreds(statePath)
 	if err != nil {

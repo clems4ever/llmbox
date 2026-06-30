@@ -19,7 +19,7 @@ const maxProxyBody = 32 << 20 // 32 MiB
 
 // BoxDialer is the box-reachability capability the spoke-side proxy needs from
 // its local box manager: open a connection to a port inside a box. The
-// in-process *docker.Manager implements it. It is kept here (not on BoxManager)
+// in-process *box.Manager implements it. It is kept here (not on BoxManager)
 // so the seven-verb RPC allowlist is unchanged and only a spoke that can dial
 // boxes services proxy requests.
 type BoxDialer interface {
@@ -38,12 +38,12 @@ type HTTPProxier interface {
 // roundTripToBox executes a buffered proxy request on the spoke: it dials the
 // named box's port through the local dialer and performs the HTTP round trip,
 // returning the buffered response. The dial resolves through the box layer's
-// managed-only check (see docker.Manager.DialBox), so this verb can only ever
+// managed-only check (see box.Manager.DialBox), so this verb can only ever
 // reach a port inside a box the spoke created — never an arbitrary host address
 // — which keeps it from becoming a generic forward proxy.
 //
 // @arg ctx Context bounding the dial and round trip.
-// @arg d The local box dialer (the spoke's *docker.Manager).
+// @arg d The local box dialer (the spoke's *box.Manager).
 // @arg in The buffered request to forward.
 // @return proxyHTTPResp The buffered response (status, headers, body).
 // @error error if the box cannot be reached or the round trip fails.

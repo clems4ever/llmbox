@@ -1,0 +1,66 @@
+{
+	"functions": [
+		{
+			"function_name": "NewFake",
+			"documentation_hash": "6b93ae28fe6005989033928f5a9ebb63fddfcfd490909a35174b521d4fc49978",
+			"definition_hash": "f90cc2579ad4e92e1783d6d1f9c1a7c368988b9c20fae9c7fc51882518b45f91",
+			"reviewed_at": "2026-06-30T15:27:10.706026118Z"
+		},
+		{
+			"function_name": "shutdown",
+			"receiver": "Fake",
+			"documentation_hash": "bc25461e43e042bb5d59203e11cd92b2512b8fe2a1310580aac40eafd1a2c1be",
+			"definition_hash": "dc6e64ce224e8548a98a77b33483c86788dc230e9d0393842a000557188d6b86",
+			"reviewed_at": "2026-06-30T15:27:10.743706696Z"
+		},
+		{
+			"function_name": "Provision",
+			"receiver": "Fake",
+			"documentation_hash": "806913748c55982ca57ed3ff3b55bf66141e2e211b3d3465ef71418c547e188c",
+			"definition_hash": "718b98716d67a5bbe0729a7bdaa8bba29d8e5f26e9da4f365db3cc98dd638743",
+			"reviewed_at": "2026-06-30T15:27:10.779569757Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "Fake",
+			"documentation_hash": "31241edcd5dbbf0876a5eaaf1029578e35c42f3604c930c600b405e78bd3d7e5",
+			"definition_hash": "59cdae473537f5fb6a31c278d3d96c85759b3eb2ca44e958e23cc46dd3ba6d9c",
+			"reviewed_at": "2026-06-30T15:27:10.833479505Z"
+		},
+		{
+			"function_name": "Find",
+			"receiver": "Fake",
+			"documentation_hash": "b397d5b8010e9fe7eab1e80c41c9ac200a172570d057afd59cff7a80ab7af4c4",
+			"definition_hash": "07e6e688c3368d7966676b2d4071a3cf4c7c875852bb3636b63db5ecd25f40d1",
+			"reviewed_at": "2026-06-30T15:27:10.870265066Z"
+		},
+		{
+			"function_name": "Meta",
+			"receiver": "fakeInstance",
+			"documentation_hash": "5bc6f9bb881ac14da8d354659c87619132973a1e58e791f4ea377f2d256f3be9",
+			"definition_hash": "2e32497c54cc729a601e7b2a88e553a890d80a3cf67fd694b0566c7b70a09b00",
+			"reviewed_at": "2026-06-30T15:27:10.909650701Z"
+		},
+		{
+			"function_name": "Control",
+			"receiver": "fakeInstance",
+			"documentation_hash": "bb960063fe3d2e8d385264eb8cd4bede88aef7638d4134bf512dcbf10f4d51c1",
+			"definition_hash": "89f6cd60825b8f29e7c25e3ee83f506bad846fb744cbe3c7eec6dbe63cd29899",
+			"reviewed_at": "2026-06-30T15:27:10.950159814Z"
+		},
+		{
+			"function_name": "MarkReady",
+			"receiver": "fakeInstance",
+			"documentation_hash": "9a0d1bc4662c4343624e772e4022a35a4c7d74fc3462dbfbf0f3cc8f2a5bb73d",
+			"definition_hash": "0c338125b381bbecec6ce465a13de6f0c3e0ea6ae941f5836c44c63da37aa7bb",
+			"reviewed_at": "2026-06-30T15:27:10.989690308Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "fakeInstance",
+			"documentation_hash": "3f8690a94e7375f3cb4e704cb3581007b89fa793afd70ef2e65f0f4fa8618f33",
+			"definition_hash": "72af4d5a7fe814a2dfdad48e722950ec5a953541ea300bde3eac7deebd9affff",
+			"reviewed_at": "2026-06-30T15:27:11.029068001Z"
+		}
+	]
+}

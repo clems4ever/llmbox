@@ -1,0 +1,183 @@
+{
+	"functions": [
+		{
+			"function_name": "NewProvisioner",
+			"documentation_hash": "1ff8a64460e025a8ec2c8c7c05cb49e03b49dee958b990fdd8ace7009fb0b8dc",
+			"definition_hash": "feeac41b38d6799739d95368c5dd5bbd3e211560da95211afdc14c44d53e14e9",
+			"reviewed_at": "2026-06-30T16:10:22.2697007Z"
+		},
+		{
+			"function_name": "logger",
+			"receiver": "Provisioner",
+			"documentation_hash": "0819cd3942a587993dd7ff18613cc4f859344a1d71e050d44736260cefa65ea1",
+			"definition_hash": "c3968b544c14929566dd5c2157b5ae7097c96b7dd4df8ea1d48e3c490ad07aa6",
+			"reviewed_at": "2026-06-30T16:10:22.270613367Z"
+		},
+		{
+			"function_name": "SetPerBoxLimits",
+			"receiver": "Provisioner",
+			"documentation_hash": "f908cc9c17867fe655c70d2c49842101249ae66d89e3877ce75faad5d6702f6f",
+			"definition_hash": "5fad866ce0ba7dcdca800ff6b920147b36bc73c4701b4cb80cb9338d12c67c2f",
+			"reviewed_at": "2026-06-30T16:10:22.271865179Z"
+		},
+		{
+			"function_name": "SetRegistryAuths",
+			"receiver": "Provisioner",
+			"documentation_hash": "d0b07cc3f2da3d09492d75b9343c03b744feb6ced48db77ac0e03a56ddcd2607",
+			"definition_hash": "0a0eeae499464c294ea26937732ca198881413b572b5dadadd2f8dfbaabd327a",
+			"reviewed_at": "2026-06-30T16:10:22.272764684Z"
+		},
+		{
+			"function_name": "SetBoxGPUs",
+			"receiver": "Provisioner",
+			"documentation_hash": "fbe6c7a82d21049ba6f7eb2e7a3c1f0c4ec1140a947b99a960257f0131a1c977",
+			"definition_hash": "c5f5c272f66ced6919d62a678222d8ac1915cde01906f1e0f7de82e77cac866a",
+			"reviewed_at": "2026-06-30T16:10:22.273917417Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "Provisioner",
+			"documentation_hash": "72fa121ed3b008b01a3b0f433332c11640eb99cb8085c814a5135d0bc10f32a8",
+			"definition_hash": "71a4413c89b4977cd392774d588fd00fd46f3468acfeee816f7923b75c0133c4",
+			"reviewed_at": "2026-06-30T16:10:22.274728367Z"
+		},
+		{
+			"function_name": "managedFilter",
+			"documentation_hash": "1b8252a6abd74e1dba342e85d743a75348ed0684b0ada2326d532712e4372365",
+			"definition_hash": "e8753d6713886e54093eff0b9e15d172cac988b2c1d10ce8ee5d73d9e9c85a06",
+			"reviewed_at": "2026-06-30T16:10:22.275702224Z"
+		},
+		{
+			"function_name": "phaseOf",
+			"documentation_hash": "2dbe36a307d4c3798351e51bd5af8db1b924ffc9cef4427bb82d2d40d21b6cf9",
+			"definition_hash": "014b6324e33328153513d7f613dc451253b2e97818cfe993c9ccbf25fe1351b2",
+			"reviewed_at": "2026-06-30T16:10:22.276930238Z"
+		},
+		{
+			"function_name": "boxFromSummary",
+			"documentation_hash": "fa1fa62fdef912f13ab999f180c0d0efbf7b97c1223abc0f65dd9670b61ef345",
+			"definition_hash": "a1a5a36681286681e16aeae968ba0622ed8fe36600e74f50540ce76d5c5dccd8",
+			"reviewed_at": "2026-06-30T16:10:22.277760167Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "Provisioner",
+			"documentation_hash": "1f236b1df15f5e704ad22e7af5f83cc02e389d427a3e8d97592f0d35de5f277d",
+			"definition_hash": "a62bddb87320d1d81248910b149abde7cad5a6fa99c2da3129ab0119196776a3",
+			"reviewed_at": "2026-06-30T16:43:41.272961121Z"
+		},
+		{
+			"function_name": "Find",
+			"receiver": "Provisioner",
+			"documentation_hash": "fa34903cf403ad9f962e61d831f130b4ff25809231cf2e1caab522f5723b1e23",
+			"definition_hash": "d57b820d36b1148dbd0cbfb471e6ad758725b2cc75df7e66dc72a3ce1a461020",
+			"reviewed_at": "2026-06-30T16:43:41.274070583Z"
+		},
+		{
+			"function_name": "Provision",
+			"receiver": "Provisioner",
+			"documentation_hash": "0148ab5a5d410928c46af4557862667e6fff66dbd54d844751bab5b865411970",
+			"definition_hash": "2b71f0d76feb7b09f448a5e90a1556dd7a199f0a9b00e4e0d51f9d8f6ed6d167",
+			"reviewed_at": "2026-06-30T16:43:41.27517154Z"
+		},
+		{
+			"function_name": "waitForSocket",
+			"documentation_hash": "4686b19020d8db7f984fa76a11337a6984e69f880ec67b2995bbe2e293bf486e",
+			"definition_hash": "6059e049909d909aa1737e3a2262c9f9b28599b8be6d06642cf6a61d4bf2e53b",
+			"reviewed_at": "2026-06-30T16:10:22.311874855Z"
+		},
+		{
+			"function_name": "newSocketToken",
+			"documentation_hash": "7571750422e74887260914227692d51412d20aad26ca388ea575f89b16302568",
+			"definition_hash": "49d7de938b8c94fb13dfd3fbb71953f381ad9aac5f468d7114c8e2522ef3f899",
+			"reviewed_at": "2026-06-30T16:43:41.27649513Z"
+		},
+		{
+			"function_name": "boxNetworkName",
+			"documentation_hash": "07067699396fb6ebc1f9a428f6abccad50b61d2668a139641e5917c2c5ff8e0e",
+			"definition_hash": "85b0424b05382023b765783df613bb336025b75828e71f11d0b6261b6f419e37",
+			"reviewed_at": "2026-06-30T16:10:22.313843976Z"
+		},
+		{
+			"function_name": "setupBoxNetwork",
+			"receiver": "Provisioner",
+			"documentation_hash": "51b5252d00cd893cbe530bc6b1c1cbf976813e6d4b759e62a942bf76cfcdd7a6",
+			"definition_hash": "b1846b08a03fb730edce310fb4a41d7da91c93a687ec5d58df3bf7d15a9f1b17",
+			"reviewed_at": "2026-06-30T16:10:22.314745311Z"
+		},
+		{
+			"function_name": "removeBoxNetwork",
+			"receiver": "Provisioner",
+			"documentation_hash": "e6ebc1012c82e619a2104189db0875f5f0ccd78531c143c8d5f7242916c3fd9a",
+			"definition_hash": "b912211039c9d5c2c768a7161860bdd0febfb8c76bd3b9c07953826b65eed854",
+			"reviewed_at": "2026-06-30T16:10:22.315917992Z"
+		},
+		{
+			"function_name": "pullImage",
+			"receiver": "Provisioner",
+			"documentation_hash": "25639fc852eb0e20f1d591058a04555af7dd6a38185dcab90f73ffdfbc67a8a9",
+			"definition_hash": "87eb899ce7360bd497637719811e3350edbe7d8df75789c3783f37114834f4ef",
+			"reviewed_at": "2026-06-30T16:10:22.316768649Z"
+		},
+		{
+			"function_name": "registryAuthFor",
+			"receiver": "Provisioner",
+			"documentation_hash": "5d1db6c09901cc0c5a5edb0cff85a19d77c18527680c1b62dcbcea46c2814e47",
+			"definition_hash": "339bdc15dd714931bf78fedc854db1dd028cb04066d08125cf32deceb64d31bf",
+			"reviewed_at": "2026-06-30T16:10:22.317957008Z"
+		},
+		{
+			"function_name": "parseGPUs",
+			"documentation_hash": "58276955ac29d984e68a364e04bb31df78c5c1222cfd657fed5395aa0fae8cd5",
+			"definition_hash": "d8efe31928c48dfb68903fc9bb40fea5b27fce6a5996df1c0c4dacf67fe166b8",
+			"reviewed_at": "2026-06-30T16:10:22.318786487Z"
+		},
+		{
+			"function_name": "splitGPUList",
+			"documentation_hash": "da4288aa008809c04f7c226d1b57c7f6f62289b5d42cdaf946023496c0f8e5c8",
+			"definition_hash": "a096f6acd898f45c4ca93ffc09fb8823aeadd9c7298403b80476c3b4b792eff7",
+			"reviewed_at": "2026-06-30T16:10:22.351150423Z"
+		},
+		{
+			"function_name": "IsNotFound",
+			"documentation_hash": "4bf006b4df53e08909835fc72dde8cdf6213d61aaf34ab4c30094aaec55f926d",
+			"definition_hash": "be8a5ec415cf373a5dadc17946fbb7381b4ffc79e72f6dcb7fc5756039c54ef8",
+			"reviewed_at": "2026-06-30T16:43:41.277455276Z"
+		},
+		{
+			"function_name": "socketPath",
+			"receiver": "dockerInstance",
+			"documentation_hash": "18286e345a03254c47e4cfd403241891fc576de3ae6a79b9169616dec0f3e352",
+			"definition_hash": "527a5ea28b6723b1b559ef619a48ba96154664be1c36fd4091bcd411f3a6e15c",
+			"reviewed_at": "2026-06-30T16:10:22.353812725Z"
+		},
+		{
+			"function_name": "Meta",
+			"receiver": "dockerInstance",
+			"documentation_hash": "3147b99bfcc94099bdea09a3e8b27c18f01c1f5c9f3ad32d6f85025eb4a3bc46",
+			"definition_hash": "1068d0e0d6a7b51317027312c1bb7e46e0e6a52b2929731a034bcfa22a829ba6",
+			"reviewed_at": "2026-06-30T16:10:22.354830304Z"
+		},
+		{
+			"function_name": "Control",
+			"receiver": "dockerInstance",
+			"documentation_hash": "76461bddf242411e3901afc14c2d0e564d43c7b11489dc9c7520670f821b5542",
+			"definition_hash": "28049f9c7998dc6ee75b819fe5cc2fd35276aedee8d81653fa025ae4f4dd16dc",
+			"reviewed_at": "2026-06-30T16:10:22.35599113Z"
+		},
+		{
+			"function_name": "MarkReady",
+			"receiver": "dockerInstance",
+			"documentation_hash": "bc6a16dfbbfec8b3a18536d1582004530cc588c0fbbea3f445ff924740360ba3",
+			"definition_hash": "9e28dd98d6fca895be79a59aebabd9d4fd22fab08af1131ef54284ee32b2de05",
+			"reviewed_at": "2026-06-30T16:10:22.356851663Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "dockerInstance",
+			"documentation_hash": "be8d138ca940f21935dfc3d664ebea4b082071c1017ac5e32168f0f55c71d594",
+			"definition_hash": "32744fe4ecbd4c1693762b02783ddf58ab3e4bb7a27c5d1a098e06e609beca5e",
+			"reviewed_at": "2026-06-30T16:43:41.27868125Z"
+		}
+	]
+}

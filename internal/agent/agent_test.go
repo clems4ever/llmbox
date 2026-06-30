@@ -139,10 +139,11 @@ func TestAgentLifecycle(t *testing.T) {
 	}
 }
 
-// TestListenAndServeSocketPerms checks the control socket is owner-only (0600)
-// inside an owner-only (0700) directory, so a non-owner local user cannot reach
-// it. The socket is created with these perms from birth (tight umask around
-// Listen), not loosened-then-tightened.
+// TestListenAndServeSocketPerms checks the control socket lives inside an
+// owner-only (0700) directory — the access gate that stops a non-owner local
+// user from reaching it — while the socket itself is group/other-accessible
+// (0666) so the host process can connect to it across a container bind mount
+// where the in-box agent runs as a different uid.
 func TestListenAndServeSocketPerms(t *testing.T) {
 	a := New(Options{ClaudeCmd: writeMockClaude(t)})
 	sock := filepath.Join(t.TempDir(), "sockdir", "control.sock")
@@ -166,8 +167,8 @@ func TestListenAndServeSocketPerms(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat socket: %v", err)
 	}
-	if si.Mode().Perm() != 0o600 {
-		t.Fatalf("socket mode = %v, want 0600", si.Mode().Perm())
+	if si.Mode().Perm() != 0o666 {
+		t.Fatalf("socket mode = %v, want 0666", si.Mode().Perm())
 	}
 	di, err := os.Stat(filepath.Dir(sock))
 	if err != nil {
@@ -273,6 +274,45 @@ func TestAgentSubmitCodeBeforeStart(t *testing.T) {
 	}
 	if _, err := c.SubmitCode(ctx, "x"); err == nil || !strings.Contains(err.Error(), "not started") {
 		t.Fatalf("err = %v, want 'not started'", err)
+	}
+}
+
+// TestAgentEntryEnvFillsHomeAndPath fills HOME (from Options.Home) and PATH when
+// the Init env omits them, without inheriting other ambient variables.
+func TestAgentEntryEnvFillsHomeAndPath(t *testing.T) {
+	a := New(Options{Home: "/box/home"})
+	env := a.entryEnv()
+	if !hasEnvKey(env, "HOME") || !hasEnvKey(env, "PATH") {
+		t.Fatalf("entryEnv = %v, want HOME and PATH present", env)
+	}
+	var home string
+	for _, e := range env {
+		if strings.HasPrefix(e, "HOME=") {
+			home = strings.TrimPrefix(e, "HOME=")
+		}
+	}
+	if home != "/box/home" {
+		t.Fatalf("HOME = %q, want /box/home", home)
+	}
+}
+
+// TestAgentEntryEnvKeepsInitValues keeps an Init-supplied HOME in preference to
+// Options.Home.
+func TestAgentEntryEnvKeepsInitValues(t *testing.T) {
+	a := New(Options{Home: "/box/home"})
+	a.initReq = InitReq{Env: []string{"HOME=/init/home", "PATH=/usr/bin"}}
+	env := a.entryEnv()
+	count := 0
+	for _, e := range env {
+		if strings.HasPrefix(e, "HOME=") {
+			count++
+			if e != "HOME=/init/home" {
+				t.Fatalf("HOME = %q, want the Init value", e)
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("want exactly one HOME assignment, got %d in %v", count, env)
 	}
 }
 

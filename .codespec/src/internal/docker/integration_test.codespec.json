@@ -1,10 +1,22 @@
 {
 	"functions": [
 		{
-			"function_name": "TestCreateIntegration",
-			"documentation_hash": "16f210d0b7abc99216b1bb220e9db04953862052e1246c888dcc67fd756cbff7",
-			"definition_hash": "fcba6bac6d213913f239eca8858e846e7434f2ca936f1a89ea69c246baf7afde",
-			"reviewed_at": "2026-06-27T14:00:55.529964224Z"
+			"function_name": "TestDockerConformance",
+			"documentation_hash": "2a38171a7ba508b126b9dbe6547c00b4fe3626f2db2f1f1a89151fbafa832cc2",
+			"definition_hash": "7766c0ab08e649abd6e8d404ad9f21d3e1888b1055bf53564f24d7dff3d1c509",
+			"reviewed_at": "2026-06-30T16:11:46.278380041Z"
+		},
+		{
+			"function_name": "requireDocker",
+			"documentation_hash": "e76f360e0323ce019fd220a13f6eb0efee791487413110102d39540fc4a334b2",
+			"definition_hash": "a5a628a11a02e15067da7fab28b3134e4edd93db26ff930026611147031e0d4d",
+			"reviewed_at": "2026-06-30T16:11:46.278586428Z"
+		},
+		{
+			"function_name": "buildMockImage",
+			"documentation_hash": "668fc6dcfe0ae5e91f88a990ee291130ac3508a6badea2b2de618cbb866466bd",
+			"definition_hash": "69c106a7127866624ae980cc2f9aa109398c45e4a274d3958d8a4ad084c1c761",
+			"reviewed_at": "2026-06-30T16:11:46.288164168Z"
 		}
 	]
 }

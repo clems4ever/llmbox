@@ -9,8 +9,8 @@
 		{
 			"function_name": "run",
 			"documentation_hash": "822d4570012d8a41428a5b22339964da6b3a2b16d9a19df24414513067ecf52e",
-			"definition_hash": "e100e39b8e8f557cb6ec42f2067c82f201b9685388fecd625e6dd5d7edee22d1",
-			"reviewed_at": "2026-06-27T17:02:38.489223525Z"
+			"definition_hash": "ec22294e9e9d8c10fb059fe135b55e31f7e9d0c469a1e745f7c77d9b41c9d479",
+			"reviewed_at": "2026-06-30T16:10:22.19540872Z"
 		},
 		{
 			"function_name": "newRootCmd",
@@ -26,15 +26,15 @@
 		},
 		{
 			"function_name": "boxLimits",
-			"documentation_hash": "fb3625cf0dfd4aad32f7bbec81cca4d9eabdcd7a45b53af6b5569274a0dbc11f",
+			"documentation_hash": "0ce476f2df2b0b35a65f33edde2d51452956dda248fab5d7dff1efd47706011e",
 			"definition_hash": "19b3af1b4dfe0c094b97e34c773ad82c57e80a8f26b7be5dee845513df3882b5",
-			"reviewed_at": "2026-06-29T15:39:16.02107949Z"
+			"reviewed_at": "2026-06-30T16:13:16.949180988Z"
 		},
 		{
 			"function_name": "registryAuths",
-			"documentation_hash": "f1b93be9d5df419115a4a5a257964228d59c2a9e1cc4bcfbef5ff766069464b7",
+			"documentation_hash": "4af760d6567a24e5c7bab17140be6ac4b7aadaf5484c1701a27f4a832ae3397c",
 			"definition_hash": "930fa5cd0591005ff5a02bd3ff1f285a453bcb831a4ca06fcbf95b4c20d8110e",
-			"reviewed_at": "2026-06-26T12:08:54.021986975Z"
+			"reviewed_at": "2026-06-30T16:13:16.949935483Z"
 		}
 	]
 }

@@ -149,7 +149,7 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame, policy ValidationP
 		if err := decodePayload(req.Payload, &in); err != nil {
 			return nil, err
 		}
-		// Only a manager that can dial boxes (the in-process *docker.Manager)
+		// Only a manager that can dial boxes (the in-process *box.Manager)
 		// services proxy requests; the dial is managed-only, so this never reaches
 		// a host address outside one of the spoke's own boxes.
 		dialer, ok := mgr.(BoxDialer)
