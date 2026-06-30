@@ -58,9 +58,9 @@
 		{
 			"function_name": "DialBox",
 			"receiver": "Manager",
-			"documentation_hash": "721e278f59b6adaaadd53b1b7ffb8d9308edd6303b451f3b3e843ee01709041a",
+			"documentation_hash": "2dbbe253d9a0b8a61a0f369be14208dfbf5da5c52faeb5d275af814a4e2cebdd",
 			"definition_hash": "759887261a8925963510103e7e14344d754fd93ef973297bea8b483b044d86a6",
-			"reviewed_at": "2026-06-30T15:30:40.828638994Z"
+			"reviewed_at": "2026-06-30T16:10:22.198060662Z"
 		},
 		{
 			"function_name": "ReapOrphans",

@@ -1,0 +1,745 @@
+// Package docker implements a box.Provisioner backed by the Docker Engine API.
+// Each box is a container whose entrypoint is the llmbox guest agent (run under
+// tini); the host reaches the agent over a per-box Unix socket bind-mounted from
+// the host into the container, so all box behaviour (login, exec, logs, port
+// dialing) runs through the agent rather than through Docker exec/attach. The
+// provisioner only owns compute: it creates, lists, resolves, and destroys
+// containers, and hands back a control channel to the agent.
+//
+// Safety: every container carries ManagedLabel; list/find/destroy are scoped to
+// that label so unrelated host containers are never touched.
+package docker
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/containerd/errdefs"
+	"github.com/distribution/reference"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/registry"
+	"github.com/docker/docker/client"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+
+	"github.com/clems4ever/llmbox/internal/box"
+	"github.com/clems4ever/llmbox/internal/sandbox"
+)
+
+const (
+	// ManagedLabel marks every container created by this provisioner.
+	ManagedLabel = "com.llmbox.managed"
+
+	// BoxIDLabel and DescriptionLabel persist the caller-assigned box ID and
+	// description so List can report them straight from a container summary.
+	BoxIDLabel       = "com.llmbox.box-id"
+	DescriptionLabel = "com.llmbox.description"
+
+	// SocketLabel persists the per-box socket token (the subdirectory under the
+	// provisioner's socket dir holding the box's control socket), so List/Find can
+	// reconstruct the socket path from a container summary alone.
+	SocketLabel = "com.llmbox.socket"
+
+	// DefaultImage is launched when the caller does not specify one. It bakes in
+	// the standalone Claude binary, the llmbox-agent binary (its entrypoint),
+	// tini, and a CA bundle (see Dockerfile.box).
+	DefaultImage = "ghcr.io/clems4ever/llmbox-box:latest"
+
+	// DefaultSocketDir is the host directory holding per-box control sockets when
+	// the operator does not configure one. Each box gets a 0700 subdirectory.
+	DefaultSocketDir = "/run/llmbox/boxsockets"
+
+	// socketMountTarget is where each box's socket directory is bind-mounted
+	// inside the container; the agent's default --socket lives directly under it.
+	socketMountTarget = "/run/llmbox"
+	socketFileName    = "control.sock"
+
+	// boxHome and boxWorkdir are the home and working directory forced on a box,
+	// so the baked ~/.claude.json trust seed and the credentials Claude writes land
+	// in known, writable paths regardless of the base image's own user/WORKDIR.
+	boxHome    = "/root"
+	boxWorkdir = "/workspace"
+
+	// pendingPrefix / readyPrefix encode a box's auth phase in its name so the
+	// phase survives a restart of this server. Reaping targets pendingPrefix only.
+	pendingPrefix = "llmbox-pending-"
+	readyPrefix   = "llmbox-"
+
+	// defaultBridgeNetwork is Docker's default bridge. A box is created on it then
+	// detached (once on its own per-box network) so boxes can't reach each other.
+	defaultBridgeNetwork = "bridge"
+
+	// stopTimeout is how long Docker waits after SIGTERM before SIGKILL when
+	// stopping a box, giving Claude a chance to deregister its session.
+	stopTimeout = 10 * time.Second
+
+	// socketWait bounds how long Provision waits for the agent to create its
+	// control socket after the container starts.
+	socketWait = 30 * time.Second
+)
+
+// dockerAPI is the subset of the Docker client the provisioner uses. It exists so
+// the Docker layer can be faked in tests; *client.Client satisfies it.
+type dockerAPI interface {
+	ContainerList(ctx context.Context, opts container.ListOptions) ([]container.Summary, error)
+	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *ocispec.Platform, containerName string) (container.CreateResponse, error)
+	ContainerStart(ctx context.Context, containerID string, opts container.StartOptions) error
+	ContainerStop(ctx context.Context, containerID string, opts container.StopOptions) error
+	ContainerRemove(ctx context.Context, containerID string, opts container.RemoveOptions) error
+	ContainerRename(ctx context.Context, containerID, newName string) error
+	ImagePull(ctx context.Context, refStr string, opts image.PullOptions) (io.ReadCloser, error)
+	NetworkCreate(ctx context.Context, name string, options network.CreateOptions) (network.CreateResponse, error)
+	NetworkConnect(ctx context.Context, networkID, containerID string, config *network.EndpointSettings) error
+	NetworkDisconnect(ctx context.Context, networkID, containerID string, force bool) error
+	NetworkRemove(ctx context.Context, networkID string) error
+	Close() error
+}
+
+// Provisioner creates and tears down boxes on a Docker daemon and exposes each
+// box's agent over a bind-mounted Unix socket. It implements box.Provisioner.
+type Provisioner struct {
+	cli          dockerAPI
+	defaultImage string
+	// socketDir is the host directory under which each box gets a 0700
+	// subdirectory holding its control socket; it must be readable/writable by
+	// this process and bind-mountable into containers.
+	socketDir string
+	// peers are resource-server container names connected into every box's own
+	// network so boxes can reach them while staying isolated from one another.
+	peers []string
+	// limits caps each box's memory/CPU/PIDs (the MaxBoxes field is enforced by
+	// box.Manager, not here). The zero value imposes no limits.
+	limits sandbox.Limits
+	// boxGPUs are the GPU device requests attached to every box (the `docker run
+	// --gpus` equivalent); machine-local, set per spoke.
+	boxGPUs []container.DeviceRequest
+	// registryAuths holds pull credentials keyed by registry host; nil disables
+	// authenticated pulls.
+	registryAuths map[string]registry.AuthConfig
+	log           *slog.Logger
+}
+
+// NewProvisioner builds a Provisioner using Docker configuration from the
+// environment. An empty defaultImage falls back to DefaultImage; an empty
+// socketDir falls back to DefaultSocketDir.
+//
+// @arg defaultImage The image launched when a caller does not specify one; empty uses DefaultImage.
+// @arg socketDir The host directory holding per-box control sockets; empty uses DefaultSocketDir.
+// @arg peers Resource-server container names connected into every box's network.
+// @return *Provisioner A provisioner wired to a Docker client built from the environment.
+// @error error if the Docker client cannot be created.
+//
+// @testcase TestProvisionCreatesAgentBox covers a provisioner built by NewProvisioner.
+func NewProvisioner(defaultImage, socketDir string, peers []string) (*Provisioner, error) {
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, fmt.Errorf("creating docker client: %w", err)
+	}
+	if defaultImage == "" {
+		defaultImage = DefaultImage
+	}
+	if socketDir == "" {
+		socketDir = DefaultSocketDir
+	}
+	return &Provisioner{cli: cli, defaultImage: defaultImage, socketDir: socketDir, peers: peers, log: slog.Default()}, nil
+}
+
+// logger returns the provisioner's logger, or slog.Default() when none was set.
+//
+// @return *slog.Logger The configured logger, or the slog default.
+//
+// @testcase TestProvisionCreatesAgentBox exercises a provisioner whose logger defaults.
+func (p *Provisioner) logger() *slog.Logger {
+	if p.log != nil {
+		return p.log
+	}
+	return slog.Default()
+}
+
+// SetPerBoxLimits sets the per-box memory/CPU/PID caps applied at create. The
+// MaxBoxes field is ignored here (box.Manager enforces the box count).
+//
+// @arg l The resource limits; only MemoryBytes/NanoCPUs/PidsLimit are used.
+//
+// @testcase TestProvisionAppliesLimits applies the configured caps to the host config.
+func (p *Provisioner) SetPerBoxLimits(l sandbox.Limits) { p.limits = l }
+
+// SetRegistryAuths supplies pull credentials keyed by registry host; nil/empty
+// leaves every pull anonymous.
+//
+// @arg auths Pull credentials keyed by registry host.
+//
+// @testcase TestProvisionPullsWithRegistryAuth pulls a private image using the configured credentials.
+func (p *Provisioner) SetRegistryAuths(auths map[string]registry.AuthConfig) { p.registryAuths = auths }
+
+// SetBoxGPUs configures the GPUs attached to every box, from a `docker run
+// --gpus`-style spec: "" attaches none, "all" attaches every GPU, a positive
+// integer attaches that many, and a comma-separated (optionally "device="-
+// prefixed) list selects GPUs by id/index.
+//
+// @arg spec The GPU spec: "", "all", a positive count, or a device list.
+// @error error if the spec is malformed.
+//
+// @testcase TestSetBoxGPUsParsesSpec accepts all/count/device-list specs and rejects bad ones.
+// @testcase TestProvisionAppliesGPUs attaches the configured device requests to the host config.
+func (p *Provisioner) SetBoxGPUs(spec string) error {
+	reqs, err := parseGPUs(spec)
+	if err != nil {
+		return err
+	}
+	p.boxGPUs = reqs
+	return nil
+}
+
+// Close releases the Docker client.
+//
+// @error error if the Docker client cannot be closed.
+//
+// @testcase TestProvisionCreatesAgentBox builds a provisioner whose client is closed in cleanup.
+func (p *Provisioner) Close() error { return p.cli.Close() }
+
+// managedFilter restricts Docker listings to containers this provisioner created.
+//
+// @return filters.Args A filter matching only containers carrying ManagedLabel.
+//
+// @testcase TestListMapsManagedContainers exercises managedFilter via List.
+func managedFilter() filters.Args {
+	return filters.NewArgs(filters.Arg("label", ManagedLabel+"=true"))
+}
+
+// phaseOf reports a box's auth phase from its container name.
+//
+// @arg name The container name to inspect.
+// @return string "pending" if the name has the pending prefix, else "ready".
+//
+// @testcase TestListMapsManagedContainers checks the phase derived from names.
+func phaseOf(name string) string {
+	if strings.HasPrefix(name, pendingPrefix) {
+		return "pending"
+	}
+	return "ready"
+}
+
+// boxFromSummary maps a Docker container summary to a sandbox.Box view.
+//
+// @arg c The container summary from a managed list.
+// @return sandbox.Box The box view with phase, box ID, and description filled in.
+//
+// @testcase TestListMapsManagedContainers checks the mapping from a container summary.
+func boxFromSummary(c container.Summary) sandbox.Box {
+	name := ""
+	if len(c.Names) > 0 {
+		name = strings.TrimPrefix(c.Names[0], "/")
+	}
+	return sandbox.Box{
+		ContainerID: c.ID[:12],
+		Name:        name,
+		BoxID:       c.Labels[BoxIDLabel],
+		Description: c.Labels[DescriptionLabel],
+		Image:       c.Image,
+		State:       c.State,
+		Status:      c.Status,
+		Phase:       phaseOf(name),
+		Created:     c.Created,
+	}
+}
+
+// List returns a handle to every managed box, running or not.
+//
+// @arg ctx Context for the Docker list request.
+// @return []box.Instance One handle per managed container.
+// @error error if listing containers fails.
+//
+// @testcase TestListMapsManagedContainers checks the mapping and the managed filter.
+func (p *Provisioner) List(ctx context.Context) ([]box.Instance, error) {
+	cs, err := p.cli.ContainerList(ctx, container.ListOptions{All: true, Filters: managedFilter()})
+	if err != nil {
+		return nil, fmt.Errorf("listing boxes: %w", err)
+	}
+	out := make([]box.Instance, 0, len(cs))
+	for _, c := range cs {
+		out = append(out, &dockerInstance{prov: p, box: boxFromSummary(c), socketToken: c.Labels[SocketLabel]})
+	}
+	return out, nil
+}
+
+// Find resolves an ID or name to the single managed box it identifies.
+//
+// @arg ctx Context for the underlying list.
+// @arg idOrName The container ID or caller-assigned box ID/name to resolve.
+// @return box.Instance The matched box.
+// @error error wrapping sandbox.ErrBoxNotFound if no managed box matches.
+//
+// @testcase TestFindResolvesByIDAndBoxID resolves a box by its short id and by its box id.
+// @testcase TestFindUnknownBox errors when no managed box matches.
+func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, error) {
+	insts, err := p.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, inst := range insts {
+		b := inst.Meta()
+		if b.Name == idOrName ||
+			(b.BoxID != "" && b.BoxID == idOrName) ||
+			strings.HasPrefix(b.ContainerID, idOrName) ||
+			strings.HasPrefix(idOrName, b.ContainerID) ||
+			b.Name == pendingPrefix+idOrName ||
+			b.Name == readyPrefix+idOrName {
+			return inst, nil
+		}
+	}
+	return nil, fmt.Errorf("%w %q", ErrBoxNotFound, idOrName)
+}
+
+// Provision creates and starts a box: a container whose entrypoint is the guest
+// agent, with the box's host socket directory bind-mounted in so the host can
+// reach the agent. The box is created on its own network (peers wired in,
+// isolated from other boxes), named with the pending prefix, and run as root with
+// no-new-privileges, the configured resource caps and GPUs, and a restart policy
+// of "unless-stopped" so a crashed box (and its always-on agent) comes back.
+//
+// @arg ctx Context for the Docker calls and the socket wait.
+// @arg opts The caller-controlled image, box ID, and description for the box.
+// @return box.Instance A handle to the started box, in the pending phase.
+// @error error if the box id is invalid, the image cannot be pulled, or the box cannot be created, networked, started, or its agent socket does not appear.
+//
+// @testcase TestProvisionCreatesAgentBox creates an agent-entrypoint box with the socket mount and restart policy.
+// @testcase TestProvisionCleansUpOnStartFailure removes the container, network, and socket dir when start fails.
+// @testcase TestProvisionAppliesLimits applies the configured resource caps and no-new-privileges.
+// @testcase TestProvisionAppliesGPUs attaches the configured GPU device requests.
+// @testcase TestProvisionPullsMissingImage pulls the image then retries when it is absent.
+func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions) (box.Instance, error) {
+	if opts.BoxID != "" && !sandbox.ValidBoxID(opts.BoxID) {
+		return nil, fmt.Errorf("invalid box id %q", opts.BoxID)
+	}
+	image := opts.Image
+	if image == "" {
+		image = p.defaultImage
+	}
+
+	// Create the per-box socket directory (0700, owned by this process) before the
+	// container so it can be bind-mounted in. The directory is the access gate:
+	// only this process (and root) can traverse into it, so no other local user
+	// can reach the agent socket the box creates inside it.
+	token, err := newSocketToken()
+	if err != nil {
+		return nil, err
+	}
+	hostBoxDir := filepath.Join(p.socketDir, token)
+	if err := os.MkdirAll(hostBoxDir, 0o700); err != nil {
+		return nil, fmt.Errorf("creating box socket dir: %w", err)
+	}
+
+	labels := map[string]string{ManagedLabel: "true", SocketLabel: token}
+	if opts.BoxID != "" {
+		labels[BoxIDLabel] = opts.BoxID
+	}
+	if opts.Description != "" {
+		labels[DescriptionLabel] = opts.Description
+	}
+
+	cfg := &container.Config{
+		Image:      image,
+		Hostname:   opts.BoxID,
+		Entrypoint: []string{"tini", "-g", "--", "llmbox-agent", "--socket", filepath.Join(socketMountTarget, socketFileName)},
+		Labels:     labels,
+		User:       "0:0",
+		WorkingDir: boxWorkdir,
+		Env:        []string{"HOME=" + boxHome},
+	}
+	hostCfg := &container.HostConfig{
+		// Keep the box (and its always-on agent) alive across crashes; the spoke
+		// removes it explicitly on Destroy/reap, which "unless-stopped" honours.
+		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyUnlessStopped},
+		SecurityOpt:   []string{"no-new-privileges"},
+		Mounts: []mount.Mount{{
+			Type:   mount.TypeBind,
+			Source: hostBoxDir,
+			Target: socketMountTarget,
+		}},
+	}
+	if p.limits.MemoryBytes > 0 {
+		hostCfg.Memory = p.limits.MemoryBytes
+	}
+	if p.limits.NanoCPUs > 0 {
+		hostCfg.NanoCPUs = p.limits.NanoCPUs
+	}
+	if p.limits.PidsLimit > 0 {
+		hostCfg.PidsLimit = &p.limits.PidsLimit
+	}
+	if len(p.boxGPUs) > 0 {
+		hostCfg.DeviceRequests = p.boxGPUs
+	}
+
+	resp, err := p.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
+	if err != nil && errdefs.IsNotFound(err) {
+		if perr := p.pullImage(ctx, image); perr != nil {
+			_ = os.RemoveAll(hostBoxDir)
+			return nil, fmt.Errorf("pulling image %q: %w", image, perr)
+		}
+		resp, err = p.cli.ContainerCreate(ctx, cfg, hostCfg, nil, nil, "")
+	}
+	if err != nil {
+		_ = os.RemoveAll(hostBoxDir)
+		return nil, fmt.Errorf("creating box from image %q: %w", image, err)
+	}
+	id := resp.ID
+
+	cleanup := func() {
+		if rerr := p.cli.ContainerRemove(context.Background(), id, container.RemoveOptions{Force: true}); rerr != nil {
+			p.logger().Warn("failed to remove box during cleanup", "container", id, "err", rerr)
+		}
+		p.removeBoxNetwork(context.Background(), id)
+		_ = os.RemoveAll(hostBoxDir)
+	}
+
+	if err := p.setupBoxNetwork(ctx, id); err != nil {
+		cleanup()
+		return nil, err
+	}
+	if err := p.cli.ContainerRename(ctx, id, pendingPrefix+id[:12]); err != nil {
+		cleanup()
+		return nil, fmt.Errorf("naming box: %w", err)
+	}
+	if err := p.cli.ContainerStart(ctx, id, container.StartOptions{}); err != nil {
+		cleanup()
+		return nil, fmt.Errorf("starting box: %w", err)
+	}
+
+	// Wait for the agent to create its control socket so the caller's first
+	// agent call connects without racing the container's startup.
+	sockPath := filepath.Join(hostBoxDir, socketFileName)
+	if err := waitForSocket(ctx, sockPath, socketWait); err != nil {
+		cleanup()
+		return nil, fmt.Errorf("waiting for box agent: %w", err)
+	}
+
+	return &dockerInstance{
+		prov: p,
+		box: sandbox.Box{
+			ContainerID: id[:12],
+			Name:        pendingPrefix + id[:12],
+			BoxID:       opts.BoxID,
+			Description: opts.Description,
+			Image:       image,
+			State:       "running",
+			Phase:       "pending",
+			Created:     time.Now().Unix(),
+		},
+		socketToken: token,
+	}, nil
+}
+
+// waitForSocket polls until path exists or the timeout elapses; the agent creates
+// the control socket once it is listening, so its appearance means the box is
+// reachable.
+//
+// @arg ctx Context whose cancellation aborts the wait.
+// @arg path The control socket path to wait for.
+// @arg timeout How long to wait before giving up.
+// @error error if the socket does not appear before the timeout or ctx is cancelled.
+//
+// @testcase TestProvisionCreatesAgentBox waits for a socket the fake create makes appear.
+func waitForSocket(ctx context.Context, path string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		if _, err := os.Stat(path); err == nil {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("control socket %s did not appear within %s", path, timeout)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(20 * time.Millisecond):
+		}
+	}
+}
+
+// newSocketToken returns a random hex token used as a box's socket subdirectory
+// name (and SocketLabel value).
+//
+// @return string A 16-char random hex token.
+// @error error if the system random source fails.
+//
+// @testcase TestProvisionCreatesAgentBox derives a box's socket dir from this token.
+func newSocketToken() (string, error) {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", fmt.Errorf("generating socket token: %w", err)
+	}
+	return hex.EncodeToString(b[:]), nil
+}
+
+// boxNetworkName is the deterministic name of a box's dedicated network.
+//
+// @arg id The box's container ID.
+// @return string The per-box network name.
+//
+// @testcase TestProvisionCreatesAgentBox names the box network after the box.
+func boxNetworkName(id string) string { return "llmboxnet-" + id[:12] }
+
+// setupBoxNetwork creates the box's own bridge network, connects the box and the
+// resource-server peers to it, and detaches the box from the default bridge so
+// boxes stay isolated from one another while reaching the shared peers.
+//
+// @arg ctx Context for the network calls.
+// @arg id The box's container ID.
+// @error error if the network cannot be created or the box cannot be connected/detached.
+//
+// @testcase TestProvisionConnectsPeers creates the network, connects box and peers, and detaches the bridge.
+func (p *Provisioner) setupBoxNetwork(ctx context.Context, id string) error {
+	name := boxNetworkName(id)
+	if _, err := p.cli.NetworkCreate(ctx, name, network.CreateOptions{
+		Driver: "bridge",
+		Labels: map[string]string{ManagedLabel: "true"},
+	}); err != nil {
+		return fmt.Errorf("creating box network: %w", err)
+	}
+	if err := p.cli.NetworkConnect(ctx, name, id, nil); err != nil {
+		return fmt.Errorf("connecting box to its network: %w", err)
+	}
+	for _, peer := range p.peers {
+		if err := p.cli.NetworkConnect(ctx, name, peer, nil); err != nil {
+			p.logger().Warn("failed to connect peer to box network", "network", name, "peer", peer, "err", err)
+		}
+	}
+	if err := p.cli.NetworkDisconnect(ctx, defaultBridgeNetwork, id, true); err != nil {
+		return fmt.Errorf("detaching box from the default bridge: %w", err)
+	}
+	return nil
+}
+
+// removeBoxNetwork tears down a box's dedicated network, disconnecting the peers
+// first. It is best-effort: failures are logged, not returned.
+//
+// @arg ctx Context for the disconnect/remove calls.
+// @arg id The box's container ID.
+//
+// @testcase TestDestroyRemovesNetworkAndSocket checks the box network is removed on destroy.
+func (p *Provisioner) removeBoxNetwork(ctx context.Context, id string) {
+	name := boxNetworkName(id)
+	for _, peer := range p.peers {
+		if err := p.cli.NetworkDisconnect(ctx, name, peer, true); err != nil {
+			p.logger().Warn("failed to disconnect peer from box network", "network", name, "peer", peer, "err", err)
+		}
+	}
+	if err := p.cli.NetworkRemove(ctx, name); err != nil {
+		p.logger().Warn("failed to remove box network", "network", name, "err", err)
+	}
+}
+
+// pullImage pulls ref, using the configured registry credentials when one matches
+// ref's registry host.
+//
+// @arg ctx Context for the pull.
+// @arg ref The image reference to pull.
+// @error error if the pull cannot be started or its progress cannot be read.
+//
+// @testcase TestProvisionPullsMissingImage pulls the image when the create reports it missing.
+func (p *Provisioner) pullImage(ctx context.Context, ref string) error {
+	opts := image.PullOptions{}
+	if auth, ok := p.registryAuthFor(ref); ok {
+		encoded, err := registry.EncodeAuthConfig(auth)
+		if err != nil {
+			return fmt.Errorf("encoding registry auth for %q: %w", ref, err)
+		}
+		opts.RegistryAuth = encoded
+	}
+	rc, err := p.cli.ImagePull(ctx, ref, opts)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rc.Close() }()
+	if _, err := io.Copy(io.Discard, rc); err != nil {
+		return fmt.Errorf("reading pull progress: %w", err)
+	}
+	return nil
+}
+
+// registryAuthFor returns the configured pull credentials for ref's registry
+// host, if any (resolved with Docker's normalization rules).
+//
+// @arg ref The image reference whose registry host is matched against the configured credentials.
+// @return registry.AuthConfig The matching credentials (zero value when none match).
+// @return bool Whether a matching entry was found.
+//
+// @testcase TestProvisionPullsWithRegistryAuth matches an image to its registry credentials.
+func (p *Provisioner) registryAuthFor(ref string) (registry.AuthConfig, bool) {
+	if len(p.registryAuths) == 0 {
+		return registry.AuthConfig{}, false
+	}
+	named, err := reference.ParseNormalizedNamed(ref)
+	if err != nil {
+		return registry.AuthConfig{}, false
+	}
+	auth, ok := p.registryAuths[reference.Domain(named)]
+	return auth, ok
+}
+
+// parseGPUs turns a `docker run --gpus`-style spec into Docker device requests.
+//
+// @arg spec The GPU spec: "", "all", a positive count, or a device list like "device=0,1".
+// @return []container.DeviceRequest The device requests (nil when spec is empty).
+// @error error if the spec is malformed.
+//
+// @testcase TestSetBoxGPUsParsesSpec drives this through SetBoxGPUs.
+func parseGPUs(spec string) ([]container.DeviceRequest, error) {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return nil, nil
+	}
+	req := container.DeviceRequest{Capabilities: [][]string{{"gpu"}}}
+	switch {
+	case spec == "all":
+		req.Count = -1
+	case strings.HasPrefix(spec, "device="):
+		req.DeviceIDs = splitGPUList(strings.TrimPrefix(spec, "device="))
+	case !strings.Contains(spec, ","):
+		if n, err := strconv.Atoi(spec); err == nil {
+			if n <= 0 {
+				return nil, fmt.Errorf("invalid --box-gpus count %q: must be a positive integer or \"all\"", spec)
+			}
+			req.Count = n
+		} else {
+			req.DeviceIDs = []string{spec}
+		}
+	default:
+		req.DeviceIDs = splitGPUList(spec)
+	}
+	if req.Count == 0 && len(req.DeviceIDs) == 0 {
+		return nil, fmt.Errorf("invalid --box-gpus %q: no GPUs selected", spec)
+	}
+	return []container.DeviceRequest{req}, nil
+}
+
+// splitGPUList splits a comma-separated GPU id list, trimming spaces and dropping
+// empty entries.
+//
+// @arg list A comma-separated list of GPU ids/indices.
+// @return []string The non-empty, space-trimmed entries.
+//
+// @testcase TestSetBoxGPUsParsesSpec exercises device-list parsing through SetBoxGPUs.
+func splitGPUList(list string) []string {
+	var ids []string
+	for _, part := range strings.Split(list, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			ids = append(ids, part)
+		}
+	}
+	return ids
+}
+
+// ErrBoxNotFound is the backend-neutral sentinel (defined in internal/sandbox)
+// reporting that no managed box matches a given identifier. Re-exported here so
+// existing callers (docker.ErrBoxNotFound) keep working.
+var ErrBoxNotFound = sandbox.ErrBoxNotFound
+
+// IsNotFound reports whether err indicates that no managed box matched the
+// identifier. It recognizes both the typed ErrBoxNotFound (local calls) and an
+// error that round-tripped over the cluster transport as a bare string.
+//
+// @arg err The error to classify; nil is not a not-found error.
+// @return bool Whether err means the box does not exist.
+//
+// @testcase TestIsNotFound recognizes the sentinel, a wrapped error, a wire string, and rejects others.
+func IsNotFound(err error) bool {
+	return err != nil && (errors.Is(err, ErrBoxNotFound) || strings.Contains(err.Error(), ErrBoxNotFound.Error()))
+}
+
+// dockerInstance is a handle to one managed Docker box.
+type dockerInstance struct {
+	prov        *Provisioner
+	box         sandbox.Box
+	socketToken string
+}
+
+// socketPath returns the host path of the box's control socket.
+//
+// @return string The host filesystem path of the box's control socket.
+//
+// @testcase TestProvisionCreatesAgentBox dials the path socketPath returns.
+func (i *dockerInstance) socketPath() string {
+	return filepath.Join(i.prov.socketDir, i.socketToken, socketFileName)
+}
+
+// Meta returns the box's view as captured when the instance was resolved.
+//
+// @return sandbox.Box The box's ID, name, phase, and other fields.
+//
+// @testcase TestListMapsManagedContainers reads box metadata via Meta.
+func (i *dockerInstance) Meta() sandbox.Box { return i.box }
+
+// Control opens a new connection to the box's agent over its bind-mounted Unix
+// socket.
+//
+// @arg ctx Context for the dial.
+// @return net.Conn A control connection to the box's agent.
+// @error error if the socket cannot be dialled.
+//
+// @testcase TestProvisionCreatesAgentBox connects to a box's agent via Control.
+func (i *dockerInstance) Control(ctx context.Context) (net.Conn, error) {
+	var d net.Dialer
+	return d.DialContext(ctx, "unix", i.socketPath())
+}
+
+// MarkReady renames the container from the pending prefix to the ready prefix so
+// the orphan reaper spares it once it has authenticated.
+//
+// @arg ctx Context for the rename.
+// @error error if the container cannot be renamed.
+//
+// @testcase TestMarkReadyRenamesContainer renames the box to the ready prefix.
+func (i *dockerInstance) MarkReady(ctx context.Context) error {
+	id := i.box.ContainerID
+	if err := i.prov.cli.ContainerRename(ctx, id, readyPrefix+id); err != nil {
+		return fmt.Errorf("marking box %s ready: %w", id, err)
+	}
+	return nil
+}
+
+// Destroy gracefully stops and removes the box, tears down its network, and
+// removes its host socket directory. Destroying an already-gone box returns a
+// wrapped sandbox.ErrBoxNotFound.
+//
+// @arg ctx Context for the stop and remove.
+// @error error wrapping sandbox.ErrBoxNotFound if the box is already gone, or if it cannot be stopped/removed.
+//
+// @testcase TestDestroyRemovesNetworkAndSocket stops the box, removes its network, and deletes its socket dir.
+// @testcase TestDestroyAlreadyGone reports ErrBoxNotFound when the container is missing.
+func (i *dockerInstance) Destroy(ctx context.Context) error {
+	id := i.box.ContainerID
+	timeout := int(stopTimeout.Seconds())
+	if err := i.prov.cli.ContainerStop(ctx, id, container.StopOptions{Timeout: &timeout}); err != nil {
+		if errdefs.IsNotFound(err) {
+			return fmt.Errorf("%w %q", ErrBoxNotFound, id)
+		}
+		return fmt.Errorf("stopping box %s: %w", id, err)
+	}
+	if err := i.prov.cli.ContainerRemove(ctx, id, container.RemoveOptions{RemoveVolumes: true}); err != nil {
+		if errdefs.IsNotFound(err) {
+			return fmt.Errorf("%w %q", ErrBoxNotFound, id)
+		}
+		return fmt.Errorf("removing box %s: %w", id, err)
+	}
+	i.prov.removeBoxNetwork(ctx, id)
+	if i.socketToken != "" {
+		_ = os.RemoveAll(filepath.Join(i.prov.socketDir, i.socketToken))
+	}
+	return nil
+}

@@ -3,8 +3,8 @@
 		{
 			"function_name": "Run",
 			"documentation_hash": "3c9e4e8da0a06a3a316270c6edbaaaae011cc672bf2f629147c9b0e4ad2fed1a",
-			"definition_hash": "53cc6eda0881f5e8baf27910542fe83a083e22b0c4a809d173bc3bef946994c5",
-			"reviewed_at": "2026-06-30T15:27:10.627495917Z"
+			"definition_hash": "3fc4ea06ccde2122ed67324a7c4ac9398b3563483dbce13484f33f44f16d0271",
+			"reviewed_at": "2026-06-30T16:10:22.197702403Z"
 		},
 		{
 			"function_name": "opCtx",
@@ -17,12 +17,6 @@
 			"documentation_hash": "0c63e63f10b04d2197b94d0a32c85688049cd7907ef0bc2a0e5bfae2ffc37379",
 			"definition_hash": "912d465c6d6f18f3cb1b6092b96ce3f4d6964d1724603818bfd696c6b3aa57d3",
 			"reviewed_at": "2026-06-30T15:28:59.201796722Z"
-		},
-		{
-			"function_name": "testDialBox",
-			"documentation_hash": "dd6892762d9029ce9ae718023a7bf374183ad4154252c398b0aa006412fa3622",
-			"definition_hash": "07f5cc2f5c56facc03e7d5f32615fadbba562c423f2c3541c90a74164273c688",
-			"reviewed_at": "2026-06-30T15:28:59.211605314Z"
 		},
 		{
 			"function_name": "testDestroyIdempotent",

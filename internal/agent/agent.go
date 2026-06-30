@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/creack/pty"
@@ -158,19 +157,21 @@ func (a *Agent) ListenAndServe(ctx context.Context, path string) error {
 	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("removing stale socket: %w", err)
 	}
-	// Create the socket with owner-only permissions from birth. net.Listen would
-	// otherwise create it with the umask-default mode and leave a window before a
-	// follow-up Chmod during which another local user could open it; tightening
-	// umask around the Listen closes that race. (The 0700 parent dir already
-	// blocks non-owners, so this is defense-in-depth.) Umask is process-global, so
-	// it is restored immediately, including on the error path.
-	oldMask := syscall.Umask(0o177)
 	ln, err := net.Listen("unix", path)
-	syscall.Umask(oldMask)
 	if err != nil {
 		return fmt.Errorf("listening on control socket: %w", err)
 	}
 	defer ln.Close()
+	// The access gate is the 0700 parent directory, owned by the host process
+	// (the spoke): only it (and root) can traverse into it, so no other local user
+	// can reach the socket. The socket itself is made group/other-accessible
+	// because, across the container bind mount, the in-box agent runs as a
+	// different uid (root) than the host spoke, and a connect() needs write
+	// permission on the socket. The pre-chmod mode is only ever more restrictive
+	// than this, so there is no window where the socket is wider than intended.
+	if err := os.Chmod(path, 0o666); err != nil {
+		return fmt.Errorf("setting control socket mode: %w", err)
+	}
 
 	go func() {
 		<-ctx.Done()

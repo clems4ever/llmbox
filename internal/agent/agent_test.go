@@ -139,10 +139,11 @@ func TestAgentLifecycle(t *testing.T) {
 	}
 }
 
-// TestListenAndServeSocketPerms checks the control socket is owner-only (0600)
-// inside an owner-only (0700) directory, so a non-owner local user cannot reach
-// it. The socket is created with these perms from birth (tight umask around
-// Listen), not loosened-then-tightened.
+// TestListenAndServeSocketPerms checks the control socket lives inside an
+// owner-only (0700) directory — the access gate that stops a non-owner local
+// user from reaching it — while the socket itself is group/other-accessible
+// (0666) so the host process can connect to it across a container bind mount
+// where the in-box agent runs as a different uid.
 func TestListenAndServeSocketPerms(t *testing.T) {
 	a := New(Options{ClaudeCmd: writeMockClaude(t)})
 	sock := filepath.Join(t.TempDir(), "sockdir", "control.sock")
@@ -166,8 +167,8 @@ func TestListenAndServeSocketPerms(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat socket: %v", err)
 	}
-	if si.Mode().Perm() != 0o600 {
-		t.Fatalf("socket mode = %v, want 0600", si.Mode().Perm())
+	if si.Mode().Perm() != 0o666 {
+		t.Fatalf("socket mode = %v, want 0666", si.Mode().Perm())
 	}
 	di, err := os.Stat(filepath.Dir(sock))
 	if err != nil {

@@ -21,7 +21,7 @@ import (
 
 // boxDialer is the box-reachability capability the proxy needs from a spoke's
 // box manager: open a connection to a port inside a box. Only the in-process
-// *docker.Manager implements it; a remote spoke does not (streaming a live
+// *box.Manager implements it; a remote spoke does not (streaming a live
 // connection over the cluster transport is not yet supported), so proxying to a
 // box on a remote spoke is refused rather than silently mis-routed. Keeping this
 // a separate, optional interface (not part of cluster.BoxManager) preserves the

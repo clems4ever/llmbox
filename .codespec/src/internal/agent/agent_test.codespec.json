@@ -80,9 +80,9 @@
 		},
 		{
 			"function_name": "TestListenAndServeSocketPerms",
-			"documentation_hash": "f058ae5a6a5ee40ed390fcc1556df0251b4b45ae7678e6d1da1574455e6453b3",
-			"definition_hash": "17826e961f39d2fb8b58ed71172a01652d54c394ebf2a74ec635ab7cb2adcfa1",
-			"reviewed_at": "2026-06-30T12:42:29.573543182Z"
+			"documentation_hash": "7a75043ff75a07c7f44100b03d9f896f0ca1b1a1aa0b9c9b0876d2a3462f09da",
+			"definition_hash": "30c7f47acf83f2d8120b77e213f3ba2c56b2619f22734aac348fbfb4b1147f0f",
+			"reviewed_at": "2026-06-30T16:10:22.197341821Z"
 		},
 		{
 			"function_name": "TestAgentEntryEnvFillsHomeAndPath",

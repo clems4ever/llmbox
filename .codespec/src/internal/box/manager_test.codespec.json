@@ -5,6 +5,12 @@
 			"documentation_hash": "b75077fbe22635a01ff4ee7f1dc5b4ddef85d43e2866e2fc8b72d9bb785f4983",
 			"definition_hash": "6985c2c33195e0eb716570afa515c9cf5d44fc6e464ec7bd777885fbb5ec0b07",
 			"reviewed_at": "2026-06-30T15:30:40.863750331Z"
+		},
+		{
+			"function_name": "TestBoxManagerDialBox",
+			"documentation_hash": "289ced864d6f1b12e34d0f3f1f9af91d315d5526f462a28295eba9f1b3a45037",
+			"definition_hash": "6b1687a4593b7fa119791199d57a6501cd290268ccac088870478cad344066dc",
+			"reviewed_at": "2026-06-30T16:10:22.198198398Z"
 		}
 	]
 }

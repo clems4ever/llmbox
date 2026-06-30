@@ -3,7 +3,6 @@ package conformance
 import (
 	"context"
 	"errors"
-	"net"
 	"strings"
 	"testing"
 	"time"
@@ -32,7 +31,6 @@ type NewProvisioner func(t testing.TB) box.Provisioner
 // @testcase TestConformanceFake runs the contract against the Fake provisioner.
 func Run(t *testing.T, newProv NewProvisioner) {
 	t.Run("Lifecycle", func(t *testing.T) { testLifecycle(t, newProv) })
-	t.Run("DialBox", func(t *testing.T) { testDialBox(t, newProv) })
 	t.Run("DestroyIdempotent", func(t *testing.T) { testDestroyIdempotent(t, newProv) })
 	t.Run("ListAndFind", func(t *testing.T) { testListAndFind(t, newProv) })
 	t.Run("InvalidBoxID", func(t *testing.T) { testInvalidBoxID(t, newProv) })
@@ -102,58 +100,6 @@ func testLifecycle(t *testing.T, newProv NewProvisioner) {
 	}
 	if !strings.Contains(logs, "Remote control session ready") {
 		t.Fatalf("logs missing remote-control banner:\n%s", logs)
-	}
-}
-
-// testDialBox checks DialBox reaches an in-box listener.
-//
-// @arg t The test to assert under.
-// @arg newProv Builds the provisioner under test.
-//
-// @testcase TestConformanceFake runs testDialBox as a subtest.
-func testDialBox(t *testing.T, newProv NewProvisioner) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	defer ln.Close()
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				return
-			}
-			go func() {
-				defer conn.Close()
-				buf := make([]byte, 64)
-				n, _ := conn.Read(buf)
-				_, _ = conn.Write(buf[:n])
-			}()
-		}
-	}()
-	port := ln.Addr().(*net.TCPAddr).Port
-
-	m := box.NewManager(newProv(t), box.Config{})
-	ctx := opCtx(t)
-	id, _, err := m.Create(ctx, sandbox.CreateOptions{})
-	if err != nil {
-		t.Fatalf("Create: %v", err)
-	}
-
-	conn, err := m.DialBox(ctx, id, port)
-	if err != nil {
-		t.Fatalf("DialBox: %v", err)
-	}
-	defer conn.Close()
-	if _, err := conn.Write([]byte("ping")); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-	buf := make([]byte, 4)
-	if _, err := conn.Read(buf); err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	if string(buf) != "ping" {
-		t.Fatalf("echo = %q, want ping", buf)
 	}
 }
 

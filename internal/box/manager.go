@@ -232,7 +232,7 @@ func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (sand
 // @return net.Conn A connection spliced to the in-box port; the caller must close it.
 // @error error if no managed box matches or the port cannot be reached.
 //
-// @testcase TestBoxManager reaches an in-box listener through DialBox.
+// @testcase TestBoxManagerDialBox reaches a box-localhost listener through DialBox.
 func (m *Manager) DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error) {
 	inst, err := m.prov.Find(ctx, idOrName)
 	if err != nil {

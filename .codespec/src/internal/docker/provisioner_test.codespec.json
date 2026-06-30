@@ -1,0 +1,191 @@
+{
+	"functions": [
+		{
+			"function_name": "ContainerCreate",
+			"receiver": "fakeDocker",
+			"documentation_hash": "7a40e3b7146838788c9525d8ef84ec3f68da6a9986ae9a3d99fc5c410d4be586",
+			"definition_hash": "16deed95f08d62ce9f565eff7b8009cbdfc479b6fb33a1f3a6d18c2602ab3d18",
+			"reviewed_at": "2026-06-30T16:11:46.288804016Z"
+		},
+		{
+			"function_name": "ContainerStart",
+			"receiver": "fakeDocker",
+			"documentation_hash": "a61ff0ebf8bd806a09c5c8f809ff8cd0582f28cacf495b62ff2c25c5a471a884",
+			"definition_hash": "ec9eeaafa09c4a98f8033b06e50ee9b51da6e2cfb10728bc0b4c00ad6b7f19bb",
+			"reviewed_at": "2026-06-30T16:11:46.290471977Z"
+		},
+		{
+			"function_name": "closeListeners",
+			"receiver": "fakeDocker",
+			"documentation_hash": "9ffb671f295be01ece9a6fd4a981aad23e2426bcab3e7bfcd94ccb11f956bf56",
+			"definition_hash": "e5e6384782e5c4c58cac7029e7a280d26873b0c7559d5ecbff3f0063496515ba",
+			"reviewed_at": "2026-06-30T16:11:46.291093856Z"
+		},
+		{
+			"function_name": "ContainerStop",
+			"receiver": "fakeDocker",
+			"documentation_hash": "2eef089faff0036ec704d6e3aa8edc47a65ab1e2d2da14711bb6c37566830ce1",
+			"definition_hash": "f4ec2ea1b85ee72a3ad6e6d797f70f0c52ad7a9f58837a4bc86a9a32c04d477c",
+			"reviewed_at": "2026-06-30T16:11:46.291701015Z"
+		},
+		{
+			"function_name": "ContainerRemove",
+			"receiver": "fakeDocker",
+			"documentation_hash": "ab366fb6460ea651118b8ccecfb44338e7b4528c43d153420927b07585b4760e",
+			"definition_hash": "5dc76246cc78bd820d7f60d97d34905cd8cd8e1d60df881a6fafaab1a1dcad5f",
+			"reviewed_at": "2026-06-30T16:11:46.292805877Z"
+		},
+		{
+			"function_name": "ContainerRename",
+			"receiver": "fakeDocker",
+			"documentation_hash": "b2d2c14375d0933a374bcb120dcd0397da02ce9aa280dc9d5d84b052b64d692f",
+			"definition_hash": "f85e4e11eed7ba19b6a378e2b5cdb8ffb55865ced719e3452d90b186533ee0e5",
+			"reviewed_at": "2026-06-30T16:11:46.293450666Z"
+		},
+		{
+			"function_name": "ImagePull",
+			"receiver": "fakeDocker",
+			"documentation_hash": "cb15a0eda512b478ec6a31df694d9bb12d81f76be90b311f1e6c5f809293956d",
+			"definition_hash": "5a01d4a278974be6557a9a5f82734eb9c8d7a6bf82576f1446fdfc3421d62373",
+			"reviewed_at": "2026-06-30T16:11:46.294101069Z"
+		},
+		{
+			"function_name": "ContainerList",
+			"receiver": "fakeDocker",
+			"documentation_hash": "a9b8c3fd74cb3421e63b45e1c4ff2ea9181f61aebba4a1ea85ce207d968ecfcc",
+			"definition_hash": "0ce49f1fcf78b6345672f97255b45192e611b5a48190742f5ff476f94ce400d4",
+			"reviewed_at": "2026-06-30T16:11:46.327774019Z"
+		},
+		{
+			"function_name": "NetworkCreate",
+			"receiver": "fakeDocker",
+			"documentation_hash": "95e61dc3f8cd478eb3e1fa2557c0be1c9e8b93ee6948dcae5ccddf425bef17e2",
+			"definition_hash": "c463d590ddb02414801fb1b48cb83e99020394d7048b74eadda598380bfcf934",
+			"reviewed_at": "2026-06-30T16:11:46.328833588Z"
+		},
+		{
+			"function_name": "NetworkConnect",
+			"receiver": "fakeDocker",
+			"documentation_hash": "3a046d46a6b8104b50b86da7d22bd4676031bb0106930b50e76fe5d284624db9",
+			"definition_hash": "25371aaaf18232d1dae5a56da02526eed065a53150326136c3264adeaf825dd2",
+			"reviewed_at": "2026-06-30T16:11:46.329662064Z"
+		},
+		{
+			"function_name": "NetworkDisconnect",
+			"receiver": "fakeDocker",
+			"documentation_hash": "b97bb907cf5d1dcecd70eb741d896198aa3dbb4ca92849f47f0938433732478a",
+			"definition_hash": "85cae9b7ba53c2167f64b81c8baa28268231e55d201879dfd17dd815eae991e5",
+			"reviewed_at": "2026-06-30T16:11:46.330282051Z"
+		},
+		{
+			"function_name": "NetworkRemove",
+			"receiver": "fakeDocker",
+			"documentation_hash": "511ab43d6a88ac5ae1b5fdfd208f8c0d760957a2ef37ce823dc464fe9322bd1c",
+			"definition_hash": "0c76f065a9c1be01c4089d275170bb7b67084217a372ef66ebb28f701112fb35",
+			"reviewed_at": "2026-06-30T16:11:46.331288147Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "fakeDocker",
+			"documentation_hash": "ffddc70a5827cc9f782877702790976b039254f66ad95e6cf2aa1bbb6e03733c",
+			"definition_hash": "11c60367caf3c4ed5ad4885cd109e8d658c6b80ffa66bcc70880e4686a1bf34e",
+			"reviewed_at": "2026-06-30T16:11:46.331907759Z"
+		},
+		{
+			"function_name": "newTestProvisioner",
+			"documentation_hash": "2db05b9d40a619572a5864cbac4334f0e0cab91f4cb7cfe974b6f7cbfbb80f7d",
+			"definition_hash": "4f11ab917a3938fba51f80dcab994917c997c5dc60a07414f08d541c922f929f",
+			"reviewed_at": "2026-06-30T16:11:46.332556789Z"
+		},
+		{
+			"function_name": "TestProvisionCreatesAgentBox",
+			"documentation_hash": "436700e7e078b616b9414d4687bc563c36782b70d820e217b29a432172422901",
+			"definition_hash": "68907221c3f95716ce6fb6f1678307e91f96b3d9348f82a3848f65d2c1ed824a",
+			"reviewed_at": "2026-06-30T16:11:46.333650948Z"
+		},
+		{
+			"function_name": "TestProvisionCleansUpOnStartFailure",
+			"documentation_hash": "f2b0cc6dc3b8b38870aabaf286c9306a0bdf3f87176af5d17fe7442e5cc83676",
+			"definition_hash": "11bf8e1e27e22c3b83e1e657eb209c8eb8b09c0d5222c505730e915cf5800112",
+			"reviewed_at": "2026-06-30T16:11:46.334381352Z"
+		},
+		{
+			"function_name": "TestProvisionAppliesLimits",
+			"documentation_hash": "a44d79b09eba095c040d0659ea0b1b4838eab057df2ca9cc7757f5e37636a900",
+			"definition_hash": "0801814b92d4031d5212ba51fac744ff60ce69c3a88b80f0ca17b18e63cdf678",
+			"reviewed_at": "2026-06-30T16:11:46.335272301Z"
+		},
+		{
+			"function_name": "TestProvisionAppliesGPUs",
+			"documentation_hash": "cfb0a97b883c6d5857e441182556a14c351bfb388ee11c04a960bcb757e6e165",
+			"definition_hash": "981fd5b902dcc92b147bdae77fec4cc864011a17e875cd1ef87f48f7b9701f7e",
+			"reviewed_at": "2026-06-30T16:11:46.368383574Z"
+		},
+		{
+			"function_name": "TestProvisionPullsMissingImage",
+			"documentation_hash": "6b0c489f34ccf15dac608b5c013c1b52297d1cbaec2586b8e2ad987b01f67456",
+			"definition_hash": "49dbca9e5c360fc2e88f7d91c166279535b6514d987b225adc055d56ba2b9b5d",
+			"reviewed_at": "2026-06-30T16:11:46.369174299Z"
+		},
+		{
+			"function_name": "TestProvisionPullsWithRegistryAuth",
+			"documentation_hash": "b9c7005caae20dfe8b1769dcc011ee8a3f241ecf5cc5c0bc3ac19f9e63181d58",
+			"definition_hash": "e3e781f232f050010b69e6b3adcd14010291db65c8db11c6be3ed976b058f223",
+			"reviewed_at": "2026-06-30T16:11:46.369885467Z"
+		},
+		{
+			"function_name": "TestProvisionConnectsPeers",
+			"documentation_hash": "fb2a3aa2bdda5de66976026980e860d0e7693a952e40e9565b66bbff12dc239d",
+			"definition_hash": "3e4bf5e5aa847f73567e41d9c5f1e22c5183cfd0a470a635e6e75035b1ba2a2f",
+			"reviewed_at": "2026-06-30T16:11:46.37064861Z"
+		},
+		{
+			"function_name": "TestListMapsManagedContainers",
+			"documentation_hash": "e803bf2bc49f1973156fdd59e0c2709965cd651adff70babfde355ce49d382e1",
+			"definition_hash": "8f79045f6d1b8f591d224a41a1b2cfff1264ce24a6788c8a92ae733a867a2090",
+			"reviewed_at": "2026-06-30T16:11:46.371992829Z"
+		},
+		{
+			"function_name": "TestFindResolvesByIDAndBoxID",
+			"documentation_hash": "78a8b777c59bb9c1c2cc895454560d7308fba2de189009ae2547fa7faa795e13",
+			"definition_hash": "1b29c5ce438c75a591fb407ddf36478f2516f22110ef8f6cb562e878dda80132",
+			"reviewed_at": "2026-06-30T16:11:46.37274224Z"
+		},
+		{
+			"function_name": "TestFindUnknownBox",
+			"documentation_hash": "2a7d2e440a89ee63467be3a3ca2943ac875c7e4f707fa3ddf6c77c1d4fe5bd35",
+			"definition_hash": "20fc06b4e3f6bcecd2ed20f6e542edd80381320b79b4360a7d091526dfbbc3d3",
+			"reviewed_at": "2026-06-30T16:11:46.373605098Z"
+		},
+		{
+			"function_name": "TestSetBoxGPUsParsesSpec",
+			"documentation_hash": "de38258995de8c2738920293bb1d45e9cbf7a3e558876b82490f8c53240c7de7",
+			"definition_hash": "f5a5e5dd7c7f642bd981700c81badea671aeed6f8fd83cf3701a6fbeaa30de70",
+			"reviewed_at": "2026-06-30T16:11:46.374585661Z"
+		},
+		{
+			"function_name": "TestMarkReadyRenamesContainer",
+			"documentation_hash": "ebab0972ba37af80792b06684f9b4092909ea13219e3787f6196d9bdb45a52dd",
+			"definition_hash": "324ea5db5cb3ab364d7b8fcfdd93ab11a76eb5dadedde81a2280f143c06c692c",
+			"reviewed_at": "2026-06-30T16:11:46.375347994Z"
+		},
+		{
+			"function_name": "TestDestroyRemovesNetworkAndSocket",
+			"documentation_hash": "90483a7ba4eb60a2debdd7b041a3e4af7ce408d1e6682b9ebd407abfc560c43e",
+			"definition_hash": "9007724ad3ade296641082fc23bfb3768e5b1301d5f7d182426a0dafaf99ed05",
+			"reviewed_at": "2026-06-30T16:11:46.376207538Z"
+		},
+		{
+			"function_name": "TestDestroyAlreadyGone",
+			"documentation_hash": "048fc5d7fec7df42d9b54daee7f52553d0a3fdf9d4b79da97d2d1deafe3e53a2",
+			"definition_hash": "d1ee4dc7a68aa2d9d1e315c01911837ee669a44db4e79d894a35815148c362f2",
+			"reviewed_at": "2026-06-30T16:11:46.410900842Z"
+		},
+		{
+			"function_name": "TestIsNotFound",
+			"documentation_hash": "863e54d88f5e596e0cbbf1c8241e38547103f724bbb36878c0d614569c0740db",
+			"definition_hash": "f43ccc0fbdadd3ad0a9dfbbdf3f3577e7c88833c59f8ca53a741821a087f8de3",
+			"reviewed_at": "2026-06-30T16:11:46.411692933Z"
+		}
+	]
+}

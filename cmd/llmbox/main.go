@@ -53,6 +53,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/auth"
+	"github.com/clems4ever/llmbox/internal/box"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
@@ -149,7 +150,7 @@ func loadConfig(path string, explicit bool) (*config.Config, error) {
 	return config.Load(path)
 }
 
-// boxLimits converts the YAML box block into the docker manager's BoxLimits,
+// boxLimits converts the YAML box block into the per-box sandbox.Limits,
 // translating the operator-friendly units (mebibytes, fractional CPUs) into the
 // raw byte / nano-CPU counts the Docker API expects. A zero field stays zero
 // (unlimited) so the conversion preserves "no limit" semantics.
@@ -168,7 +169,7 @@ func boxLimits(b config.BoxConfig) sandbox.Limits {
 }
 
 // registryAuths turns the configured registry credentials into the per-host
-// auth map the Docker manager consumes, keyed by registry host. It returns nil
+// auth map the Docker provisioner consumes, keyed by registry host. It returns nil
 // when no registries are configured, which leaves every image pull anonymous.
 //
 // @arg regs The configured registry credentials (each carrying a resolved password).
@@ -215,17 +216,18 @@ func run(parent context.Context, cfg *config.Config) error {
 		boxImage = docker.DefaultImage
 	}
 
-	mgr, err := docker.NewManager(boxImage, cfg.RemoteArgs, cfg.BoxPeers)
+	prov, err := docker.NewProvisioner(boxImage, cfg.Box.SocketDir, cfg.BoxPeers)
 	if err != nil {
 		return err
 	}
-	mgr.SetBoxLimits(boxLimits(cfg.Box))
-	mgr.SetRegistryAuths(registryAuths(cfg.Registries))
+	prov.SetPerBoxLimits(boxLimits(cfg.Box))
+	prov.SetRegistryAuths(registryAuths(cfg.Registries))
 	defer func() {
-		if err := mgr.Close(); err != nil {
-			log.Printf("closing docker manager: %v", err)
+		if err := prov.Close(); err != nil {
+			log.Printf("closing docker provisioner: %v", err)
 		}
 	}()
+	mgr := box.NewManager(prov, box.Config{RemoteArgs: cfg.RemoteArgs, MaxBoxes: cfg.Box.MaxBoxes})
 
 	// Optional box lifecycle hooks: external programs run at box.create/destroy.
 	// New returns nil (no hooks) when the list is empty.

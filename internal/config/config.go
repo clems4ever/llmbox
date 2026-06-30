@@ -134,6 +134,11 @@ type BoxConfig struct {
 	PidsLimit int64 `yaml:"pids_limit"`
 	// MaxBoxes caps how many boxes may run at once (0 = unlimited).
 	MaxBoxes int `yaml:"max_boxes"`
+	// SocketDir is the host directory holding each box's control socket (in a 0700
+	// per-box subdirectory bind-mounted into the box). It must be reachable by
+	// this process and bind-mountable into containers. Empty uses the provisioner
+	// default (/run/llmbox/boxsockets).
+	SocketDir string `yaml:"socket_dir"`
 }
 
 // ProxyConfig enables exposing box HTTP ports through the hub. When base_domain
