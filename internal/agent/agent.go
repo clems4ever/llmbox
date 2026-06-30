@@ -40,6 +40,11 @@ type Options struct {
 	ClaudeCmd string
 	// Shell is the shell used to run the entrypoint (default "/bin/sh").
 	Shell string
+	// Home overrides $HOME for the box's claude process and Exec commands. Empty
+	// inherits the home the agent itself was started with (a real container sets
+	// HOME=/root); the in-process test fake sets a per-box home so concurrent
+	// boxes stay isolated.
+	Home string
 	// Log records best-effort failures; nil falls back to slog.Default().
 	Log *slog.Logger
 }
@@ -51,6 +56,7 @@ type Options struct {
 type Agent struct {
 	claudeCmd string
 	shell     string
+	home      string
 	log       *slog.Logger
 
 	mu      sync.Mutex // guards the init/start lifecycle fields below
@@ -72,6 +78,7 @@ func New(opts Options) *Agent {
 	a := &Agent{
 		claudeCmd: opts.ClaudeCmd,
 		shell:     opts.Shell,
+		home:      opts.Home,
 		log:       opts.Log,
 	}
 	if a.claudeCmd == "" {
@@ -84,6 +91,54 @@ func New(opts Options) *Agent {
 		a.log = slog.Default()
 	}
 	return a
+}
+
+// entryEnv builds the environment for the box's claude process and Exec commands.
+// It starts from the host-supplied Init env, then fills in HOME (preferring an
+// explicit Init HOME, else the configured Options.Home, else the ambient HOME the
+// box was started with) and PATH (from the ambient env) only when absent. It
+// deliberately does not inherit the rest of the agent's ambient environment, so a
+// stray host variable (e.g. CLAUDE_CODE_OAUTH_TOKEN) cannot leak into the box and
+// change the login flow.
+//
+// @return []string The environment for the box's processes.
+//
+// @testcase TestAgentEntryEnvFillsHomeAndPath fills HOME/PATH when Init omits them.
+// @testcase TestAgentEntryEnvKeepsInitValues keeps an Init-supplied HOME over Options.Home.
+func (a *Agent) entryEnv() []string {
+	env := append([]string(nil), a.initReq.Env...)
+	if !hasEnvKey(env, "HOME") {
+		home := a.home
+		if home == "" {
+			home = os.Getenv("HOME")
+		}
+		if home != "" {
+			env = append(env, "HOME="+home)
+		}
+	}
+	if !hasEnvKey(env, "PATH") {
+		if p := os.Getenv("PATH"); p != "" {
+			env = append(env, "PATH="+p)
+		}
+	}
+	return env
+}
+
+// hasEnvKey reports whether env contains an assignment for key (a "key=" prefix).
+//
+// @arg env The environment slice to search.
+// @arg key The variable name to look for.
+// @return bool True when env assigns key.
+//
+// @testcase TestAgentEntryEnvKeepsInitValues relies on hasEnvKey to detect an Init HOME.
+func hasEnvKey(env []string, key string) bool {
+	prefix := key + "="
+	for _, e := range env {
+		if strings.HasPrefix(e, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // ListenAndServe creates the control socket at path (replacing any stale socket),
@@ -281,7 +336,7 @@ func (a *Agent) handleStart() (StartResp, error) {
 	}
 	entry := a.entrypoint(a.initReq)
 	cmd := exec.Command(a.shell, "-c", entry)
-	cmd.Env = a.initReq.Env
+	cmd.Env = a.entryEnv()
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
 		a.mu.Unlock()
@@ -350,7 +405,7 @@ func (a *Agent) handleExec(ctx context.Context, in ExecReq) (sandbox.ExecResult,
 		return sandbox.ExecResult{}, errors.New("empty command")
 	}
 	cmd := exec.CommandContext(ctx, in.Cmd[0], in.Cmd[1:]...)
-	cmd.Env = a.initReq.Env
+	cmd.Env = a.entryEnv()
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()

@@ -276,6 +276,45 @@ func TestAgentSubmitCodeBeforeStart(t *testing.T) {
 	}
 }
 
+// TestAgentEntryEnvFillsHomeAndPath fills HOME (from Options.Home) and PATH when
+// the Init env omits them, without inheriting other ambient variables.
+func TestAgentEntryEnvFillsHomeAndPath(t *testing.T) {
+	a := New(Options{Home: "/box/home"})
+	env := a.entryEnv()
+	if !hasEnvKey(env, "HOME") || !hasEnvKey(env, "PATH") {
+		t.Fatalf("entryEnv = %v, want HOME and PATH present", env)
+	}
+	var home string
+	for _, e := range env {
+		if strings.HasPrefix(e, "HOME=") {
+			home = strings.TrimPrefix(e, "HOME=")
+		}
+	}
+	if home != "/box/home" {
+		t.Fatalf("HOME = %q, want /box/home", home)
+	}
+}
+
+// TestAgentEntryEnvKeepsInitValues keeps an Init-supplied HOME in preference to
+// Options.Home.
+func TestAgentEntryEnvKeepsInitValues(t *testing.T) {
+	a := New(Options{Home: "/box/home"})
+	a.initReq = InitReq{Env: []string{"HOME=/init/home", "PATH=/usr/bin"}}
+	env := a.entryEnv()
+	count := 0
+	for _, e := range env {
+		if strings.HasPrefix(e, "HOME=") {
+			count++
+			if e != "HOME=/init/home" {
+				t.Fatalf("HOME = %q, want the Init value", e)
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("want exactly one HOME assignment, got %d in %v", count, env)
+	}
+}
+
 // TestAgentEntrypointNamesDefaultSession adds a --name for the box's default
 // session when a box ID is set, and omits it otherwise.
 func TestAgentEntrypointNamesDefaultSession(t *testing.T) {

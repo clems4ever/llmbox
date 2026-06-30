@@ -83,6 +83,18 @@
 			"documentation_hash": "f058ae5a6a5ee40ed390fcc1556df0251b4b45ae7678e6d1da1574455e6453b3",
 			"definition_hash": "17826e961f39d2fb8b58ed71172a01652d54c394ebf2a74ec635ab7cb2adcfa1",
 			"reviewed_at": "2026-06-30T12:42:29.573543182Z"
+		},
+		{
+			"function_name": "TestAgentEntryEnvFillsHomeAndPath",
+			"documentation_hash": "82cfe2bd150be546fae0abf8f5e734899dc28e6b1d7010fd5ae1a7a87ff83033",
+			"definition_hash": "69c9d7c8619c94138a1233c485a8c9d18fdebbd5df0ab327cbbcbad0a1d5bd2f",
+			"reviewed_at": "2026-06-30T15:27:10.626488085Z"
+		},
+		{
+			"function_name": "TestAgentEntryEnvKeepsInitValues",
+			"documentation_hash": "bb9878a0464f00b033bfb21867ba7d4478b4a45cbfca066b7ccea62997feb487",
+			"definition_hash": "76cd1e7ac0563a8cc0d66f7d0ba7d022d45a3bc70e89654c16206b60a96071fd",
+			"reviewed_at": "2026-06-30T15:27:10.627058889Z"
 		}
 	]
 }

@@ -1,0 +1,64 @@
+{
+	"functions": [
+		{
+			"function_name": "Run",
+			"documentation_hash": "3c9e4e8da0a06a3a316270c6edbaaaae011cc672bf2f629147c9b0e4ad2fed1a",
+			"definition_hash": "53cc6eda0881f5e8baf27910542fe83a083e22b0c4a809d173bc3bef946994c5",
+			"reviewed_at": "2026-06-30T15:27:10.627495917Z"
+		},
+		{
+			"function_name": "opCtx",
+			"documentation_hash": "b1bae0b9950e0f079f76d5bfcec470b6de8e289504a11ddd68f20efd4158e2c2",
+			"definition_hash": "4da06c73e50f3b4848acd69389bba8a0ba63c7faecdd76d58da2a4f53ca17eea",
+			"reviewed_at": "2026-06-30T15:28:59.201235312Z"
+		},
+		{
+			"function_name": "testLifecycle",
+			"documentation_hash": "0c63e63f10b04d2197b94d0a32c85688049cd7907ef0bc2a0e5bfae2ffc37379",
+			"definition_hash": "912d465c6d6f18f3cb1b6092b96ce3f4d6964d1724603818bfd696c6b3aa57d3",
+			"reviewed_at": "2026-06-30T15:28:59.201796722Z"
+		},
+		{
+			"function_name": "testDialBox",
+			"documentation_hash": "dd6892762d9029ce9ae718023a7bf374183ad4154252c398b0aa006412fa3622",
+			"definition_hash": "07f5cc2f5c56facc03e7d5f32615fadbba562c423f2c3541c90a74164273c688",
+			"reviewed_at": "2026-06-30T15:28:59.211605314Z"
+		},
+		{
+			"function_name": "testDestroyIdempotent",
+			"documentation_hash": "9979eb2b123256899ebe0fe3b0c959d3182359cff0e74f96c6f89cb2c7b74643",
+			"definition_hash": "405944c61bb58ce5bdb2dad81b96e515a9217f2f0928a5f81be09710fd6594f9",
+			"reviewed_at": "2026-06-30T15:28:59.211990744Z"
+		},
+		{
+			"function_name": "testListAndFind",
+			"documentation_hash": "ef7b20081f663cedac6108fb3f5225ba17395e97c62a7a519cebbea92903a653",
+			"definition_hash": "ab838ce99302d1e6a2e8e794f47136eff37b8041c17b96f4e7f688393de0e8bd",
+			"reviewed_at": "2026-06-30T15:28:59.212324374Z"
+		},
+		{
+			"function_name": "testInvalidBoxID",
+			"documentation_hash": "b758fd31423bb1f9428375a8e3fd436d8b2482a3ac36902a6e942d8530833c8f",
+			"definition_hash": "bd1126a1405d6e9e640af536ca807b0d3a1a624e8150d70a183068f4561b1e23",
+			"reviewed_at": "2026-06-30T15:28:59.212732594Z"
+		},
+		{
+			"function_name": "testDuplicateBoxID",
+			"documentation_hash": "14af4d57c8a024752b99f1d0e0456dc5d38ae2d5253c7e6b2033356a7cf1de62",
+			"definition_hash": "a3672ad3d20767612ccbbcafb4c45a9ec103b38cf602fe0036208173e4f6f198",
+			"reviewed_at": "2026-06-30T15:28:59.213193657Z"
+		},
+		{
+			"function_name": "testMaxBoxes",
+			"documentation_hash": "a0b561ff91b741509adc79639fc9410ac23d353dbae493194dbbdc6597582f89",
+			"definition_hash": "c64d0353c1018becc3f84543109ed069950065d1fb8de95d3590db54b5985280",
+			"reviewed_at": "2026-06-30T15:28:59.213988749Z"
+		},
+		{
+			"function_name": "testReapOrphans",
+			"documentation_hash": "e2f1f52121c30da797f97dc7c892d25150287494c85fa39495f811f8c82bb8dc",
+			"definition_hash": "d8caaa06bb33cb69993d11465795b21468320a61a75c32b782a571621f803851",
+			"reviewed_at": "2026-06-30T15:28:59.214513769Z"
+		}
+	]
+}

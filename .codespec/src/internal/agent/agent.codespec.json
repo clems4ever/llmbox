@@ -3,8 +3,8 @@
 		{
 			"function_name": "New",
 			"documentation_hash": "624cceaa4f8f8e776a13419a6cc5454da945461f4f19bad9b95a90fe8291d5e2",
-			"definition_hash": "bb2138883ad7af63069a4c1afcbec3f4092815dc6a581b676318ff2d38d02f9d",
-			"reviewed_at": "2026-06-29T19:22:53.360428093Z"
+			"definition_hash": "cb560a48e69699d997a42691cbacf56a82b486f5d297750c21ec29e991e0e56d",
+			"reviewed_at": "2026-06-30T15:27:10.613557867Z"
 		},
 		{
 			"function_name": "ListenAndServe",
@@ -45,8 +45,8 @@
 			"function_name": "handleStart",
 			"receiver": "Agent",
 			"documentation_hash": "586293fc47382313eba5c894da49e639d8f8cacbdcbbe213b1ef16fb3f4c2ff2",
-			"definition_hash": "984093d5aac22086d81189e992ff43b456b3f63a8d9d03169e8be7e935464b17",
-			"reviewed_at": "2026-06-29T19:22:53.377980867Z"
+			"definition_hash": "253b0fc1a0d3056ba92498447629519450c7d05d7eeceb5a291820d9b7b1a27d",
+			"reviewed_at": "2026-06-30T15:27:10.62486315Z"
 		},
 		{
 			"function_name": "handleSubmitCode",
@@ -59,8 +59,8 @@
 			"function_name": "handleExec",
 			"receiver": "Agent",
 			"documentation_hash": "6c26c1821113acd823ef1c529d877d45781607cc20f707e1afe1a86a2c1a2fec",
-			"definition_hash": "ae453b3a4b04a8f1e0990d135505ca83abfc362273e3cc7f267700959d2b95ac",
-			"reviewed_at": "2026-06-29T19:22:53.444963042Z"
+			"definition_hash": "94fd09eae379c206dbca13c81b97d4668a0df3f8bdeb54c3ba62841664ee03e7",
+			"reviewed_at": "2026-06-30T15:27:10.62584988Z"
 		},
 		{
 			"function_name": "handleLogs",
@@ -100,6 +100,19 @@
 			"documentation_hash": "35fa931939b0d5d4aa98381fa91b9c43b1d67e408962734ea0c5fcb97121193e",
 			"definition_hash": "c3a989810d46a4937a99a1b2f37e58c0654e220b7223b2be742d9b2a218bb1cd",
 			"reviewed_at": "2026-06-29T19:22:53.45001061Z"
+		},
+		{
+			"function_name": "entryEnv",
+			"receiver": "Agent",
+			"documentation_hash": "48f21585de6b0a6aaca289b66eddc33f4611add449c401536a87edf196a2ec26",
+			"definition_hash": "44c5e5117410e0f54c8e1ab3373c4d1444bc867064ada89bd58b51c4099042ae",
+			"reviewed_at": "2026-06-30T15:27:10.614277288Z"
+		},
+		{
+			"function_name": "hasEnvKey",
+			"documentation_hash": "5897581859666baa503a6c31be361c1596888c6a4206d064c84229b892da3dfa",
+			"definition_hash": "862f37b0f3bb1ca826f6069ae12c856b4b059ab158e4ff2be121749afaece211",
+			"reviewed_at": "2026-06-30T15:27:10.624181844Z"
 		}
 	]
 }

@@ -1,0 +1,73 @@
+{
+	"functions": [
+		{
+			"function_name": "NewManager",
+			"documentation_hash": "c315a6aff3c222a502e18e928ce7d31ffc04bded1e2465e76d4ed461613fca9d",
+			"definition_hash": "d01ca5f0486d953acb072dcd4a3f947d240b9d08288defe82e5dd11797aa65d9",
+			"reviewed_at": "2026-06-30T15:30:40.785203057Z"
+		},
+		{
+			"function_name": "client",
+			"receiver": "Manager",
+			"documentation_hash": "b1a704a189e9ad0f2874f91a8429251692ce8608e201ea86523ec7553d757483",
+			"definition_hash": "9cbace623a6f3851b37b950993cc9756320821b9d25bb2872176a3ffa13cb6be",
+			"reviewed_at": "2026-06-30T15:30:40.785576412Z"
+		},
+		{
+			"function_name": "Create",
+			"receiver": "Manager",
+			"documentation_hash": "f6a91785f90ec3425554562c9c276319afbbb15dab80cae4f620e79640540785",
+			"definition_hash": "4f0ee254c85a4148b4e11d00b1d1a29e08e1b1e06f37b42ab7fa505d1767e858",
+			"reviewed_at": "2026-06-30T15:30:40.823231886Z"
+		},
+		{
+			"function_name": "SubmitCode",
+			"receiver": "Manager",
+			"documentation_hash": "199a7d5c3d101f873447ffc5105615a918cb8887fc9dffb3b67c2f881d34df87",
+			"definition_hash": "9485f174d7cb0e51a5128af14039c199d9796208551137fcf463dc8768bb6ffb",
+			"reviewed_at": "2026-06-30T15:30:40.824307185Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "Manager",
+			"documentation_hash": "f522d443a8e5b092c7d8ff0aeb236b8ca1aac3db28f3cfcca70387af52606e09",
+			"definition_hash": "c6fe2fb3f0dd659a3b5ccd74dd5ec4e45e9921f74756440199c95486bff0bb09",
+			"reviewed_at": "2026-06-30T15:30:40.825302229Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "Manager",
+			"documentation_hash": "63124e2a96b8ae8ede9b36c0f27dd02ed8513b955230bd005c899136433d9acd",
+			"definition_hash": "9250a43063b16e6da239ded2e338ca357084c6f56639ed537d736f49176538d1",
+			"reviewed_at": "2026-06-30T15:30:40.827564767Z"
+		},
+		{
+			"function_name": "Logs",
+			"receiver": "Manager",
+			"documentation_hash": "128d4e6ae5bbe6ebc56a72fc3da0da5ddf57f9ad5e3b787dfaa78a591c228368",
+			"definition_hash": "c36cf6f84f265063a958bb66fd1a076e6914599281c8c33aa7fa91b8e16ab6ca",
+			"reviewed_at": "2026-06-30T15:30:40.82793027Z"
+		},
+		{
+			"function_name": "Exec",
+			"receiver": "Manager",
+			"documentation_hash": "482388d6e4c6ec69fb4d73b8e2bfa8bff4b262e54690988a950732d36d7f537e",
+			"definition_hash": "b5d255c59a46f1f26320c7939b73622c662bad76330f9ff7683ed191d6f8a190",
+			"reviewed_at": "2026-06-30T15:30:40.828264175Z"
+		},
+		{
+			"function_name": "DialBox",
+			"receiver": "Manager",
+			"documentation_hash": "721e278f59b6adaaadd53b1b7ffb8d9308edd6303b451f3b3e843ee01709041a",
+			"definition_hash": "759887261a8925963510103e7e14344d754fd93ef973297bea8b483b044d86a6",
+			"reviewed_at": "2026-06-30T15:30:40.828638994Z"
+		},
+		{
+			"function_name": "ReapOrphans",
+			"receiver": "Manager",
+			"documentation_hash": "7d41be2079dcf4ed0a5ba6d8328811baf5371ff9e4fbbd8bcad2dac3a66fb3bb",
+			"definition_hash": "975dd13bb3f29413ff9edbd48a2a5ce308cfc105e25da4d64366259919dccb2c",
+			"reviewed_at": "2026-06-30T15:30:40.829043509Z"
+		}
+	]
+}
