@@ -11,6 +11,103 @@
 			"documentation_hash": "289ced864d6f1b12e34d0f3f1f9af91d315d5526f462a28295eba9f1b3a45037",
 			"definition_hash": "6b1687a4593b7fa119791199d57a6501cd290268ccac088870478cad344066dc",
 			"reviewed_at": "2026-06-30T16:10:22.198198398Z"
+		},
+		{
+			"function_name": "TestManagerCreateUniquenessListError",
+			"documentation_hash": "03528964b8865dc5f4b50410ca17fa9d6e31a0ec495d16c567c915b93692aae3",
+			"definition_hash": "5c9fa50875eb6b8fa8e1d10785e553f079905a3907f20b98b30c0dc50fa23c75",
+			"reviewed_at": "2026-06-30T16:36:13.717559552Z"
+		},
+		{
+			"function_name": "TestManagerCreateProvisionError",
+			"documentation_hash": "812ba066947b7b57162e0bfd5644be2402d9c56d77e92e32d762b29a46ccc60b",
+			"definition_hash": "32d9ba98f2efa40df9043d253a3a1951cc4edc54e7f0cbed262c073df9f6be0c",
+			"reviewed_at": "2026-06-30T16:36:13.717969294Z"
+		},
+		{
+			"function_name": "TestManagerCreateAgentError",
+			"documentation_hash": "f776f143276f809f274335283643d350f0a2dfc220ff0efa489305688d9a8bda",
+			"definition_hash": "7572a3dd16499a34c5f77802f7c8eb13bff837c6914ca302bfa42f393e1ed185",
+			"reviewed_at": "2026-06-30T16:36:13.766331627Z"
+		},
+		{
+			"function_name": "TestManagerSubmitCodeFindError",
+			"documentation_hash": "045dab6fbccb7cc95b1ebe5f40f9bed20357ccf599669b8dcdb5b8b6ea751a7c",
+			"definition_hash": "68789d8e4ce342e721943233167851f8a57de770430ba7b9532f057665a32a8a",
+			"reviewed_at": "2026-06-30T16:36:13.766701039Z"
+		},
+		{
+			"function_name": "TestManagerVerbsFindError",
+			"documentation_hash": "6f6288075de2c031c7f598316a2d88d3f672223dddf5e3b353691b23bdb67c91",
+			"definition_hash": "174010e6f6ea4cab9e5ec2d97f30e6fb74cee438ed45b30516d6aef77b0af642",
+			"reviewed_at": "2026-06-30T16:36:13.80109767Z"
+		},
+		{
+			"function_name": "TestManagerListError",
+			"documentation_hash": "48fb09a8bae1e5d06fa9b976221b11479b00f0c1e08cc34ae50f3534f319f5ac",
+			"definition_hash": "8a4870122d7c758db1eb01b5aac3b2839abb47aef48a4c652fe87a02459b2e7a",
+			"reviewed_at": "2026-06-30T16:36:13.801493453Z"
+		},
+		{
+			"function_name": "TestManagerDestroyErrors",
+			"documentation_hash": "895b66eb41658065b67a7b4a5c0a3c8fbc8370a2b90684e3c116708a97fd5fe2",
+			"definition_hash": "01e6b7542cf5d4cf4080c9e10c60c3bb79da5e5afc451c5d4ac2e3758886ae95",
+			"reviewed_at": "2026-06-30T16:36:13.836086104Z"
+		},
+		{
+			"function_name": "Provision",
+			"receiver": "stubProv",
+			"documentation_hash": "aec1cb89fad6bf6c1a8cbe945d0cd96e69ec7b4a4b10716ddb892dff3cf8c643",
+			"definition_hash": "a3c48cdbf058de15b04eb42a000b9095c23e52d019cf5e2798b84b88e49b12a6",
+			"reviewed_at": "2026-06-30T16:37:03.485056492Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "stubProv",
+			"documentation_hash": "c8934b3db0bc619a13de5419e161635898e7854b41d5c54aa40973d948a01000",
+			"definition_hash": "7a6322b798cc25ffd12032387fc9a8129590274701c491d74e02e1fe9d483428",
+			"reviewed_at": "2026-06-30T16:37:03.485392185Z"
+		},
+		{
+			"function_name": "Find",
+			"receiver": "stubProv",
+			"documentation_hash": "6bbdfc32f636fa122b16398f64af5ab126bf883496dfc69d86a41caf02a530dc",
+			"definition_hash": "b9f4b18daba1ec0659e255747c9f93d938006fd9f6c13b30db321235e5c6b8ac",
+			"reviewed_at": "2026-06-30T16:37:03.4857973Z"
+		},
+		{
+			"function_name": "Meta",
+			"receiver": "stubInst",
+			"documentation_hash": "7ff7e71530299dbf3d74bb66891cacd2547a386cf23b74db7e5158836fac89ac",
+			"definition_hash": "c2488e6f1d8432acd30d97b09327f689e1bfe4a7a1811ea2c34a2956b197fd13",
+			"reviewed_at": "2026-06-30T16:37:03.48651996Z"
+		},
+		{
+			"function_name": "Control",
+			"receiver": "stubInst",
+			"documentation_hash": "77eb010e01bb7439824a29cf07ec27960ad720a8c41f566c9c073a287e6a7f54",
+			"definition_hash": "b549315a75cefbb9c15f36a5331a24c8f86bb6833f5978c29d51224ee3a6e628",
+			"reviewed_at": "2026-06-30T16:37:03.518570363Z"
+		},
+		{
+			"function_name": "MarkReady",
+			"receiver": "stubInst",
+			"documentation_hash": "f076eeb368a754db5d54e027c3f927f5c1ecdbb558640c748bf360b32df4d3fc",
+			"definition_hash": "7a1476c8c38cf162dc23d707538e4c5b7080de336b9081b3ee087fb52f425f91",
+			"reviewed_at": "2026-06-30T16:37:03.519441709Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "stubInst",
+			"documentation_hash": "0d77cdb8b4035b9a27c51307082c99afd8f8d3fe047d145c3f38c3516368a77b",
+			"definition_hash": "19a801bd932f114017fc5c0f00d082cedde2f0289457190219f64e37b9b754d3",
+			"reviewed_at": "2026-06-30T16:37:03.520009926Z"
+		},
+		{
+			"function_name": "errOr",
+			"documentation_hash": "690f3c6ffbf79de6915632c149cbe26de3be4650cdf1a726b24d4a05a7be5346",
+			"definition_hash": "82674ef29e4a1f16b84925d92f010a68701fbc942aefe366d81d36a8ea70c176",
+			"reviewed_at": "2026-06-30T16:37:03.520412856Z"
 		}
 	]
 }

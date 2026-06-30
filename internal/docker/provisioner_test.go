@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
@@ -36,24 +37,33 @@ type fakeDocker struct {
 	notFoundOnce bool
 	createCalls  int
 
-	startErr error
-	startID  string
+	startErr   error
+	startID    string
+	skipSocket bool // when set, ContainerStart does not create the agent socket
 
 	renames     [][2]string
+	renameErr   error
 	stopped     []string
 	removed     []string
 	stopErr     error
 	removeErr   error
 	stopMissing bool
 
-	netCreated   []string
-	netConnect   [][2]string
-	netDisconn   [][2]string
-	netRemoved   []string
-	pulled       []string
-	pullAuthSeen string
+	netCreated    []string
+	netCreateErr  error
+	netConnect    [][2]string
+	netDisconn    [][2]string
+	netDisconnErr error
+	netRemoved    []string
+	netRemoveErr  error
+	pulled        []string
+	pullErr       error
+	pullAuthSeen  string
 
-	listResult []container.Summary
+	listResult      []container.Summary
+	listErr         error
+	netConnectCalls int
+	peerConnErr     error
 
 	mountSource string
 	listeners   []net.Listener
@@ -90,7 +100,7 @@ func (f *fakeDocker) ContainerStart(_ context.Context, id string, _ container.St
 		return f.startErr
 	}
 	// Mimic the agent creating its control socket once it is listening.
-	if f.mountSource != "" {
+	if f.mountSource != "" && !f.skipSocket {
 		ln, err := net.Listen("unix", filepath.Join(f.mountSource, socketFileName))
 		if err == nil {
 			f.listeners = append(f.listeners, ln)
@@ -141,7 +151,7 @@ func (f *fakeDocker) ContainerRename(_ context.Context, id, name string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.renames = append(f.renames, [2]string{id, name})
-	return nil
+	return f.renameErr
 }
 
 // ImagePull records the pulled ref and the encoded auth header it carried.
@@ -150,6 +160,9 @@ func (f *fakeDocker) ImagePull(_ context.Context, ref string, opts image.PullOpt
 	defer f.mu.Unlock()
 	f.pulled = append(f.pulled, ref)
 	f.pullAuthSeen = opts.RegistryAuth
+	if f.pullErr != nil {
+		return nil, f.pullErr
+	}
 	return io.NopCloser(strings.NewReader("")), nil
 }
 
@@ -157,7 +170,7 @@ func (f *fakeDocker) ImagePull(_ context.Context, ref string, opts image.PullOpt
 func (f *fakeDocker) ContainerList(_ context.Context, _ container.ListOptions) ([]container.Summary, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.listResult, nil
+	return f.listResult, f.listErr
 }
 
 // NetworkCreate records the created network name.
@@ -165,7 +178,7 @@ func (f *fakeDocker) NetworkCreate(_ context.Context, name string, _ network.Cre
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.netCreated = append(f.netCreated, name)
-	return network.CreateResponse{}, nil
+	return network.CreateResponse{}, f.netCreateErr
 }
 
 // NetworkConnect records the (network, container) connection.
@@ -173,6 +186,10 @@ func (f *fakeDocker) NetworkConnect(_ context.Context, net, container string, _ 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.netConnect = append(f.netConnect, [2]string{net, container})
+	f.netConnectCalls++
+	if f.netConnectCalls > 1 {
+		return f.peerConnErr
+	}
 	return nil
 }
 
@@ -181,7 +198,7 @@ func (f *fakeDocker) NetworkDisconnect(_ context.Context, net, container string,
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.netDisconn = append(f.netDisconn, [2]string{net, container})
-	return nil
+	return f.netDisconnErr
 }
 
 // NetworkRemove records the removed network name.
@@ -189,7 +206,7 @@ func (f *fakeDocker) NetworkRemove(_ context.Context, name string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.netRemoved = append(f.netRemoved, name)
-	return nil
+	return f.netRemoveErr
 }
 
 // Close is a no-op for the fake.
@@ -398,7 +415,7 @@ func TestFindUnknownBox(t *testing.T) {
 // ones.
 func TestSetBoxGPUsParsesSpec(t *testing.T) {
 	p := newTestProvisioner(t, &fakeDocker{})
-	for _, spec := range []string{"", "all", "2", "device=0,1"} {
+	for _, spec := range []string{"", "all", "2", "device=0,1", "GPU-abc123"} {
 		if err := p.SetBoxGPUs(spec); err != nil {
 			t.Errorf("SetBoxGPUs(%q) = %v, want nil", spec, err)
 		}
@@ -471,5 +488,165 @@ func TestIsNotFound(t *testing.T) {
 	}
 	if IsNotFound(nil) {
 		t.Error("nil should not be not-found")
+	}
+}
+
+// TestNewProvisionerDefaults applies the default image and socket dir, and Close
+// releases the client.
+func TestNewProvisionerDefaults(t *testing.T) {
+	p, err := NewProvisioner("", "", nil)
+	if err != nil {
+		t.Fatalf("NewProvisioner: %v", err)
+	}
+	if p.defaultImage != DefaultImage || p.socketDir != DefaultSocketDir {
+		t.Fatalf("defaults not applied: image=%q dir=%q", p.defaultImage, p.socketDir)
+	}
+	if p.logger() == nil {
+		t.Fatal("logger should never be nil")
+	}
+	if err := p.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+}
+
+// TestProvisionNetworkSetupFailure cleans up the container and socket dir when
+// the box network cannot be created.
+func TestProvisionNetworkSetupFailure(t *testing.T) {
+	f := &fakeDocker{netCreateErr: errors.New("net boom")}
+	p := newTestProvisioner(t, f)
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{}); err == nil {
+		t.Fatal("Provision should fail when the network cannot be created")
+	}
+	if len(f.removed) == 0 {
+		t.Fatal("container should be removed on network failure")
+	}
+	if entries, _ := os.ReadDir(p.socketDir); len(entries) != 0 {
+		t.Fatalf("socket dir should be cleaned up, found %d entries", len(entries))
+	}
+}
+
+// TestProvisionRenameFailure cleans up when the box cannot be named pending.
+func TestProvisionRenameFailure(t *testing.T) {
+	f := &fakeDocker{renameErr: errors.New("rename boom")}
+	p := newTestProvisioner(t, f)
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{}); err == nil {
+		t.Fatal("Provision should fail when the rename fails")
+	}
+	if len(f.removed) == 0 {
+		t.Fatal("container should be removed on rename failure")
+	}
+}
+
+// TestProvisionSocketTimeout cleans up when the agent socket never appears.
+func TestProvisionSocketTimeout(t *testing.T) {
+	f := &fakeDocker{skipSocket: true}
+	p := newTestProvisioner(t, f)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	if _, err := p.Provision(ctx, sandbox.CreateOptions{}); err == nil {
+		t.Fatal("Provision should fail when the agent socket never appears")
+	}
+	if len(f.removed) == 0 {
+		t.Fatal("container should be removed when the socket never appears")
+	}
+}
+
+// TestProvisionPullFailure surfaces a pull error from the missing-image path.
+func TestProvisionPullFailure(t *testing.T) {
+	f := &fakeDocker{notFoundOnce: true, pullErr: errors.New("pull boom")}
+	p := newTestProvisioner(t, f)
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{Image: "ghcr.io/x/y:latest"}); err == nil {
+		t.Fatal("Provision should fail when the image pull fails")
+	}
+	if entries, _ := os.ReadDir(p.socketDir); len(entries) != 0 {
+		t.Fatalf("socket dir should be cleaned up, found %d entries", len(entries))
+	}
+}
+
+// TestDestroyRemoveError surfaces a non-not-found remove error.
+func TestDestroyRemoveError(t *testing.T) {
+	f := &fakeDocker{removeErr: errors.New("remove boom")}
+	p := newTestProvisioner(t, f)
+	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}}
+	if err := inst.Destroy(context.Background()); err == nil {
+		t.Fatal("Destroy should surface a remove error")
+	}
+}
+
+// TestDestroyToleratesNetworkErrors removes the box even when peer disconnect and
+// network removal fail (best-effort), and still deletes the socket dir.
+func TestDestroyToleratesNetworkErrors(t *testing.T) {
+	f := &fakeDocker{netDisconnErr: errors.New("disc boom"), netRemoveErr: errors.New("rm boom")}
+	p := newTestProvisioner(t, f)
+	p.peers = []string{"peer"}
+	tokenDir := filepath.Join(p.socketDir, "tokX")
+	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}, socketToken: "tokX"}
+	if err := inst.Destroy(context.Background()); err != nil {
+		t.Fatalf("Destroy should tolerate network errors, got %v", err)
+	}
+	if _, err := os.Stat(tokenDir); !os.IsNotExist(err) {
+		t.Fatalf("socket dir should be removed, stat err = %v", err)
+	}
+}
+
+// TestMarkReadyError surfaces a rename error.
+func TestMarkReadyError(t *testing.T) {
+	f := &fakeDocker{renameErr: errors.New("rename boom")}
+	p := newTestProvisioner(t, f)
+	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}}
+	if err := inst.MarkReady(context.Background()); err == nil {
+		t.Fatal("MarkReady should surface a rename error")
+	}
+}
+
+// TestRegistryAuthFor matches by host, returns false when none configured, and
+// returns false for an unparseable reference.
+func TestRegistryAuthFor(t *testing.T) {
+	p := newTestProvisioner(t, &fakeDocker{})
+	if _, ok := p.registryAuthFor("ghcr.io/x/y"); ok {
+		t.Fatal("no auths configured should not match")
+	}
+	p.SetRegistryAuths(map[string]registry.AuthConfig{"ghcr.io": {Username: "u"}})
+	if _, ok := p.registryAuthFor("ghcr.io/x/y:latest"); !ok {
+		t.Fatal("should match the configured ghcr.io host")
+	}
+	if _, ok := p.registryAuthFor("not a valid ref!!"); ok {
+		t.Fatal("an unparseable ref should not match")
+	}
+}
+
+// TestListError surfaces a Docker list error through List and Find.
+func TestListError(t *testing.T) {
+	f := &fakeDocker{listErr: errors.New("list boom")}
+	p := newTestProvisioner(t, f)
+	if _, err := p.List(context.Background()); err == nil {
+		t.Fatal("List should surface the Docker error")
+	}
+	if _, err := p.Find(context.Background(), "x"); err == nil {
+		t.Fatal("Find should surface the Docker list error")
+	}
+}
+
+// TestProvisionToleratesPeerConnectFailure provisions the box even when a peer
+// cannot be connected to its network (best-effort).
+func TestProvisionToleratesPeerConnectFailure(t *testing.T) {
+	f := &fakeDocker{peerConnErr: errors.New("peer boom")}
+	p := newTestProvisioner(t, f)
+	p.peers = []string{"peer"}
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{}); err != nil {
+		t.Fatalf("Provision should tolerate a peer connect failure, got %v", err)
+	}
+}
+
+// TestWaitForSocketCancel returns the context error when ctx is cancelled before
+// the socket appears.
+func TestWaitForSocketCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := waitForSocket(ctx, filepath.Join(t.TempDir(), "nope.sock"), time.Minute); err == nil {
+		t.Fatal("waitForSocket should fail on a cancelled context")
 	}
 }
