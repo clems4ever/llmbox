@@ -23,7 +23,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/mcpapi"
+	"github.com/clems4ever/llmbox/internal/api"
 	"github.com/clems4ever/llmbox/internal/server"
 	"github.com/clems4ever/llmbox/testutils"
 )
@@ -47,17 +47,12 @@ func TestEndToEndWorkflow(t *testing.T) {
 	t.Cleanup(platform.close)
 	mgr := newFakeBoxManager(platform)
 
-	// --- the real llmbox server on two real listeners (UI/API and MCP) ---
+	// --- the real llmbox server on a single real listener (UI + box-control API) ---
 	uiLn, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("listen ui: %v", err)
-	}
-	mcpLn, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen mcp: %v", err)
+		t.Fatalf("listen: %v", err)
 	}
 	base := "http://" + uiLn.Addr().String()
-	mcpBase := "http://" + mcpLn.Addr().String()
 
 	store, err := server.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
 	if err != nil {
@@ -65,18 +60,15 @@ func TestEndToEndWorkflow(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 
-	// public_url is the UI/API base, so the auth links the user follows live there.
+	// public_url is the server base, so the auth links the user follows live there.
 	srv := server.New(mgr, nil, base, 5*time.Minute, store, nil)
-	apiSrv := &http.Server{Handler: srv.APIHandler()}
-	mcpSrv := &http.Server{Handler: mcpapi.NewHandler(srv.MCPBackend())}
-	go func() { _ = apiSrv.Serve(uiLn) }()
-	go func() { _ = mcpSrv.Serve(mcpLn) }()
-	t.Cleanup(func() { _ = apiSrv.Close() })
-	t.Cleanup(func() { _ = mcpSrv.Close() })
+	httpSrv := &http.Server{Handler: srv.APIHandler()}
+	go func() { _ = httpSrv.Serve(uiLn) }()
+	t.Cleanup(func() { _ = httpSrv.Close() })
 	waitHealthy(t, base)
 
-	// --- chatbot side: create the box over MCP (on the MCP port) ---
-	cs := connectMCP(t, mcpBase)
+	// --- chatbot side: create the box over the box-control API ---
+	cs := connectMCP(t, base)
 
 	createOut := callTool(t, cs, "create_llmbox", map[string]any{
 		"box_id":      "e2e-box",
@@ -228,7 +220,7 @@ func waitHealthy(t *testing.T, base string) {
 }
 
 // connectMCP builds an MCP session standing in for the chatbot: it wraps an
-// mcpapi client pointed at the server's box-control API in an MCP server (exactly
+// api client pointed at the server's box-control API in an MCP server (exactly
 // what the llmbox-mcp binary does) and connects an in-memory MCP client to it, so
 // tool calls travel over the real box-control HTTP API to the server.
 //
@@ -237,7 +229,7 @@ func waitHealthy(t *testing.T, base string) {
 // @return *mcp.ClientSession A connected MCP client session.
 func connectMCP(t *testing.T, base string) *mcp.ClientSession {
 	t.Helper()
-	return testutils.ConnectMCP(t, mcpapi.NewClient(base, nil), "llmbox", "e2e")
+	return testutils.ConnectMCP(t, api.NewClient(base, nil), "llmbox", "e2e")
 }
 
 // callTool calls an MCP tool and returns its structured output, failing the test

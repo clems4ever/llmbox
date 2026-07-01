@@ -2,23 +2,22 @@
 // ("llmboxes") and lets an end user authenticate each one via OAuth in their
 // browser — never routing the OAuth secret through the chatbot.
 //
-// One process serves two things on two separate HTTP ports:
+// One process serves everything on a single HTTP port (http_addr):
 //
-//	mcp_addr   /api/v1/...     box-control JSON API — the stand-alone llmbox-mcp binary forwards MCP tool calls here
-//	http_addr  /auth/{token}   web page where the user pastes their OAuth code (+ admin UI, health)
+//	/api/v1/...     box-control JSON API — the UI and the stand-alone llmbox-mcp binary call it
+//	/auth/{token}   web page where the user pastes their OAuth code (+ admin UI, health)
 //
 // The MCP protocol itself is served by a separate binary (llmbox-mcp), which
-// forwards every call to the box-control API over HTTP. That API port is split
-// out so it can sit behind its own authenticating reverse proxy (e.g.
-// oauth2-proxy), independently of the public UI/API port.
+// forwards every call to the box-control API over HTTP. The box-control API is
+// currently unauthenticated (API-key / UI-session auth is planned), so run llmbox
+// behind an authenticating reverse proxy in front of trusted callers.
 //
 // Boxes that are never authenticated are destroyed after a TTL.
 //
 // Configuration is a YAML file (default ./llmbox.yaml, override with --config).
 // Every field is optional; unset fields fall back to built-in defaults:
 //
-//	http_addr:    ":8080"                  # UI/API listen address
-//	mcp_addr:     ":8081"                  # box-control API listen address (put behind an auth proxy; llmbox-mcp forwards here)
+//	http_addr:    ":8080"                  # HTTP listen address (UI + box-control API)
 //	public_url:   "http://localhost:8080"  # external base URL for auth links
 //	claude_image: "ghcr.io/clems4ever/llmbox-box:latest"  # base image per box; must bake in Claude, tini, util-linux, and a CA bundle (see Dockerfile.box)
 //	remote_args:  "--spawn same-dir"       # args passed to `claude remote-control`
@@ -60,7 +59,6 @@ import (
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
-	"github.com/clems4ever/llmbox/internal/mcpapi"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
@@ -209,24 +207,16 @@ func run(parent context.Context, cfg *config.Config) error {
 		log.Printf("clustering enabled: spokes may join at %s/spoke/connect", cfg.PublicURL)
 	}
 
-	// Two listeners: the box-control API on its own port (meant to sit behind an
-	// auth proxy) and the UI/API (auth pages, admin, health) on the public port.
-	// The box-control port serves the mcpapi JSON API; the MCP protocol itself is
-	// served by the stand-alone llmbox-mcp binary, which forwards to this API.
-	mcpSrv := &http.Server{
-		Addr:    cfg.MCPAddr,
-		Handler: mcpapi.NewHandler(srv.MCPBackend()),
+	// One HTTP server for everything: the box-control JSON API (under /api/v1/) and
+	// the UI (auth pages, admin, health). The MCP protocol is served by the
+	// separate llmbox-mcp binary, which forwards to the box-control API.
+	httpSrv := &http.Server{
+		Addr:    cfg.HTTPAddr,
+		Handler: srv.APIHandler(),
 		// SubmitCode blocks while the box logs in, so allow long requests.
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      90 * time.Second,
 	}
-	apiSrv := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           srv.APIHandler(),
-		ReadHeaderTimeout: 10 * time.Second,
-		WriteTimeout:      90 * time.Second,
-	}
-	servers := []*http.Server{mcpSrv, apiSrv}
 
 	// Reload sessions saved before a restart, dropping any whose box is gone.
 	if n, err := srv.Restore(ctx); err != nil {
@@ -241,34 +231,15 @@ func run(parent context.Context, cfg *config.Config) error {
 		<-ctx.Done()
 		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		for _, hs := range servers {
-			if err := hs.Shutdown(shutCtx); err != nil {
-				log.Printf("graceful shutdown failed for %s: %v", hs.Addr, err)
-			}
+		if err := httpSrv.Shutdown(shutCtx); err != nil {
+			log.Printf("graceful shutdown failed for %s: %v", httpSrv.Addr, err)
 		}
 	}()
 
-	log.Printf("%s %s listening: UI/API on %s, box-control API on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.MCPAddr, cfg.PublicURL, authTTL)
+	log.Printf("%s %s listening on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.PublicURL, authTTL)
 
-	// Serve both ports. If either listener fails, cancel the context so the other
-	// is shut down too, and surface the first real error.
-	errCh := make(chan error, len(servers))
-	for _, hs := range servers {
-		go func(hs *http.Server) {
-			if err := hs.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				errCh <- fmt.Errorf("listening on %s: %w", hs.Addr, err)
-				return
-			}
-			errCh <- nil
-		}(hs)
+	if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("listening on %s: %w", cfg.HTTPAddr, err)
 	}
-
-	var firstErr error
-	for range servers {
-		if err := <-errCh; err != nil && firstErr == nil {
-			firstErr = err
-			stop() // cancel ctx -> the goroutine above shuts both servers down
-		}
-	}
-	return firstErr
+	return nil
 }

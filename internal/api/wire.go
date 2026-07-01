@@ -1,21 +1,6 @@
-// Package mcpapi is the thin HTTP seam between the llmbox server and a stand-alone
-// MCP front-end. It re-exposes the mcpserver.Backend contract — the exact set of
-// box operations the MCP tools need — over a small JSON API, so the two can run
-// as separate processes:
-//
-//   - NewHandler(b) serves a Backend over HTTP; the llmbox server mounts it on its
-//     box-control port, handing it its own in-process backend.
-//   - NewClient(url) is a Backend that forwards every call to that HTTP API; the
-//     `llmbox mcp` command wraps it in mcpserver.NewServer to serve MCP without any
-//     in-process access to Docker, the store, or the cluster.
-//
-// The wire types below are a 1:1 mapping of the Backend methods (one request/
-// response pair per method), so the handler and client stay trivial and the
-// contract is defined in a single place.
-package mcpapi
+package api
 
 import (
-	"github.com/clems4ever/llmbox/internal/mcpserver"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
@@ -50,7 +35,7 @@ type createBoxRequest struct {
 	Opts sandbox.CreateOptions `json:"opts"`
 }
 type createBoxResponse struct {
-	Session mcpserver.BoxSession `json:"session"`
+	Session BoxSession `json:"session"`
 }
 
 type authPageURLRequest struct {
@@ -64,7 +49,7 @@ type lookupBoxRequest struct {
 	BoxID string `json:"box_id"`
 }
 type lookupBoxResponse struct {
-	Session mcpserver.BoxSession `json:"session"`
+	Session BoxSession `json:"session"`
 	// Found distinguishes "no box with that ID" (a normal miss the tool reports
 	// itself) from a transport/backend error, so a miss is never an HTTP error.
 	Found bool `json:"found"`
@@ -75,7 +60,7 @@ type listBoxesResponse struct {
 }
 
 type spokeStatusesResponse struct {
-	Spokes []mcpserver.SpokeStatus `json:"spokes"`
+	Spokes []SpokeStatus `json:"spokes"`
 }
 
 type destroyBoxRequest struct {
@@ -108,7 +93,7 @@ type createProxyRequest struct {
 	Description string `json:"description,omitempty"`
 }
 type createProxyResponse struct {
-	Proxy mcpserver.ProxyInfo `json:"proxy"`
+	Proxy ProxyInfo `json:"proxy"`
 }
 
 type deleteProxyRequest struct {
@@ -120,5 +105,5 @@ type listProxiesRequest struct {
 	BoxID string `json:"box_id,omitempty"`
 }
 type listProxiesResponse struct {
-	Proxies []mcpserver.ProxyInfo `json:"proxies"`
+	Proxies []ProxyInfo `json:"proxies"`
 }

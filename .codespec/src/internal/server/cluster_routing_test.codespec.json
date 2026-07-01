@@ -57,8 +57,8 @@
 		{
 			"function_name": "TestListSpokesTool",
 			"documentation_hash": "fa141686dc086d9385124005ac41ac554c859dc131c03ff8f5152e96684c2dfa",
-			"definition_hash": "824ecfc85a8c443d0216688629dfe4aacd31dd5dc46b34c87b15cb285de5de84",
-			"reviewed_at": "2026-06-25T11:46:15.07352248Z"
+			"definition_hash": "7dbda4d796c772437423ed6a43c4c4252bea58157573992bed94eb02f5f7137a",
+			"reviewed_at": "2026-07-01T13:12:11.573683461Z"
 		},
 		{
 			"function_name": "TestDestroyBoxByBoxIDRoutesToSpoke",

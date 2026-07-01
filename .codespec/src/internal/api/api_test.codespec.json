@@ -3,26 +3,26 @@
 		{
 			"function_name": "TestBackendAPIRoundTrip",
 			"documentation_hash": "c07e66b0f5701d550d273bd81136a2713fb52b00e84989ec4aeb8c8d9a056465",
-			"definition_hash": "560f9247a91bff2c95aa84cc8ad76747b15da9ad87aec66a8b70d0f6167feb05",
-			"reviewed_at": "2026-07-01T11:56:13.62663572Z"
+			"definition_hash": "03219b53abc96d13b310b3f66385ba9a4614cd6d913c9e93b786821e2b669f20",
+			"reviewed_at": "2026-07-01T13:11:49.924017012Z"
 		},
 		{
 			"function_name": "TestClientSurfacesServerError",
 			"documentation_hash": "2e5d0a4feceba44def75e135298788f3d26bc3547a36f77c3291c9db27c6ee5a",
-			"definition_hash": "cb392526dc20d13f9ecbcf51a754fdc2ec0528eb5d48ef4b887a8b75e1f267a2",
-			"reviewed_at": "2026-07-01T11:56:13.630769232Z"
+			"definition_hash": "0ad178a17a6b1661a56b0eca112ac11a23bab56c88e0091733934271e11b10ef",
+			"reviewed_at": "2026-07-01T13:11:49.92465059Z"
 		},
 		{
 			"function_name": "TestHandlerRejectsBadJSON",
 			"documentation_hash": "feaeaf3ebd3651cac0e7b745e0f9957ee1084e7559fe74c4aa7863a1fbdac134",
-			"definition_hash": "220aaf66efd0931e7ad951ed3d43b27b7d47a94e1c137b6f6ba6c4c4c2181a14",
-			"reviewed_at": "2026-07-01T11:56:13.631074989Z"
+			"definition_hash": "bf4e55d5bed222f3eb7c5aa0e8b2c1a76d5e6b4a08050ff1f57bdbc9766b6a04",
+			"reviewed_at": "2026-07-01T13:11:49.9249253Z"
 		},
 		{
 			"function_name": "TestMCPToolsOverHTTP",
 			"documentation_hash": "b0005e7a6586e2f32a9f96aa0d3de8e13cd8eabb9b80441ce38147024b963a69",
-			"definition_hash": "9d4a787d1cdeabc50b7854aeb670f915647232e1057394a54e2caddc03266746",
-			"reviewed_at": "2026-07-01T11:56:13.630460816Z"
+			"definition_hash": "4f8f4bb10f87e229cd8a14b12d316507b6eceb61bdbdf68d2820b89a93796180",
+			"reviewed_at": "2026-07-01T13:11:49.924372996Z"
 		}
 	]
 }

@@ -1,4 +1,4 @@
-package mcpapi
+package api
 
 import (
 	"bytes"
@@ -9,24 +9,23 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/clems4ever/llmbox/internal/mcpserver"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
-// Client is a mcpserver.Backend that forwards every call to a remote mcpapi HTTP
-// API. It is the client side of the seam: the `llmbox mcp` command wraps it in
-// mcpserver.NewServer so the MCP tools run against an upstream llmbox server with
-// no in-process access to Docker, the store, or the cluster.
+// Client is a Backend that forwards every call to a remote box-control API. It
+// lets a process drive boxes on an upstream llmbox server over HTTP with no
+// in-process access to Docker, the store, or the cluster — the llmbox-mcp binary
+// wraps one to serve those operations as MCP tools.
 type Client struct {
 	base string
 	hc   *http.Client
 }
 
-// Compile-time check that Client satisfies the backend the MCP tools consume.
-var _ mcpserver.Backend = (*Client)(nil)
+// Compile-time check that Client satisfies the Backend contract.
+var _ Backend = (*Client)(nil)
 
-// NewClient builds a Client targeting the mcpapi API at baseURL (the upstream
-// llmbox server's box-control address). A nil hc uses http.DefaultClient.
+// NewClient builds a Client targeting the box-control API at baseURL (the upstream
+// llmbox server's address). A nil hc uses http.DefaultClient.
 //
 // @arg baseURL The upstream server's base URL, e.g. http://llmbox:8081.
 // @arg hc The HTTP client to use; nil uses http.DefaultClient.
@@ -86,11 +85,11 @@ func post[Req any, Resp any](ctx context.Context, c *Client, path string, req Re
 //
 // @arg ctx Context for the request.
 // @arg opts The image, box ID, description, and target spoke for the box.
-// @return mcpserver.BoxSession The new box's ID, container ID, and auth token.
+// @return BoxSession The new box's ID, container ID, and auth token.
 // @error error if the box cannot be created.
 //
 // @testcase TestBackendAPIRoundTrip creates a box through the client.
-func (c *Client) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (mcpserver.BoxSession, error) {
+func (c *Client) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (BoxSession, error) {
 	r, err := post[createBoxRequest, createBoxResponse](ctx, c, PathCreateBox, createBoxRequest{Opts: opts})
 	return r.Session, err
 }
@@ -114,14 +113,14 @@ func (c *Client) AuthPageURL(token string) string {
 // LookupByBoxID resolves a box by its box ID on the upstream server.
 //
 // @arg boxID The box ID to look up.
-// @return mcpserver.BoxSession The matching box's session (zero value when not found).
+// @return BoxSession The matching box's session (zero value when not found).
 // @return bool Whether a box with that box ID exists.
 //
 // @testcase TestBackendAPIRoundTrip looks a box up by box ID through the client.
-func (c *Client) LookupByBoxID(boxID string) (mcpserver.BoxSession, bool) {
+func (c *Client) LookupByBoxID(boxID string) (BoxSession, bool) {
 	r, err := post[lookupBoxRequest, lookupBoxResponse](context.Background(), c, PathLookupBox, lookupBoxRequest{BoxID: boxID})
 	if err != nil {
-		return mcpserver.BoxSession{}, false
+		return BoxSession{}, false
 	}
 	return r.Session, r.Found
 }
@@ -142,11 +141,11 @@ func (c *Client) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
 // server.
 //
 // @arg ctx Context for the request.
-// @return []mcpserver.SpokeStatus The spokes and their connection status.
+// @return []SpokeStatus The spokes and their connection status.
 // @error error if the spokes cannot be read.
 //
 // @testcase TestBackendAPIRoundTrip reads spoke statuses through the client.
-func (c *Client) SpokeStatuses(ctx context.Context) ([]mcpserver.SpokeStatus, error) {
+func (c *Client) SpokeStatuses(ctx context.Context) ([]SpokeStatus, error) {
 	r, err := post[struct{}, spokeStatusesResponse](ctx, c, PathSpokeStatuses, struct{}{})
 	return r.Spokes, err
 }
@@ -212,11 +211,11 @@ func (c *Client) ProxyEnabled() bool {
 // @arg boxID The box ID whose port to expose.
 // @arg port The port inside the box to forward to.
 // @arg description An optional human-readable note for the proxy, or "" for none.
-// @return mcpserver.ProxyInfo The new proxy's box ID, port, URL, slug, spoke, and description.
+// @return ProxyInfo The new proxy's box ID, port, URL, slug, spoke, and description.
 // @error error if the proxy cannot be created.
 //
 // @testcase TestBackendAPIRoundTrip creates a proxy through the client.
-func (c *Client) CreateProxy(ctx context.Context, boxID string, port int, description string) (mcpserver.ProxyInfo, error) {
+func (c *Client) CreateProxy(ctx context.Context, boxID string, port int, description string) (ProxyInfo, error) {
 	r, err := post[createProxyRequest, createProxyResponse](ctx, c, PathCreateProxy, createProxyRequest{BoxID: boxID, Port: port, Description: description})
 	return r.Proxy, err
 }
@@ -239,11 +238,11 @@ func (c *Client) DeleteProxy(ctx context.Context, boxID string, port int) error 
 //
 // @arg ctx Context for the request.
 // @arg boxID The box ID to filter by, or "" for all proxies.
-// @return []mcpserver.ProxyInfo The matching proxies.
+// @return []ProxyInfo The matching proxies.
 // @error error if the proxies cannot be listed.
 //
 // @testcase TestBackendAPIRoundTrip lists proxies through the client.
-func (c *Client) ListProxies(ctx context.Context, boxID string) ([]mcpserver.ProxyInfo, error) {
+func (c *Client) ListProxies(ctx context.Context, boxID string) ([]ProxyInfo, error) {
 	r, err := post[listProxiesRequest, listProxiesResponse](ctx, c, PathListProxies, listProxiesRequest{BoxID: boxID})
 	return r.Proxies, err
 }

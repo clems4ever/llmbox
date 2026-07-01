@@ -8,6 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/clems4ever/llmbox/internal/api"
 	"github.com/clems4ever/llmbox/internal/mcpserver"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 )
@@ -16,21 +17,21 @@ import (
 // AuthBase is left empty.
 const defaultAuthBase = "https://boxes.example.com/auth/"
 
-// FakeBackend is a stand-in for the server's MCP backend: it records the calls it
-// receives and returns canned results, satisfying mcpserver.Backend. It is the
-// fixture behind the MCP server — pair it with ConnectMCP (or mcpapi.NewHandler)
-// to drive the tools without Docker, a store, or a cluster.
+// FakeBackend is a stand-in for the server's box-control backend: it records the
+// calls it receives and returns canned results, satisfying api.Backend. Pair it
+// with api.NewHandler (to serve the HTTP API) or ConnectMCP (to drive the MCP
+// tools) without Docker, a store, or a cluster.
 type FakeBackend struct {
 	mu sync.Mutex
 
 	// Canned results.
-	CreateSess        mcpserver.BoxSession
+	CreateSess        api.BoxSession
 	CreateErr         error
-	AuthBase          string                          // AuthPageURL returns AuthBase+token; empty uses defaultAuthBase
-	Sessions          map[string]mcpserver.BoxSession // LookupByBoxID source, keyed by lowercased box ID
+	AuthBase          string                    // AuthPageURL returns AuthBase+token; empty uses defaultAuthBase
+	Sessions          map[string]api.BoxSession // LookupByBoxID source, keyed by lowercased box ID
 	Boxes             []sandbox.Box
 	ListErr           error
-	Spokes            []mcpserver.SpokeStatus
+	Spokes            []api.SpokeStatus
 	SpokesErr         error
 	DestroyErr        error
 	LogsResult        string
@@ -38,9 +39,9 @@ type FakeBackend struct {
 	ExecResult        sandbox.ExecResult
 	ExecErr           error
 	ProxyOn           bool
-	CreateProxyResult mcpserver.ProxyInfo
+	CreateProxyResult api.ProxyInfo
 	CreateProxyErr    error
-	Proxies           []mcpserver.ProxyInfo
+	Proxies           []api.ProxyInfo
 	ListProxiesErr    error
 	DeleteProxyErr    error
 
@@ -65,11 +66,11 @@ type FakeBackend struct {
 //
 // @arg ctx Context (unused by the fake).
 // @arg opts The create options, recorded into GotCreate.
-// @return mcpserver.BoxSession The canned CreateSess.
+// @return api.BoxSession The canned CreateSess.
 // @error error The canned CreateErr, if any.
 //
 // @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
-func (f *FakeBackend) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (mcpserver.BoxSession, error) {
+func (f *FakeBackend) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (api.BoxSession, error) {
 	f.mu.Lock()
 	f.GotCreate = opts
 	f.mu.Unlock()
@@ -98,11 +99,11 @@ func (f *FakeBackend) AuthPageURL(token string) string {
 // (case-insensitive); ok is false when none matches.
 //
 // @arg boxID The box ID to look up, recorded into GotLookup.
-// @return mcpserver.BoxSession The matching canned session (zero value when absent).
+// @return api.BoxSession The matching canned session (zero value when absent).
 // @return bool Whether a session with that box ID exists in Sessions.
 //
 // @testcase TestFakeBackend checks LookupByBoxID resolves from Sessions and misses unknown IDs.
-func (f *FakeBackend) LookupByBoxID(boxID string) (mcpserver.BoxSession, bool) {
+func (f *FakeBackend) LookupByBoxID(boxID string) (api.BoxSession, bool) {
 	f.mu.Lock()
 	f.GotLookup = boxID
 	f.mu.Unlock()
@@ -124,11 +125,11 @@ func (f *FakeBackend) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
 // SpokeStatuses returns the canned spokes/error.
 //
 // @arg ctx Context (unused by the fake).
-// @return []mcpserver.SpokeStatus The canned Spokes slice.
+// @return []api.SpokeStatus The canned Spokes slice.
 // @error error The canned SpokesErr, if any.
 //
 // @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
-func (f *FakeBackend) SpokeStatuses(ctx context.Context) ([]mcpserver.SpokeStatus, error) {
+func (f *FakeBackend) SpokeStatuses(ctx context.Context) ([]api.SpokeStatus, error) {
 	return f.Spokes, f.SpokesErr
 }
 
@@ -193,11 +194,11 @@ func (f *FakeBackend) ProxyEnabled() bool { return f.ProxyOn }
 // @arg boxID The box ID, recorded into GotProxyBoxID.
 // @arg port The port, recorded into GotProxyPort.
 // @arg description The description, recorded into GotProxyDesc.
-// @return mcpserver.ProxyInfo The canned CreateProxyResult.
+// @return api.ProxyInfo The canned CreateProxyResult.
 // @error error The canned CreateProxyErr, if any.
 //
 // @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
-func (f *FakeBackend) CreateProxy(ctx context.Context, boxID string, port int, description string) (mcpserver.ProxyInfo, error) {
+func (f *FakeBackend) CreateProxy(ctx context.Context, boxID string, port int, description string) (api.ProxyInfo, error) {
 	f.mu.Lock()
 	f.GotProxyBoxID = boxID
 	f.GotProxyPort = port
@@ -226,11 +227,11 @@ func (f *FakeBackend) DeleteProxy(ctx context.Context, boxID string, port int) e
 //
 // @arg ctx Context (unused by the fake).
 // @arg boxID The box-ID filter, recorded into GotListBoxID.
-// @return []mcpserver.ProxyInfo The canned Proxies slice.
+// @return []api.ProxyInfo The canned Proxies slice.
 // @error error The canned ListProxiesErr, if any.
 //
 // @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
-func (f *FakeBackend) ListProxies(ctx context.Context, boxID string) ([]mcpserver.ProxyInfo, error) {
+func (f *FakeBackend) ListProxies(ctx context.Context, boxID string) ([]api.ProxyInfo, error) {
 	f.mu.Lock()
 	f.GotListBoxID = boxID
 	f.mu.Unlock()
@@ -239,7 +240,7 @@ func (f *FakeBackend) ListProxies(ctx context.Context, boxID string) ([]mcpserve
 
 // ConnectMCP builds an MCP server over backend and returns an in-memory-connected
 // client session, so a test can drive the real MCP tools end to end. The session
-// is closed automatically when the test finishes. Pass an mcpapi.Client as the
+// is closed automatically when the test finishes. Pass an api.Client as the
 // backend to exercise the full stand-alone path (MCP tools → HTTP → server).
 //
 // @arg t The test the session's lifetime is tied to.
@@ -249,7 +250,7 @@ func (f *FakeBackend) ListProxies(ctx context.Context, boxID string) ([]mcpserve
 // @return *mcp.ClientSession A connected MCP client session, closed on test cleanup.
 //
 // @testcase TestConnectMCP lists the registered tools over the returned session.
-func ConnectMCP(t testing.TB, backend mcpserver.Backend, name, version string) *mcp.ClientSession {
+func ConnectMCP(t testing.TB, backend api.Backend, name, version string) *mcp.ClientSession {
 	t.Helper()
 	srv := mcpserver.NewServer(backend, name, version)
 	serverT, clientT := mcp.NewInMemoryTransports()

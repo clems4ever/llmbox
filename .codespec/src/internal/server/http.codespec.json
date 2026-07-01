@@ -24,9 +24,9 @@
 		{
 			"function_name": "APIHandler",
 			"receiver": "Server",
-			"documentation_hash": "db31f468c8236bbe7b76a7dfd9758a315b89c8200c8fc6d28f23546c7f7ba4a9",
-			"definition_hash": "a3cf8f1d2ad22c90eb5a7565e7aa4d3fb318c3f377979bf6c37e6db87f0f917e",
-			"reviewed_at": "2026-06-27T17:02:38.539436251Z"
+			"documentation_hash": "7738ce50af9dc40b36ad941957c4c1f313df12c7d93f327092c7980f18d05574",
+			"definition_hash": "81014ca8c956322e6dd6d692333b287e857b5f7b9bc74e300b9c7508e1a5fb49",
+			"reviewed_at": "2026-07-01T13:12:16.231923638Z"
 		},
 		{
 			"function_name": "registerAppRoutes",

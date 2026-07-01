@@ -611,12 +611,12 @@ func TestHandleProxyUnsupportedSpoke(t *testing.T) {
 	}
 }
 
-// TestMCPBackendProxies drives the MCP backend's proxy methods — enabling,
+// TestBackendProxies drives the MCP backend's proxy methods — enabling,
 // listing, and disabling a proxy through the adapter the MCP tools call.
-func TestMCPBackendProxies(t *testing.T) {
+func TestBackendProxies(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil)
 	registerBox(t, s, "web-box", "")
-	b := s.MCPBackend()
+	b := s.boxBackend()
 
 	if !b.ProxyEnabled() {
 		t.Fatal("ProxyEnabled() = false, want true")

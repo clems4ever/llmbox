@@ -360,23 +360,31 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
-// TestAPIHandlerServesUINotMCP checks the API handler serves the UI/API routes
-// (e.g. /healthz) but does not mount the MCP catch-all at the root.
-func TestAPIHandlerServesUINotMCP(t *testing.T) {
+// TestAPIHandlerServesUIAndAPI checks the single handler serves both the UI routes
+// (e.g. /healthz) and the box-control API (under /api/v1/), and 404s an unrouted
+// root.
+func TestAPIHandlerServesUIAndAPI(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
 	h := s.APIHandler()
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 	if rec.Code != http.StatusOK || rec.Body.String() != "ok" {
-		t.Errorf("healthz on API handler: %d %q", rec.Code, rec.Body.String())
+		t.Errorf("healthz on handler: %d %q", rec.Code, rec.Body.String())
 	}
 
-	// With no MCP route registered, the root is unrouted and 404s.
+	// The box-control API is mounted under /api/v1/ on the same handler.
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/list-boxes", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("list-boxes on handler: status %d, want 200", rec.Code)
+	}
+
+	// An unrouted root 404s.
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	if rec.Code != http.StatusNotFound {
-		t.Errorf("MCP root on API handler: status %d, want 404", rec.Code)
+		t.Errorf("root on handler: status %d, want 404", rec.Code)
 	}
 }
 
@@ -405,7 +413,7 @@ func TestFaviconServed(t *testing.T) {
 func TestGetByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
-	b := s.MCPBackend()
+	b := s.boxBackend()
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box", Description: "d"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
@@ -443,7 +451,7 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 	}}
 	s := newTestServer(f)
 
-	boxes, err := s.MCPBackend().ListBoxes(context.Background())
+	boxes, err := s.boxBackend().ListBoxes(context.Background())
 	if err != nil {
 		t.Fatalf("ListBoxes: %v", err)
 	}
@@ -463,7 +471,7 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 func TestBoxLogsByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", LogsResult: "Ready\nlistening\n"}
 	s := newTestServer(f)
-	b := s.MCPBackend()
+	b := s.boxBackend()
 	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -496,7 +504,7 @@ func TestBoxExecByBoxID(t *testing.T) {
 		ExecResult: sandbox.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
 	}
 	s := newTestServer(f)
-	b := s.MCPBackend()
+	b := s.boxBackend()
 	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -528,8 +536,8 @@ func TestBoxExecByBoxID(t *testing.T) {
 
 // --- MCP wiring ---
 
-// TestMCPToolsRegisteredAndCreate checks all tools are registered and create returns a safe auth URL.
-func TestMCPToolsRegisteredAndCreate(t *testing.T) {
+// TestBoxToolsOverBackend checks all tools are registered and create returns a safe auth URL.
+func TestBoxToolsOverBackend(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?z=1"}
 	s := newTestServer(f)
 	cs := connectMCP(t, s)
@@ -591,5 +599,5 @@ func TestCreateRequiresBoxID(t *testing.T) {
 // backend (via the shared testutils fixture) to drive the tools end to end.
 func connectMCP(t *testing.T, s *Server) *mcp.ClientSession {
 	t.Helper()
-	return testutils.ConnectMCP(t, s.MCPBackend(), "test", "v0")
+	return testutils.ConnectMCP(t, s.boxBackend(), "test", "v0")
 }

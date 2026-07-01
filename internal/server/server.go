@@ -1,12 +1,12 @@
-// Package server ties the Docker box manager to two front-ends that share one
-// process:
+// Package server ties the Docker box manager to the HTTP front-ends that share
+// one process and one port:
 //
-//   - an MCP server (streamable HTTP), used by a chatbot to create/list/destroy
-//     boxes. It only ever exchanges box IDs and the *auth page URL* — never the
-//     OAuth secret.
-//   - a small web server that serves the auth page where the user pastes their
-//     OAuth code. The code goes browser -> this server -> container stdin, so it
-//     never enters the chat/MCP context.
+//   - the box-control JSON API (under /api/v1/), used by the UI and by callers
+//     like the llmbox-mcp binary to create/list/destroy boxes. It only ever
+//     exchanges box IDs and the *auth page URL* — never the OAuth secret.
+//   - the auth web page where the user pastes their OAuth code. The code goes
+//     browser -> this server -> container stdin, so it never enters the caller's
+//     context.
 package server
 
 import (
@@ -776,7 +776,7 @@ func betterBoxIDMatch(c *session, cReachable bool, best *session, bestReachable 
 }
 
 // submitCode feeds the user's OAuth code to the box's login process and waits
-// for the box to become ready. It is called by the web handler, never by MCP.
+// for the box to become ready. It is called by the web handler, never by the API.
 //
 // @arg ctx Context for the code submission.
 // @arg tok The session token identifying the box.
@@ -828,7 +828,7 @@ func (s *Server) submitCode(ctx context.Context, tok, code string) error {
 // @return []sandbox.Box The boxes managed by this server, tagged with their spoke.
 // @error error if the local spoke cannot be listed.
 //
-// @testcase TestMCPToolsRegisteredAndCreate exercises the server's box wiring.
+// @testcase TestBoxToolsOverBackend exercises the server's box wiring.
 // @testcase TestListFansOutAcrossSpokes aggregates and tags boxes from every spoke.
 func (s *Server) listBoxes(ctx context.Context) ([]sandbox.Box, error) {
 	out, err := s.mgr.List(ctx)
