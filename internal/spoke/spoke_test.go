@@ -1,4 +1,4 @@
-package main
+package spoke
 
 import (
 	"bytes"
@@ -10,23 +10,28 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
 // TestNewRootCmd checks the llmbox-spoke command wiring: its flags and the
 // token/create subcommand tree.
 func TestNewRootCmd(t *testing.T) {
-	cmd := newRootCmd()
+	const name = "llmbox-spoke"
+	cmd := NewRootCmd(name, "v0.1.0")
 	if cmd.Use != name {
 		t.Errorf("Use = %q, want %q", cmd.Use, name)
 	}
-	for _, f := range []string{"hub", "token", "state", "config"} {
+	// The spoke reads no config file: there is no --config flag, and every knob
+	// is exposed as a flag instead.
+	if cmd.Flags().Lookup("config") != nil {
+		t.Error("--config flag should not exist (the spoke is config-free)")
+	}
+	for _, f := range []string{"hub", "token", "state", "namespace", "box-gpus", "remote-args", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "allowed-image", "registry", "registry-username", "registry-password-file"} {
 		if cmd.Flags().Lookup(f) == nil {
 			t.Errorf("missing --%s flag", f)
 		}
 	}
-	// token subcommand with a create child.
+	// token subcommand with a create child (which reads --state-file, not --config).
 	var tokenCmd, createCmd bool
 	for _, c := range cmd.Commands() {
 		if c.Use == "token" {
@@ -34,10 +39,13 @@ func TestNewRootCmd(t *testing.T) {
 			for _, cc := range c.Commands() {
 				if cc.Use == "create" {
 					createCmd = true
-					for _, f := range []string{"name", "ttl"} {
+					for _, f := range []string{"name", "ttl", "state-file"} {
 						if cc.Flags().Lookup(f) == nil {
 							t.Errorf("create missing --%s flag", f)
 						}
+					}
+					if cc.Flags().Lookup("config") != nil {
+						t.Error("token create should not have a --config flag")
 					}
 				}
 			}
@@ -51,11 +59,10 @@ func TestNewRootCmd(t *testing.T) {
 // TestCreateJoinTokenCmdPrintsToken checks the token-create command mints a
 // token for the named spoke and prints it with a usage hint.
 func TestCreateJoinTokenCmdPrintsToken(t *testing.T) {
-	cfg := config.Default()
-	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
+	stateFile := filepath.Join(t.TempDir(), "hub.db")
 
 	var out bytes.Buffer
-	if err := createJoinToken(&out, cfg, "edge", time.Hour); err != nil {
+	if err := createJoinToken(&out, stateFile, "edge", time.Hour); err != nil {
 		t.Fatalf("createJoinToken: %v", err)
 	}
 	s := out.String()
@@ -67,10 +74,11 @@ func TestCreateJoinTokenCmdPrintsToken(t *testing.T) {
 	}
 }
 
-// seedJoinToken mints a join token for name into cfg's store and returns its ID.
-func seedJoinToken(t *testing.T, cfg *config.Config, name string) string {
+// seedJoinToken mints a join token for name into the store at stateFile and
+// returns its ID.
+func seedJoinToken(t *testing.T, stateFile, name string) string {
 	t.Helper()
-	store, err := server.OpenStore(cfg.StateFile)
+	store, err := server.OpenStore(stateFile)
 	if err != nil {
 		t.Fatalf("OpenStore: %v", err)
 	}
@@ -91,10 +99,10 @@ func seedJoinToken(t *testing.T, cfg *config.Config, name string) string {
 	return ""
 }
 
-// countJoinTokens returns how many join tokens are stored in cfg's state file.
-func countJoinTokens(t *testing.T, cfg *config.Config) int {
+// countJoinTokens returns how many join tokens are stored at stateFile.
+func countJoinTokens(t *testing.T, stateFile string) int {
 	t.Helper()
-	store, err := server.OpenStore(cfg.StateFile)
+	store, err := server.OpenStore(stateFile)
 	if err != nil {
 		t.Fatalf("OpenStore: %v", err)
 	}
@@ -108,12 +116,11 @@ func countJoinTokens(t *testing.T, cfg *config.Config) int {
 
 // TestListJoinTokensCmd lists outstanding tokens with their spoke and a short ID.
 func TestListJoinTokensCmd(t *testing.T) {
-	cfg := config.Default()
-	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
-	id := seedJoinToken(t, cfg, "edge")
+	stateFile := filepath.Join(t.TempDir(), "hub.db")
+	id := seedJoinToken(t, stateFile, "edge")
 
 	var out bytes.Buffer
-	if err := listJoinTokens(&out, cfg, time.Now()); err != nil {
+	if err := listJoinTokens(&out, stateFile, time.Now()); err != nil {
 		t.Fatalf("listJoinTokens: %v", err)
 	}
 	s := out.String()
@@ -127,10 +134,9 @@ func TestListJoinTokensCmd(t *testing.T) {
 
 // TestListJoinTokensCmdEmpty reports when there are no tokens.
 func TestListJoinTokensCmdEmpty(t *testing.T) {
-	cfg := config.Default()
-	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
+	stateFile := filepath.Join(t.TempDir(), "hub.db")
 	var out bytes.Buffer
-	if err := listJoinTokens(&out, cfg, time.Now()); err != nil {
+	if err := listJoinTokens(&out, stateFile, time.Now()); err != nil {
 		t.Fatalf("listJoinTokens: %v", err)
 	}
 	if !strings.Contains(out.String(), "No outstanding join tokens") {
@@ -140,44 +146,41 @@ func TestListJoinTokensCmdEmpty(t *testing.T) {
 
 // TestRevokeJoinTokenByID revokes the single token matching an ID prefix.
 func TestRevokeJoinTokenByID(t *testing.T) {
-	cfg := config.Default()
-	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
-	id := seedJoinToken(t, cfg, "edge")
+	stateFile := filepath.Join(t.TempDir(), "hub.db")
+	id := seedJoinToken(t, stateFile, "edge")
 
 	var out bytes.Buffer
-	if err := revokeJoinTokens(&out, cfg, id[:10], ""); err != nil {
+	if err := revokeJoinTokens(&out, stateFile, id[:10], ""); err != nil {
 		t.Fatalf("revokeJoinTokens: %v", err)
 	}
 	if !strings.Contains(out.String(), "Revoked") {
 		t.Errorf("revoke output = %q", out.String())
 	}
-	if n := countJoinTokens(t, cfg); n != 0 {
+	if n := countJoinTokens(t, stateFile); n != 0 {
 		t.Errorf("token count after revoke = %d, want 0", n)
 	}
 }
 
 // TestRevokeJoinTokenByName revokes every token for a spoke name.
 func TestRevokeJoinTokenByName(t *testing.T) {
-	cfg := config.Default()
-	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
-	seedJoinToken(t, cfg, "edge")
-	seedJoinToken(t, cfg, "edge")
-	seedJoinToken(t, cfg, "other")
+	stateFile := filepath.Join(t.TempDir(), "hub.db")
+	seedJoinToken(t, stateFile, "edge")
+	seedJoinToken(t, stateFile, "edge")
+	seedJoinToken(t, stateFile, "other")
 
 	var out bytes.Buffer
-	if err := revokeJoinTokens(&out, cfg, "", "edge"); err != nil {
+	if err := revokeJoinTokens(&out, stateFile, "", "edge"); err != nil {
 		t.Fatalf("revokeJoinTokens: %v", err)
 	}
-	if n := countJoinTokens(t, cfg); n != 1 {
+	if n := countJoinTokens(t, stateFile); n != 1 {
 		t.Errorf("token count after revoking edge = %d, want 1 (other remains)", n)
 	}
 }
 
 // TestRevokeJoinTokenNoMatch errors when nothing matches.
 func TestRevokeJoinTokenNoMatch(t *testing.T) {
-	cfg := config.Default()
-	cfg.StateFile = filepath.Join(t.TempDir(), "hub.db")
-	if err := revokeJoinTokens(&bytes.Buffer{}, cfg, "deadbeef", ""); err == nil {
+	stateFile := filepath.Join(t.TempDir(), "hub.db")
+	if err := revokeJoinTokens(&bytes.Buffer{}, stateFile, "deadbeef", ""); err == nil {
 		t.Fatal("expected error when no token matches")
 	}
 }
@@ -232,9 +235,11 @@ func TestCheckStateWritable(t *testing.T) {
 // TestRunSpokeRequiresTokenOrCreds checks runSpoke errors when neither a join
 // token nor saved credentials are available for enrollment.
 func TestRunSpokeRequiresTokenOrCreds(t *testing.T) {
-	cfg := config.Default()
-	statePath := filepath.Join(t.TempDir(), "none.json")
-	err := runSpoke(context.Background(), cfg, "wss://hub/spoke/connect", "", statePath, "", "")
+	o := spokeOptions{
+		hubURL:    "wss://hub/spoke/connect",
+		statePath: filepath.Join(t.TempDir(), "none.json"),
+	}
+	err := runSpoke(context.Background(), o)
 	if err == nil || !strings.Contains(err.Error(), "token") {
 		t.Fatalf("runSpoke err = %v, want a token-required error", err)
 	}
@@ -243,10 +248,43 @@ func TestRunSpokeRequiresTokenOrCreds(t *testing.T) {
 // TestRunSpokeRejectsBadGPUs checks runSpoke fails fast on a malformed --box-gpus
 // spec, before attempting any enrollment.
 func TestRunSpokeRejectsBadGPUs(t *testing.T) {
-	cfg := config.Default()
-	statePath := filepath.Join(t.TempDir(), "none.json")
-	err := runSpoke(context.Background(), cfg, "wss://hub/spoke/connect", "tok", statePath, "0", "")
+	o := spokeOptions{
+		hubURL:    "wss://hub/spoke/connect",
+		token:     "tok",
+		statePath: filepath.Join(t.TempDir(), "none.json"),
+		boxGPUs:   "0",
+	}
+	err := runSpoke(context.Background(), o)
 	if err == nil || !strings.Contains(err.Error(), "box-gpus") {
 		t.Fatalf("runSpoke err = %v, want a box-gpus error", err)
+	}
+}
+
+// TestSpokeRegistriesFromFlags checks the registry flags resolve to a credential
+// with the password read from its file, and that a missing host means none while
+// a missing password file is an error.
+func TestSpokeRegistriesFromFlags(t *testing.T) {
+	// No registry host: anonymous pulls, no entry.
+	if regs, err := (spokeOptions{}).registries(); err != nil || regs != nil {
+		t.Fatalf("registries(no host) = (%v, %v), want (nil, nil)", regs, err)
+	}
+
+	// Host with a password file: one resolved entry, password trimmed from file.
+	pw := filepath.Join(t.TempDir(), "token")
+	if err := os.WriteFile(pw, []byte("ghp_secret\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	o := spokeOptions{registry: registryFlags{host: "ghcr.io", username: "bob", passwordFile: pw}}
+	regs, err := o.registries()
+	if err != nil {
+		t.Fatalf("registries: %v", err)
+	}
+	if len(regs) != 1 || regs[0].Registry != "ghcr.io" || regs[0].Username != "bob" || regs[0].Password != "ghp_secret" {
+		t.Errorf("registries = %+v, want one ghcr.io/bob entry with trimmed password", regs)
+	}
+
+	// Host without a password file: error.
+	if _, err := (spokeOptions{registry: registryFlags{host: "ghcr.io"}}).registries(); err == nil {
+		t.Error("registries(host, no password file) = nil error, want error")
 	}
 }

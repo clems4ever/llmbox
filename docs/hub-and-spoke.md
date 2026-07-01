@@ -133,14 +133,20 @@ new `ClusterStore` methods.
 
 ## CLI / config
 
-- `llmbox-spoke token create --name <name> [--ttl 1h]` — hub-side; prints the
-  token once. (Runs against the hub's state file / config.)
-- `llmbox-spoke --hub wss://hub/spoke/connect --token <join-token> [--config …]`
-  — runs a spoke: connects to a local Docker daemon via `docker.NewManager`,
-  enrolls (or reconnects with its saved credential), and serves verbs.
-- config: hub enables the `/spoke/connect` route automatically; a spoke uses a
-  small `spoke:` config block (hub URL, state file for its credential, Docker
-  settings reused from the existing fields).
+- `llmbox-spoke token create --name <name> [--ttl 1h] [--state-file …]` —
+  hub-side; prints the token once. Writes to the hub's state file (default
+  `llmbox-sessions.db`; point `--state-file` at the running hub's `state_file`).
+- `llmbox-spoke --hub wss://hub/spoke/connect --token <join-token>` — runs a
+  spoke: connects to a local Docker daemon via `docker.NewManager`, enrolls (or
+  reconnects with its saved credential), and serves verbs.
+- config: **the spoke reads no config file** — every setting is a flag, so a host
+  runs the single command the admin UI generates. The hub still enables the
+  `/spoke/connect` route automatically from its own config. Per-box Docker knobs
+  the hub takes from config (`box.memory_mb`, `box.cpus`, `box.pids_limit`,
+  `box.socket_dir`, `box_peers`, `remote_args`, registry auth, `spoke.allowed_images`)
+  are exposed on the spoke as `--box-memory-mb`, `--box-cpus`, `--box-pids-limit`,
+  `--box-socket-dir`, `--box-peer`, `--remote-args`, `--registry[-username|-password-file]`,
+  and `--allowed-image`.
 
 ### Sharing one Docker daemon: namespaces
 
@@ -149,9 +155,9 @@ Each spoke normally owns its own Docker daemon, so scoping box operations to the
 hub plus a spoke) against the same daemon**, give each a distinct **namespace** so
 they do not list, reap, or destroy each other's boxes:
 
-- `llmbox-spoke --hub … --namespace spoke-a` (flag), or `box.namespace: spoke-a`
-  in the config file (the flag wins). The hub's local provisioner reads
-  `box.namespace` too.
+- on a spoke, `llmbox-spoke --hub … --namespace spoke-a` (a flag — the spoke has
+  no config file). The hub's local provisioner reads `box.namespace` from the
+  hub's config file.
 - A namespaced provisioner stamps every box and its network with
   `com.llmbox.namespace=<ns>` and scopes list/find/destroy — and therefore the
   orphan reaper — to that label. An empty namespace (the default) is unscoped and

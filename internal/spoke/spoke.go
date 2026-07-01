@@ -1,4 +1,9 @@
-package main
+// Package spoke implements the llmbox-spoke command tree: running a spoke that
+// joins a hub and serves boxes against the local Docker daemon, and the `token`
+// subcommand that mints, lists, and revokes the one-time join tokens a hub issues
+// to enroll spokes. The cmd/llmbox-spoke binary is a thin main that builds this
+// command via NewRootCmd and executes it.
+package spoke
 
 import (
 	"context"
@@ -38,23 +43,74 @@ const (
 	spokeReconnectMax = 30 * time.Second
 )
 
-// newRootCmd builds the llmbox-spoke command tree: the root command runs a spoke
+// spokeOptions holds everything a running spoke needs, sourced entirely from
+// command-line flags. A spoke reads no config file: a spoke host runs a single
+// copy-pasteable command (the one the admin UI generates), and every knob the
+// hub's config would have supplied is instead an optional flag with the same
+// built-in default.
+type spokeOptions struct {
+	hubURL     string
+	token      string
+	statePath  string
+	boxGPUs    string
+	remoteArgs string
+	// box carries the per-box resource caps, socket dir, and namespace, reusing
+	// the config type so cli.BoxLimits does the unit conversion.
+	box           config.BoxConfig
+	boxPeers      []string
+	allowedImages []string
+	registry      registryFlags
+}
+
+// registryFlags are the single optional registry credential a spoke may use to
+// pull box images from an authenticated registry. Empty host means anonymous
+// pulls (the default).
+type registryFlags struct {
+	host         string
+	username     string
+	passwordFile string
+}
+
+// registries resolves the registry flags into the config type cli.RegistryAuths
+// consumes, reading the password from its file. It returns nil (anonymous pulls)
+// when no registry host is given.
+//
+// @return []config.RegistryConfig The single resolved registry entry, or nil when none is configured.
+// @error error if a host is given without a readable password file.
+//
+// @testcase TestSpokeRegistriesFromFlags resolves a registry password from its file and errors on a missing file.
+func (o spokeOptions) registries() ([]config.RegistryConfig, error) {
+	if o.registry.host == "" {
+		return nil, nil
+	}
+	if o.registry.passwordFile == "" {
+		return nil, errors.New("--registry-password-file is required with --registry")
+	}
+	data, err := os.ReadFile(o.registry.passwordFile)
+	if err != nil {
+		return nil, fmt.Errorf("reading --registry-password-file: %w", err)
+	}
+	return []config.RegistryConfig{{
+		Registry: o.registry.host,
+		Username: o.registry.username,
+		Password: strings.TrimSpace(string(data)),
+	}}, nil
+}
+
+// NewRootCmd builds the llmbox-spoke command tree: the root command runs a spoke
 // that joins a hub and serves boxes against the local Docker daemon, and a
 // `token` subcommand (create/list/revoke) manages the one-time join tokens on the
-// hub.
+// hub. The spoke reads no config file — every setting is a flag — so a host can
+// run the single command the admin UI generates. The binary name and version
+// shown by the command are passed in by the cmd/llmbox-spoke main.
 //
+// @arg name The command name shown in usage (the binary name).
+// @arg version The version string reported by --version.
 // @return *cobra.Command The configured root command with its token subcommand.
 //
 // @testcase TestNewRootCmd checks the command wiring (flags and subcommands).
-func newRootCmd() *cobra.Command {
-	var (
-		configPath string
-		hubURL     string
-		token      string
-		statePath  string
-		boxGPUs    string
-		namespace  string
-	)
+func NewRootCmd(name, version string) *cobra.Command {
+	var o spokeOptions
 	spokeCmd := &cobra.Command{
 		Use:           name,
 		Short:         "Run a spoke that joins a hub and runs boxes on the local Docker daemon",
@@ -63,22 +119,29 @@ func newRootCmd() *cobra.Command {
 		SilenceErrors: false,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if hubURL == "" {
+			if o.hubURL == "" {
 				return errors.New("--hub is required (e.g. wss://hub.example.com/spoke/connect)")
 			}
-			cfg, err := cli.LoadConfig(configPath, cmd.Flags().Changed("config"))
-			if err != nil {
-				return err
-			}
-			return runSpoke(cmd.Context(), cfg, hubURL, token, statePath, boxGPUs, namespace)
+			return runSpoke(cmd.Context(), o)
 		},
 	}
-	spokeCmd.Flags().StringVarP(&configPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for Docker settings)")
-	spokeCmd.Flags().StringVar(&hubURL, "hub", "", "hub spoke-connect URL, e.g. wss://hub.example.com/spoke/connect")
-	spokeCmd.Flags().StringVar(&token, "token", "", "one-time join token (only needed for first enrollment)")
-	spokeCmd.Flags().StringVar(&statePath, "state", defaultSpokeStateFile, "file storing this spoke's issued credential")
-	spokeCmd.Flags().StringVar(&boxGPUs, "box-gpus", "", `GPUs to attach to every box on this spoke, like docker run --gpus (e.g. "all", "2", or "device=0,1"); empty attaches none`)
-	spokeCmd.Flags().StringVar(&namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one Docker daemon without collapsing each other's containers; empty uses box.namespace from config")
+	f := spokeCmd.Flags()
+	f.StringVar(&o.hubURL, "hub", "", "hub spoke-connect URL, e.g. wss://hub.example.com/spoke/connect")
+	f.StringVar(&o.token, "token", "", "one-time join token (only needed for first enrollment)")
+	f.StringVar(&o.statePath, "state", defaultSpokeStateFile, "file storing this spoke's issued credential")
+	f.StringVar(&o.box.Namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one Docker daemon without collapsing each other's containers; empty is unscoped")
+	f.StringVar(&o.boxGPUs, "box-gpus", "", `GPUs to attach to every box on this spoke, like docker run --gpus (e.g. "all", "2", or "device=0,1"); empty attaches none`)
+	f.StringVar(&o.remoteArgs, "remote-args", "", "args passed to `claude remote-control` in every box; empty uses the built-in default")
+	f.IntVar(&o.box.MemoryMB, "box-memory-mb", config.DefaultBoxMemoryMB, "hard memory limit per box in MiB (0 = unlimited)")
+	f.Float64Var(&o.box.CPUs, "box-cpus", config.DefaultBoxCPUs, "CPU quota per box, fractional allowed (0 = unlimited)")
+	f.Int64Var(&o.box.PidsLimit, "box-pids-limit", config.DefaultBoxPidsLimit, "max processes/threads per box, blunts fork bombs (0 = unlimited)")
+	f.IntVar(&o.box.MaxBoxes, "max-boxes", 0, "max concurrent boxes on this spoke (0 = unlimited)")
+	f.StringVar(&o.box.SocketDir, "box-socket-dir", "", "host directory holding each box's control socket; empty uses the provisioner default")
+	f.StringArrayVar(&o.boxPeers, "box-peer", nil, "container name connected into every box's network so boxes can reach it (repeatable)")
+	f.StringArrayVar(&o.allowedImages, "allowed-image", nil, "restrict which box images this spoke will launch (repeatable; empty places no restriction)")
+	f.StringVar(&o.registry.host, "registry", "", `registry host to authenticate to when pulling box images, e.g. "ghcr.io" (empty pulls anonymously)`)
+	f.StringVar(&o.registry.username, "registry-username", "", "username for --registry")
+	f.StringVar(&o.registry.passwordFile, "registry-password-file", "", "file holding the password or token for --registry")
 
 	spokeCmd.AddCommand(newSpokeTokenCmd())
 	return spokeCmd
@@ -98,9 +161,9 @@ func newSpokeTokenCmd() *cobra.Command {
 	}
 
 	var (
-		configPath string
-		spokeName  string
-		ttl        time.Duration
+		stateFile string
+		spokeName string
+		ttl       time.Duration
 	)
 	createCmd := &cobra.Command{
 		Use:           "create",
@@ -112,19 +175,15 @@ func newSpokeTokenCmd() *cobra.Command {
 			if spokeName == "" {
 				return errors.New("--name is required (the spoke name baked into the token)")
 			}
-			cfg, err := cli.LoadConfig(configPath, cmd.Flags().Changed("config"))
-			if err != nil {
-				return err
-			}
-			return createJoinToken(cmd.OutOrStdout(), cfg, spokeName, ttl)
+			return createJoinToken(cmd.OutOrStdout(), stateFile, spokeName, ttl)
 		},
 	}
-	createCmd.Flags().StringVarP(&configPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for the hub state file)")
+	createCmd.Flags().StringVar(&stateFile, "state-file", config.DefaultStateFile, "the hub's state file the token is written to (must match the running hub's state_file)")
 	createCmd.Flags().StringVar(&spokeName, "name", "", "name of the spoke this token enrolls")
 	createCmd.Flags().DurationVar(&ttl, "ttl", defaultJoinTokenTTL, "how long the token stays valid")
 	tokenCmd.AddCommand(createCmd)
 
-	var listConfigPath string
+	var listStateFile string
 	listCmd := &cobra.Command{
 		Use:           "list",
 		Short:         "List outstanding spoke join tokens",
@@ -132,20 +191,16 @@ func newSpokeTokenCmd() *cobra.Command {
 		SilenceErrors: false,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cfg, err := cli.LoadConfig(listConfigPath, cmd.Flags().Changed("config"))
-			if err != nil {
-				return err
-			}
-			return listJoinTokens(cmd.OutOrStdout(), cfg, time.Now())
+			return listJoinTokens(cmd.OutOrStdout(), listStateFile, time.Now())
 		},
 	}
-	listCmd.Flags().StringVarP(&listConfigPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for the hub state file)")
+	listCmd.Flags().StringVar(&listStateFile, "state-file", config.DefaultStateFile, "the hub's state file to read tokens from")
 	tokenCmd.AddCommand(listCmd)
 
 	var (
-		revokeConfigPath string
-		revokeID         string
-		revokeName       string
+		revokeStateFile string
+		revokeID        string
+		revokeName      string
 	)
 	revokeCmd := &cobra.Command{
 		Use:           "revoke",
@@ -157,14 +212,10 @@ func newSpokeTokenCmd() *cobra.Command {
 			if revokeID == "" && revokeName == "" {
 				return errors.New("one of --id or --name is required")
 			}
-			cfg, err := cli.LoadConfig(revokeConfigPath, cmd.Flags().Changed("config"))
-			if err != nil {
-				return err
-			}
-			return revokeJoinTokens(cmd.OutOrStdout(), cfg, revokeID, revokeName)
+			return revokeJoinTokens(cmd.OutOrStdout(), revokeStateFile, revokeID, revokeName)
 		},
 	}
-	revokeCmd.Flags().StringVarP(&revokeConfigPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for the hub state file)")
+	revokeCmd.Flags().StringVar(&revokeStateFile, "state-file", config.DefaultStateFile, "the hub's state file to revoke tokens from")
 	revokeCmd.Flags().StringVar(&revokeID, "id", "", "revoke the single token whose ID has this prefix")
 	revokeCmd.Flags().StringVar(&revokeName, "name", "", "revoke every token issued for this spoke name")
 	tokenCmd.AddCommand(revokeCmd)
@@ -181,14 +232,14 @@ const joinTokenIDLen = 12
 // named spoke, and prints it once to out.
 //
 // @arg out The writer the token is printed to.
-// @arg cfg The hub configuration (its StateFile holds the cluster store).
+// @arg stateFile The hub's state file holding the cluster store.
 // @arg spokeName The spoke name baked into the token.
 // @arg ttl How long the token stays valid.
 // @error error if the store cannot be opened or the token cannot be minted.
 //
 // @testcase TestCreateJoinTokenCmdPrintsToken mints a token and prints it once.
-func createJoinToken(out io.Writer, cfg *config.Config, spokeName string, ttl time.Duration) error {
-	store, err := server.OpenStore(cfg.StateFile)
+func createJoinToken(out io.Writer, stateFile, spokeName string, ttl time.Duration) error {
+	store, err := server.OpenStore(stateFile)
 	if err != nil {
 		return err
 	}
@@ -199,9 +250,9 @@ func createJoinToken(out io.Writer, cfg *config.Config, spokeName string, ttl ti
 		return err
 	}
 	// Show the state file the token landed in: a token is only honored by a hub
-	// reading this exact same store, so a mismatch here (e.g. defaults used
-	// because no config was found) is the usual cause of "enrollment rejected".
-	fmt.Fprintf(out, "Join token for spoke %q (valid %s, one-time use):\n\n  %s\n\nWritten to state file: %s\n(the running hub must use this same state_file, or it will reject the token)\n\nStart the spoke with:\n\n  llmbox spoke --hub wss://<hub>/spoke/connect --token %s\n", spokeName, ttl, token, cfg.StateFile, token)
+	// reading this exact same store, so a mismatch here (e.g. the wrong
+	// --state-file) is the usual cause of "enrollment rejected".
+	fmt.Fprintf(out, "Join token for spoke %q (valid %s, one-time use):\n\n  %s\n\nWritten to state file: %s\n(the running hub must use this same state_file, or it will reject the token)\n\nStart the spoke with:\n\n  llmbox spoke --hub wss://<hub>/spoke/connect --token %s\n", spokeName, ttl, token, stateFile, token)
 	return nil
 }
 
@@ -209,13 +260,13 @@ func createJoinToken(out io.Writer, cfg *config.Config, spokeName string, ttl ti
 // expiry/expired marker) from the hub's store.
 //
 // @arg out The writer the listing is printed to.
-// @arg cfg The hub configuration (its StateFile holds the cluster store).
+// @arg stateFile The hub's state file holding the cluster store.
 // @arg now The current time, used to flag expired tokens.
 // @error error if the store cannot be opened or read.
 //
 // @testcase TestListJoinTokensCmd lists outstanding tokens with their spoke and expiry.
-func listJoinTokens(out io.Writer, cfg *config.Config, now time.Time) error {
-	store, err := server.OpenStore(cfg.StateFile)
+func listJoinTokens(out io.Writer, stateFile string, now time.Time) error {
+	store, err := server.OpenStore(stateFile)
 	if err != nil {
 		return err
 	}
@@ -246,7 +297,7 @@ func listJoinTokens(out io.Writer, cfg *config.Config, now time.Time) error {
 // more than one match); with name set it revokes every token for that spoke.
 //
 // @arg out The writer revocation results are printed to.
-// @arg cfg The hub configuration (its StateFile holds the cluster store).
+// @arg stateFile The hub's state file holding the cluster store.
 // @arg idPrefix The ID prefix selecting a single token; empty to select by name.
 // @arg name The spoke name selecting all its tokens; empty to select by ID.
 // @error error if the store cannot be opened, no token matches, or an ID prefix is ambiguous.
@@ -254,8 +305,8 @@ func listJoinTokens(out io.Writer, cfg *config.Config, now time.Time) error {
 // @testcase TestRevokeJoinTokenByID revokes the single token matching an ID prefix.
 // @testcase TestRevokeJoinTokenByName revokes every token for a spoke name.
 // @testcase TestRevokeJoinTokenNoMatch errors when nothing matches.
-func revokeJoinTokens(out io.Writer, cfg *config.Config, idPrefix, name string) error {
-	store, err := server.OpenStore(cfg.StateFile)
+func revokeJoinTokens(out io.Writer, stateFile, idPrefix, name string) error {
+	store, err := server.OpenStore(stateFile)
 	if err != nil {
 		return err
 	}
@@ -305,47 +356,44 @@ func shortID(id string) string {
 // runSpoke connects a spoke to the hub and serves boxes against the local
 // Docker daemon, reconnecting with exponential backoff until interrupted. On
 // first enrollment it uses the join token and saves the issued credential to
-// statePath; subsequent connections reconnect with that saved credential.
+// o.statePath; subsequent connections reconnect with that saved credential.
+// Every Docker setting comes from o (the flags), never a config file.
 //
 // @arg parent Base context; serving stops when it (or SIGINT/SIGTERM) fires.
-// @arg cfg The configuration supplying Docker settings for the local manager.
-// @arg hubURL The hub's spoke-connect URL.
-// @arg token The one-time join token (required only for first enrollment).
-// @arg statePath The file storing this spoke's issued credential.
-// @arg boxGPUs The GPUs to attach to every box on this spoke (docker --gpus syntax; empty attaches none).
-// @arg namespace The namespace scoping this spoke's boxes; empty falls back to cfg.Box.Namespace.
-// @error error if the Docker manager cannot be built, the GPU spec is malformed, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
+// @arg o The flag-sourced options: hub URL, token, state path, and per-box Docker settings.
+// @error error if the Docker manager cannot be built, the GPU spec is malformed, a registry password file cannot be read, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
 //
 // @testcase TestRunSpokeRequiresTokenOrCreds errors when neither a token nor saved credentials are available.
 // @testcase TestRunSpokeRejectsBadGPUs errors when the GPU spec is malformed.
-func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePath, boxGPUs, namespace string) error {
+func runSpoke(parent context.Context, o spokeOptions) error {
+	statePath, token, hubURL := o.statePath, o.token, o.hubURL
 	// A spoke holds no box image of its own: the hub resolves the image (its own
 	// default included) and sends it with every create, and validateCreate rejects
 	// any create that arrives without one. Pass no default here so nothing local
 	// can stand in for what the hub sends.
-	prov, err := docker.NewProvisioner("", cfg.Box.SocketDir, cfg.BoxPeers)
+	prov, err := docker.NewProvisioner("", o.box.SocketDir, o.boxPeers)
 	if err != nil {
 		return err
 	}
-	prov.SetPerBoxLimits(cli.BoxLimits(cfg.Box))
-	prov.SetRegistryAuths(cli.RegistryAuths(cfg.Registries))
+	prov.SetPerBoxLimits(cli.BoxLimits(o.box))
+	regs, err := o.registries()
+	if err != nil {
+		return err
+	}
+	prov.SetRegistryAuths(cli.RegistryAuths(regs))
 	// GPUs are machine-local: attach the host's GPUs to every box this spoke runs.
-	if err := prov.SetBoxGPUs(boxGPUs); err != nil {
+	if err := prov.SetBoxGPUs(o.boxGPUs); err != nil {
 		return err
 	}
 	// Scope this spoke's boxes to a namespace so two spokes can share one Docker
-	// daemon without listing/reaping/destroying each other's containers. The
-	// --namespace flag wins; otherwise fall back to box.namespace from config.
-	if namespace == "" {
-		namespace = cfg.Box.Namespace
-	}
-	prov.SetNamespace(namespace)
+	// daemon without listing/reaping/destroying each other's containers.
+	prov.SetNamespace(o.box.Namespace)
 	defer func() {
 		if err := prov.Close(); err != nil {
 			log.Printf("closing docker provisioner: %v", err)
 		}
 	}()
-	mgr := box.NewManager(prov, box.Config{RemoteArgs: cfg.RemoteArgs, MaxBoxes: cfg.Box.MaxBoxes})
+	mgr := box.NewManager(prov, box.Config{RemoteArgs: o.remoteArgs, MaxBoxes: o.box.MaxBoxes})
 
 	creds, err := loadSpokeCreds(statePath)
 	if err != nil {
@@ -377,7 +425,7 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 		log.Printf("enrolled as spoke %q; credential saved to %s", c.Name, statePath)
 		return nil
 	}
-	policy := cluster.ValidationPolicy{AllowedImages: cfg.Spoke.AllowedImages}
+	policy := cluster.ValidationPolicy{AllowedImages: o.allowedImages}
 
 	backoff := time.Second
 	for {

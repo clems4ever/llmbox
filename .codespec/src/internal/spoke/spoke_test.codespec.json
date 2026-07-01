@@ -1,0 +1,88 @@
+{
+	"functions": [
+		{
+			"function_name": "TestNewRootCmd",
+			"documentation_hash": "fa8be10e461ebb96241834d9b28c86f159bfbfbe58926057b41bc275ed0a6259",
+			"definition_hash": "0493925caca3b519a2cb01ac9c1627435e35fbe12aac36fe7d9924cfd0ab05d4",
+			"reviewed_at": "2026-07-01T15:17:24.429014238Z"
+		},
+		{
+			"function_name": "TestCreateJoinTokenCmdPrintsToken",
+			"documentation_hash": "7fac5a3c481117fb30549f0b86f8311d70f56ebc9fe9cfd281799e764465e6e5",
+			"definition_hash": "24b4acbfb9037ace3a5abc077f09578ba2f43e2182b84c8556298f212a079d5b",
+			"reviewed_at": "2026-07-01T15:17:24.43101887Z"
+		},
+		{
+			"function_name": "seedJoinToken",
+			"documentation_hash": "252f316d63ae5c56d0a681e70869beea51e31d22039c09fc8e082fc7594db8d2",
+			"definition_hash": "66dc24447df02784db80294ccfc5b41b1c64279ade19c488092befa48878a601",
+			"reviewed_at": "2026-07-01T15:17:24.433072074Z"
+		},
+		{
+			"function_name": "countJoinTokens",
+			"documentation_hash": "d7613dfca6f6aadc49cf43129e386cfd20acf399b88b8d0c6ca998b35ea3cf4b",
+			"definition_hash": "18dd22abc44f5cb34862e7c4d412675afc272d0bc463a51dbccf5ce41df3b8c3",
+			"reviewed_at": "2026-07-01T15:17:24.435187838Z"
+		},
+		{
+			"function_name": "TestListJoinTokensCmd",
+			"documentation_hash": "ecb2df9708708f792187ae284c97528d96765e18e6c33b2cafb87ebde75140fd",
+			"definition_hash": "a64ba127823e9afcf2d269e9d8057b5a36c868ce0ede817ca10851148bd986e4",
+			"reviewed_at": "2026-07-01T15:17:24.43749705Z"
+		},
+		{
+			"function_name": "TestListJoinTokensCmdEmpty",
+			"documentation_hash": "d26b18376c8a8db22b281471ca15040f788b289d050f0ba1f78a7b5af5083946",
+			"definition_hash": "fca707770858a306937b701c89a37341415f99456ed08a8a5f9e46d924f48a07",
+			"reviewed_at": "2026-07-01T15:17:24.439430404Z"
+		},
+		{
+			"function_name": "TestRevokeJoinTokenByID",
+			"documentation_hash": "c3fb9e84d55e6f676c453625b5e77928b238066d912e987f0c4cbed7dc1dd336",
+			"definition_hash": "1c97ac9b440c7cb57cefa1d27838593653e8757b5ebb763c6bcdfc6dd027bc25",
+			"reviewed_at": "2026-07-01T15:17:24.441568044Z"
+		},
+		{
+			"function_name": "TestRevokeJoinTokenByName",
+			"documentation_hash": "569aa8d1035f4f8f59d78e7feafa167ee53eb9fb55826905dc13df24d005a5b9",
+			"definition_hash": "3709d892684e6f6a3effd2ab32fdcaaf959f861a36990d16aaecb2b2192c8969",
+			"reviewed_at": "2026-07-01T15:17:24.44352707Z"
+		},
+		{
+			"function_name": "TestRevokeJoinTokenNoMatch",
+			"documentation_hash": "ab9fdc92dc333bbda9e8bd8cc1f945bd97103f7a1733a906cd3a6133b584fc99",
+			"definition_hash": "fda4a7b87171cdeac976faa5d8a5d651c84b8a54e3e61abbcbba63e4f32fb0f3",
+			"reviewed_at": "2026-07-01T15:17:24.445588762Z"
+		},
+		{
+			"function_name": "TestSpokeCredsRoundTrip",
+			"documentation_hash": "8338ea050f2aa391665953f84479c97de0951daf3e26e314ef1a71478fe1e875",
+			"definition_hash": "06367346ce55b8993ac5f546124e03f74ad26133702a4c5e6c76590625721196",
+			"reviewed_at": "2026-07-01T15:04:23.46830695Z"
+		},
+		{
+			"function_name": "TestCheckStateWritable",
+			"documentation_hash": "2ec66bfd6e90dae0d29ccc6e51e2ddc0db024a9b0dfa16d506fd0b8990a75ff0",
+			"definition_hash": "0d03023148180040809aa27638295e275f438f9fdb65b191213162767f5fe0eb",
+			"reviewed_at": "2026-07-01T15:04:23.470331433Z"
+		},
+		{
+			"function_name": "TestRunSpokeRequiresTokenOrCreds",
+			"documentation_hash": "c0fc709786f81ea560e35180bb1bb21379beb97a12039ec844c89f743e27a07e",
+			"definition_hash": "fb78f6deaa56a1b871dbabada2636afa6973084b11c76d84fc950029a13544f0",
+			"reviewed_at": "2026-07-01T15:17:24.447609496Z"
+		},
+		{
+			"function_name": "TestRunSpokeRejectsBadGPUs",
+			"documentation_hash": "4ecebee2b2052d881f2f537e8167ff453f8f19538590a4777728c66c22104a12",
+			"definition_hash": "4ad55bf22030062719551ae8b6717fc1b5f0828cb77839a868a81eb166f4ca56",
+			"reviewed_at": "2026-07-01T15:17:24.449987157Z"
+		},
+		{
+			"function_name": "TestSpokeRegistriesFromFlags",
+			"documentation_hash": "c9e765209cb7850ed348d02cb91a18eb34f925200de2c9077a722d810ee499da",
+			"definition_hash": "0a2bb4ee55b1ac32841b97db3e3bdf385eedecda245db932a9721baa3c7330a7",
+			"reviewed_at": "2026-07-01T15:17:24.452264263Z"
+		}
+	]
+}
