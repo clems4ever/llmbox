@@ -1,0 +1,266 @@
+package testutils
+
+import (
+	"context"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/clems4ever/llmbox/internal/mcpserver"
+	"github.com/clems4ever/llmbox/internal/sandbox"
+)
+
+// defaultAuthBase is the auth-page URL prefix FakeBackend.AuthPageURL uses when
+// AuthBase is left empty.
+const defaultAuthBase = "https://boxes.example.com/auth/"
+
+// FakeBackend is a stand-in for the server's MCP backend: it records the calls it
+// receives and returns canned results, satisfying mcpserver.Backend. It is the
+// fixture behind the MCP server — pair it with ConnectMCP (or mcpapi.NewHandler)
+// to drive the tools without Docker, a store, or a cluster.
+type FakeBackend struct {
+	mu sync.Mutex
+
+	// Canned results.
+	CreateSess        mcpserver.BoxSession
+	CreateErr         error
+	AuthBase          string                          // AuthPageURL returns AuthBase+token; empty uses defaultAuthBase
+	Sessions          map[string]mcpserver.BoxSession // LookupByBoxID source, keyed by lowercased box ID
+	Boxes             []sandbox.Box
+	ListErr           error
+	Spokes            []mcpserver.SpokeStatus
+	SpokesErr         error
+	DestroyErr        error
+	LogsResult        string
+	LogsErr           error
+	ExecResult        sandbox.ExecResult
+	ExecErr           error
+	ProxyOn           bool
+	CreateProxyResult mcpserver.ProxyInfo
+	CreateProxyErr    error
+	Proxies           []mcpserver.ProxyInfo
+	ListProxiesErr    error
+	DeleteProxyErr    error
+
+	// Recorded inputs.
+	GotCreate      sandbox.CreateOptions
+	GotAuthToken   string
+	GotLookup      string
+	GotDestroyID   string
+	GotLogsID      string
+	GotLogsTail    int
+	GotExecID      string
+	GotExecCmd     string
+	GotProxyBoxID  string
+	GotProxyPort   int
+	GotProxyDesc   string
+	GotDeleteBoxID string
+	GotDeletePort  int
+	GotListBoxID   string
+}
+
+// CreateBox records the options into GotCreate and returns the canned session/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg opts The create options, recorded into GotCreate.
+// @return mcpserver.BoxSession The canned CreateSess.
+// @error error The canned CreateErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (mcpserver.BoxSession, error) {
+	f.mu.Lock()
+	f.GotCreate = opts
+	f.mu.Unlock()
+	return f.CreateSess, f.CreateErr
+}
+
+// AuthPageURL records the token and returns AuthBase+token (defaultAuthBase when
+// AuthBase is empty).
+//
+// @arg token The session token, recorded into GotAuthToken.
+// @return string The auth page URL for the token.
+//
+// @testcase TestFakeBackend checks AuthPageURL records the token and builds the URL.
+func (f *FakeBackend) AuthPageURL(token string) string {
+	f.mu.Lock()
+	f.GotAuthToken = token
+	f.mu.Unlock()
+	base := f.AuthBase
+	if base == "" {
+		base = defaultAuthBase
+	}
+	return base + token
+}
+
+// LookupByBoxID records the box ID and returns the canned session from Sessions
+// (case-insensitive); ok is false when none matches.
+//
+// @arg boxID The box ID to look up, recorded into GotLookup.
+// @return mcpserver.BoxSession The matching canned session (zero value when absent).
+// @return bool Whether a session with that box ID exists in Sessions.
+//
+// @testcase TestFakeBackend checks LookupByBoxID resolves from Sessions and misses unknown IDs.
+func (f *FakeBackend) LookupByBoxID(boxID string) (mcpserver.BoxSession, bool) {
+	f.mu.Lock()
+	f.GotLookup = boxID
+	f.mu.Unlock()
+	sess, ok := f.Sessions[strings.ToLower(boxID)]
+	return sess, ok
+}
+
+// ListBoxes returns the canned boxes/error.
+//
+// @arg ctx Context (unused by the fake).
+// @return []sandbox.Box The canned Boxes slice.
+// @error error The canned ListErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
+	return f.Boxes, f.ListErr
+}
+
+// SpokeStatuses returns the canned spokes/error.
+//
+// @arg ctx Context (unused by the fake).
+// @return []mcpserver.SpokeStatus The canned Spokes slice.
+// @error error The canned SpokesErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) SpokeStatuses(ctx context.Context) ([]mcpserver.SpokeStatus, error) {
+	return f.Spokes, f.SpokesErr
+}
+
+// DestroyBox records the container ID and returns the canned DestroyErr.
+//
+// @arg ctx Context (unused by the fake).
+// @arg containerID The container ID to destroy, recorded into GotDestroyID.
+// @error error The canned DestroyErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) DestroyBox(ctx context.Context, containerID string) error {
+	f.mu.Lock()
+	f.GotDestroyID = containerID
+	f.mu.Unlock()
+	return f.DestroyErr
+}
+
+// BoxLogs records the box ID and tail and returns the canned output/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg boxID The box ID, recorded into GotLogsID.
+// @arg tail The tail count, recorded into GotLogsTail.
+// @return string The canned LogsResult.
+// @error error The canned LogsErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) BoxLogs(ctx context.Context, boxID string, tail int) (string, error) {
+	f.mu.Lock()
+	f.GotLogsID = boxID
+	f.GotLogsTail = tail
+	f.mu.Unlock()
+	return f.LogsResult, f.LogsErr
+}
+
+// BoxExec records the box ID and command and returns the canned result/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg boxID The box ID, recorded into GotExecID.
+// @arg command The command, recorded into GotExecCmd.
+// @return sandbox.ExecResult The canned ExecResult.
+// @error error The canned ExecErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) BoxExec(ctx context.Context, boxID, command string) (sandbox.ExecResult, error) {
+	f.mu.Lock()
+	f.GotExecID = boxID
+	f.GotExecCmd = command
+	f.mu.Unlock()
+	return f.ExecResult, f.ExecErr
+}
+
+// ProxyEnabled reports the canned ProxyOn.
+//
+// @return bool The canned ProxyOn.
+//
+// @testcase TestFakeBackend checks ProxyEnabled reports the canned flag.
+func (f *FakeBackend) ProxyEnabled() bool { return f.ProxyOn }
+
+// CreateProxy records the box ID, port, and description and returns the canned proxy/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg boxID The box ID, recorded into GotProxyBoxID.
+// @arg port The port, recorded into GotProxyPort.
+// @arg description The description, recorded into GotProxyDesc.
+// @return mcpserver.ProxyInfo The canned CreateProxyResult.
+// @error error The canned CreateProxyErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) CreateProxy(ctx context.Context, boxID string, port int, description string) (mcpserver.ProxyInfo, error) {
+	f.mu.Lock()
+	f.GotProxyBoxID = boxID
+	f.GotProxyPort = port
+	f.GotProxyDesc = description
+	f.mu.Unlock()
+	return f.CreateProxyResult, f.CreateProxyErr
+}
+
+// DeleteProxy records the box ID and port and returns the canned DeleteProxyErr.
+//
+// @arg ctx Context (unused by the fake).
+// @arg boxID The box ID, recorded into GotDeleteBoxID.
+// @arg port The port, recorded into GotDeletePort.
+// @error error The canned DeleteProxyErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) DeleteProxy(ctx context.Context, boxID string, port int) error {
+	f.mu.Lock()
+	f.GotDeleteBoxID = boxID
+	f.GotDeletePort = port
+	f.mu.Unlock()
+	return f.DeleteProxyErr
+}
+
+// ListProxies records the box-ID filter and returns the canned proxies/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg boxID The box-ID filter, recorded into GotListBoxID.
+// @return []mcpserver.ProxyInfo The canned Proxies slice.
+// @error error The canned ListProxiesErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) ListProxies(ctx context.Context, boxID string) ([]mcpserver.ProxyInfo, error) {
+	f.mu.Lock()
+	f.GotListBoxID = boxID
+	f.mu.Unlock()
+	return f.Proxies, f.ListProxiesErr
+}
+
+// ConnectMCP builds an MCP server over backend and returns an in-memory-connected
+// client session, so a test can drive the real MCP tools end to end. The session
+// is closed automatically when the test finishes. Pass an mcpapi.Client as the
+// backend to exercise the full stand-alone path (MCP tools → HTTP → server).
+//
+// @arg t The test the session's lifetime is tied to.
+// @arg backend The backend the MCP tools run against.
+// @arg name The MCP server implementation name.
+// @arg version The MCP server implementation version.
+// @return *mcp.ClientSession A connected MCP client session, closed on test cleanup.
+//
+// @testcase TestConnectMCP lists the registered tools over the returned session.
+func ConnectMCP(t testing.TB, backend mcpserver.Backend, name, version string) *mcp.ClientSession {
+	t.Helper()
+	srv := mcpserver.NewServer(backend, name, version)
+	serverT, clientT := mcp.NewInMemoryTransports()
+	if _, err := srv.Connect(context.Background(), serverT, nil); err != nil {
+		t.Fatalf("mcp server connect: %v", err)
+	}
+	client := mcp.NewClient(&mcp.Implementation{Name: "test-client", Version: "1"}, nil)
+	cs, err := client.Connect(context.Background(), clientT, nil)
+	if err != nil {
+		t.Fatalf("mcp client connect: %v", err)
+	}
+	t.Cleanup(func() { _ = cs.Close() })
+	return cs
+}

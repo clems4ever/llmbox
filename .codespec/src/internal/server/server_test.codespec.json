@@ -112,9 +112,9 @@
 		},
 		{
 			"function_name": "connectMCP",
-			"documentation_hash": "9fe91fe8955f79c203a91b20c22a542153d701c53075b38fade0df2ac6d9f2df",
-			"definition_hash": "396533e2d3ec4420c5e05ba60cdc877189c27c5eb17266a5282acbe6c184e51e",
-			"reviewed_at": "2026-07-01T10:30:04.322644754Z"
+			"documentation_hash": "0fe9ddd4051b96d06abc73d33b65def9ef8d23dfec5e8f61f3c44f973d308767",
+			"definition_hash": "112380d8be0fbec8ac7fad1f351451a3f5e45ef9c583b77e83882f0cacf4f27c",
+			"reviewed_at": "2026-07-01T11:56:13.826229181Z"
 		},
 		{
 			"function_name": "TestFaviconServed",

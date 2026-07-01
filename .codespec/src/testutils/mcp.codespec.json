@@ -1,0 +1,94 @@
+{
+	"functions": [
+		{
+			"function_name": "CreateBox",
+			"receiver": "FakeBackend",
+			"documentation_hash": "8c3e47d3df5ad1b20a6f06db256fac178fa8eb897ea857cef47f8d0afe8a9881",
+			"definition_hash": "f9f7bd575936bfc371fbdc7f1d6bd8e40101ac351818182f5fe913374dda9db2",
+			"reviewed_at": "2026-07-01T11:56:15.19516496Z"
+		},
+		{
+			"function_name": "AuthPageURL",
+			"receiver": "FakeBackend",
+			"documentation_hash": "3d43bafd3d84d8dd5c09706b692b5627c63c47fa440db9f0ebb5850815875bda",
+			"definition_hash": "c91e519304916d0c7d3a0d4c0c7c0de27c832548e95c186f9263aad34d09f473",
+			"reviewed_at": "2026-07-01T11:56:15.195595547Z"
+		},
+		{
+			"function_name": "LookupByBoxID",
+			"receiver": "FakeBackend",
+			"documentation_hash": "1b924036e66d44b0cc7b997c75a9316245d864a93024cb530ae591e52b3e0b5e",
+			"definition_hash": "93f1ba8be645cc03ad9cd07dc88824e1d742b965d4837bb9dbcb5dd3b8c594c9",
+			"reviewed_at": "2026-07-01T11:56:15.205013706Z"
+		},
+		{
+			"function_name": "ListBoxes",
+			"receiver": "FakeBackend",
+			"documentation_hash": "5f3ff70891edae1dd5abd54c0860f8aebed4ba703290d4afbe65f0c1265cd80c",
+			"definition_hash": "0f7239dcc1114f4924fe3f4ffd5ca57cf9325f945697c59311006d132813b49c",
+			"reviewed_at": "2026-07-01T11:56:15.205368606Z"
+		},
+		{
+			"function_name": "SpokeStatuses",
+			"receiver": "FakeBackend",
+			"documentation_hash": "f7abb39050cc5b3ea18989e3f5cec59ca09091c3b80509097d8c4315e2da05b0",
+			"definition_hash": "43e041fab3d526dbfe61063d5628f4ed2d4214687f63996bb443d2f05c78270d",
+			"reviewed_at": "2026-07-01T11:56:15.205712805Z"
+		},
+		{
+			"function_name": "DestroyBox",
+			"receiver": "FakeBackend",
+			"documentation_hash": "36857bc9d6ea4e65d2b91938b1d888547901299d651bf5834e3faa7226247914",
+			"definition_hash": "509efb7194e94ba1adc9c596e74de3e7cc7ab3ae3b7b278e0b09987b255f20fc",
+			"reviewed_at": "2026-07-01T11:56:15.206038793Z"
+		},
+		{
+			"function_name": "BoxLogs",
+			"receiver": "FakeBackend",
+			"documentation_hash": "6363e86412d43f0d2a114f037b882be1f6c00aa31296bec1605a3484517f1ef3",
+			"definition_hash": "c650ac61a66c003433aa5fa569c6f8ac0cc046b53e17b2dde66bcf366fe3e642",
+			"reviewed_at": "2026-07-01T11:56:15.206416291Z"
+		},
+		{
+			"function_name": "BoxExec",
+			"receiver": "FakeBackend",
+			"documentation_hash": "c75323ef82c95a286eb6a3f0806051962a86d76655937037cc1d1745d5cfc5fb",
+			"definition_hash": "397594fac853e26600b1254a29a0b8583a5570153b4aa9f855775b05b8d4185d",
+			"reviewed_at": "2026-07-01T11:56:15.206751046Z"
+		},
+		{
+			"function_name": "ProxyEnabled",
+			"receiver": "FakeBackend",
+			"documentation_hash": "84ef4d808740dc84c56aa3086f685d08e162c6d574c76cc5b9e1505166089ae4",
+			"definition_hash": "235bc3355d5efb24ad1b722c263525ed7c82b7cdfbb31292e58b27a1a6764991",
+			"reviewed_at": "2026-07-01T11:56:15.207098829Z"
+		},
+		{
+			"function_name": "CreateProxy",
+			"receiver": "FakeBackend",
+			"documentation_hash": "f81534b7e91004fc5660dcdf6c7b78b56cb227e16ecfb41910a9da5b53bc5fb2",
+			"definition_hash": "c46220817b25b2310741302b5bdf18ecfd229646f0fb836822d3a28178d609e0",
+			"reviewed_at": "2026-07-01T11:56:15.207890064Z"
+		},
+		{
+			"function_name": "DeleteProxy",
+			"receiver": "FakeBackend",
+			"documentation_hash": "7ff2a7e35fc989af1beca17971f9b1aa1f4855cbb2ea2015aa884caa91361949",
+			"definition_hash": "6d4ee512a542cbb84604721a4ca319928ff8d1ec58c9b0031fdbd1263cf58a11",
+			"reviewed_at": "2026-07-01T11:56:16.076303533Z"
+		},
+		{
+			"function_name": "ListProxies",
+			"receiver": "FakeBackend",
+			"documentation_hash": "51ecb857dd0c3abed32b931e84ca6973013ea41a9265c78e5fe9dd6c1d4a4042",
+			"definition_hash": "974f5fc3edb576f3170487523f6f261447ee98c3e5475760aa5ea7052891f1f1",
+			"reviewed_at": "2026-07-01T11:56:16.076783637Z"
+		},
+		{
+			"function_name": "ConnectMCP",
+			"documentation_hash": "fc91469a5f9a8c9c4b0cff10ea78727c4d98fa8cefacfb47cf5421e166980216",
+			"definition_hash": "f86106875ac8babd3059abd1ce2555f26b86ed62a63d6013e4cd1d84c75c5089",
+			"reviewed_at": "2026-07-01T11:56:16.086230389Z"
+		}
+	]
+}

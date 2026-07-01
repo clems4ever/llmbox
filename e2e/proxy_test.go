@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/mcpapi"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
@@ -56,7 +57,7 @@ func TestEndToEndProxy(t *testing.T) {
 	srv := server.New(mgr, nil, base, 5*time.Minute, store, nil)
 	srv.SetProxyBaseDomain("proxy.example.com")
 	apiSrv := &http.Server{Handler: srv.APIHandler()}
-	mcpSrv := &http.Server{Handler: srv.MCPHandler(srv.MCPServer("llmbox", "e2e"))}
+	mcpSrv := &http.Server{Handler: mcpapi.NewHandler(srv.MCPBackend())}
 	go func() { _ = apiSrv.Serve(uiLn) }()
 	go func() { _ = mcpSrv.Serve(mcpLn) }()
 	t.Cleanup(func() { _ = apiSrv.Close() })

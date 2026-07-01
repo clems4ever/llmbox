@@ -11,7 +11,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -21,6 +20,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/mcpapi"
 	"github.com/clems4ever/llmbox/internal/mcpserver"
@@ -31,32 +31,51 @@ const (
 	version = "v0.1.0"
 )
 
-// main parses flags, then serves the MCP endpoint until a termination signal
-// arrives.
+// main executes the root command and exits non-zero on a fatal error.
 //
-// @testcase TestRunHTTPServesAndStops covers the serve loop main delegates to.
+// @testcase TestNewRootCmd covers the command wiring main relies on.
 func main() {
-	upstream := flag.String("upstream", "", "upstream llmbox server box-control URL, e.g. http://llmbox:8081")
-	addr := flag.String("addr", ":8081", "listen address for the streamable-HTTP MCP endpoint (ignored with --stdio)")
-	stdio := flag.Bool("stdio", false, "serve MCP over stdio instead of HTTP (for a chatbot that launches this as a child process)")
-	flag.Parse()
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
-	if err := run(ctx, *upstream, *addr, *stdio); err != nil {
-		log.Printf("%s exited: %v", name, err)
+	if err := newRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+// newRootCmd builds the llmbox-mcp command: it parses the upstream/addr/stdio
+// flags and serves the MCP endpoint until interrupted.
+//
+// @return *cobra.Command The configured root command, ready to Execute.
+//
+// @testcase TestNewRootCmd checks the command wiring (use, flags, required upstream).
+func newRootCmd() *cobra.Command {
+	var (
+		upstream string
+		addr     string
+		stdio    bool
+	)
+	rootCmd := &cobra.Command{
+		Use:           name,
+		Short:         "Run a stand-alone MCP server that forwards to an upstream llmbox server",
+		Version:       version,
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return run(cmd.Context(), upstream, addr, stdio)
+		},
+	}
+	rootCmd.Flags().StringVar(&upstream, "upstream", "", "upstream llmbox server box-control URL, e.g. http://llmbox:8081")
+	rootCmd.Flags().StringVar(&addr, "addr", ":8081", "listen address for the streamable-HTTP MCP endpoint (ignored with --stdio)")
+	rootCmd.Flags().BoolVar(&stdio, "stdio", false, "serve MCP over stdio instead of HTTP (for a chatbot that launches this as a child process)")
+	return rootCmd
 }
 
 // run builds the MCP tool server backed by an mcpapi client pointed at upstream,
 // then serves it: over stdio when stdio is set (blocking until the client
 // disconnects or ctx is cancelled), otherwise as a streamable-HTTP endpoint on
-// addr with graceful shutdown when ctx is cancelled. It is the testable core of
-// main.
+// addr with graceful shutdown when a termination signal (or ctx) fires. It is the
+// testable core of the command.
 //
-// @arg ctx Context whose cancellation stops serving.
+// @arg parent Base context; serving stops when it (or SIGINT/SIGTERM) fires.
 // @arg upstream The upstream llmbox server's box-control URL the client forwards to.
 // @arg addr The listen address for the HTTP transport (ignored when stdio is true).
 // @arg stdio Whether to serve over stdio instead of HTTP.
@@ -64,10 +83,13 @@ func main() {
 //
 // @testcase TestRunRequiresUpstream errors when no upstream URL is given.
 // @testcase TestRunHTTPServesAndStops serves the HTTP endpoint and returns cleanly on cancel.
-func run(ctx context.Context, upstream, addr string, stdio bool) error {
+func run(parent context.Context, upstream, addr string, stdio bool) error {
 	if upstream == "" {
 		return errors.New("--upstream is required (the llmbox server's box-control URL, e.g. http://llmbox:8081)")
 	}
+
+	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	srv := mcpserver.NewServer(mcpapi.NewClient(upstream, nil), name, version)
 

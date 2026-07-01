@@ -7,6 +7,19 @@ import (
 	"time"
 )
 
+// TestNewRootCmd checks the command wiring: its name and the three flags.
+func TestNewRootCmd(t *testing.T) {
+	cmd := newRootCmd()
+	if cmd.Use != name {
+		t.Errorf("Use = %q, want %q", cmd.Use, name)
+	}
+	for _, flag := range []string{"upstream", "addr", "stdio"} {
+		if cmd.Flags().Lookup(flag) == nil {
+			t.Errorf("flag --%s not registered", flag)
+		}
+	}
+}
+
 // TestRunRequiresUpstream checks run refuses to start without an upstream URL.
 func TestRunRequiresUpstream(t *testing.T) {
 	if err := run(context.Background(), "", ":0", false); err == nil {

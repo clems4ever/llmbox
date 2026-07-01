@@ -13,7 +13,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/clems4ever/llmbox/internal/hooks"
-	"github.com/clems4ever/llmbox/internal/mcpserver"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
@@ -589,19 +588,8 @@ func TestCreateRequiresBoxID(t *testing.T) {
 // connectMCP wires an in-memory MCP client to an MCP server built over the
 // server's backend and returns the session. The production MCP server is the
 // stand-alone llmbox-mcp binary; here we build one in-process from the same
-// backend to drive the tools end to end.
+// backend (via the shared testutils fixture) to drive the tools end to end.
 func connectMCP(t *testing.T, s *Server) *mcp.ClientSession {
 	t.Helper()
-	srv := mcpserver.NewServer(s.MCPBackend(), "test", "v0")
-	serverT, clientT := mcp.NewInMemoryTransports()
-	if _, err := srv.Connect(context.Background(), serverT, nil); err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "c", Version: "1"}, nil)
-	cs, err := client.Connect(context.Background(), clientT, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	t.Cleanup(func() { _ = cs.Close() })
-	return cs
+	return testutils.ConnectMCP(t, s.MCPBackend(), "test", "v0")
 }
