@@ -1,6 +1,6 @@
-// Command llmbox runs a server that manages sandboxed Claude containers
-// ("llmboxes") and lets an end user authenticate each one via OAuth in their
-// browser — never routing the OAuth secret through the chatbot.
+// Command llmbox-server runs the llmbox server that manages sandboxed Claude
+// containers ("llmboxes") and lets an end user authenticate each one via OAuth in
+// their browser — never routing the OAuth secret through the chatbot.
 //
 // One process serves everything on a single HTTP port (http_addr):
 //
@@ -63,7 +63,7 @@ import (
 )
 
 const (
-	name    = "llmbox"
+	name    = "llmbox-server"
 	version = "v0.1.0"
 )
 
@@ -90,7 +90,7 @@ func newRootCmd() *cobra.Command {
 
 	rootCmd := &cobra.Command{
 		Use:           name,
-		Short:         "Run the llmbox MCP server that manages sandboxed Claude containers",
+		Short:         "Run the llmbox server that manages sandboxed Claude containers",
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: false,
@@ -106,7 +106,7 @@ func newRootCmd() *cobra.Command {
 
 	versionCmd := &cobra.Command{
 		Use:   "version",
-		Short: "Print the llmbox version",
+		Short: "Print the llmbox-server version",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, _ []string) {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s %s\n", name, version)

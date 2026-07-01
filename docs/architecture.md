@@ -52,7 +52,7 @@ they always reflect the current UI and stay reviewable; see
 
 | Path                 | What it is |
 |----------------------|------------|
-| `cmd/llmbox`         | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
+| `cmd/llmbox-server`  | Entry point: opens the session store, runs the HTTP server (box-control API + auth pages) and the reaper. |
 | `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile`         | Image for **this server** (`llmbox`). Carries only the llmbox server binary; it neither runs nor ships Claude. |

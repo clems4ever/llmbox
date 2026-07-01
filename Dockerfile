@@ -39,7 +39,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath -ldflags="-s -w" \
-    -o /out/llmbox ./cmd/llmbox
+    -o /out/llmbox-server ./cmd/llmbox-server
 
 # ---- runtime stage ----
 FROM gcr.io/distroless/static-debian12:nonroot
@@ -47,6 +47,6 @@ FROM gcr.io/distroless/static-debian12:nonroot
 # 8080 = the whole server (UI + box-control API); put it behind an auth proxy.
 EXPOSE 8080
 
-COPY --from=build /out/llmbox /usr/local/bin/llmbox
+COPY --from=build /out/llmbox-server /usr/local/bin/llmbox-server
 
-ENTRYPOINT ["/usr/local/bin/llmbox"]
+ENTRYPOINT ["/usr/local/bin/llmbox-server"]

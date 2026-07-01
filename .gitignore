@@ -15,8 +15,10 @@ CLAUDE.md
 # Secret files referenced by the config (never commit these)
 /google-client-secret
 
-# Built binary
-/llmbox
+# Built binaries
+/llmbox-server
+/llmbox-mcp
+/llmbox-spoke
 
 # Coverage profile (make cover)
 /coverage.out

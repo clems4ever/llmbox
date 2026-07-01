@@ -8,7 +8,7 @@ A [`Makefile`](../Makefile) wraps the common tasks — run `make help` to list t
 The most-used:
 
 ```bash
-make build              # build ./llmbox
+make build              # build ./llmbox-server
 make run CONFIG=llmbox.yaml   # run the server against a config file
 make check              # gofmt-check + go vet + unit tests
 make cover              # unit tests with a coverage total

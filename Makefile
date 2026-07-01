@@ -2,8 +2,8 @@
 
 # --- configuration -----------------------------------------------------------
 
-BINARY      := llmbox
-PKG         := ./cmd/llmbox
+BINARY      := llmbox-server
+PKG         := ./cmd/llmbox-server
 MCP_BINARY  := llmbox-mcp
 MCP_PKG     := ./cmd/llmbox-mcp
 SPOKE_BINARY := llmbox-spoke
@@ -28,7 +28,7 @@ help: ## Show this help.
 # --- build -------------------------------------------------------------------
 
 .PHONY: build
-build: ## Build the llmbox binary into ./$(BINARY).
+build: ## Build the llmbox-server binary into ./$(BINARY).
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(BINARY) $(PKG)
 
 .PHONY: build-mcp
@@ -40,7 +40,7 @@ build-spoke: ## Build the stand-alone llmbox-spoke binary into ./$(SPOKE_BINARY)
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(SPOKE_BINARY) $(SPOKE_PKG)
 
 .PHONY: install
-install: ## Install the llmbox, llmbox-mcp, and llmbox-spoke binaries into $GOPATH/bin.
+install: ## Install the llmbox-server, llmbox-mcp, and llmbox-spoke binaries into $GOPATH/bin.
 	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG) $(SPOKE_PKG)
 
 .PHONY: run
