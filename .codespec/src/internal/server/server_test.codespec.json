@@ -112,9 +112,9 @@
 		},
 		{
 			"function_name": "connectMCP",
-			"documentation_hash": "243b6ba2905f5deba6669c6ea74ee8bff8c97452de3f8f920f9a9ea4c872a5d6",
-			"definition_hash": "7ad668d0f04ec015eb4bd62b82169578a6c374d5228ddd807c048d1c051e249a",
-			"reviewed_at": "2026-06-18T13:16:47.377375041Z"
+			"documentation_hash": "0fe9ddd4051b96d06abc73d33b65def9ef8d23dfec5e8f61f3c44f973d308767",
+			"definition_hash": "112380d8be0fbec8ac7fad1f351451a3f5e45ef9c583b77e83882f0cacf4f27c",
+			"reviewed_at": "2026-07-01T11:56:13.826229181Z"
 		},
 		{
 			"function_name": "TestFaviconServed",
@@ -175,12 +175,6 @@
 			"documentation_hash": "6bbf6d80b0e8948e48271bf8120b12049145eb966e43cda955c32bb929389bf3",
 			"definition_hash": "ab53237a60f0011f26e688e496d6899d3bcbaa60651ac396c1b12ced97194f02",
 			"reviewed_at": "2026-06-25T12:41:58.153498235Z"
-		},
-		{
-			"function_name": "TestMCPHandlerServesOnlyMCP",
-			"documentation_hash": "55988713ce515fc03edfcccbe5b13eedf3301a7ee8ac06370152bf18c780b274",
-			"definition_hash": "f82394d2db0981f550a427b330ab3be71eb24865d2ab34e6714aa449e18013f4",
-			"reviewed_at": "2026-06-25T12:41:58.160507849Z"
 		}
 	]
 }

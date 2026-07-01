@@ -380,29 +380,6 @@ func TestAPIHandlerServesUINotMCP(t *testing.T) {
 	}
 }
 
-// TestMCPHandlerServesOnlyMCP checks the MCP handler mounts the MCP endpoint at
-// the root and does not serve the UI/API routes (so /healthz falls through to the
-// MCP catch-all rather than returning the health body).
-func TestMCPHandlerServesOnlyMCP(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{})
-	h := s.MCPHandler(s.MCPServer("test", "v0"))
-
-	// The root is registered (handled by MCP), so it is not a mux 404.
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
-	if rec.Code == http.StatusNotFound {
-		t.Error("MCP root on MCP handler returned 404, want it routed to MCP")
-	}
-
-	// /healthz is not registered here; it is swallowed by the MCP catch-all and so
-	// must not return the plain health body.
-	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
-	if rec.Body.String() == "ok" {
-		t.Error("MCP handler served /healthz as the UI health route")
-	}
-}
-
 // TestFaviconServed checks the favicon route returns the embedded SVG.
 func TestFaviconServed(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
@@ -608,19 +585,11 @@ func TestCreateRequiresBoxID(t *testing.T) {
 	}
 }
 
-// connectMCP wires an in-memory MCP client to the server and returns the session.
+// connectMCP wires an in-memory MCP client to an MCP server built over the
+// server's backend and returns the session. The production MCP server is the
+// stand-alone llmbox-mcp binary; here we build one in-process from the same
+// backend (via the shared testutils fixture) to drive the tools end to end.
 func connectMCP(t *testing.T, s *Server) *mcp.ClientSession {
 	t.Helper()
-	srv := s.MCPServer("test", "v0")
-	serverT, clientT := mcp.NewInMemoryTransports()
-	if _, err := srv.Connect(context.Background(), serverT, nil); err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "c", Version: "1"}, nil)
-	cs, err := client.Connect(context.Background(), clientT, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	t.Cleanup(func() { _ = cs.Close() })
-	return cs
+	return testutils.ConnectMCP(t, s.MCPBackend(), "test", "v0")
 }

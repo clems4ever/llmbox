@@ -1,7 +1,8 @@
 // Package testutils holds test doubles shared across the llmbox test suites. It
-// deliberately depends only on the box-layer interfaces (internal/cluster and
-// internal/docker) and never on internal/server, so both the in-package server
-// tests and the external e2e suite can import it without an import cycle.
+// depends only on the box- and tool-layer interfaces (internal/cluster,
+// internal/sandbox, internal/mcpserver) and never on internal/server, so both the
+// in-package server tests and the external e2e suite can import it without an
+// import cycle.
 package testutils
 
 import (

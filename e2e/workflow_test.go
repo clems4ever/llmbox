@@ -23,7 +23,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/clems4ever/llmbox/internal/mcpapi"
 	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/testutils"
 )
 
 // TestEndToEndWorkflow exercises the full llmbox workflow against simulated
@@ -66,7 +68,7 @@ func TestEndToEndWorkflow(t *testing.T) {
 	// public_url is the UI/API base, so the auth links the user follows live there.
 	srv := server.New(mgr, nil, base, 5*time.Minute, store, nil)
 	apiSrv := &http.Server{Handler: srv.APIHandler()}
-	mcpSrv := &http.Server{Handler: srv.MCPHandler(srv.MCPServer("llmbox", "e2e"))}
+	mcpSrv := &http.Server{Handler: mcpapi.NewHandler(srv.MCPBackend())}
 	go func() { _ = apiSrv.Serve(uiLn) }()
 	go func() { _ = mcpSrv.Serve(mcpLn) }()
 	t.Cleanup(func() { _ = apiSrv.Close() })
@@ -225,22 +227,17 @@ func waitHealthy(t *testing.T, base string) {
 	}
 }
 
-// connectMCP opens a streamable-HTTP MCP client session against the server's
-// root endpoint, standing in for the chatbot.
+// connectMCP builds an MCP session standing in for the chatbot: it wraps an
+// mcpapi client pointed at the server's box-control API in an MCP server (exactly
+// what the llmbox-mcp binary does) and connects an in-memory MCP client to it, so
+// tool calls travel over the real box-control HTTP API to the server.
 //
 // @arg t The test, used for fatal errors and cleanup.
-// @arg base The server's base URL.
+// @arg base The server's box-control API base URL.
 // @return *mcp.ClientSession A connected MCP client session.
 func connectMCP(t *testing.T, base string) *mcp.ClientSession {
 	t.Helper()
-	transport := &mcp.StreamableClientTransport{Endpoint: base}
-	client := mcp.NewClient(&mcp.Implementation{Name: "e2e-chatbot", Version: "1"}, nil)
-	cs, err := client.Connect(context.Background(), transport, nil)
-	if err != nil {
-		t.Fatalf("connecting MCP client: %v", err)
-	}
-	t.Cleanup(func() { _ = cs.Close() })
-	return cs
+	return testutils.ConnectMCP(t, mcpapi.NewClient(base, nil), "llmbox", "e2e")
 }
 
 // callTool calls an MCP tool and returns its structured output, failing the test

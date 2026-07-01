@@ -1,18 +1,11 @@
 {
 	"functions": [
 		{
-			"function_name": "MCPServer",
-			"receiver": "Server",
-			"documentation_hash": "5205cc5c4302c6b7702314e5ee478e86df362353b6d134c1f86fee33be09c2a6",
-			"definition_hash": "c0d950cd3281f8f051efd6e720ec5ab696313cf529932e0a60e5677f4f3ddc6e",
-			"reviewed_at": "2026-06-25T11:47:13.633207265Z"
-		},
-		{
 			"function_name": "MCPBackend",
 			"receiver": "Server",
-			"documentation_hash": "e6af8481e62f18b074fa1d17ba945773ece577ef55c2106bdae2ab3ec8eda1ff",
+			"documentation_hash": "5edd2baf1cda678194ff46e1c907e46d62e3a80c823ce08aee791d7ff8d2245b",
 			"definition_hash": "c10b93eb0039f1dcdaaf01878b3f052c52971071d166589480c669fba4caef22",
-			"reviewed_at": "2026-06-25T11:47:13.633940126Z"
+			"reviewed_at": "2026-07-01T10:29:59.717911023Z"
 		},
 		{
 			"function_name": "CreateBox",

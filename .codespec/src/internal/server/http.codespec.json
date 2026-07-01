@@ -22,25 +22,11 @@
 			"reviewed_at": "2026-06-18T17:12:11.811278136Z"
 		},
 		{
-			"function_name": "MCPHandler",
-			"receiver": "Server",
-			"documentation_hash": "c7f55bb94db976717a7357cf590d5e5bd495a13fb874b4a596f321d2481be5b6",
-			"definition_hash": "350929b26f82c75fb9753afc430a69e80f5aa569a267d21d7ae677f3890a9dc0",
-			"reviewed_at": "2026-06-25T12:41:39.3103771Z"
-		},
-		{
 			"function_name": "APIHandler",
 			"receiver": "Server",
 			"documentation_hash": "db31f468c8236bbe7b76a7dfd9758a315b89c8200c8fc6d28f23546c7f7ba4a9",
 			"definition_hash": "a3cf8f1d2ad22c90eb5a7565e7aa4d3fb318c3f377979bf6c37e6db87f0f917e",
 			"reviewed_at": "2026-06-27T17:02:38.539436251Z"
-		},
-		{
-			"function_name": "registerMCPRoute",
-			"receiver": "Server",
-			"documentation_hash": "dea4a75651d4d59bdcd44ac6b6d04b95953121a2c41b459eb2844cfc5936801a",
-			"definition_hash": "dfaec719e0e1fb257c33cf7bfc4ecbc9d8fdb8a1496a1081b674b1db6547afeb",
-			"reviewed_at": "2026-06-25T12:41:39.327981723Z"
 		},
 		{
 			"function_name": "registerAppRoutes",

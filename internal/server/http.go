@@ -7,24 +7,8 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
 	"github.com/clems4ever/llmbox/internal/auth"
 )
-
-// MCPHandler builds a handler serving only the MCP endpoint, meant to be exposed
-// on its own port behind an authenticating reverse proxy. The UI/API routes are
-// not registered here, so this port carries nothing but the MCP verbs.
-//
-// @arg mcpServer The MCP server shared across all requests.
-// @return http.Handler A mux routing every request to the MCP endpoint.
-//
-// @testcase TestMCPHandlerServesOnlyMCP serves MCP at the root and not the UI routes.
-func (s *Server) MCPHandler(mcpServer *mcp.Server) http.Handler {
-	mux := http.NewServeMux()
-	s.registerMCPRoute(mux, mcpServer)
-	return mux
-}
 
 // APIHandler builds a handler serving the UI and API (auth pages, provider
 // sign-in, admin UI, spoke connect, health, favicon) — everything except MCP. It
@@ -50,30 +34,6 @@ func (s *Server) APIHandler() http.Handler {
 		}
 		mux.ServeHTTP(w, r)
 	})
-}
-
-// registerMCPRoute mounts the MCP streamable HTTP handler at the root of mux. It
-// is the catch-all; any more specific app routes registered on the same mux take
-// precedence (Go's ServeMux matches the most specific pattern).
-//
-// @arg mux The mux to register the MCP route on.
-// @arg mcpServer The MCP server shared across all requests to the endpoint.
-//
-// @testcase TestMCPHandlerServesOnlyMCP mounts the MCP route via this helper.
-func (s *Server) registerMCPRoute(mux *http.ServeMux, mcpServer *mcp.Server) {
-	// SECURITY — the MCP endpoint is intentionally UNAUTHENTICATED here. The MCP
-	// tools (create/get/list/destroy/logs/exec) carry no caller identity and bind
-	// boxes to no owner: any client that can reach this handler can act on ANY box
-	// by its box_id (including exec'ing into a box another user activated). This is
-	// by design — llmbox is meant to run behind an authenticating reverse proxy
-	// (e.g. oauth2-proxy / an API gateway with mTLS) that performs authn/authz on
-	// every request before it reaches this handler, AND in front of a trusted set
-	// of callers. Do NOT expose this port directly to untrusted networks. The OIDC
-	// activation flow (/auth, on the API handler) only gates who can bind a Claude
-	// account to a box; it does NOT protect the MCP verbs. If per-user box isolation
-	// is ever required, authenticate here and bind each box to an owner identity.
-	mcpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return mcpServer }, nil)
-	mux.Handle("/", mcpHandler)
 }
 
 // registerAppRoutes mounts the UI/API routes on mux: the auth web pages, the

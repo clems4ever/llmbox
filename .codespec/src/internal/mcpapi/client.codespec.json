@@ -1,0 +1,100 @@
+{
+	"functions": [
+		{
+			"function_name": "NewClient",
+			"documentation_hash": "7d74a622759db95be307eb9dc4953de81b62104b6c875a49947107440e1a520f",
+			"definition_hash": "fdd87e87cf45ecb6eac932b2d1fb4f396300ebec88887c29874df7c041788859",
+			"reviewed_at": "2026-07-01T10:31:18.803479315Z"
+		},
+		{
+			"function_name": "post",
+			"documentation_hash": "75de5d28d7a1f52ef385612016c01152294257e2a0c102dec17233180019c399",
+			"definition_hash": "7a7f4cd4e2da21307aa4472aad8d78adb69588960214a3c19c81114798d6ab5f",
+			"reviewed_at": "2026-07-01T10:31:18.803979811Z"
+		},
+		{
+			"function_name": "CreateBox",
+			"receiver": "Client",
+			"documentation_hash": "2a31a186efc0232b68fd27c62e239eca4045139ef645fa518762cd54176e42f1",
+			"definition_hash": "50bf2314e72921aa10393dfeb47b22f17678c0e98ef4f508cfc7fb86bec8507c",
+			"reviewed_at": "2026-07-01T10:31:18.813324108Z"
+		},
+		{
+			"function_name": "AuthPageURL",
+			"receiver": "Client",
+			"documentation_hash": "a13c12e7aff0f3cce18b9bc2fae54895d90247015b8e7d5b19234957f2370811",
+			"definition_hash": "2e13661bf108ccf91d9e09b442b975fb8412ebb6717210fde0e00a0af9c9c848",
+			"reviewed_at": "2026-07-01T10:31:18.813703485Z"
+		},
+		{
+			"function_name": "LookupByBoxID",
+			"receiver": "Client",
+			"documentation_hash": "1a3eb59308baa06a2a474b70531e8e3c43af74881890d2988c3fe0628b1f8e4e",
+			"definition_hash": "3197a8e83e1eda3c262e254cd5c13147ca9fcfbeb7c5a0e8c2556cf69372a08c",
+			"reviewed_at": "2026-07-01T10:31:18.814056088Z"
+		},
+		{
+			"function_name": "ListBoxes",
+			"receiver": "Client",
+			"documentation_hash": "d38e8ccfe430cf122982eee0e75ab3c19bdd8c4f5a22635ef340c1d9c2c9e807",
+			"definition_hash": "b67a01a96f5a980624b1f3498b2910ec90b345ef5c2b2fd9aecd4dc3bb38b43c",
+			"reviewed_at": "2026-07-01T10:31:18.81441855Z"
+		},
+		{
+			"function_name": "SpokeStatuses",
+			"receiver": "Client",
+			"documentation_hash": "fb74cb900891b36204b8b10757552caedd4f50828b65bd18e5b0e88b7f36fdc6",
+			"definition_hash": "a234937d663ad7a77b41c95439a74c6a8b9bbbf5754519068a3ee0f7215a5d92",
+			"reviewed_at": "2026-07-01T10:31:18.814764138Z"
+		},
+		{
+			"function_name": "DestroyBox",
+			"receiver": "Client",
+			"documentation_hash": "6c2b78ed8c7f69f901ee2dbaaa29793184319e80bdfb3e6b526acb5dcb3bf713",
+			"definition_hash": "63f90377ce9606d2a3623c0743022c108135d80c164031fcc8955b4b9e7a13ae",
+			"reviewed_at": "2026-07-01T10:31:18.815137242Z"
+		},
+		{
+			"function_name": "BoxLogs",
+			"receiver": "Client",
+			"documentation_hash": "c2deaf38660b5165be9ee3bdcb18d31b7c54fb231c48c8a8e56aac2121ee27e4",
+			"definition_hash": "62d0b07fbfdd24c999722a2a1f005ec4b6e33a2d13f353864592fe191cf313d1",
+			"reviewed_at": "2026-07-01T10:31:18.815728267Z"
+		},
+		{
+			"function_name": "BoxExec",
+			"receiver": "Client",
+			"documentation_hash": "48d42dcd5caf1a3102ec46c34adbe177cf7b79b33dd09cf463a097aa6cf4a4b5",
+			"definition_hash": "19cab3e45e62fb8bb1aaa01c1178a880b1dfccf41ad13e933676243dd415e333",
+			"reviewed_at": "2026-07-01T10:31:18.816503679Z"
+		},
+		{
+			"function_name": "ProxyEnabled",
+			"receiver": "Client",
+			"documentation_hash": "3f5d9dcd4c3d9200d862fb81edf411f032b102fd99c11aac7692cd0e5b97f218",
+			"definition_hash": "f2d369a669198ab93da3e8ced4790cd10492e7ae26a04405c94689145d73aac2",
+			"reviewed_at": "2026-07-01T10:31:19.384773323Z"
+		},
+		{
+			"function_name": "CreateProxy",
+			"receiver": "Client",
+			"documentation_hash": "c1b264b2691fd9de1fda3626e2c45374d120f0aac9bee340286b8743063463ca",
+			"definition_hash": "97db1a60102d7882ec94fcca89c7f77f7bd6f70f0b2a3dfe72b7f11fd6f5cdc5",
+			"reviewed_at": "2026-07-01T10:31:19.385238336Z"
+		},
+		{
+			"function_name": "DeleteProxy",
+			"receiver": "Client",
+			"documentation_hash": "fa5a2d588075645a1002c5bc02ac6a7a5c8dffdceabd072d493a22462101c96e",
+			"definition_hash": "2e6d87c45561d5d1183812459809bd84229f13c0d8d3a7b0dce2803c349493f1",
+			"reviewed_at": "2026-07-01T10:31:19.395028644Z"
+		},
+		{
+			"function_name": "ListProxies",
+			"receiver": "Client",
+			"documentation_hash": "d3cea07799305e105b3e4d15351f080e757eabc1bbd40a83e9841bc9e3fcdcdd",
+			"definition_hash": "dbc015b57a452065d6ed0342c03ff88393cebcf9b886009f024642a1b588cf83",
+			"reviewed_at": "2026-07-01T10:31:19.395728248Z"
+		}
+	]
+}

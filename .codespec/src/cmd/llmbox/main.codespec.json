@@ -8,9 +8,9 @@
 		},
 		{
 			"function_name": "run",
-			"documentation_hash": "822d4570012d8a41428a5b22339964da6b3a2b16d9a19df24414513067ecf52e",
-			"definition_hash": "ac1e95ef6b57844f985d737ffa1171e914e17642a5367362a55415a5090b9a59",
-			"reviewed_at": "2026-07-01T09:17:53.744484423Z"
+			"documentation_hash": "a9e74b351ff5c67ea3f96caa2e8e16cdcb92e61fae897091b0d0ada25d87c009",
+			"definition_hash": "3d920b35762ac24d0cf30b78a1794af105807fefa350544f80b3e9188b61f1ea",
+			"reviewed_at": "2026-07-01T10:29:33.404528546Z"
 		},
 		{
 			"function_name": "newRootCmd",

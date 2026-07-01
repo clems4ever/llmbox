@@ -28,8 +28,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/clems4ever/llmbox/internal/cluster"
+	"github.com/clems4ever/llmbox/internal/mcpapi"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/testutils"
 )
 
 // TestClusterEndToEnd exercises the full clustering path:
@@ -78,7 +80,7 @@ func TestClusterEndToEnd(t *testing.T) {
 	uiAddr := uiLn.Addr().String()
 	mcpAddr := mcpLn.Addr().String()
 	apiSrv := &http.Server{Handler: srv.APIHandler()}
-	mcpSrv := &http.Server{Handler: srv.MCPHandler(srv.MCPServer("llmbox", "cluster-e2e"))}
+	mcpSrv := &http.Server{Handler: mcpapi.NewHandler(srv.MCPBackend())}
 	go func() { _ = apiSrv.Serve(uiLn) }()
 	go func() { _ = mcpSrv.Serve(mcpLn) }()
 	t.Cleanup(func() { _ = apiSrv.Close() })
@@ -388,17 +390,13 @@ func waitHealthy(t *testing.T, base string) {
 	}
 }
 
-// connectMCP opens a streamable-HTTP MCP client session against the server.
+// connectMCP builds an MCP session standing in for the chatbot: it wraps an
+// mcpapi client pointed at the hub's box-control API in an MCP server (as the
+// llmbox-mcp binary does) and connects an in-memory MCP client to it, so tool
+// calls travel over the real box-control HTTP API to the hub.
 func connectMCP(t *testing.T, base string) *mcp.ClientSession {
 	t.Helper()
-	transport := &mcp.StreamableClientTransport{Endpoint: base}
-	client := mcp.NewClient(&mcp.Implementation{Name: "cluster-e2e-chatbot", Version: "1"}, nil)
-	cs, err := client.Connect(context.Background(), transport, nil)
-	if err != nil {
-		t.Fatalf("connecting MCP client: %v", err)
-	}
-	t.Cleanup(func() { _ = cs.Close() })
-	return cs
+	return testutils.ConnectMCP(t, mcpapi.NewClient(base, nil), "llmbox", "cluster-e2e")
 }
 
 // callTool calls an MCP tool and returns its structured output, failing on error.

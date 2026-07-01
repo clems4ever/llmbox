@@ -1,0 +1,131 @@
+package mcpapi
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+
+	"github.com/clems4ever/llmbox/internal/mcpserver"
+)
+
+// NewHandler builds the HTTP handler serving b's box operations as the mcpapi
+// JSON API, one POST route per Backend method. It is the server side of the seam:
+// the llmbox server mounts it on its box-control port and hands it its own
+// in-process backend.
+//
+// SECURITY — this API is intentionally UNAUTHENTICATED and carries no caller
+// identity: any client that can reach it can act on ANY box by its ID (including
+// exec'ing into a box another user activated). It inherits the exact posture of
+// the MCP endpoint it replaces — llmbox is meant to run behind an authenticating
+// reverse proxy in front of a trusted set of callers. Do NOT expose this port
+// directly to untrusted networks.
+//
+// @arg b The backend whose operations are exposed over HTTP.
+// @return http.Handler A mux serving the mcpapi routes over b.
+//
+// @testcase TestBackendAPIRoundTrip drives every route through NewClient against NewHandler.
+func NewHandler(b mcpserver.Backend) http.Handler {
+	mux := http.NewServeMux()
+
+	mux.Handle("POST "+PathCreateBox, jsonHandler(func(ctx context.Context, req createBoxRequest) (createBoxResponse, error) {
+		sess, err := b.CreateBox(ctx, req.Opts)
+		return createBoxResponse{Session: sess}, err
+	}))
+	mux.Handle("POST "+PathAuthPageURL, jsonHandler(func(_ context.Context, req authPageURLRequest) (authPageURLResponse, error) {
+		return authPageURLResponse{URL: b.AuthPageURL(req.Token)}, nil
+	}))
+	mux.Handle("POST "+PathLookupBox, jsonHandler(func(_ context.Context, req lookupBoxRequest) (lookupBoxResponse, error) {
+		sess, ok := b.LookupByBoxID(req.BoxID)
+		return lookupBoxResponse{Session: sess, Found: ok}, nil
+	}))
+	mux.Handle("POST "+PathListBoxes, jsonHandler(func(ctx context.Context, _ struct{}) (listBoxesResponse, error) {
+		boxes, err := b.ListBoxes(ctx)
+		return listBoxesResponse{Boxes: boxes}, err
+	}))
+	mux.Handle("POST "+PathSpokeStatuses, jsonHandler(func(ctx context.Context, _ struct{}) (spokeStatusesResponse, error) {
+		spokes, err := b.SpokeStatuses(ctx)
+		return spokeStatusesResponse{Spokes: spokes}, err
+	}))
+	mux.Handle("POST "+PathDestroyBox, jsonHandler(func(ctx context.Context, req destroyBoxRequest) (emptyResponse, error) {
+		return emptyResponse{}, b.DestroyBox(ctx, req.ContainerID)
+	}))
+	mux.Handle("POST "+PathBoxLogs, jsonHandler(func(ctx context.Context, req boxLogsRequest) (boxLogsResponse, error) {
+		logs, err := b.BoxLogs(ctx, req.BoxID, req.Tail)
+		return boxLogsResponse{Logs: logs}, err
+	}))
+	mux.Handle("POST "+PathBoxExec, jsonHandler(func(ctx context.Context, req boxExecRequest) (boxExecResponse, error) {
+		res, err := b.BoxExec(ctx, req.BoxID, req.Command)
+		return boxExecResponse{Result: res}, err
+	}))
+	mux.Handle("POST "+PathProxyEnabled, jsonHandler(func(_ context.Context, _ struct{}) (proxyEnabledResponse, error) {
+		return proxyEnabledResponse{Enabled: b.ProxyEnabled()}, nil
+	}))
+	mux.Handle("POST "+PathCreateProxy, jsonHandler(func(ctx context.Context, req createProxyRequest) (createProxyResponse, error) {
+		p, err := b.CreateProxy(ctx, req.BoxID, req.Port, req.Description)
+		return createProxyResponse{Proxy: p}, err
+	}))
+	mux.Handle("POST "+PathDeleteProxy, jsonHandler(func(ctx context.Context, req deleteProxyRequest) (emptyResponse, error) {
+		return emptyResponse{}, b.DeleteProxy(ctx, req.BoxID, req.Port)
+	}))
+	mux.Handle("POST "+PathListProxies, jsonHandler(func(ctx context.Context, req listProxiesRequest) (listProxiesResponse, error) {
+		proxies, err := b.ListProxies(ctx, req.BoxID)
+		return listProxiesResponse{Proxies: proxies}, err
+	}))
+
+	return mux
+}
+
+// jsonHandler adapts a typed backend call into an HTTP handler: it decodes the
+// JSON request body into Req (an empty body yields the zero Req, for the
+// no-argument methods), invokes fn, and writes fn's result as JSON — or, if fn
+// returns an error, a non-2xx response carrying the error message.
+//
+// @arg fn The typed backend call: it receives the decoded request and returns the response or an error.
+// @return http.HandlerFunc A handler decoding Req, calling fn, and encoding the response or error.
+//
+// @testcase TestBackendAPIRoundTrip exercises jsonHandler through every registered route.
+// @testcase TestHandlerRejectsBadJSON returns 400 when the request body is not valid JSON.
+func jsonHandler[Req any, Resp any](fn func(context.Context, Req) (Resp, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req Req
+		// A zero ContentLength means the no-argument methods (which POST an empty
+		// body); decoding only when there is a body keeps req at its zero value.
+		if r.ContentLength != 0 {
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				writeError(w, http.StatusBadRequest, "decoding request: "+err.Error())
+				return
+			}
+		}
+		resp, err := fn(r.Context(), req)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
+
+// writeJSON writes v as a JSON response with the given status code. An encode
+// failure is unactionable once the header is sent, so it is ignored.
+//
+// @arg w The response writer.
+// @arg status The HTTP status code to send.
+// @arg v The value to encode as the JSON body.
+//
+// @testcase TestBackendAPIRoundTrip reads JSON bodies written by writeJSON.
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+// writeError writes an errorResponse with the given status code and message.
+//
+// @arg w The response writer.
+// @arg status The non-2xx HTTP status code to send.
+// @arg msg The error message the client surfaces.
+//
+// @testcase TestHandlerRejectsBadJSON checks the error body written for a bad request.
+func writeError(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, errorResponse{Error: msg})
+}
