@@ -101,6 +101,18 @@
 			"documentation_hash": "09228fb3163359d063f5c076ec398e093d165de9a5a85307d992c1d466ea96fb",
 			"definition_hash": "b0b24f2f769386226161f229373c55281bc10cab5610e2d132d2d8ecd78809fc",
 			"reviewed_at": "2026-06-26T12:09:51.300268773Z"
+		},
+		{
+			"function_name": "TestLoadTLS",
+			"documentation_hash": "432d5cfbcd30a9a08038e49fb1f820748f9c072478dfb809a74f5c858eeb051b",
+			"definition_hash": "f7a64001bf354b147c3181495bff0ee11cf3fee764c63f29f57079ee655adf76",
+			"reviewed_at": "2026-07-01T14:22:43.826575098Z"
+		},
+		{
+			"function_name": "TestLoadTLSRequiresCertAndKey",
+			"documentation_hash": "42097f0b60b71afb40c62df54894b538a07c1fcf72246fc31ffe852a25af1cc7",
+			"definition_hash": "19571e12c6d5077395848d6e4f81520e2d17be939407a6bee39639df2d378f27",
+			"reviewed_at": "2026-07-01T14:22:43.828954178Z"
 		}
 	]
 }

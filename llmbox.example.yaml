@@ -27,6 +27,17 @@ auth_ttl: "5m"
 # bbolt file persisting the auth-session registry across restarts.
 state_file: "llmbox-sessions.db"
 
+# Serve over TLS (HTTPS) directly instead of plaintext HTTP. Leave disabled (the
+# default) only when a TLS-terminating reverse proxy sits in front — the
+# box-control API is unauthenticated and OAuth codes are relayed through this
+# server, so a loud warning is logged at startup whenever TLS is off. When
+# enabled, cert_file and key_file are required (PEM certificate + matching key;
+# use a full chain, leaf first, when intermediates are needed).
+# tls:
+#   enabled: true
+#   cert_file: "/etc/llmbox/tls-cert.pem"
+#   key_file: "/etc/llmbox/tls-key.pem"
+
 # Hub-and-spoke clustering. When enabled, this server (the hub) exposes a
 # /spoke/connect endpoint that remote spokes join over a WebSocket, and boxes can
 # be placed on a spoke by passing its name to create_llmbox's "spoke" argument.

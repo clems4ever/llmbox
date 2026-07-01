@@ -23,8 +23,12 @@ CLAUDE.md
 # Coverage profile (make cover)
 /coverage.out
 
-# bbolt session store (default LLMBOX_STATE_FILE)
-/llmbox-sessions.db
+# database
+/llmbox-sessions.db*
 
 # workspace
 .workspace/
+
+# air live-reload working dir (see .air.toml)
+/tmp/
+/build-errors.log

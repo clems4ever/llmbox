@@ -24,6 +24,15 @@
 //	auth_ttl:     "5m"                      # how long a box may stay un-authenticated (Go duration)
 //	state_file:   "llmbox-sessions.db"     # SQLite file persisting the session registry
 //
+// By default the single HTTP server is served in the clear and a loud startup
+// warning is logged, since it is meant to sit behind a TLS-terminating reverse
+// proxy. To terminate TLS in-process instead, enable the tls block:
+//
+//	tls:
+//	  enabled:   true
+//	  cert_file: "/etc/llmbox/tls-cert.pem"  # PEM certificate (full chain, leaf first)
+//	  key_file:  "/etc/llmbox/tls-key.pem"   # PEM private key matching cert_file
+//
 // Box lifecycle hooks (optional). hooks is a list of external executables llmbox
 // runs at box.create and box.destroy, exchanging JSON per the hookproto
 // contract. A hook may inject files into each box and persist opaque state; this
@@ -236,10 +245,63 @@ func run(parent context.Context, cfg *config.Config) error {
 		}
 	}()
 
-	log.Printf("%s %s listening on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.PublicURL, authTTL)
+	scheme := "HTTP"
+	if cfg.TLS.Enabled {
+		scheme = "HTTPS"
+	} else {
+		// Loud, un-missable banner: serving the box-control API and relayed OAuth
+		// codes in the clear is only safe behind a TLS-terminating proxy.
+		for _, line := range insecureTransportWarning() {
+			log.Print(line)
+		}
+	}
+	log.Printf("%s %s listening on %s over %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, scheme, cfg.PublicURL, authTTL)
 
+	return listenAndServe(httpSrv, cfg.TLS)
+}
+
+// insecureTransportWarning returns the multi-line banner logged at startup when
+// the server serves plaintext HTTP (TLS disabled). It is loud on purpose: the
+// box-control API is unauthenticated and OAuth codes are relayed through it, so
+// running without TLS is only safe behind a TLS-terminating reverse proxy.
+//
+// @return []string The banner lines, each logged on its own line.
+//
+// @testcase TestInsecureTransportWarning returns a non-empty banner mentioning TLS.
+func insecureTransportWarning() []string {
+	return []string{
+		"!! ==================================================================== !!",
+		"!!  WARNING: serving over PLAINTEXT HTTP -- traffic is NOT encrypted.    !!",
+		"!!                                                                      !!",
+		"!!  The box-control API is unauthenticated and OAuth codes are relayed  !!",
+		"!!  through this server. Only run like this behind a TLS-terminating    !!",
+		"!!  reverse proxy on a trusted network. To terminate TLS in-process,    !!",
+		"!!  set tls.enabled with tls.cert_file and tls.key_file in the config.  !!",
+		"!! ==================================================================== !!",
+	}
+}
+
+// listenAndServe serves httpSrv, terminating TLS in-process when tls.Enabled
+// (loading its PEM certificate and key), otherwise serving plaintext HTTP. A
+// clean shutdown (http.ErrServerClosed, triggered by graceful shutdown) is
+// reported as success; any other listen error is wrapped with the address.
+//
+// @arg httpSrv The configured HTTP server to run (its Addr labels errors).
+// @arg tls The TLS settings deciding HTTPS vs plaintext and the cert/key paths.
+// @error error if the server stops for any reason other than a clean shutdown.
+//
+// @testcase TestListenAndServeTLS serves HTTPS with a generated cert and key.
+// @testcase TestListenAndServePlaintext serves plaintext HTTP when TLS is disabled.
+// @testcase TestListenAndServeTLSMissingCert errors when the cert file is absent.
+func listenAndServe(httpSrv *http.Server, tls config.TLSConfig) error {
+	if tls.Enabled {
+		if err := httpSrv.ListenAndServeTLS(tls.CertFile, tls.KeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("listening on %s: %w", httpSrv.Addr, err)
+		}
+		return nil
+	}
 	if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("listening on %s: %w", cfg.HTTPAddr, err)
+		return fmt.Errorf("listening on %s: %w", httpSrv.Addr, err)
 	}
 	return nil
 }
