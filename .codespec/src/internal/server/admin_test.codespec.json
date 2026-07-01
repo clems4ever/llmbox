@@ -131,6 +131,12 @@
 			"documentation_hash": "ba24c4c254ca2c355068766098c5ed266d580ba0a40fe2eb874c8f070403eee0",
 			"definition_hash": "65eda40450f8c200fdec1a78d18db73abac5f1eae66eae3fe67fec7143badb89",
 			"reviewed_at": "2026-06-29T15:39:25.192459069Z"
+		},
+		{
+			"function_name": "TestHomeRedirectsToAdmin",
+			"documentation_hash": "f7fdc913d409bd40435d51ab5a9c385d2985f3b59654e7ca50e7126402dee738",
+			"definition_hash": "a326f7e28b06648f8f5b9d41eae5a0be9dda671ce86aaa3e1c6457ba7aa01980",
+			"reviewed_at": "2026-07-01T14:27:08.581354456Z"
 		}
 	]
 }

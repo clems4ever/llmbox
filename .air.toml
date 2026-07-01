@@ -1,0 +1,37 @@
+# Air live-reload config for the llmbox-server.
+#   go install github.com/air-verse/air@latest   # then just run: air
+# Rebuilds and restarts ./cmd/llmbox-server on every save, running it against the
+# .workspace/llmbox.yaml config (same as `make run CONFIG=.workspace/llmbox.yaml`).
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # Build the server into tmp/ and run it with the workspace config.
+  cmd = "go build -o ./tmp/llmbox-server ./cmd/llmbox-server"
+  bin = "./tmp/llmbox-server"
+  full_bin = "./tmp/llmbox-server --config .workspace/llmbox.yaml"
+
+  # Watch Go sources plus the embedded UI assets (templates/JS/SVG are baked in
+  # via go:embed, so a change there needs a rebuild to take effect).
+  include_ext = ["go", "tmpl", "html", "js", "svg"]
+
+  # Don't rebuild on test-file changes, and never watch generated/state dirs.
+  exclude_regex = ["_test\\.go"]
+  exclude_dir = ["tmp", "testdata", ".git", ".codespec", ".workspace", ".github", ".vscode"]
+
+  # Give in-flight requests a moment to drain, then restart.
+  kill_delay = "500ms"
+  send_interrupt = true
+  # Debounce rapid saves so a burst of writes triggers a single rebuild.
+  delay = 300
+
+  # Surface build errors in the terminal (and log them to tmp/ for scrollback).
+  log = "build-errors.log"
+  stop_on_error = true
+
+[log]
+  time = true
+
+[misc]
+  # Remove tmp/ on exit so the tree stays clean.
+  clean_on_exit = true

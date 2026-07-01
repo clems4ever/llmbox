@@ -50,6 +50,7 @@ func (s *Server) APIHandler() http.Handler {
 // @testcase TestAuthPageRendersAndSubmits drives the auth routes registered here.
 // @testcase TestHealthz checks the /healthz route returns ok.
 // @testcase TestFaviconServed checks the favicon route returns the embedded SVG.
+// @testcase TestHomeRedirectsToAdmin redirects "/" to /admin when the admin UI is enabled.
 func (s *Server) registerAppRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /auth/{token}", s.handleAuthPage)
 	mux.HandleFunc("POST /auth/{token}", s.handleAuthSubmit)
@@ -70,9 +71,15 @@ func (s *Server) registerAppRoutes(mux *http.ServeMux) {
 	}
 
 	// Admin web UI (only when an admin allow-list is configured): manage cluster
-	// spokes and boxes through the running hub process.
+	// spokes and boxes through the running hub process. The bare home page then
+	// redirects there so a visitor landing on "/" reaches the dashboard (which
+	// itself gates on sign-in); without the admin UI there is no landing page to
+	// send them to, so "/" stays a 404 as before.
 	if s.auth.AdminEnabled() {
 		s.registerAdminRoutes(mux)
+		mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/admin", http.StatusFound)
+		})
 	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

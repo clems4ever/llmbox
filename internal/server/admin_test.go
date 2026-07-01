@@ -94,6 +94,29 @@ func TestAdminDashboardGate(t *testing.T) {
 	}
 }
 
+// TestHomeRedirectsToAdmin checks the bare home page redirects to /admin when the
+// admin UI is enabled, and stays a 404 when it is not (nowhere to land).
+func TestHomeRedirectsToAdmin(t *testing.T) {
+	s, _, _ := newAdminServer(t)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	s.APIHandler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusFound {
+		t.Errorf("admin-enabled home status = %d, want 302", rec.Code)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/admin" {
+		t.Errorf("Location = %q, want /admin", loc)
+	}
+
+	// With no admin allow-list, "/" has no landing page and stays a 404.
+	noAdmin := newTestServer(&testutils.FakeMgr{})
+	rec = httptest.NewRecorder()
+	noAdmin.APIHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("admin-disabled home status = %d, want 404", rec.Code)
+	}
+}
+
 // TestAdminActionsRequireAdminAndCSRF checks a mutating admin action rejects no-cookie, non-admin, and bad-CSRF requests.
 func TestAdminActionsRequireAdminAndCSRF(t *testing.T) {
 	s, _, st := newAdminServer(t)
