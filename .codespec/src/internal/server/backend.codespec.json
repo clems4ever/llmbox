@@ -1,0 +1,102 @@
+{
+	"functions": [
+		{
+			"function_name": "boxBackend",
+			"receiver": "Server",
+			"documentation_hash": "3c83f37c15a30b25d11137fcd9db958bc09c8150ffd4eda959c75d786b520bee",
+			"definition_hash": "6e75592500e2ad74877fb16520319a88420dc3ce7e9d4649c705d445fab4244f",
+			"reviewed_at": "2026-07-01T13:12:00.984075118Z"
+		},
+		{
+			"function_name": "CreateBox",
+			"receiver": "apiBackend",
+			"documentation_hash": "f3b51d4bc954b39b93476829630b1d42f12f7967986a283cdddd5443534447a0",
+			"definition_hash": "eab098048386e89651f30247d0ae8c524a98948f49016f23ad5afb7ae74782ef",
+			"reviewed_at": "2026-07-01T13:12:00.984489772Z"
+		},
+		{
+			"function_name": "AuthPageURL",
+			"receiver": "apiBackend",
+			"documentation_hash": "a976ab41c23d419362a6eff1406884e644f44af23c60489da1eb0317193ce7db",
+			"definition_hash": "4e37179ea048015f33a54cf5779eac6d6942adcac636e8699b20585de905c8c6",
+			"reviewed_at": "2026-07-01T13:12:00.984871142Z"
+		},
+		{
+			"function_name": "LookupByBoxID",
+			"receiver": "apiBackend",
+			"documentation_hash": "cbd19ddf1c2a666e756f03251f8d7e1da193bc5e821e7acaa81467047ec013a4",
+			"definition_hash": "0bddbdb522c918aefd4bf91b30dcd5e2977fb86ec021b0c0ed04f9b17a13ba9d",
+			"reviewed_at": "2026-07-01T13:12:00.985258637Z"
+		},
+		{
+			"function_name": "ListBoxes",
+			"receiver": "apiBackend",
+			"documentation_hash": "6d1ac978d30421a98246e75d3bef6dac96114c487e4a902b325259203e5b071d",
+			"definition_hash": "511bfc0324d85673953dba82b00e1c22a76bae8c9659efede64dfb9c78c6bb03",
+			"reviewed_at": "2026-07-01T13:12:00.985627274Z"
+		},
+		{
+			"function_name": "SpokeStatuses",
+			"receiver": "apiBackend",
+			"documentation_hash": "0b53a4f23a857104f27aeb87b3b6d635dfff6709725c92eb9bfcf21c82e12498",
+			"definition_hash": "fba8005b30ef3f76e6260ae6b3384ce10ad5e87c11a8566d0597aa92974a5e04",
+			"reviewed_at": "2026-07-01T13:12:00.985982509Z"
+		},
+		{
+			"function_name": "DestroyBox",
+			"receiver": "apiBackend",
+			"documentation_hash": "659c9f22ec8b57c5504aebb52ee38545c2155f11be18bb04b132e1a98e8d4e79",
+			"definition_hash": "7976a7f22f9efe5b4459c2265f5d46e3e360c0b6c043f970b9185b2ddf10da1d",
+			"reviewed_at": "2026-07-01T13:12:00.986404035Z"
+		},
+		{
+			"function_name": "BoxLogs",
+			"receiver": "apiBackend",
+			"documentation_hash": "277644e4535920e5baad20b69f2769548d6933f46f26f7789a0d0022b9374d9c",
+			"definition_hash": "971441b046ad71c08c0ff51c1f7cdc75532ae1b548de960237713331e1885e5d",
+			"reviewed_at": "2026-07-01T13:12:00.986778774Z"
+		},
+		{
+			"function_name": "BoxExec",
+			"receiver": "apiBackend",
+			"documentation_hash": "794b36ccf7999bb54774994c3b207279dc4cf607961b8b3f29728c2ea26a6889",
+			"definition_hash": "9ce2549dffb7ffb7d55614dd52b8070255665d9a3ed6a3f0f4b0c613e0667fae",
+			"reviewed_at": "2026-07-01T13:12:00.987145149Z"
+		},
+		{
+			"function_name": "ProxyEnabled",
+			"receiver": "apiBackend",
+			"documentation_hash": "efe07cdadfcc7ccb4ecbbd41db26939e4ec429bcd047eb783c6c57213d891f10",
+			"definition_hash": "673003eee34866d4889dd2d8ba5c2ba76eb073a81bca943bebff98897535dd9b",
+			"reviewed_at": "2026-07-01T13:12:00.987525427Z"
+		},
+		{
+			"function_name": "CreateProxy",
+			"receiver": "apiBackend",
+			"documentation_hash": "42af0c6e2086a7c89067a7c4bb74fd4da339b3d9c117f2b1481d412bffe2fbdc",
+			"definition_hash": "6870890232a0d9b86196e76d298e276312efbde385c27c2bd0e24e25ff29d9ba",
+			"reviewed_at": "2026-07-01T13:12:03.93043508Z"
+		},
+		{
+			"function_name": "DeleteProxy",
+			"receiver": "apiBackend",
+			"documentation_hash": "516790c77ec1996dd6b651df923ee6f32b1ff1195ba0040771a7522059124096",
+			"definition_hash": "692755f6f5cfd8fed7417cc5bb0689dffdc7656064c4bedece8b30eedd3d9748",
+			"reviewed_at": "2026-07-01T13:12:03.931127442Z"
+		},
+		{
+			"function_name": "ListProxies",
+			"receiver": "apiBackend",
+			"documentation_hash": "f33f4539d8ac262bfd1b73739600da9267b86ba7f668ca47a78c9757fd10223f",
+			"definition_hash": "b6e2a4072b0486e492d741b49fc26068b423ca8533e3785c71030b6110420e7b",
+			"reviewed_at": "2026-07-01T13:12:03.931745902Z"
+		},
+		{
+			"function_name": "proxyInfo",
+			"receiver": "apiBackend",
+			"documentation_hash": "4a0f1fada63eccb9bdbae53b5de348ef2eb300d0916b2cca6f123310940b60c0",
+			"definition_hash": "43e3ef0967b99efecb814001711d2f05e0f5ec1e89f8d381506b6639e88b71d4",
+			"reviewed_at": "2026-07-01T13:12:03.932363773Z"
+		}
+	]
+}

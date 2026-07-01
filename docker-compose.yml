@@ -13,11 +13,11 @@ services:
       context: .
     image: llmbox
     ports:
-      # UI/API (auth pages, admin, health).
+      # The whole server on one port: the UI (auth pages, admin, health) and the
+      # box-control API (/api/v1/). Put behind an authenticating proxy before
+      # exposing it; llmbox-mcp reaches it over the compose network as
+      # http://llmbox:8080.
       - "8080:8080"
-      # Box-control API — put behind an authenticating proxy before exposing it;
-      # llmbox-mcp reaches it over the compose network as http://llmbox:8081.
-      - "8081:8081"
     # llmbox reads a single YAML config file (see llmbox.example.yaml). Mount
     # your config to /etc/llmbox/llmbox.yaml and point the server at it. At a
     # minimum set public_url (the URL the user's browser can reach this server
@@ -61,5 +61,5 @@ services:
       - llmbox
     ports:
       - "8082:8082"
-    command: ["--upstream", "http://llmbox:8081", "--addr", ":8082"]
+    command: ["--upstream", "http://llmbox:8080", "--addr", ":8082"]
     restart: unless-stopped

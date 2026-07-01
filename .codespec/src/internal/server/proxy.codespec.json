@@ -23,9 +23,9 @@
 		{
 			"function_name": "createProxy",
 			"receiver": "Server",
-			"documentation_hash": "dab7e64d123ebf724bc57490f73050189b1442d0eef8285f0645eda94a904014",
+			"documentation_hash": "7dcb5b42edc5741532ed4dea96d9cbf8b1873fe9102e588c6556a6ee44bbe17e",
 			"definition_hash": "bc72f88d2ee50bbeb4b5bafaba1ec902334e4b488528d44f88d016011423653f",
-			"reviewed_at": "2026-06-28T14:33:00.025653Z"
+			"reviewed_at": "2026-07-01T13:12:23.646434872Z"
 		},
 		{
 			"function_name": "findProxy",

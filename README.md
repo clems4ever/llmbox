@@ -35,24 +35,24 @@ docker run -d --name llmbox \
   -v "$PWD/llmbox.yaml:/etc/llmbox/llmbox.yaml:ro" \
   --group-add "$(stat -c '%g' /var/run/docker.sock)" \
   -p 8080:8080 \
-  -p 8081:8081 \
   llmbox --config /etc/llmbox/llmbox.yaml
 ```
 
-Two ports are exposed: `8080` serves the UI/API (auth pages, admin, health) and
-`8081` serves the box-control API, split out so it can sit behind its own
-authenticating proxy. The MCP protocol itself is served by a separate binary,
-**`llmbox-mcp`**, which forwards every tool call to that box-control API:
+One port (`8080`) serves everything: the box-control JSON API (under `/api/v1/`)
+and the UI (auth pages, admin, health). The MCP protocol itself is served by a
+separate binary, **`llmbox-mcp`**, which forwards every tool call to that
+box-control API:
 
 ```bash
 docker run -d --name llmbox-mcp -p 8082:8082 \
-  llmbox-mcp --upstream http://llmbox:8081 --addr :8082
+  llmbox-mcp --upstream http://llmbox:8080 --addr :8082
 ```
 
 Then add `llmbox-mcp`'s URL (streamable HTTP) — or run it with `--stdio` as a
-child process — as a remote MCP server in your client. Full details — Docker
-socket permissions, `docker compose`, TLS — are in
-[Running & configuration](docs/configuration.md).
+child process — as a remote MCP server in your client. The box-control API is
+unauthenticated for now (API-key / UI-session auth is planned), so run llmbox
+behind an authenticating proxy. Full details — Docker socket permissions,
+`docker compose`, TLS — are in [Running & configuration](docs/configuration.md).
 
 ## MCP tools
 

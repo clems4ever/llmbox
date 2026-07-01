@@ -1,4 +1,4 @@
-package mcpapi_test
+package api_test
 
 import (
 	"context"
@@ -10,8 +10,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/mcpapi"
-	"github.com/clems4ever/llmbox/internal/mcpserver"
+	"github.com/clems4ever/llmbox/internal/api"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
@@ -24,19 +23,19 @@ var errStubFailure = errors.New("stub failure")
 // argument reaches the backend and that each result comes back intact.
 func TestBackendAPIRoundTrip(t *testing.T) {
 	fb := &testutils.FakeBackend{
-		CreateSess:        mcpserver.BoxSession{BoxID: "web", ContainerID: "cid123", Token: "tok"},
-		Sessions:          map[string]mcpserver.BoxSession{"web": {BoxID: "web", ContainerID: "cid123", Status: "ready"}},
+		CreateSess:        api.BoxSession{BoxID: "web", ContainerID: "cid123", Token: "tok"},
+		Sessions:          map[string]api.BoxSession{"web": {BoxID: "web", ContainerID: "cid123", Status: "ready"}},
 		Boxes:             []sandbox.Box{{BoxID: "b1"}, {BoxID: "b2"}},
-		Spokes:            []mcpserver.SpokeStatus{{Name: "local", Connected: true, Local: true}},
+		Spokes:            []api.SpokeStatus{{Name: "local", Connected: true, Local: true}},
 		LogsResult:        "log output",
 		ExecResult:        sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 7},
 		ProxyOn:           true,
-		CreateProxyResult: mcpserver.ProxyInfo{BoxID: "web", Port: 8000, URL: "https://slug.example.com", Slug: "slug", Description: "app"},
-		Proxies:           []mcpserver.ProxyInfo{{BoxID: "b1", Port: 8000}},
+		CreateProxyResult: api.ProxyInfo{BoxID: "web", Port: 8000, URL: "https://slug.example.com", Slug: "slug", Description: "app"},
+		Proxies:           []api.ProxyInfo{{BoxID: "b1", Port: 8000}},
 	}
-	ts := httptest.NewServer(mcpapi.NewHandler(fb))
+	ts := httptest.NewServer(api.NewHandler(fb))
 	defer ts.Close()
-	c := mcpapi.NewClient(ts.URL, ts.Client())
+	c := api.NewClient(ts.URL, ts.Client())
 	ctx := context.Background()
 
 	sess, err := c.CreateBox(ctx, sandbox.CreateOptions{BoxID: "web", Image: "img", Description: "d", SpokeName: "local"})
@@ -109,12 +108,12 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 // the split works end to end and never leaks a secret into MCP output.
 func TestMCPToolsOverHTTP(t *testing.T) {
 	fb := &testutils.FakeBackend{
-		CreateSess: mcpserver.BoxSession{BoxID: "web", ContainerID: "abcdef012345", Token: "tok"},
+		CreateSess: api.BoxSession{BoxID: "web", ContainerID: "abcdef012345", Token: "tok"},
 	}
-	ts := httptest.NewServer(mcpapi.NewHandler(fb))
+	ts := httptest.NewServer(api.NewHandler(fb))
 	defer ts.Close()
 
-	cs := testutils.ConnectMCP(t, mcpapi.NewClient(ts.URL, ts.Client()), "test", "v0")
+	cs := testutils.ConnectMCP(t, api.NewClient(ts.URL, ts.Client()), "test", "v0")
 
 	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{
 		Name:      "create_llmbox",
@@ -138,9 +137,9 @@ func TestMCPToolsOverHTTP(t *testing.T) {
 // TestClientSurfacesServerError checks a backend error is carried across the wire
 // and surfaced as a Go error by the client.
 func TestClientSurfacesServerError(t *testing.T) {
-	ts := httptest.NewServer(mcpapi.NewHandler(&testutils.FakeBackend{CreateErr: errStubFailure}))
+	ts := httptest.NewServer(api.NewHandler(&testutils.FakeBackend{CreateErr: errStubFailure}))
 	defer ts.Close()
-	c := mcpapi.NewClient(ts.URL, ts.Client())
+	c := api.NewClient(ts.URL, ts.Client())
 
 	_, err := c.CreateBox(context.Background(), sandbox.CreateOptions{BoxID: "x"})
 	if err == nil || !strings.Contains(err.Error(), "stub failure") {
@@ -151,10 +150,10 @@ func TestClientSurfacesServerError(t *testing.T) {
 // TestHandlerRejectsBadJSON checks the handler returns 400 for a malformed JSON
 // request body rather than treating it as an empty request.
 func TestHandlerRejectsBadJSON(t *testing.T) {
-	ts := httptest.NewServer(mcpapi.NewHandler(&testutils.FakeBackend{}))
+	ts := httptest.NewServer(api.NewHandler(&testutils.FakeBackend{}))
 	defer ts.Close()
 
-	res, err := ts.Client().Post(ts.URL+mcpapi.PathCreateBox, "application/json", strings.NewReader("{not json"))
+	res, err := ts.Client().Post(ts.URL+api.PathCreateBox, "application/json", strings.NewReader("{not json"))
 	if err != nil {
 		t.Fatalf("post: %v", err)
 	}

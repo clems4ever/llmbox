@@ -9,14 +9,14 @@
 		{
 			"function_name": "run",
 			"documentation_hash": "a9e74b351ff5c67ea3f96caa2e8e16cdcb92e61fae897091b0d0ada25d87c009",
-			"definition_hash": "cbff1e8a4eeb7ee110dbddb191a454535029bb1ecdda2de97dd254206788b57e",
-			"reviewed_at": "2026-07-01T12:27:01.062247825Z"
+			"definition_hash": "1329f3d6ca4c6a56635fd60341357a1519a8adc65b777e0aa9990142a1410916",
+			"reviewed_at": "2026-07-01T13:11:47.532032052Z"
 		},
 		{
 			"function_name": "newRootCmd",
 			"documentation_hash": "891cfb9ab1983eaa967e19f79fcee172c57d4b539e6f3a65da6f8cfeb2bea181",
-			"definition_hash": "95d9a9d943bce16f63fe328730d80bc26d2c554797670e8b7b3cdfb0d511a1fa",
-			"reviewed_at": "2026-07-01T12:27:01.058407228Z"
+			"definition_hash": "6d49609fba543fc2e9f5bb4a6fd1ecac9e82917723619f62608af08fa594382b",
+			"reviewed_at": "2026-07-01T13:47:08.017894368Z"
 		}
 	]
 }

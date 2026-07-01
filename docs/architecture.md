@@ -5,13 +5,13 @@ How llmbox is put together and why the auth secret stays out of the chatbot.
 ## The auth secret never touches the chatbot
 
 The OAuth code exchanges for a full-scope account token, so it must never enter
-the model's context. This is split accordingly across two front-ends on two
-separate ports:
+the model's context. This is split accordingly across two paths on the single
+server port:
 
-| Port / path                 | Audience | Carries |
-|-----------------------------|----------|---------|
-| `mcp_addr` `/api/v1/...`    | the chatbot, via the `llmbox-mcp` binary (which serves MCP and forwards here) | box IDs + the **auth page URL** only |
-| `http_addr` `/auth/{token}` | the human, in a browser | the **OAuth code** (browser → this server → container stdin) |
+| Path             | Audience | Carries |
+|------------------|----------|---------|
+| `/api/v1/...`    | the chatbot, via the `llmbox-mcp` binary (which serves MCP and forwards here) | box IDs + the **auth page URL** only |
+| `/auth/{token}`  | the human, in a browser | the **OAuth code** (browser → this server → container stdin) |
 
 The code travels from the user's browser to the box's `claude auth login`
 process; it is never an MCP input or output and is never logged.
@@ -52,7 +52,7 @@ they always reflect the current UI and stay reviewable; see
 
 | Path                 | What it is |
 |----------------------|------------|
-| `cmd/llmbox`         | Entry point: opens the session store, runs the HTTP server (MCP + auth pages) and the reaper. |
+| `cmd/llmbox-server`  | Entry point: opens the session store, runs the HTTP server (box-control API + auth pages) and the reaper. |
 | `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
 | `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile`         | Image for **this server** (`llmbox`). Carries only the llmbox server binary; it neither runs nor ships Claude. |

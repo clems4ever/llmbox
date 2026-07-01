@@ -1,30 +1,26 @@
-package mcpapi
+package api
 
 import (
 	"context"
 	"encoding/json"
 	"net/http"
-
-	"github.com/clems4ever/llmbox/internal/mcpserver"
 )
 
-// NewHandler builds the HTTP handler serving b's box operations as the mcpapi
-// JSON API, one POST route per Backend method. It is the server side of the seam:
-// the llmbox server mounts it on its box-control port and hands it its own
-// in-process backend.
+// NewHandler builds the HTTP handler serving b's box operations as the JSON box-
+// control API, one POST route per Backend method. It is meant to be mounted on
+// the server's mux under the /api/v1/ prefix.
 //
-// SECURITY — this API is intentionally UNAUTHENTICATED and carries no caller
+// SECURITY — this API is currently UNAUTHENTICATED and carries no caller
 // identity: any client that can reach it can act on ANY box by its ID (including
-// exec'ing into a box another user activated). It inherits the exact posture of
-// the MCP endpoint it replaces — llmbox is meant to run behind an authenticating
-// reverse proxy in front of a trusted set of callers. Do NOT expose this port
-// directly to untrusted networks.
+// exec'ing into a box another user activated). Until API-key / UI-session auth
+// lands, llmbox is meant to run behind an authenticating reverse proxy in front
+// of a trusted set of callers. Do NOT expose it directly to untrusted networks.
 //
 // @arg b The backend whose operations are exposed over HTTP.
-// @return http.Handler A mux serving the mcpapi routes over b.
+// @return http.Handler A mux serving the box-control routes over b.
 //
 // @testcase TestBackendAPIRoundTrip drives every route through NewClient against NewHandler.
-func NewHandler(b mcpserver.Backend) http.Handler {
+func NewHandler(b Backend) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("POST "+PathCreateBox, jsonHandler(func(ctx context.Context, req createBoxRequest) (createBoxResponse, error) {

@@ -7,20 +7,25 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/clems4ever/llmbox/internal/api"
 	"github.com/clems4ever/llmbox/internal/auth"
 )
 
-// APIHandler builds a handler serving the UI and API (auth pages, provider
-// sign-in, admin UI, spoke connect, health, favicon) — everything except MCP. It
-// is the public-facing port in a two-port deployment, kept separate from the MCP
-// port so the two can be exposed and protected independently.
+// APIHandler builds the server's single HTTP handler: the box-control JSON API
+// (under /api/v1/) plus the UI (auth pages, provider sign-in, admin UI, spoke
+// connect, health, favicon). Everything is served on one port; with proxying
+// enabled, requests to a proxy sub-domain are reverse-proxied to the box and all
+// other Hosts fall through to these routes.
 //
-// @return http.Handler A mux routing the UI/API endpoints, without the MCP route.
+// @return http.Handler A mux routing the box-control API and UI endpoints.
 //
-// @testcase TestAPIHandlerServesUINotMCP serves the UI routes but not MCP at the root.
+// @testcase TestAPIHandlerServesUIAndAPI serves both the UI routes and the box-control API.
 func (s *Server) APIHandler() http.Handler {
 	mux := http.NewServeMux()
 	s.registerAppRoutes(mux)
+	// The box-control API shares this mux under /api/v1/; the api handler matches
+	// the full paths within that subtree.
+	mux.Handle("/api/v1/", api.NewHandler(s.boxBackend()))
 	if !s.ProxyEnabled() {
 		return mux
 	}

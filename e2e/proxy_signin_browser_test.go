@@ -17,7 +17,6 @@ import (
 	"github.com/tebeka/selenium"
 
 	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/mcpapi"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
@@ -50,14 +49,9 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 
 	uiLn, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("listen ui: %v", err)
-	}
-	mcpLn, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen mcp: %v", err)
+		t.Fatalf("listen: %v", err)
 	}
 	base := "http://" + uiLn.Addr().String()
-	mcpBase := "http://" + mcpLn.Addr().String()
 
 	st, err := server.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
 	if err != nil {
@@ -72,16 +66,13 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 
 	srv := server.New(mgr, nil, base, 5*time.Minute, st, a)
 	srv.SetProxyBaseDomain("proxy.example.com")
-	apiSrv := &http.Server{Handler: srv.APIHandler()}
-	mcpSrv := &http.Server{Handler: mcpapi.NewHandler(srv.MCPBackend())}
-	go func() { _ = apiSrv.Serve(uiLn) }()
-	go func() { _ = mcpSrv.Serve(mcpLn) }()
-	t.Cleanup(func() { _ = apiSrv.Close() })
-	t.Cleanup(func() { _ = mcpSrv.Close() })
+	httpSrv := &http.Server{Handler: srv.APIHandler()}
+	go func() { _ = httpSrv.Serve(uiLn) }()
+	t.Cleanup(func() { _ = httpSrv.Close() })
 	waitHealthy(t, base)
 
-	// Create the box and enable a proxy for its port over MCP, as the chatbot does.
-	cs := connectMCP(t, mcpBase)
+	// Create the box and enable a proxy for its port over the API, as the chatbot does.
+	cs := connectMCP(t, base)
 	callTool(t, cs, "create_llmbox", map[string]any{"box_id": "proxy-box"})
 	proxyOut := callTool(t, cs, "create_llmbox_proxy", map[string]any{"box_id": "proxy-box", "port": 8000})
 	proxyURL, _ := proxyOut["url"].(string)

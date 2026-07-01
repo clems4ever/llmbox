@@ -251,7 +251,7 @@ func TestSpokeStatusesLocalOnly(t *testing.T) {
 func TestListSpokesTool(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
-	spokes, err := s.MCPBackend().SpokeStatuses(context.Background())
+	spokes, err := s.boxBackend().SpokeStatuses(context.Background())
 	if err != nil {
 		t.Fatalf("SpokeStatuses: %v", err)
 	}

@@ -20,7 +20,6 @@ import (
 // absent here (an empty value flows through to the manager).
 const (
 	DefaultHTTPAddr  = ":8080"
-	DefaultMCPAddr   = ":8081"
 	DefaultPublicURL = "http://localhost:8080"
 	DefaultAuthTTL   = 300 * time.Second
 	DefaultStateFile = "llmbox-sessions.db"
@@ -70,15 +69,11 @@ func (d *Duration) UnmarshalYAML(value *yaml.Node) error {
 // Config is the parsed llmbox configuration. Field semantics mirror the former
 // LLMBOX_* environment variables; see the README's Configuration section.
 type Config struct {
-	// HTTPAddr is the listen address for the UI and API (auth pages, admin UI,
-	// spoke connect, health, favicon) — everything except the MCP endpoint.
-	HTTPAddr string `yaml:"http_addr"`
-	// MCPAddr is the listen address for the MCP endpoint, served on its own port so
-	// it can sit behind an authenticating reverse proxy (e.g. oauth2-proxy)
-	// independently of the UI/API port. The MCP verbs are unauthenticated by the
-	// server itself (see internal/server/http.go), so this port must never be
-	// exposed directly to untrusted networks.
-	MCPAddr     string        `yaml:"mcp_addr"`
+	// HTTPAddr is the single listen address for the whole server: the box-control
+	// JSON API (under /api/v1/) plus the UI (auth pages, admin, spoke connect,
+	// health, favicon). The box-control API is unauthenticated by the server itself
+	// (see internal/server/http.go), so run behind an authenticating reverse proxy.
+	HTTPAddr    string        `yaml:"http_addr"`
 	PublicURL   string        `yaml:"public_url"`
 	ClaudeImage string        `yaml:"claude_image"`
 	RemoteArgs  string        `yaml:"remote_args"`
@@ -362,9 +357,6 @@ func (c *Config) validate() error {
 func (c *Config) applyDefaults() {
 	if c.HTTPAddr == "" {
 		c.HTTPAddr = DefaultHTTPAddr
-	}
-	if c.MCPAddr == "" {
-		c.MCPAddr = DefaultMCPAddr
 	}
 	if c.PublicURL == "" {
 		c.PublicURL = DefaultPublicURL

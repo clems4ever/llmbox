@@ -27,8 +27,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/clems4ever/llmbox/internal/api"
 	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/mcpapi"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/server"
 	"github.com/clems4ever/llmbox/testutils"
@@ -67,24 +67,16 @@ func TestClusterEndToEnd(t *testing.T) {
 	// exactly what they are sent.
 	srv.SetBoxImage("box:e2e")
 
-	// Two listeners: the UI/API (which carries /spoke/connect and /healthz) and the
-	// MCP endpoint, mirroring the two-port production split.
+	// A single listener carries everything: /spoke/connect, /healthz, and the
+	// box-control API under /api/v1/.
 	uiLn, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("listen ui: %v", err)
-	}
-	mcpLn, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen mcp: %v", err)
+		t.Fatalf("listen: %v", err)
 	}
 	uiAddr := uiLn.Addr().String()
-	mcpAddr := mcpLn.Addr().String()
-	apiSrv := &http.Server{Handler: srv.APIHandler()}
-	mcpSrv := &http.Server{Handler: mcpapi.NewHandler(srv.MCPBackend())}
-	go func() { _ = apiSrv.Serve(uiLn) }()
-	go func() { _ = mcpSrv.Serve(mcpLn) }()
-	t.Cleanup(func() { _ = apiSrv.Close() })
-	t.Cleanup(func() { _ = mcpSrv.Close() })
+	httpSrv := &http.Server{Handler: srv.APIHandler()}
+	go func() { _ = httpSrv.Serve(uiLn) }()
+	t.Cleanup(func() { _ = httpSrv.Close() })
 	waitHealthy(t, "http://"+uiAddr)
 
 	// The spoke: a real spoke process (goroutine) dialing the hub over WebSocket,
@@ -95,8 +87,8 @@ func TestClusterEndToEnd(t *testing.T) {
 		_ = cluster.Run(ctx, cluster.WebSocketDialer(wsURL), edgeMgr, joinToken, nil, func(cluster.Credentials) error { return nil }, cluster.ValidationPolicy{})
 	}()
 
-	// The chatbot side, over a real MCP client (on the MCP port).
-	cs := connectMCP(t, "http://"+mcpAddr)
+	// The chatbot side, over the box-control API on the single server.
+	cs := connectMCP(t, "http://"+uiAddr)
 
 	// Create a box on the spoke. Retry until the spoke has finished enrolling.
 	var createOut map[string]any
@@ -391,12 +383,12 @@ func waitHealthy(t *testing.T, base string) {
 }
 
 // connectMCP builds an MCP session standing in for the chatbot: it wraps an
-// mcpapi client pointed at the hub's box-control API in an MCP server (as the
+// api client pointed at the hub's box-control API in an MCP server (as the
 // llmbox-mcp binary does) and connects an in-memory MCP client to it, so tool
 // calls travel over the real box-control HTTP API to the hub.
 func connectMCP(t *testing.T, base string) *mcp.ClientSession {
 	t.Helper()
-	return testutils.ConnectMCP(t, mcpapi.NewClient(base, nil), "llmbox", "cluster-e2e")
+	return testutils.ConnectMCP(t, api.NewClient(base, nil), "llmbox", "cluster-e2e")
 }
 
 // callTool calls an MCP tool and returns its structured output, failing on error.

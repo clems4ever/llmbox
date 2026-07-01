@@ -110,12 +110,6 @@
 			"reviewed_at": "2026-06-29T15:39:25.339534239Z"
 		},
 		{
-			"function_name": "TestMCPBackendProxies",
-			"documentation_hash": "8d276a91081c04476b914dafa8eeb98c00bf0b890661f037c1ea2fd04464a478",
-			"definition_hash": "21a74e32b3f3844e46e076727da3ea29f1ed5cc24cfde4cf4c246544d51136b0",
-			"reviewed_at": "2026-06-29T15:39:25.343829028Z"
-		},
-		{
 			"function_name": "ProxyHTTP",
 			"receiver": "proxySpokeMgr",
 			"documentation_hash": "e18626afe8513054f39faa28c3bd60be24b4dd87357fa1be9f6f9900c59b2858",
@@ -169,6 +163,12 @@
 			"documentation_hash": "3071b08bc2e665412deacb8f65ad3b11b92d38a1e30b4e0f4ea491dc014d4ca6",
 			"definition_hash": "f6223481a71bf11556c9dd33cfcce2c70cc20a0e9b454aed95764682ee624c41",
 			"reviewed_at": "2026-06-29T15:39:25.307139917Z"
+		},
+		{
+			"function_name": "TestBackendProxies",
+			"documentation_hash": "0f8e5f75f149f53ed840b60e11fac5800142f62ad703e1388cfa215ac18a3677",
+			"definition_hash": "69af59bfed92003b26989ad2ed2d2b791a24817516e65f4b8b31f4c33cbff3c6",
+			"reviewed_at": "2026-07-01T13:12:36.652977534Z"
 		}
 	]
 }

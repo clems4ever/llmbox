@@ -1,14 +1,12 @@
 # Example llmbox configuration. Copy to llmbox.yaml (or pass --config <path>).
 # Every field is optional; omitted fields fall back to the defaults shown here.
 
-# Listen address for the UI/API server (auth pages, admin UI, health, favicon).
+# Single listen address for the whole server: the box-control API (/api/v1/) and
+# the UI (auth pages, admin UI, health, favicon). The box-control API is
+# unauthenticated by the server itself, so run behind an authenticating reverse
+# proxy (e.g. oauth2-proxy) and never expose this port directly to untrusted
+# networks.
 http_addr: ":8080"
-
-# Listen address for the MCP endpoint, served on its own port so it can sit behind
-# its own authenticating reverse proxy (e.g. oauth2-proxy) independently of the
-# UI/API port. The MCP verbs are unauthenticated by the server itself, so this
-# port must never be exposed directly to untrusted networks.
-mcp_addr: ":8081"
 
 # External base URL the user's browser can reach the UI/API at. MUST be set
 # correctly in production — it is used to build the auth-page links.
@@ -68,7 +66,7 @@ state_file: "llmbox-sessions.db"
 
 # Per-box resource caps and a ceiling on concurrent boxes. These bound resource
 # exhaustion (CPU/memory/PID fork-bombs, unbounded box counts) by a caller that
-# can reach the create/exec MCP tools — the MCP endpoint is unauthenticated by
+# can reach the create/exec API — the box-control API is unauthenticated by
 # design and meant to sit behind an authenticating proxy, so these are the host's
 # last line of defence. memory_mb/cpus/pids_limit default to the finite values
 # below when unset; set one high to effectively lift it. max_boxes is unlimited

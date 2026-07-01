@@ -117,12 +117,12 @@ func (s *Server) signInURL(r *http.Request) string {
 // exists, that record is returned unchanged rather than a duplicate created (so a
 // description supplied on a repeat call is ignored). The box must be a currently
 // tracked box (looked up by its box ID); the port is validated. createdBy records
-// who enabled the proxy (an admin email, or "" over MCP) and description is an
+// who enabled the proxy (an admin email, or "" via the API) and description is an
 // optional note stamped onto the record on first creation.
 //
 // @arg boxID The box ID of the box whose port to expose.
 // @arg port The TCP port inside the box to forward to.
-// @arg createdBy The identity enabling the proxy, or "" when unknown (MCP).
+// @arg createdBy The identity enabling the proxy, or "" when unknown (API caller).
 // @arg description An optional human-readable note for the proxy, or "" for none.
 // @return store.ProxyRecord The new (or pre-existing) proxy record.
 // @error error if proxying is disabled, the port is invalid, no box has that box ID, or persistence fails.

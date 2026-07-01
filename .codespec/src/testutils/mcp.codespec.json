@@ -3,9 +3,9 @@
 		{
 			"function_name": "CreateBox",
 			"receiver": "FakeBackend",
-			"documentation_hash": "8c3e47d3df5ad1b20a6f06db256fac178fa8eb897ea857cef47f8d0afe8a9881",
-			"definition_hash": "f9f7bd575936bfc371fbdc7f1d6bd8e40101ac351818182f5fe913374dda9db2",
-			"reviewed_at": "2026-07-01T11:56:15.19516496Z"
+			"documentation_hash": "40eb4148dcfafd898c91dfc8b6663e1a6f1b853fcfde0e327daf76e1b6073e8d",
+			"definition_hash": "8233442b3916a0e2d5d94c4e44560a0d2f65c26739b50c31094dcac4ed2c64bd",
+			"reviewed_at": "2026-07-01T13:13:15.246550459Z"
 		},
 		{
 			"function_name": "AuthPageURL",
@@ -17,9 +17,9 @@
 		{
 			"function_name": "LookupByBoxID",
 			"receiver": "FakeBackend",
-			"documentation_hash": "1b924036e66d44b0cc7b997c75a9316245d864a93024cb530ae591e52b3e0b5e",
-			"definition_hash": "93f1ba8be645cc03ad9cd07dc88824e1d742b965d4837bb9dbcb5dd3b8c594c9",
-			"reviewed_at": "2026-07-01T11:56:15.205013706Z"
+			"documentation_hash": "d5c7799dcd778f19745c1302be0f5b2bc653be02a61171ba6cdb881007aa5919",
+			"definition_hash": "76c54deace048d200e9b5b580943d9924b3203fba674ed2ad4149357ac4b5982",
+			"reviewed_at": "2026-07-01T13:13:15.247283785Z"
 		},
 		{
 			"function_name": "ListBoxes",
@@ -31,9 +31,9 @@
 		{
 			"function_name": "SpokeStatuses",
 			"receiver": "FakeBackend",
-			"documentation_hash": "f7abb39050cc5b3ea18989e3f5cec59ca09091c3b80509097d8c4315e2da05b0",
-			"definition_hash": "43e041fab3d526dbfe61063d5628f4ed2d4214687f63996bb443d2f05c78270d",
-			"reviewed_at": "2026-07-01T11:56:15.205712805Z"
+			"documentation_hash": "14b1ecc145e15ceb06c20094bdbd5e49c8d16f223a0a187da662b4141e5ba30e",
+			"definition_hash": "27733f75e5190554cda58c10d42ebf6a137fa17433c10a63615e04db3a945d56",
+			"reviewed_at": "2026-07-01T13:13:15.247858553Z"
 		},
 		{
 			"function_name": "DestroyBox",
@@ -66,9 +66,9 @@
 		{
 			"function_name": "CreateProxy",
 			"receiver": "FakeBackend",
-			"documentation_hash": "f81534b7e91004fc5660dcdf6c7b78b56cb227e16ecfb41910a9da5b53bc5fb2",
-			"definition_hash": "c46220817b25b2310741302b5bdf18ecfd229646f0fb836822d3a28178d609e0",
-			"reviewed_at": "2026-07-01T11:56:15.207890064Z"
+			"documentation_hash": "45c77335161db64db8112ba7f7db5e39b67a175b6b555844b175438439d5e194",
+			"definition_hash": "22cede021726bd754d94d2b5acc9e92b890235a46178ae48ee6ce9a353ef806e",
+			"reviewed_at": "2026-07-01T13:13:15.248476936Z"
 		},
 		{
 			"function_name": "DeleteProxy",
@@ -80,15 +80,15 @@
 		{
 			"function_name": "ListProxies",
 			"receiver": "FakeBackend",
-			"documentation_hash": "51ecb857dd0c3abed32b931e84ca6973013ea41a9265c78e5fe9dd6c1d4a4042",
-			"definition_hash": "974f5fc3edb576f3170487523f6f261447ee98c3e5475760aa5ea7052891f1f1",
-			"reviewed_at": "2026-07-01T11:56:16.076783637Z"
+			"documentation_hash": "be56298f95e5a0a94b3bebd662af376a772093e32fa0ef74f51da226ce6706e1",
+			"definition_hash": "a0fdccafa1c9157d818f1c63fce76806e0ee5f29e9e055a8314c2cf3307e8165",
+			"reviewed_at": "2026-07-01T13:13:15.249099586Z"
 		},
 		{
 			"function_name": "ConnectMCP",
-			"documentation_hash": "fc91469a5f9a8c9c4b0cff10ea78727c4d98fa8cefacfb47cf5421e166980216",
-			"definition_hash": "f86106875ac8babd3059abd1ce2555f26b86ed62a63d6013e4cd1d84c75c5089",
-			"reviewed_at": "2026-07-01T11:56:16.086230389Z"
+			"documentation_hash": "e7c6c95eb9ac81a6ec0b72b226722a19fe4804acd4ae1e3123665fbd82ffdca5",
+			"definition_hash": "19e1a3c2a9c13f31665718744e9c01a12d5318625846a3c1736950eee61c5409",
+			"reviewed_at": "2026-07-01T13:13:15.249633266Z"
 		}
 	]
 }

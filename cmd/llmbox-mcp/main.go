@@ -1,5 +1,5 @@
 // Command llmbox-mcp is a stand-alone MCP server that exposes the llmbox tools
-// and forwards every call to an upstream llmbox server's box-control API (mcpapi)
+// and forwards every call to an upstream llmbox server's box-control API
 // over HTTP. It holds no Docker, session-store, or cluster state of its own — it
 // is a thin protocol adapter, so it can run wherever a chatbot needs an MCP
 // endpoint while the real work stays on the upstream server.
@@ -22,7 +22,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 
-	"github.com/clems4ever/llmbox/internal/mcpapi"
+	"github.com/clems4ever/llmbox/internal/api"
 	"github.com/clems4ever/llmbox/internal/mcpserver"
 )
 
@@ -69,7 +69,7 @@ func newRootCmd() *cobra.Command {
 	return rootCmd
 }
 
-// run builds the MCP tool server backed by an mcpapi client pointed at upstream,
+// run builds the MCP tool server backed by an api client pointed at upstream,
 // then serves it: over stdio when stdio is set (blocking until the client
 // disconnects or ctx is cancelled), otherwise as a streamable-HTTP endpoint on
 // addr with graceful shutdown when a termination signal (or ctx) fires. It is the
@@ -91,7 +91,7 @@ func run(parent context.Context, upstream, addr string, stdio bool) error {
 	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := mcpserver.NewServer(mcpapi.NewClient(upstream, nil), name, version)
+	srv := mcpserver.NewServer(api.NewClient(upstream, nil), name, version)
 
 	if stdio {
 		// stdio: the chatbot owns the process lifecycle; Run blocks until the client
