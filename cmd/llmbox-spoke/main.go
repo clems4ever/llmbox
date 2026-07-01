@@ -1,0 +1,26 @@
+// Command llmbox-spoke runs a hub-and-spoke spoke: it connects to a hub over a
+// WebSocket and serves box operations against the local Docker daemon, so boxes
+// can be placed on this host from a central hub. Its `token` subcommand mints,
+// lists, and revokes the one-time join tokens a hub issues to enroll spokes.
+//
+// It is a separate binary from the llmbox server (the hub) so a spoke host needs
+// only this thin command and a Docker daemon, not the full server.
+package main
+
+import (
+	"os"
+)
+
+const (
+	name    = "llmbox-spoke"
+	version = "v0.1.0"
+)
+
+// main executes the root command and exits non-zero on a fatal error.
+//
+// @testcase TestNewRootCmd covers the command wiring main relies on.
+func main() {
+	if err := newRootCmd().Execute(); err != nil {
+		os.Exit(1)
+	}
+}

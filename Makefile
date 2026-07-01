@@ -6,6 +6,8 @@ BINARY      := llmbox
 PKG         := ./cmd/llmbox
 MCP_BINARY  := llmbox-mcp
 MCP_PKG     := ./cmd/llmbox-mcp
+SPOKE_BINARY := llmbox-spoke
+SPOKE_PKG    := ./cmd/llmbox-spoke
 IMAGE       := llmbox
 VERSION     := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVERPROFILE := coverage.out
@@ -33,9 +35,13 @@ build: ## Build the llmbox binary into ./$(BINARY).
 build-mcp: ## Build the stand-alone llmbox-mcp binary into ./$(MCP_BINARY).
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(MCP_BINARY) $(MCP_PKG)
 
+.PHONY: build-spoke
+build-spoke: ## Build the stand-alone llmbox-spoke binary into ./$(SPOKE_BINARY).
+	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(SPOKE_BINARY) $(SPOKE_PKG)
+
 .PHONY: install
-install: ## Install the llmbox and llmbox-mcp binaries into $GOPATH/bin.
-	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG)
+install: ## Install the llmbox, llmbox-mcp, and llmbox-spoke binaries into $GOPATH/bin.
+	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG) $(SPOKE_PKG)
 
 .PHONY: run
 run: ## Run the server (use CONFIG=path to pick a config file).
@@ -106,6 +112,10 @@ docker-build: ## Build the llmbox Docker image (tagged $(IMAGE):$(VERSION) and :
 docker-build-mcp: ## Build the llmbox-mcp Docker image (tagged $(IMAGE)-mcp:$(VERSION) and :latest).
 	docker build -f Dockerfile.mcp -t $(IMAGE)-mcp:$(VERSION) -t $(IMAGE)-mcp:latest .
 
+.PHONY: docker-build-spoke
+docker-build-spoke: ## Build the llmbox-spoke Docker image (tagged $(IMAGE)-spoke:$(VERSION) and :latest).
+	docker build -f Dockerfile.spoke -t $(IMAGE)-spoke:$(VERSION) -t $(IMAGE)-spoke:latest .
+
 .PHONY: docker-build-box
 docker-build-box: ## Build the default box base image (tagged $(IMAGE)-box:$(VERSION) and :latest).
 	docker build -f Dockerfile.box -t $(IMAGE)-box:$(VERSION) -t $(IMAGE)-box:latest .
@@ -121,4 +131,4 @@ check: lint test ## Run lint and the unit tests.
 
 .PHONY: clean
 clean: ## Remove build artifacts.
-	rm -f $(BINARY) $(MCP_BINARY) $(COVERPROFILE)
+	rm -f $(BINARY) $(MCP_BINARY) $(SPOKE_BINARY) $(COVERPROFILE)

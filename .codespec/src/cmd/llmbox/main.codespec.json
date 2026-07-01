@@ -9,32 +9,14 @@
 		{
 			"function_name": "run",
 			"documentation_hash": "a9e74b351ff5c67ea3f96caa2e8e16cdcb92e61fae897091b0d0ada25d87c009",
-			"definition_hash": "3d920b35762ac24d0cf30b78a1794af105807fefa350544f80b3e9188b61f1ea",
-			"reviewed_at": "2026-07-01T10:29:33.404528546Z"
+			"definition_hash": "cbff1e8a4eeb7ee110dbddb191a454535029bb1ecdda2de97dd254206788b57e",
+			"reviewed_at": "2026-07-01T12:27:01.062247825Z"
 		},
 		{
 			"function_name": "newRootCmd",
-			"documentation_hash": "7223512e5cdf5dd3e7c2b16a4fae20cd1d41ce21b1b963b44b5b3570ff6b2459",
-			"definition_hash": "652786de6e3b3072447da8d7e21cf6cd5af7b63d105644d704010a0102370de1",
-			"reviewed_at": "2026-06-19T19:45:40.021903335Z"
-		},
-		{
-			"function_name": "loadConfig",
-			"documentation_hash": "025fff6c1469117c5a58aff90fba10e011b5281237c97ef6407dfa913f1cdc08",
-			"definition_hash": "d4b743be1ac062d63ad147e1877a119ffc00e7dcaabf499584b0767ecba6e8e9",
-			"reviewed_at": "2026-06-21T13:21:34.398607349Z"
-		},
-		{
-			"function_name": "boxLimits",
-			"documentation_hash": "0ce476f2df2b0b35a65f33edde2d51452956dda248fab5d7dff1efd47706011e",
-			"definition_hash": "19b3af1b4dfe0c094b97e34c773ad82c57e80a8f26b7be5dee845513df3882b5",
-			"reviewed_at": "2026-06-30T16:13:16.949180988Z"
-		},
-		{
-			"function_name": "registryAuths",
-			"documentation_hash": "4af760d6567a24e5c7bab17140be6ac4b7aadaf5484c1701a27f4a832ae3397c",
-			"definition_hash": "930fa5cd0591005ff5a02bd3ff1f285a453bcb831a4ca06fcbf95b4c20d8110e",
-			"reviewed_at": "2026-06-30T16:13:16.949935483Z"
+			"documentation_hash": "891cfb9ab1983eaa967e19f79fcee172c57d4b539e6f3a65da6f8cfeb2bea181",
+			"definition_hash": "95d9a9d943bce16f63fe328730d80bc26d2c554797670e8b7b3cdfb0d511a1fa",
+			"reviewed_at": "2026-07-01T12:27:01.058407228Z"
 		}
 	]
 }

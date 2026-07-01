@@ -1,16 +1,10 @@
 {
 	"functions": [
 		{
-			"function_name": "newSpokeCmd",
-			"documentation_hash": "ba0ba0eb7ca2ec6e345f2c5c321e485849df9509bc0dfce4e2587490beafdc65",
-			"definition_hash": "5033d1857b1c5795d3e75c84c68a5b98ced320c1bf5d9646f65dfe9e3bbfe8e1",
-			"reviewed_at": "2026-07-01T09:18:43.402372789Z"
-		},
-		{
 			"function_name": "newSpokeTokenCmd",
-			"documentation_hash": "62db1f4feb1a5ff2d2670e9de6406fc0cef322730966523f715c32826c485dd6",
-			"definition_hash": "402f0171eea686331b9f00b158796e592ae4e373a2387ee946d7223f4e597803",
-			"reviewed_at": "2026-06-19T20:22:06.68011442Z"
+			"documentation_hash": "4074ff2606703efb1c3c8ce0b6e77908d37063006062d264020d6e4190ef2274",
+			"definition_hash": "4fad7040b5e6af03050b4ae4ab3f14f32005977c3dc8995c368da4c8abc57344",
+			"reviewed_at": "2026-07-01T12:26:57.447410912Z"
 		},
 		{
 			"function_name": "createJoinToken",
@@ -21,8 +15,8 @@
 		{
 			"function_name": "runSpoke",
 			"documentation_hash": "87acda62ea3b628b6dab9f3ec26a8459a7e2e698c73bd98bf6aa068494454bb6",
-			"definition_hash": "19b2f3f82a4d647548c5fc22b7de359431e8b24661732ce97e9242b58ed52ce0",
-			"reviewed_at": "2026-07-01T09:18:43.403243462Z"
+			"definition_hash": "b63b5ebc235c48e2d75878f75cd09cd089a85fa361dc5a81c15b01272979a8d9",
+			"reviewed_at": "2026-07-01T12:26:57.448029864Z"
 		},
 		{
 			"function_name": "loadSpokeCreds",
@@ -59,6 +53,12 @@
 			"documentation_hash": "cac1f2265b49e2a0c4c3a62a9cd4941aa2eeb9bf22eae7d76cd98b28b45abd3f",
 			"definition_hash": "0761b1a0f0c5c2c2671ebf5cd85c3074585f25cb2ebfd7787fec92f8e7eccd70",
 			"reviewed_at": "2026-06-21T19:18:10.178713971Z"
+		},
+		{
+			"function_name": "newRootCmd",
+			"documentation_hash": "86e980ce8895ad36749bb4d1b703f671992527ed1d65367a05e16de7f89ee919",
+			"definition_hash": "05ac241949e0a226acb91cdc4efc2b6da67afa6837daa032d4e92f78a0f92b99",
+			"reviewed_at": "2026-07-01T12:26:57.443857278Z"
 		}
 	]
 }

@@ -25,9 +25,9 @@ const (
 	DefaultAuthTTL   = 300 * time.Second
 	DefaultStateFile = "llmbox-sessions.db"
 
-	// DefaultSpokeImage is the container image the admin UI shows in the
-	// ready-to-run `docker run … spoke …` command when cluster.spoke_image is
-	// unset. Operators on a fork or a pinned tag override it in config.
+	// DefaultSpokeImage is the llmbox-spoke container image the admin UI shows in
+	// the ready-to-run `docker run …` command when cluster.spoke_image is unset.
+	// Operators on a fork or a pinned tag override it in config.
 	DefaultSpokeImage = "ghcr.io/clems4ever/granular-llmbox:latest"
 
 	// DefaultSessionTTL is how long an activation login session stays valid when

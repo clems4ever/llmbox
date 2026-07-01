@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/box"
+	"github.com/clems4ever/llmbox/internal/cli"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
@@ -37,14 +38,15 @@ const (
 	spokeReconnectMax = 30 * time.Second
 )
 
-// newSpokeCmd builds the `spoke` command tree: `llmbox spoke` runs a spoke that
-// joins a hub and serves boxes against the local Docker daemon, and
-// `llmbox spoke token create` mints a one-time join token on the hub.
+// newRootCmd builds the llmbox-spoke command tree: the root command runs a spoke
+// that joins a hub and serves boxes against the local Docker daemon, and a
+// `token` subcommand (create/list/revoke) manages the one-time join tokens on the
+// hub.
 //
-// @return *cobra.Command The configured spoke command with its token subcommand.
+// @return *cobra.Command The configured root command with its token subcommand.
 //
-// @testcase TestNewSpokeCmd checks the spoke command wiring (flags and subcommands).
-func newSpokeCmd() *cobra.Command {
+// @testcase TestNewRootCmd checks the command wiring (flags and subcommands).
+func newRootCmd() *cobra.Command {
 	var (
 		configPath string
 		hubURL     string
@@ -54,8 +56,9 @@ func newSpokeCmd() *cobra.Command {
 		namespace  string
 	)
 	spokeCmd := &cobra.Command{
-		Use:           "spoke",
+		Use:           name,
 		Short:         "Run a spoke that joins a hub and runs boxes on the local Docker daemon",
+		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: false,
 		Args:          cobra.NoArgs,
@@ -63,7 +66,7 @@ func newSpokeCmd() *cobra.Command {
 			if hubURL == "" {
 				return errors.New("--hub is required (e.g. wss://hub.example.com/spoke/connect)")
 			}
-			cfg, err := loadConfig(configPath, cmd.Flags().Changed("config"))
+			cfg, err := cli.LoadConfig(configPath, cmd.Flags().Changed("config"))
 			if err != nil {
 				return err
 			}
@@ -81,12 +84,12 @@ func newSpokeCmd() *cobra.Command {
 	return spokeCmd
 }
 
-// newSpokeTokenCmd builds the `spoke token` command tree (currently just
-// `create`). Token management runs on the hub and operates on its state file.
+// newSpokeTokenCmd builds the `token` command tree (create/list/revoke). Token
+// management runs against the hub's state file.
 //
-// @return *cobra.Command The configured `spoke token` command.
+// @return *cobra.Command The configured `token` command.
 //
-// @testcase TestNewSpokeCmd checks the token subcommand is registered.
+// @testcase TestNewRootCmd checks the token subcommand is registered.
 func newSpokeTokenCmd() *cobra.Command {
 	tokenCmd := &cobra.Command{
 		Use:   "token",
@@ -109,7 +112,7 @@ func newSpokeTokenCmd() *cobra.Command {
 			if spokeName == "" {
 				return errors.New("--name is required (the spoke name baked into the token)")
 			}
-			cfg, err := loadConfig(configPath, cmd.Flags().Changed("config"))
+			cfg, err := cli.LoadConfig(configPath, cmd.Flags().Changed("config"))
 			if err != nil {
 				return err
 			}
@@ -129,7 +132,7 @@ func newSpokeTokenCmd() *cobra.Command {
 		SilenceErrors: false,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cfg, err := loadConfig(listConfigPath, cmd.Flags().Changed("config"))
+			cfg, err := cli.LoadConfig(listConfigPath, cmd.Flags().Changed("config"))
 			if err != nil {
 				return err
 			}
@@ -154,7 +157,7 @@ func newSpokeTokenCmd() *cobra.Command {
 			if revokeID == "" && revokeName == "" {
 				return errors.New("one of --id or --name is required")
 			}
-			cfg, err := loadConfig(revokeConfigPath, cmd.Flags().Changed("config"))
+			cfg, err := cli.LoadConfig(revokeConfigPath, cmd.Flags().Changed("config"))
 			if err != nil {
 				return err
 			}
@@ -324,8 +327,8 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 	if err != nil {
 		return err
 	}
-	prov.SetPerBoxLimits(boxLimits(cfg.Box))
-	prov.SetRegistryAuths(registryAuths(cfg.Registries))
+	prov.SetPerBoxLimits(cli.BoxLimits(cfg.Box))
+	prov.SetRegistryAuths(cli.RegistryAuths(cfg.Registries))
 	// GPUs are machine-local: attach the host's GPUs to every box this spoke runs.
 	if err := prov.SetBoxGPUs(boxGPUs); err != nil {
 		return err
