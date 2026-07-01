@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "TestMainBuildsRootCmd",
+			"documentation_hash": "0d2a925722446955ec77cb546c5c73277ec7d24183eeb249ad1f7c9e0c3751a7",
+			"definition_hash": "f78b41be3cf474f8ad39373e38c5b14979f88b25f0dca5decb21f7e5d38919e1",
+			"reviewed_at": "2026-07-01T15:02:59.41191964Z"
+		}
+	]
+}

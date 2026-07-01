@@ -9,6 +9,8 @@ package main
 
 import (
 	"os"
+
+	"github.com/clems4ever/llmbox/internal/spoke"
 )
 
 const (
@@ -16,11 +18,12 @@ const (
 	version = "v0.1.0"
 )
 
-// main executes the root command and exits non-zero on a fatal error.
+// main builds the spoke command tree (from the spoke package) with this binary's
+// name and version, executes it, and exits non-zero on a fatal error.
 //
-// @testcase TestNewRootCmd covers the command wiring main relies on.
+// @testcase TestMainBuildsRootCmd covers the command wiring main relies on.
 func main() {
-	if err := newRootCmd().Execute(); err != nil {
+	if err := spoke.NewRootCmd(name, version).Execute(); err != nil {
 		os.Exit(1)
 	}
 }
