@@ -86,6 +86,7 @@ type Config struct {
 	Spoke       SpokeConfig   `yaml:"spoke"`
 	Box         BoxConfig     `yaml:"box"`
 	Proxy       ProxyConfig   `yaml:"proxy"`
+	TLS         TLSConfig     `yaml:"tls"`
 	// Registries holds credentials for pulling box images from authenticated
 	// container registries. The manager selects the entry whose host matches the
 	// image being pulled; an image whose registry has no entry is pulled
@@ -155,6 +156,24 @@ type ProxyConfig struct {
 	// BaseDomain is the parent domain proxy subdomains hang off, e.g.
 	// "proxy.example.com" (a proxy is then reached at <slug>.proxy.example.com).
 	BaseDomain string `yaml:"base_domain"`
+}
+
+// TLSConfig makes the server terminate TLS itself instead of serving plaintext
+// HTTP. When enabled, the single HTTP server (UI + box-control API) is served
+// over HTTPS using the PEM certificate and private key at the configured paths,
+// and the startup insecure-transport warning is suppressed. Leave it disabled
+// (the default) only when a TLS-terminating reverse proxy sits in front, since
+// the box-control API and relayed OAuth codes must never cross the wire in the
+// clear.
+type TLSConfig struct {
+	// Enabled turns on in-process TLS termination. When true, cert_file and
+	// key_file are required.
+	Enabled bool `yaml:"enabled"`
+	// CertFile is the path to the PEM-encoded server certificate (a full chain,
+	// leaf first, when intermediates are needed).
+	CertFile string `yaml:"cert_file"`
+	// KeyFile is the path to the PEM-encoded private key matching CertFile.
+	KeyFile string `yaml:"key_file"`
 }
 
 // ClusterConfig enables hub-and-spoke clustering on the hub. When enabled, the
@@ -252,6 +271,8 @@ func Default() *Config {
 // @testcase TestLoadRegistry loads a registry entry and resolves its password file.
 // @testcase TestLoadRegistryMissingPasswordFile errors when the password file is absent.
 // @testcase TestLoadRegistryRequiresHost rejects a registry entry with no registry host.
+// @testcase TestLoadTLS loads an enabled TLS block with a cert and key file.
+// @testcase TestLoadTLSRequiresCertAndKey rejects enabled TLS with no cert_file or key_file.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -329,7 +350,11 @@ func secretFromFile(path string) (string, error) {
 //
 // @testcase TestLoadGoogleRequiresAllowlist rejects an enabled provider with no allow rule.
 // @testcase TestLoadRegistryRequiresHost rejects a registry entry with no registry host.
+// @testcase TestLoadTLSRequiresCertAndKey rejects enabled TLS with no cert_file or key_file.
 func (c *Config) validate() error {
+	if c.TLS.Enabled && (c.TLS.CertFile == "" || c.TLS.KeyFile == "") {
+		return errors.New("tls.enabled requires cert_file and key_file")
+	}
 	if g := c.Auth.Google; g.Enabled {
 		if g.ClientID == "" {
 			return errors.New("auth.google.enabled requires client_id")

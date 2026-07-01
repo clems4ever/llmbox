@@ -266,6 +266,36 @@ registries:
 	}
 }
 
+// TestLoadTLS checks an enabled TLS block parses its cert and key file paths.
+func TestLoadTLS(t *testing.T) {
+	c, err := Load(write(t, `
+tls:
+  enabled: true
+  cert_file: "/etc/llmbox/tls-cert.pem"
+  key_file: "/etc/llmbox/tls-key.pem"
+`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !c.TLS.Enabled {
+		t.Error("TLS.Enabled = false, want true")
+	}
+	if c.TLS.CertFile != "/etc/llmbox/tls-cert.pem" || c.TLS.KeyFile != "/etc/llmbox/tls-key.pem" {
+		t.Errorf("cert/key = %q / %q", c.TLS.CertFile, c.TLS.KeyFile)
+	}
+}
+
+// TestLoadTLSRequiresCertAndKey checks enabling TLS without both a cert and a key
+// file is a hard error (there would be nothing to serve the connection with).
+func TestLoadTLSRequiresCertAndKey(t *testing.T) {
+	if _, err := Load(write(t, "tls:\n  enabled: true\n  cert_file: \"/etc/llmbox/tls-cert.pem\"\n")); err == nil {
+		t.Error("Load TLS with no key_file = nil, want error")
+	}
+	if _, err := Load(write(t, "tls:\n  enabled: true\n  key_file: \"/etc/llmbox/tls-key.pem\"\n")); err == nil {
+		t.Error("Load TLS with no cert_file = nil, want error")
+	}
+}
+
 // TestLoadRegistryRequiresHost checks a registry entry with no host is rejected.
 func TestLoadRegistryRequiresHost(t *testing.T) {
 	dir := t.TempDir()

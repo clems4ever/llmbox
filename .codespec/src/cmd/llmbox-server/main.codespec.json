@@ -9,14 +9,26 @@
 		{
 			"function_name": "run",
 			"documentation_hash": "a9e74b351ff5c67ea3f96caa2e8e16cdcb92e61fae897091b0d0ada25d87c009",
-			"definition_hash": "1329f3d6ca4c6a56635fd60341357a1519a8adc65b777e0aa9990142a1410916",
-			"reviewed_at": "2026-07-01T13:11:47.532032052Z"
+			"definition_hash": "ee5bc30e783730e283313c54f5e275a5ed1de4e3f0b8c7b4c1d242d933e94532",
+			"reviewed_at": "2026-07-01T14:22:43.799516827Z"
 		},
 		{
 			"function_name": "newRootCmd",
 			"documentation_hash": "891cfb9ab1983eaa967e19f79fcee172c57d4b539e6f3a65da6f8cfeb2bea181",
 			"definition_hash": "6d49609fba543fc2e9f5bb4a6fd1ecac9e82917723619f62608af08fa594382b",
 			"reviewed_at": "2026-07-01T13:47:08.017894368Z"
+		},
+		{
+			"function_name": "listenAndServe",
+			"documentation_hash": "6991c034bcc37ab5bf070fa9487b69a3e620e2fb3a33330b9cd879ab288f6d98",
+			"definition_hash": "3a1f951a133b3fcee9b30cb25d0985c03e1685f31f6565db1381c082fc072e68",
+			"reviewed_at": "2026-07-01T14:22:25.928445571Z"
+		},
+		{
+			"function_name": "insecureTransportWarning",
+			"documentation_hash": "a74cbf26fd0a2adb6212ff136a07e78314c49441426bb97a3c19626b8d570b09",
+			"definition_hash": "33b83e95815c606207eb8ba7e504c9247923dc3ab07ac4aaaee506085573bc35",
+			"reviewed_at": "2026-07-01T14:22:43.80336876Z"
 		}
 	]
 }

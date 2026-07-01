@@ -15,9 +15,9 @@
 		},
 		{
 			"function_name": "Load",
-			"documentation_hash": "65921e96f3b2443d023c099ad555534338fa83cd93cb23ae6cf893a5cb651f40",
+			"documentation_hash": "812a32dee343c16806a74e0ddb4d9336f731f136a15d33542ef8b528985efc51",
 			"definition_hash": "ce49d83263b198b4d99b3d7c20061158df49b16a252f048c80183af4067bfe09",
-			"reviewed_at": "2026-06-26T12:09:36.424573507Z"
+			"reviewed_at": "2026-07-01T14:22:43.82217397Z"
 		},
 		{
 			"function_name": "applyDefaults",
@@ -42,9 +42,9 @@
 		{
 			"function_name": "validate",
 			"receiver": "Config",
-			"documentation_hash": "63d4dcd57bf02f66b756395a18f7e41557939c0935bfacab48ee675c546549c9",
-			"definition_hash": "8d81f2faa7e4c53b1ab613333ae87ba19cfe38028984a456a0aeebd6c4ca249c",
-			"reviewed_at": "2026-06-26T12:09:36.442436672Z"
+			"documentation_hash": "8e2694fcf18669a216e78ad826a5af7e9310f77b22e3083a2738108d800d32b9",
+			"definition_hash": "853aa920e1028db47f6899076d4cd31016c601725cc9e5f8ff17420aba9565e1",
+			"reviewed_at": "2026-07-01T14:22:52.788174734Z"
 		}
 	]
 }
