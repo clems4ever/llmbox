@@ -4,6 +4,8 @@
 
 BINARY      := llmbox
 PKG         := ./cmd/llmbox
+MCP_BINARY  := llmbox-mcp
+MCP_PKG     := ./cmd/llmbox-mcp
 IMAGE       := llmbox
 VERSION     := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVERPROFILE := coverage.out
@@ -27,9 +29,13 @@ help: ## Show this help.
 build: ## Build the llmbox binary into ./$(BINARY).
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(BINARY) $(PKG)
 
+.PHONY: build-mcp
+build-mcp: ## Build the stand-alone llmbox-mcp binary into ./$(MCP_BINARY).
+	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(MCP_BINARY) $(MCP_PKG)
+
 .PHONY: install
-install: ## Install the llmbox binary into $GOPATH/bin.
-	go install $(GO_BUILD_FLAGS) $(PKG)
+install: ## Install the llmbox and llmbox-mcp binaries into $GOPATH/bin.
+	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG)
 
 .PHONY: run
 run: ## Run the server (use CONFIG=path to pick a config file).
@@ -96,6 +102,10 @@ cover-html: cover ## Open the HTML coverage report.
 docker-build: ## Build the llmbox Docker image (tagged $(IMAGE):$(VERSION) and :latest).
 	docker build -t $(IMAGE):$(VERSION) -t $(IMAGE):latest .
 
+.PHONY: docker-build-mcp
+docker-build-mcp: ## Build the llmbox-mcp Docker image (tagged $(IMAGE)-mcp:$(VERSION) and :latest).
+	docker build -f Dockerfile.mcp -t $(IMAGE)-mcp:$(VERSION) -t $(IMAGE)-mcp:latest .
+
 .PHONY: docker-build-box
 docker-build-box: ## Build the default box base image (tagged $(IMAGE)-box:$(VERSION) and :latest).
 	docker build -f Dockerfile.box -t $(IMAGE)-box:$(VERSION) -t $(IMAGE)-box:latest .
@@ -111,4 +121,4 @@ check: lint test ## Run lint and the unit tests.
 
 .PHONY: clean
 clean: ## Remove build artifacts.
-	rm -f $(BINARY) $(COVERPROFILE)
+	rm -f $(BINARY) $(MCP_BINARY) $(COVERPROFILE)

@@ -3,29 +3,17 @@ package server
 import (
 	"context"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
 	"github.com/clems4ever/llmbox/internal/mcpserver"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/store"
 )
 
-// MCPServer builds an MCP server exposing this server's box tools. It is a thin
-// wrapper that adapts the server to the mcpserver.Backend contract; the tool
-// logic itself lives in the mcpserver package.
-//
-// @arg name The MCP server implementation name.
-// @arg version The MCP server implementation version.
-// @return *mcp.Server An MCP server with the create/get/list/destroy tools registered.
-//
-// @testcase TestMCPToolsRegisteredAndCreate checks all tools are registered and create works.
-func (s *Server) MCPServer(name, version string) *mcp.Server {
-	return mcpserver.NewServer(s.MCPBackend(), name, version)
-}
-
 // MCPBackend returns the server adapted to the mcpserver.Backend interface, so
-// the MCP tool layer can drive box operations without depending on the server's
-// internals.
+// the box operations can be driven without depending on the server's internals.
+// The server exposes this backend over HTTP (via mcpapi.NewHandler) on its
+// box-control port; the stand-alone `llmbox mcp` command consumes that HTTP API
+// and serves the MCP protocol itself. The tool logic lives in the mcpserver
+// package and never runs in this process.
 //
 // @return mcpserver.Backend The backend the MCP tools call into.
 //

@@ -5,13 +5,13 @@ How llmbox is put together and why the auth secret stays out of the chatbot.
 ## The auth secret never touches the chatbot
 
 The OAuth code exchanges for a full-scope account token, so it must never enter
-the model's context. This server is split accordingly — one process, two
-front-ends on the same HTTP port:
+the model's context. This is split accordingly across two front-ends on two
+separate ports:
 
-| Path            | Audience | Carries |
-|-----------------|----------|---------|
-| `/` (root)      | the chatbot (MCP over streamable HTTP) | box IDs + the **auth page URL** only |
-| `/auth/{token}` | the human, in a browser | the **OAuth code** (browser → this server → container stdin) |
+| Port / path                 | Audience | Carries |
+|-----------------------------|----------|---------|
+| `mcp_addr` `/api/v1/...`    | the chatbot, via the `llmbox-mcp` binary (which serves MCP and forwards here) | box IDs + the **auth page URL** only |
+| `http_addr` `/auth/{token}` | the human, in a browser | the **OAuth code** (browser → this server → container stdin) |
 
 The code travels from the user's browser to the box's `claude auth login`
 process; it is never an MCP input or output and is never logged.

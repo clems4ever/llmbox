@@ -1,0 +1,28 @@
+{
+	"functions": [
+		{
+			"function_name": "NewHandler",
+			"documentation_hash": "a6d542aeaa6bd28524db897bb5f986f5811f172291e2d9cdfc2fd8fc190490de",
+			"definition_hash": "bd8e2a29c396b6d1bb3de75285dac7defdee5f12e61c639927ad2d7bd282c8b2",
+			"reviewed_at": "2026-07-01T10:31:21.234476335Z"
+		},
+		{
+			"function_name": "jsonHandler",
+			"documentation_hash": "c075dedf730708269f3cac5473158f43bd9fd89ac7b98ab53b8549ad5b1c32ad",
+			"definition_hash": "5050e92310ae44490f7a466a2ddf5e95f083a553425b1a43e73af069784034dc",
+			"reviewed_at": "2026-07-01T10:31:21.234763175Z"
+		},
+		{
+			"function_name": "writeJSON",
+			"documentation_hash": "adfbcdc5b1ca12e49d3d2ad69bdd0f679c0573b6903b38840d8908f396206761",
+			"definition_hash": "7d55273efed15d1d8b9f8a9c413cfc0519a5196f46a1fecc8b851ed7beec385f",
+			"reviewed_at": "2026-07-01T10:31:21.244178368Z"
+		},
+		{
+			"function_name": "writeError",
+			"documentation_hash": "fe0b15843d72cceaf19a39afc02e2a5835d13cf9ef779f824f41e7513cb5083f",
+			"definition_hash": "89ed15fbf0a7f5f055ce8f46c2370cfb4260966ab06765cccfc3724f20dba8cf",
+			"reviewed_at": "2026-07-01T10:31:21.244409852Z"
+		}
+	]
+}

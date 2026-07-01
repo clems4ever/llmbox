@@ -1,7 +1,8 @@
 # MCP tools
 
-The tools served at the root MCP endpoint. Add the server as a remote MCP server
-in your client (see [Configuration](configuration.md#connecting-a-chatbot)).
+The tools served by the `llmbox-mcp` binary (which forwards to the llmbox
+server's box-control API). Add `llmbox-mcp` as a remote MCP server in your client
+(see [Configuration](configuration.md#connecting-a-chatbot)).
 
 | Tool             | Arguments | Returns |
 |------------------|-----------|---------|

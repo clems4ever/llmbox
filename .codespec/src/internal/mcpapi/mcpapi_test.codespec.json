@@ -1,0 +1,106 @@
+{
+	"functions": [
+		{
+			"function_name": "CreateBox",
+			"receiver": "stubBackend",
+			"documentation_hash": "8463f4b0b811f90d11429d4b59c0656a9016151a97ff9778460ccecb178e51f0",
+			"definition_hash": "5d0d69c0ce49d7890a1b3bbcbda0d39c89399041d4f85032b3c27f794e7045bf",
+			"reviewed_at": "2026-07-01T10:32:31.113100107Z"
+		},
+		{
+			"function_name": "AuthPageURL",
+			"receiver": "stubBackend",
+			"documentation_hash": "c90bbd1626b195b61fd4982bbb91c261ca525530c8b17de592787aaf79744e6f",
+			"definition_hash": "95405c2d1ac6c2b737e58f2685c02e96e7648047acff56db6706b788f554b34e",
+			"reviewed_at": "2026-07-01T10:32:31.113573904Z"
+		},
+		{
+			"function_name": "LookupByBoxID",
+			"receiver": "stubBackend",
+			"documentation_hash": "c22ee9573798eac1c9b13c8386dfdc27a1514ca98f786aeaca9fd126df3fbe64",
+			"definition_hash": "dd14a2240ef15382c88b045d20116c6beea3ff138682874fda16e2bd5cdd31d9",
+			"reviewed_at": "2026-07-01T10:32:31.122897186Z"
+		},
+		{
+			"function_name": "ListBoxes",
+			"receiver": "stubBackend",
+			"documentation_hash": "0bcc78f16302f721aef1bd5d2946e6da229b660913e6d6a2d4aedf23db4e474c",
+			"definition_hash": "a0c78623ebefcfb3ee0e117bd353ae00155a3e1b85abff6a30b32859181b514e",
+			"reviewed_at": "2026-07-01T10:32:31.123285831Z"
+		},
+		{
+			"function_name": "SpokeStatuses",
+			"receiver": "stubBackend",
+			"documentation_hash": "9c6a6ea9cae18884a78106e61ecc430658bfea215d76df16f268509274666635",
+			"definition_hash": "a865d5341f3790947bae6e97102106341405ff17f9569118b739947255f5c5ad",
+			"reviewed_at": "2026-07-01T10:32:31.123669791Z"
+		},
+		{
+			"function_name": "DestroyBox",
+			"receiver": "stubBackend",
+			"documentation_hash": "ef8b677afcaf6960df17c86b7366a4919c8b328f4a866db5b6f89b786f807536",
+			"definition_hash": "ed680df5e8665f118a4492e0c02daa4137bec77a0cd04d5cb47d3ba8651d8942",
+			"reviewed_at": "2026-07-01T10:32:31.124053776Z"
+		},
+		{
+			"function_name": "BoxLogs",
+			"receiver": "stubBackend",
+			"documentation_hash": "c42f60bf66814d269843e24ed74e1116d42cc6f8458c189dd58fd063ac4375b4",
+			"definition_hash": "ae2407c9f0a51bc9b5e05c97ec3cec5f027ef86f3a2bdbdf6456ab3727bee56a",
+			"reviewed_at": "2026-07-01T10:32:31.124441419Z"
+		},
+		{
+			"function_name": "BoxExec",
+			"receiver": "stubBackend",
+			"documentation_hash": "d8f4254633f95daaffc6a95eef800c0c628bf150bc9a0f4a7d27883c389ed9a1",
+			"definition_hash": "5cf7a83cc1168bf86c24aeb7d5967c52f592ca89558df649227d76e128c6bcee",
+			"reviewed_at": "2026-07-01T10:32:31.124840945Z"
+		},
+		{
+			"function_name": "ProxyEnabled",
+			"receiver": "stubBackend",
+			"documentation_hash": "6cdc4aef3b198fe8e9e0f40af6d6f6c84c4ca05ac53c83600382cee718217b2a",
+			"definition_hash": "9c1e85fe4a6be93f69991beed92a7c2c7aaf646d697a1e30c03c67c08306526a",
+			"reviewed_at": "2026-07-01T10:32:31.125245122Z"
+		},
+		{
+			"function_name": "CreateProxy",
+			"receiver": "stubBackend",
+			"documentation_hash": "e61797329ed9b0135f64dc63c598c1ae797b533767a0d0406d17f798603d5e4a",
+			"definition_hash": "99bd509d06e688f3ce1b279084c0c7df8af5b4ca2876a65986fa5461c48c3218",
+			"reviewed_at": "2026-07-01T10:32:31.125844415Z"
+		},
+		{
+			"function_name": "DeleteProxy",
+			"receiver": "stubBackend",
+			"documentation_hash": "2ad34b9ecfc05d39a2169f2b6062534822cbc628fb9da782f919cbbd44b8011e",
+			"definition_hash": "7a105fa390729f7f0e59777c154056102e90ce0aaae436674040de7d5e6339d1",
+			"reviewed_at": "2026-07-01T10:32:32.558277653Z"
+		},
+		{
+			"function_name": "ListProxies",
+			"receiver": "stubBackend",
+			"documentation_hash": "05bc6b17595932b856bff33c278a69fc9a1b4aeae45b8bc19bf18b9c30b9e734",
+			"definition_hash": "2c87fc31d5ec37248b50365b5baa2d34244a9d6f7afe26f87a5d12caeb68db1c",
+			"reviewed_at": "2026-07-01T10:32:32.558829406Z"
+		},
+		{
+			"function_name": "TestBackendAPIRoundTrip",
+			"documentation_hash": "3904bcb803f17b88d5ea5dcefc67db602b718e9a9ec97077628636a5a4ebf7b6",
+			"definition_hash": "bee1ad181973258fa079243a3417815ecc1dec0f5c62637f25ab6f0d948ba2c5",
+			"reviewed_at": "2026-07-01T10:32:32.559253573Z"
+		},
+		{
+			"function_name": "TestClientSurfacesServerError",
+			"documentation_hash": "2e5d0a4feceba44def75e135298788f3d26bc3547a36f77c3291c9db27c6ee5a",
+			"definition_hash": "070478edce9a3a3ad6bf2516c35af74541b3ccb2183f03b7f810a07f832a2fb3",
+			"reviewed_at": "2026-07-01T10:32:32.559676263Z"
+		},
+		{
+			"function_name": "TestHandlerRejectsBadJSON",
+			"documentation_hash": "feaeaf3ebd3651cac0e7b745e0f9957ee1084e7559fe74c4aa7863a1fbdac134",
+			"definition_hash": "ed24bb58d287147a9b67be92c580bb3764df077e2950ecefaa5f5ab1eb771b61",
+			"reviewed_at": "2026-07-01T10:32:32.560081294Z"
+		}
+	]
+}

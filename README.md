@@ -40,10 +40,18 @@ docker run -d --name llmbox \
 ```
 
 Two ports are exposed: `8080` serves the UI/API (auth pages, admin, health) and
-`8081` serves the MCP endpoint, split out so it can sit behind its own
-authenticating proxy. Then add the MCP port's root URL
-(`https://boxes.example.com/`, streamable HTTP) as a remote MCP server in your
-client. Full details — Docker socket permissions, `docker compose`, TLS — are in
+`8081` serves the box-control API, split out so it can sit behind its own
+authenticating proxy. The MCP protocol itself is served by a separate binary,
+**`llmbox-mcp`**, which forwards every tool call to that box-control API:
+
+```bash
+docker run -d --name llmbox-mcp -p 8082:8082 \
+  llmbox-mcp --upstream http://llmbox:8081 --addr :8082
+```
+
+Then add `llmbox-mcp`'s URL (streamable HTTP) — or run it with `--stdio` as a
+child process — as a remote MCP server in your client. Full details — Docker
+socket permissions, `docker compose`, TLS — are in
 [Running & configuration](docs/configuration.md).
 
 ## MCP tools

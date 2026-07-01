@@ -4,11 +4,13 @@
 //
 // One process serves two things on two separate HTTP ports:
 //
-//	mcp_addr   /              MCP (streamable HTTP) — a chatbot creates/lists/destroys boxes
-//	http_addr  /auth/{token}  web page where the user pastes their OAuth code (+ admin UI, health)
+//	mcp_addr   /api/v1/...     box-control JSON API — the stand-alone llmbox-mcp binary forwards MCP tool calls here
+//	http_addr  /auth/{token}   web page where the user pastes their OAuth code (+ admin UI, health)
 //
-// The MCP port is split out so it can sit behind its own authenticating reverse
-// proxy (e.g. oauth2-proxy), independently of the public UI/API port.
+// The MCP protocol itself is served by a separate binary (llmbox-mcp), which
+// forwards every call to the box-control API over HTTP. That API port is split
+// out so it can sit behind its own authenticating reverse proxy (e.g.
+// oauth2-proxy), independently of the public UI/API port.
 //
 // Boxes that are never authenticated are destroyed after a TTL.
 //
@@ -16,7 +18,7 @@
 // Every field is optional; unset fields fall back to built-in defaults:
 //
 //	http_addr:    ":8080"                  # UI/API listen address
-//	mcp_addr:     ":8081"                  # MCP listen address (put behind an auth proxy)
+//	mcp_addr:     ":8081"                  # box-control API listen address (put behind an auth proxy; llmbox-mcp forwards here)
 //	public_url:   "http://localhost:8080"  # external base URL for auth links
 //	claude_image: "ghcr.io/clems4ever/llmbox-box:latest"  # base image per box; must bake in Claude, tini, util-linux, and a CA bundle (see Dockerfile.box)
 //	remote_args:  "--spawn same-dir"       # args passed to `claude remote-control`
@@ -58,6 +60,7 @@ import (
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
+	"github.com/clems4ever/llmbox/internal/mcpapi"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/server"
 )
@@ -195,8 +198,8 @@ func registryAuths(regs []config.RegistryConfig) map[string]registry.AuthConfig 
 // (applying the configured per-box resource limits), opens the session store,
 // sets up optional lifecycle hooks and activation auth, optionally enables
 // hub-and-spoke clustering and HTTP proxying of box ports, restores persisted
-// sessions, starts the orphan reaper, and serves the MCP endpoint and the UI/API
-// on their two separate ports until the parent context is cancelled
+// sessions, starts the orphan reaper, and serves the box-control API and the
+// UI/API on their two separate ports until the parent context is cancelled
 // (SIGINT/SIGTERM) at which point both shut down gracefully.
 //
 // @arg parent The parent context whose cancellation (or a termination signal) triggers graceful shutdown.
@@ -281,11 +284,13 @@ func run(parent context.Context, cfg *config.Config) error {
 		log.Printf("clustering enabled: spokes may join at %s/spoke/connect", cfg.PublicURL)
 	}
 
-	// Two listeners: the MCP endpoint on its own port (meant to sit behind an auth
-	// proxy) and the UI/API (auth pages, admin, health) on the public port.
+	// Two listeners: the box-control API on its own port (meant to sit behind an
+	// auth proxy) and the UI/API (auth pages, admin, health) on the public port.
+	// The box-control port serves the mcpapi JSON API; the MCP protocol itself is
+	// served by the stand-alone llmbox-mcp binary, which forwards to this API.
 	mcpSrv := &http.Server{
 		Addr:    cfg.MCPAddr,
-		Handler: srv.MCPHandler(srv.MCPServer(name, version)),
+		Handler: mcpapi.NewHandler(srv.MCPBackend()),
 		// SubmitCode blocks while the box logs in, so allow long requests.
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      90 * time.Second,
@@ -318,7 +323,7 @@ func run(parent context.Context, cfg *config.Config) error {
 		}
 	}()
 
-	log.Printf("%s %s listening: API on %s, MCP on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.MCPAddr, cfg.PublicURL, authTTL)
+	log.Printf("%s %s listening: UI/API on %s, box-control API on %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, cfg.MCPAddr, cfg.PublicURL, authTTL)
 
 	// Serve both ports. If either listener fails, cancel the context so the other
 	// is shut down too, and surface the first real error.

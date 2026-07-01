@@ -1,17 +1,18 @@
-# llmbox — MCP server + auth web server that manages sandboxed Claude boxes.
+# llmbox — box-control API + auth web server that manages sandboxed Claude boxes.
 #
-# One process serves two things on the same HTTP port:
-#   /              MCP over streamable HTTP (a chatbot creates/lists/destroys boxes)
-#   /auth/{token}  web page where a user pastes their OAuth code to activate a box
+# It serves two things on two separate HTTP ports:
+#   http_addr /auth/{token}  web page where a user pastes their OAuth code to activate a box
+#   mcp_addr  /api/v1/...     box-control JSON API (the llmbox-mcp binary forwards MCP calls here)
 #
-# It drives the Docker daemon to launch the Claude image, so it must be given
-# access to a Docker socket at runtime.
+# The MCP protocol itself is served by a separate image (Dockerfile.mcp), which
+# forwards to the box-control API. It drives the Docker daemon to launch the
+# Claude image, so it must be given access to a Docker socket at runtime.
 #
 # Build:
 #   docker build -t llmbox .
 #
 # Run (Docker socket in, HTTP ports out; mount a YAML config and point at it).
-# 8080 = UI/API, 8081 = MCP endpoint:
+# 8080 = UI/API, 8081 = box-control API:
 #   docker run --rm \
 #     -v /var/run/docker.sock:/var/run/docker.sock \
 #     -v "$PWD/llmbox.yaml:/etc/llmbox/llmbox.yaml:ro" \
@@ -44,7 +45,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 # ---- runtime stage ----
 FROM gcr.io/distroless/static-debian12:nonroot
 
-# 8080 = UI/API, 8081 = MCP endpoint (put the MCP port behind an auth proxy).
+# 8080 = UI/API, 8081 = box-control API (put the box-control port behind an auth proxy).
 EXPOSE 8080 8081
 
 COPY --from=build /out/llmbox /usr/local/bin/llmbox
