@@ -51,6 +51,7 @@ func newSpokeCmd() *cobra.Command {
 		token      string
 		statePath  string
 		boxGPUs    string
+		namespace  string
 	)
 	spokeCmd := &cobra.Command{
 		Use:           "spoke",
@@ -66,7 +67,7 @@ func newSpokeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runSpoke(cmd.Context(), cfg, hubURL, token, statePath, boxGPUs)
+			return runSpoke(cmd.Context(), cfg, hubURL, token, statePath, boxGPUs, namespace)
 		},
 	}
 	spokeCmd.Flags().StringVarP(&configPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file (for Docker settings)")
@@ -74,6 +75,7 @@ func newSpokeCmd() *cobra.Command {
 	spokeCmd.Flags().StringVar(&token, "token", "", "one-time join token (only needed for first enrollment)")
 	spokeCmd.Flags().StringVar(&statePath, "state", defaultSpokeStateFile, "file storing this spoke's issued credential")
 	spokeCmd.Flags().StringVar(&boxGPUs, "box-gpus", "", `GPUs to attach to every box on this spoke, like docker run --gpus (e.g. "all", "2", or "device=0,1"); empty attaches none`)
+	spokeCmd.Flags().StringVar(&namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one Docker daemon without collapsing each other's containers; empty uses box.namespace from config")
 
 	spokeCmd.AddCommand(newSpokeTokenCmd())
 	return spokeCmd
@@ -308,11 +310,12 @@ func shortID(id string) string {
 // @arg token The one-time join token (required only for first enrollment).
 // @arg statePath The file storing this spoke's issued credential.
 // @arg boxGPUs The GPUs to attach to every box on this spoke (docker --gpus syntax; empty attaches none).
+// @arg namespace The namespace scoping this spoke's boxes; empty falls back to cfg.Box.Namespace.
 // @error error if the Docker manager cannot be built, the GPU spec is malformed, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
 //
 // @testcase TestRunSpokeRequiresTokenOrCreds errors when neither a token nor saved credentials are available.
 // @testcase TestRunSpokeRejectsBadGPUs errors when the GPU spec is malformed.
-func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePath, boxGPUs string) error {
+func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePath, boxGPUs, namespace string) error {
 	// A spoke holds no box image of its own: the hub resolves the image (its own
 	// default included) and sends it with every create, and validateCreate rejects
 	// any create that arrives without one. Pass no default here so nothing local
@@ -327,6 +330,13 @@ func runSpoke(parent context.Context, cfg *config.Config, hubURL, token, statePa
 	if err := prov.SetBoxGPUs(boxGPUs); err != nil {
 		return err
 	}
+	// Scope this spoke's boxes to a namespace so two spokes can share one Docker
+	// daemon without listing/reaping/destroying each other's containers. The
+	// --namespace flag wins; otherwise fall back to box.namespace from config.
+	if namespace == "" {
+		namespace = cfg.Box.Namespace
+	}
+	prov.SetNamespace(namespace)
 	defer func() {
 		if err := prov.Close(); err != nil {
 			log.Printf("closing docker provisioner: %v", err)

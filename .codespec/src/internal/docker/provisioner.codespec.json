@@ -42,12 +42,6 @@
 			"reviewed_at": "2026-06-30T16:10:22.274728367Z"
 		},
 		{
-			"function_name": "managedFilter",
-			"documentation_hash": "1b8252a6abd74e1dba342e85d743a75348ed0684b0ada2326d532712e4372365",
-			"definition_hash": "e8753d6713886e54093eff0b9e15d172cac988b2c1d10ce8ee5d73d9e9c85a06",
-			"reviewed_at": "2026-06-30T16:10:22.275702224Z"
-		},
-		{
 			"function_name": "phaseOf",
 			"documentation_hash": "2dbe36a307d4c3798351e51bd5af8db1b924ffc9cef4427bb82d2d40d21b6cf9",
 			"definition_hash": "014b6324e33328153513d7f613dc451253b2e97818cfe993c9ccbf25fe1351b2",
@@ -63,8 +57,8 @@
 			"function_name": "List",
 			"receiver": "Provisioner",
 			"documentation_hash": "1f236b1df15f5e704ad22e7af5f83cc02e389d427a3e8d97592f0d35de5f277d",
-			"definition_hash": "a62bddb87320d1d81248910b149abde7cad5a6fa99c2da3129ab0119196776a3",
-			"reviewed_at": "2026-06-30T16:43:41.272961121Z"
+			"definition_hash": "3577e3b3d4dc6142417a5ea1d3dd59870dac9bca03d646f0bcc1ce12794877d4",
+			"reviewed_at": "2026-07-01T09:19:43.161583533Z"
 		},
 		{
 			"function_name": "Find",
@@ -76,9 +70,9 @@
 		{
 			"function_name": "Provision",
 			"receiver": "Provisioner",
-			"documentation_hash": "0148ab5a5d410928c46af4557862667e6fff66dbd54d844751bab5b865411970",
-			"definition_hash": "2b71f0d76feb7b09f448a5e90a1556dd7a199f0a9b00e4e0d51f9d8f6ed6d167",
-			"reviewed_at": "2026-06-30T16:43:41.27517154Z"
+			"documentation_hash": "cd5faf211805df2f1311d67d890818580ae6377128fda84e439f8753549f6852",
+			"definition_hash": "52608fbc0d8681bd8b2e7d3d8fd960fe5e943a8aa756f8e6e0fc01c2937d6394",
+			"reviewed_at": "2026-07-01T09:19:43.162739679Z"
 		},
 		{
 			"function_name": "waitForSocket",
@@ -102,8 +96,8 @@
 			"function_name": "setupBoxNetwork",
 			"receiver": "Provisioner",
 			"documentation_hash": "51b5252d00cd893cbe530bc6b1c1cbf976813e6d4b759e62a942bf76cfcdd7a6",
-			"definition_hash": "b1846b08a03fb730edce310fb4a41d7da91c93a687ec5d58df3bf7d15a9f1b17",
-			"reviewed_at": "2026-06-30T16:10:22.314745311Z"
+			"definition_hash": "2259366c2a43b297e4748a2b669514e0fc903ffeb74b75a1c93618f569706fdc",
+			"reviewed_at": "2026-07-01T09:19:43.164223579Z"
 		},
 		{
 			"function_name": "removeBoxNetwork",
@@ -178,6 +172,20 @@
 			"documentation_hash": "be8d138ca940f21935dfc3d664ebea4b082071c1017ac5e32168f0f55c71d594",
 			"definition_hash": "32744fe4ecbd4c1693762b02783ddf58ab3e4bb7a27c5d1a098e06e609beca5e",
 			"reviewed_at": "2026-06-30T16:43:41.27868125Z"
+		},
+		{
+			"function_name": "SetNamespace",
+			"receiver": "Provisioner",
+			"documentation_hash": "879f70f5924cb5b6974d891cf6701d141b57094e447a0a8ec92e20125f827bd1",
+			"definition_hash": "967d68fc99f6f9a8a0ee8668bb9313f3cdb74495166eadebc8c57d0693bf0794",
+			"reviewed_at": "2026-07-01T09:19:43.150286471Z"
+		},
+		{
+			"function_name": "managedFilter",
+			"receiver": "Provisioner",
+			"documentation_hash": "5a0f7676c64a589efa029fa6415092422ec46669ef028ad27121024ebe14ebaa",
+			"definition_hash": "d5e307d507d4a40fda8b36511581493c3a9530be995a0f910938f9a3487c1dfe",
+			"reviewed_at": "2026-07-01T09:19:43.152067024Z"
 		}
 	]
 }

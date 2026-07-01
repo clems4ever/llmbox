@@ -139,6 +139,13 @@ type BoxConfig struct {
 	// this process and bind-mountable into containers. Empty uses the provisioner
 	// default (/run/llmbox/boxsockets).
 	SocketDir string `yaml:"socket_dir"`
+	// Namespace scopes this process's boxes to a subset of the shared Docker
+	// daemon's managed containers: boxes are labelled with it and list/reap/destroy
+	// only ever see boxes carrying the same namespace. Set it (to a distinct value
+	// per process) only when running two spokes against one daemon, so they do not
+	// collapse each other's containers. Empty is unscoped (the default: one spoke
+	// per daemon sees every box). On a spoke, the --namespace flag overrides it.
+	Namespace string `yaml:"namespace"`
 }
 
 // ProxyConfig enables exposing box HTTP ports through the hub. When base_domain

@@ -142,6 +142,21 @@ new `ClusterStore` methods.
   small `spoke:` config block (hub URL, state file for its credential, Docker
   settings reused from the existing fields).
 
+### Sharing one Docker daemon: namespaces
+
+Each spoke normally owns its own Docker daemon, so scoping box operations to the
+`com.llmbox.managed` label is unambiguous. If you want to run **two spokes (or a
+hub plus a spoke) against the same daemon**, give each a distinct **namespace** so
+they do not list, reap, or destroy each other's boxes:
+
+- `llmbox spoke --hub … --namespace spoke-a` (flag), or `box.namespace: spoke-a`
+  in the config file (the flag wins). The hub's local provisioner reads
+  `box.namespace` too.
+- A namespaced provisioner stamps every box and its network with
+  `com.llmbox.namespace=<ns>` and scopes list/find/destroy — and therefore the
+  orphan reaper — to that label. An empty namespace (the default) is unscoped and
+  preserves the one-spoke-per-daemon behaviour.
+
 ## Testing
 
 - Unit tests per layer (token lifecycle, proto round-trip, remoteSpoke +
