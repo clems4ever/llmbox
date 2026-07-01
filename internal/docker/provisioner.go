@@ -7,7 +7,10 @@
 // containers, and hands back a control channel to the agent.
 //
 // Safety: every container carries ManagedLabel; list/find/destroy are scoped to
-// that label so unrelated host containers are never touched.
+// that label so unrelated host containers are never touched. A provisioner may
+// additionally be pinned to a namespace (SetNamespace): its containers then also
+// carry NamespaceLabel and list/find/destroy are scoped to it, so two spokes
+// sharing one Docker daemon never see, reap, or destroy each other's boxes.
 package docker
 
 import (
@@ -53,6 +56,12 @@ const (
 	// provisioner's socket dir holding the box's control socket), so List/Find can
 	// reconstruct the socket path from a container summary alone.
 	socketLabel = "com.llmbox.socket"
+
+	// NamespaceLabel scopes a container to one provisioner's namespace (see
+	// SetNamespace). It is only set when a namespace is configured; boxes created
+	// without one carry no NamespaceLabel and are visible to any unscoped
+	// provisioner, preserving the pre-namespace behaviour.
+	NamespaceLabel = "com.llmbox.namespace"
 
 	// DefaultImage is launched when the caller does not specify one. It bakes in
 	// the standalone Claude binary, the llmbox-agent binary (its entrypoint),
@@ -121,6 +130,11 @@ type Provisioner struct {
 	// peers are resource-server container names connected into every box's own
 	// network so boxes can reach them while staying isolated from one another.
 	peers []string
+	// namespace scopes this provisioner to a subset of the daemon's managed
+	// containers: when non-empty, created boxes carry NamespaceLabel and
+	// list/find/destroy only ever see boxes with a matching label. Empty means
+	// unscoped (every managed box on the daemon is in view).
+	namespace string
 	// limits caps each box's memory/CPU/PIDs (the MaxBoxes field is enforced by
 	// box.Manager, not here). The zero value imposes no limits.
 	limits sandbox.Limits
@@ -205,6 +219,18 @@ func (p *Provisioner) SetBoxGPUs(spec string) error {
 	return nil
 }
 
+// SetNamespace pins this provisioner to a namespace so it only ever sees the
+// boxes it created: created boxes carry NamespaceLabel with this value and
+// List/Find/Destroy are scoped to it. This lets two spokes share one Docker
+// daemon without collapsing each other's containers. An empty namespace leaves
+// the provisioner unscoped (the pre-namespace behaviour).
+//
+// @arg ns The namespace to scope this provisioner to; empty leaves it unscoped.
+//
+// @testcase TestProvisionSetsNamespaceLabel labels a box with the configured namespace.
+// @testcase TestManagedFilterScopesByNamespace scopes list/find to the namespace.
+func (p *Provisioner) SetNamespace(ns string) { p.namespace = ns }
+
 // Close releases the Docker client.
 //
 // @error error if the Docker client cannot be closed.
@@ -213,12 +239,20 @@ func (p *Provisioner) SetBoxGPUs(spec string) error {
 func (p *Provisioner) Close() error { return p.cli.Close() }
 
 // managedFilter restricts Docker listings to containers this provisioner created.
+// When the provisioner is namespaced, it further restricts them to that
+// namespace, so a provisioner never lists boxes belonging to another namespace
+// on the same daemon.
 //
-// @return filters.Args A filter matching only containers carrying ManagedLabel.
+// @return filters.Args A filter matching containers carrying ManagedLabel (and NamespaceLabel when namespaced).
 //
 // @testcase TestListMapsManagedContainers exercises managedFilter via List.
-func managedFilter() filters.Args {
-	return filters.NewArgs(filters.Arg("label", ManagedLabel+"=true"))
+// @testcase TestManagedFilterScopesByNamespace adds the namespace label when namespaced.
+func (p *Provisioner) managedFilter() filters.Args {
+	args := filters.NewArgs(filters.Arg("label", ManagedLabel+"=true"))
+	if p.namespace != "" {
+		args.Add("label", NamespaceLabel+"="+p.namespace)
+	}
+	return args
 }
 
 // phaseOf reports a box's auth phase from its container name.
@@ -266,7 +300,7 @@ func boxFromSummary(c container.Summary) sandbox.Box {
 //
 // @testcase TestListMapsManagedContainers checks the mapping and the managed filter.
 func (p *Provisioner) List(ctx context.Context) ([]box.Instance, error) {
-	cs, err := p.cli.ContainerList(ctx, container.ListOptions{All: true, Filters: managedFilter()})
+	cs, err := p.cli.ContainerList(ctx, container.ListOptions{All: true, Filters: p.managedFilter()})
 	if err != nil {
 		return nil, fmt.Errorf("listing boxes: %w", err)
 	}
@@ -310,7 +344,8 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 // reach the agent. The box is created on its own network (peers wired in,
 // isolated from other boxes), named with the pending prefix, and run as root with
 // no-new-privileges, the configured resource caps and GPUs, and a restart policy
-// of "unless-stopped" so a crashed box (and its always-on agent) comes back.
+// of "unless-stopped" so a crashed box (and its always-on agent) comes back. When
+// the provisioner is namespaced, the box (and its network) carry NamespaceLabel.
 //
 // @arg ctx Context for the Docker calls and the socket wait.
 // @arg opts The caller-controlled image, box ID, and description for the box.
@@ -322,6 +357,7 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 // @testcase TestProvisionAppliesLimits applies the configured resource caps and no-new-privileges.
 // @testcase TestProvisionAppliesGPUs attaches the configured GPU device requests.
 // @testcase TestProvisionPullsMissingImage pulls the image then retries when it is absent.
+// @testcase TestProvisionSetsNamespaceLabel stamps the configured namespace on the box.
 func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions) (box.Instance, error) {
 	if opts.BoxID != "" && !sandbox.ValidBoxID(opts.BoxID) {
 		return nil, fmt.Errorf("invalid box id %q", opts.BoxID)
@@ -345,6 +381,9 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	}
 
 	labels := map[string]string{ManagedLabel: "true", socketLabel: token}
+	if p.namespace != "" {
+		labels[NamespaceLabel] = p.namespace
+	}
 	if opts.BoxID != "" {
 		labels[BoxIDLabel] = opts.BoxID
 	}
@@ -505,9 +544,13 @@ func boxNetworkName(id string) string { return "llmboxnet-" + id[:12] }
 // @testcase TestProvisionConnectsPeers creates the network, connects box and peers, and detaches the bridge.
 func (p *Provisioner) setupBoxNetwork(ctx context.Context, id string) error {
 	name := boxNetworkName(id)
+	netLabels := map[string]string{ManagedLabel: "true"}
+	if p.namespace != "" {
+		netLabels[NamespaceLabel] = p.namespace
+	}
 	if _, err := p.cli.NetworkCreate(ctx, name, network.CreateOptions{
 		Driver: "bridge",
-		Labels: map[string]string{ManagedLabel: "true"},
+		Labels: netLabels,
 	}); err != nil {
 		return fmt.Errorf("creating box network: %w", err)
 	}

@@ -258,6 +258,18 @@
 			"documentation_hash": "4164079e0464834a0094603d7ad48ca6f2a797a8ad777372251ae167b6412b82",
 			"definition_hash": "a85ac831205cdac08e4505e0e79df84aa42823cb2e285b59c9ee968e0ef8e684",
 			"reviewed_at": "2026-06-30T16:37:03.52572915Z"
+		},
+		{
+			"function_name": "TestProvisionSetsNamespaceLabel",
+			"documentation_hash": "5c37e4470f7729a4d95794bd89da127a69e253db070b40af81b7b9aa4e78ff73",
+			"definition_hash": "054d64174fc7a2988563997bad5f0e9355ec540f11a7ae8f2755ed21bd88cac9",
+			"reviewed_at": "2026-07-01T09:20:13.818487214Z"
+		},
+		{
+			"function_name": "TestManagedFilterScopesByNamespace",
+			"documentation_hash": "59131047d66618f939de359236c0a9651f4f3e53ff0c7d9d70ce38f1187a6665",
+			"definition_hash": "6a0fdc4d06da6884aaca2677e001c180044c1f374962d1fe2a6c0b2e43eabe96",
+			"reviewed_at": "2026-07-01T09:20:13.819927563Z"
 		}
 	]
 }

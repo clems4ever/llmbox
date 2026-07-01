@@ -251,6 +251,55 @@ func TestProvisionCreatesAgentBox(t *testing.T) {
 	_ = conn.Close()
 }
 
+// TestProvisionSetsNamespaceLabel stamps a namespaced provisioner's namespace on
+// the box container and its network, and leaves an unscoped provisioner's box
+// carrying no NamespaceLabel.
+func TestProvisionSetsNamespaceLabel(t *testing.T) {
+	f := &fakeDocker{}
+	p := newTestProvisioner(t, f)
+	p.SetNamespace("spoke-a")
+
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{}); err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+	if got := f.createCfg.Labels[NamespaceLabel]; got != "spoke-a" {
+		t.Fatalf("box %s label = %q, want %q", NamespaceLabel, got, "spoke-a")
+	}
+
+	f2 := &fakeDocker{}
+	p2 := newTestProvisioner(t, f2)
+	if _, err := p2.Provision(context.Background(), sandbox.CreateOptions{}); err != nil {
+		t.Fatalf("Provision (unscoped): %v", err)
+	}
+	if _, ok := f2.createCfg.Labels[NamespaceLabel]; ok {
+		t.Fatalf("unscoped box should carry no %s label, got %v", NamespaceLabel, f2.createCfg.Labels)
+	}
+}
+
+// TestManagedFilterScopesByNamespace adds the namespace label to list/find
+// filters only when the provisioner is namespaced.
+func TestManagedFilterScopesByNamespace(t *testing.T) {
+	unscoped := (&Provisioner{}).managedFilter()
+	if got := unscoped.Get("label"); len(got) != 1 || got[0] != ManagedLabel+"=true" {
+		t.Fatalf("unscoped filter labels = %v, want just the managed label", got)
+	}
+
+	scoped := (&Provisioner{namespace: "spoke-b"}).managedFilter()
+	labels := scoped.Get("label")
+	var sawManaged, sawNamespace bool
+	for _, l := range labels {
+		switch l {
+		case ManagedLabel + "=true":
+			sawManaged = true
+		case NamespaceLabel + "=spoke-b":
+			sawNamespace = true
+		}
+	}
+	if !sawManaged || !sawNamespace {
+		t.Fatalf("scoped filter labels = %v, want both managed and namespace labels", labels)
+	}
+}
+
 // TestProvisionCleansUpOnStartFailure removes the container, network, and socket
 // dir when start fails.
 func TestProvisionCleansUpOnStartFailure(t *testing.T) {

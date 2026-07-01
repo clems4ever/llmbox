@@ -234,7 +234,7 @@ func TestCheckStateWritable(t *testing.T) {
 func TestRunSpokeRequiresTokenOrCreds(t *testing.T) {
 	cfg := config.Default()
 	statePath := filepath.Join(t.TempDir(), "none.json")
-	err := runSpoke(context.Background(), cfg, "wss://hub/spoke/connect", "", statePath, "")
+	err := runSpoke(context.Background(), cfg, "wss://hub/spoke/connect", "", statePath, "", "")
 	if err == nil || !strings.Contains(err.Error(), "token") {
 		t.Fatalf("runSpoke err = %v, want a token-required error", err)
 	}
@@ -245,7 +245,7 @@ func TestRunSpokeRequiresTokenOrCreds(t *testing.T) {
 func TestRunSpokeRejectsBadGPUs(t *testing.T) {
 	cfg := config.Default()
 	statePath := filepath.Join(t.TempDir(), "none.json")
-	err := runSpoke(context.Background(), cfg, "wss://hub/spoke/connect", "tok", statePath, "0")
+	err := runSpoke(context.Background(), cfg, "wss://hub/spoke/connect", "tok", statePath, "0", "")
 	if err == nil || !strings.Contains(err.Error(), "box-gpus") {
 		t.Fatalf("runSpoke err = %v, want a box-gpus error", err)
 	}

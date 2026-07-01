@@ -21,8 +21,8 @@
 		{
 			"function_name": "TestRunSpokeRequiresTokenOrCreds",
 			"documentation_hash": "c0fc709786f81ea560e35180bb1bb21379beb97a12039ec844c89f743e27a07e",
-			"definition_hash": "50d9cd3cbe552526d43f41f3bde75b63506d7a911e515314985a093e52219d56",
-			"reviewed_at": "2026-06-22T19:23:26.011719817Z"
+			"definition_hash": "d349e141c5660c91d504701246ca8d1b7970a28c5109466340ef5bc72a31ba4f",
+			"reviewed_at": "2026-07-01T09:19:23.243782181Z"
 		},
 		{
 			"function_name": "seedJoinToken",
@@ -75,8 +75,8 @@
 		{
 			"function_name": "TestRunSpokeRejectsBadGPUs",
 			"documentation_hash": "4ecebee2b2052d881f2f537e8167ff453f8f19538590a4777728c66c22104a12",
-			"definition_hash": "bb8c1ecb69b435bb3a92a3b8ddc026debd43fab590be4245d3c98e67f142a676",
-			"reviewed_at": "2026-06-22T19:23:26.017633217Z"
+			"definition_hash": "188a276ff6ca127c91943e92c09754bfdfc3010f6b7f4098319351a9ef28eab5",
+			"reviewed_at": "2026-07-01T09:19:23.24524399Z"
 		}
 	]
 }

@@ -3,8 +3,8 @@
 		{
 			"function_name": "newSpokeCmd",
 			"documentation_hash": "ba0ba0eb7ca2ec6e345f2c5c321e485849df9509bc0dfce4e2587490beafdc65",
-			"definition_hash": "4670f710b8cf17f4a9f1e88fd55e99b9c73a8d5dc64c376f2cf5d5582f870716",
-			"reviewed_at": "2026-06-22T19:23:09.257954599Z"
+			"definition_hash": "5033d1857b1c5795d3e75c84c68a5b98ced320c1bf5d9646f65dfe9e3bbfe8e1",
+			"reviewed_at": "2026-07-01T09:18:43.402372789Z"
 		},
 		{
 			"function_name": "newSpokeTokenCmd",
@@ -20,9 +20,9 @@
 		},
 		{
 			"function_name": "runSpoke",
-			"documentation_hash": "b7d0826019669a01db87bc9762508e99ab88fee0c23e4be997d088d5984f8060",
-			"definition_hash": "c0830dbe8a157a1881d58f0a503ee92fc587c7472f1c2d8cc27d735397f4c3e6",
-			"reviewed_at": "2026-06-30T16:10:22.195912285Z"
+			"documentation_hash": "87acda62ea3b628b6dab9f3ec26a8459a7e2e698c73bd98bf6aa068494454bb6",
+			"definition_hash": "19b2f3f82a4d647548c5fc22b7de359431e8b24661732ce97e9242b58ed52ce0",
+			"reviewed_at": "2026-07-01T09:18:43.403243462Z"
 		},
 		{
 			"function_name": "loadSpokeCreds",

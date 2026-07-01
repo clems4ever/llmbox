@@ -222,6 +222,9 @@ func run(parent context.Context, cfg *config.Config) error {
 	}
 	prov.SetPerBoxLimits(boxLimits(cfg.Box))
 	prov.SetRegistryAuths(registryAuths(cfg.Registries))
+	// Scope this hub's local boxes to its configured namespace so it never lists,
+	// reaps, or destroys boxes owned by another spoke sharing the Docker daemon.
+	prov.SetNamespace(cfg.Box.Namespace)
 	defer func() {
 		if err := prov.Close(); err != nil {
 			log.Printf("closing docker provisioner: %v", err)

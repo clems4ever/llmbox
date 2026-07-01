@@ -78,6 +78,12 @@ state_file: "llmbox-sessions.db"
 #   cpus: 2             # CPU quota per box (fractional CPUs allowed)
 #   pids_limit: 4096    # max processes/threads per box (blunts fork bombs)
 #   max_boxes: 0        # max concurrent boxes (0 = unlimited)
+#   # Namespace scoping. Only needed when running two spokes (or a hub plus a
+#   # spoke) against the SAME Docker daemon: give each a distinct namespace so
+#   # they never list, reap, or destroy each other's boxes. Empty (default) means
+#   # unscoped — correct when one process owns the daemon. On a spoke the
+#   # --namespace flag overrides this.
+#   namespace: ""
 
 # Credentials for pulling box images from authenticated container registries.
 # Each entry is matched against the image's registry host: an image whose host
