@@ -5,36 +5,6 @@
 			"documentation_hash": "0856200bb2756d680e81fcc869363e52ef2fd67f0e0b41ee5f7706bec4cbcf44",
 			"definition_hash": "578c68c8204a6d9e22ef4a9e3b217d5a822a16c9e70cea229c52fa5e653c3b4b",
 			"reviewed_at": "2026-06-18T16:33:14.660998354Z"
-		},
-		{
-			"function_name": "TestLoadConfigDefaultsWhenAbsent",
-			"documentation_hash": "33659db2b39fe8aa39d39b79d4ee263f1d59eff1e3143e02c2a7f7ae41c7db12",
-			"definition_hash": "aec3100cf395594ab095488c7d7fef3819c98ff275d4a246d5d595634bcf3878",
-			"reviewed_at": "2026-06-18T16:33:14.661399657Z"
-		},
-		{
-			"function_name": "TestLoadConfigErrorsWhenExplicitMissing",
-			"documentation_hash": "7447cbd86ee3cd7dd9a664cd951f537de8d2342dc67f70866d737dbc8dfb7c68",
-			"definition_hash": "c42415c4d68af7b86ce34882a40b059ef8b05b1fc5b4a63ea3d9cca21019e8c2",
-			"reviewed_at": "2026-06-18T16:33:14.661761113Z"
-		},
-		{
-			"function_name": "TestLoadConfigReadsFile",
-			"documentation_hash": "df6de5dadb55b43b74931a056500f18dc1d2e26d5951ea52b9fe3d6c565a2d61",
-			"definition_hash": "32c4135c0b86bde3ba365750df52aed99feee36a452c9288327170ab8b012f26",
-			"reviewed_at": "2026-06-18T16:33:14.662123375Z"
-		},
-		{
-			"function_name": "TestBoxLimitsConvertsUnits",
-			"documentation_hash": "69900a0d9891becae5aed1ff2ed9771a417d289a1b38088504c586c9d18e2c54",
-			"definition_hash": "85a33fbe773b5ecb88b17fa22b8ab525fd161cf7f35887d048205928c70b2525",
-			"reviewed_at": "2026-06-21T14:38:47.433679304Z"
-		},
-		{
-			"function_name": "TestRegistryAuthsKeyedByHost",
-			"documentation_hash": "34533ecbdf9f0749bd7ff227181c135ccadea9fc1cd4a764fbe6a2f365bf7ab6",
-			"definition_hash": "84a9b14cd8154da67754945165c5b79f6b8317b4aab9c05443baaeecc7355049",
-			"reviewed_at": "2026-06-26T12:09:01.790846905Z"
 		}
 	]
 }

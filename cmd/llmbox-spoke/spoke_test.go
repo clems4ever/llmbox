@@ -14,12 +14,12 @@ import (
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
-// TestNewSpokeCmd checks the spoke command wiring: its flags and the
+// TestNewRootCmd checks the llmbox-spoke command wiring: its flags and the
 // token/create subcommand tree.
-func TestNewSpokeCmd(t *testing.T) {
-	cmd := newSpokeCmd()
-	if cmd.Use != "spoke" {
-		t.Errorf("Use = %q, want spoke", cmd.Use)
+func TestNewRootCmd(t *testing.T) {
+	cmd := newRootCmd()
+	if cmd.Use != name {
+		t.Errorf("Use = %q, want %q", cmd.Use, name)
 	}
 	for _, f := range []string{"hub", "token", "state", "config"} {
 		if cmd.Flags().Lookup(f) == nil {

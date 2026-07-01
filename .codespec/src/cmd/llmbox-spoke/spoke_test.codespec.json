@@ -1,12 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "TestNewSpokeCmd",
-			"documentation_hash": "537cd9bc63a695dcb337fa3719cab838294ced5cc8527c2238276239de55dbda",
-			"definition_hash": "6e67ae3db9be8a18e6999406523fbabba6be186cdd699711edcb4937511b0da3",
-			"reviewed_at": "2026-06-19T19:49:54.549055639Z"
-		},
-		{
 			"function_name": "TestCreateJoinTokenCmdPrintsToken",
 			"documentation_hash": "7fac5a3c481117fb30549f0b86f8311d70f56ebc9fe9cfd281799e764465e6e5",
 			"definition_hash": "3ab39220f7f7604a18ef426a89540d2e4f1b43c12c02b77c3d88794d34c52cb5",
@@ -77,6 +71,12 @@
 			"documentation_hash": "4ecebee2b2052d881f2f537e8167ff453f8f19538590a4777728c66c22104a12",
 			"definition_hash": "188a276ff6ca127c91943e92c09754bfdfc3010f6b7f4098319351a9ef28eab5",
 			"reviewed_at": "2026-07-01T09:19:23.24524399Z"
+		},
+		{
+			"function_name": "TestNewRootCmd",
+			"documentation_hash": "fa8be10e461ebb96241834d9b28c86f159bfbfbe58926057b41bc275ed0a6259",
+			"definition_hash": "752b85686acd8bf99d8842a601647364012980e5d216c4cf328b7d328d2df884",
+			"reviewed_at": "2026-07-01T12:27:00.17391869Z"
 		}
 	]
 }

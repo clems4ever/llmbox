@@ -387,12 +387,12 @@ func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) 
 // configured (it is display-only — see config.DefaultSpokeImage).
 const defaultSpokeImage = "ghcr.io/clems4ever/granular-llmbox:latest"
 
-// spokeRunCommand builds the full, copy-pasteable `docker run … spoke …` command
-// that starts a spoke and enrolls it with token. It bakes in the things
-// operators routinely get wrong: a persistent state volume (so the credential
-// survives and the one-time token isn't needed again), the Docker socket mount,
-// and --group-add for the socket's group (the spoke runs as a non-root user and
-// otherwise gets "permission denied" on the socket).
+// spokeRunCommand builds the full, copy-pasteable `docker run …` command that
+// starts a spoke (the llmbox-spoke image) and enrolls it with token. It bakes in
+// the things operators routinely get wrong: a persistent state volume (so the
+// credential survives and the one-time token isn't needed again), the Docker
+// socket mount, and --group-add for the socket's group (the spoke runs as a
+// non-root user and otherwise gets "permission denied" on the socket).
 //
 // @arg name The spoke name (used to name the container and its state volume).
 // @arg token The one-time join token to enroll with.
@@ -410,7 +410,7 @@ func (s *Server) spokeRunCommand(name, token string) string {
 		"  -v /var/run/docker.sock:/var/run/docker.sock \\",
 		"  --group-add \"$(stat -c '%g' /var/run/docker.sock)\" \\",
 		"  " + img + " \\",
-		"  spoke --hub " + s.spokeConnectURL() + " --token " + token + " --state /state/llmbox-spoke.json",
+		"  --hub " + s.spokeConnectURL() + " --token " + token + " --state /state/llmbox-spoke.json",
 	}, "\n")
 }
 

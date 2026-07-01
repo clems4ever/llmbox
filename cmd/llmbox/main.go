@@ -51,17 +51,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/docker/docker/api/types/registry"
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/box"
+	"github.com/clems4ever/llmbox/internal/cli"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
 	"github.com/clems4ever/llmbox/internal/hooks"
 	"github.com/clems4ever/llmbox/internal/mcpapi"
-	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
@@ -80,11 +79,10 @@ func main() {
 }
 
 // newRootCmd builds the Cobra command tree: the root command loads the YAML
-// config and runs the server (the hub), a "version" subcommand prints the build
-// version, and a "spoke" subcommand runs a hub-and-spoke spoke (with a
-// "spoke token create" child for minting join tokens). The --config/-c flag
-// selects the config file (default ./llmbox.yaml); when that default is absent,
-// built-in defaults are used.
+// config and runs the server (the hub), and a "version" subcommand prints the
+// build version. The spoke and the MCP front-end are separate binaries
+// (llmbox-spoke, llmbox-mcp). The --config/-c flag selects the config file
+// (default ./llmbox.yaml); when that default is absent, built-in defaults are used.
 //
 // @return *cobra.Command The configured root command, ready to Execute.
 //
@@ -99,7 +97,7 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: false,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cfg, err := loadConfig(configPath, cmd.Flags().Changed("config"))
+			cfg, err := cli.LoadConfig(configPath, cmd.Flags().Changed("config"))
 			if err != nil {
 				return err
 			}
@@ -117,81 +115,8 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 	rootCmd.AddCommand(versionCmd)
-	rootCmd.AddCommand(newSpokeCmd())
 
 	return rootCmd
-}
-
-// loadConfig loads the YAML config at path. When the path was not given
-// explicitly on the command line and the default file is absent, it prints a
-// warning to stderr and returns the built-in defaults so llmbox runs without a
-// config file; an explicitly named missing or invalid file is an error. The
-// warning exists because a silent default state_file is a common cause of a
-// command (e.g. `spoke token create`) writing to a different store than the
-// running hub reads.
-//
-// @arg path The config file path.
-// @arg explicit Whether --config was set on the command line.
-// @return *config.Config The loaded (or default) configuration.
-// @error error if an explicitly named file is missing, or any named file is invalid.
-//
-// @testcase TestLoadConfigDefaultsWhenAbsent returns defaults for a missing implicit file.
-// @testcase TestLoadConfigErrorsWhenExplicitMissing errors for a missing explicit file.
-// @testcase TestLoadConfigReadsFile parses an existing config file.
-func loadConfig(path string, explicit bool) (*config.Config, error) {
-	if !explicit {
-		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-			// Falling back to built-in defaults silently has bitten operators:
-			// a command run without the hub's config (e.g. `spoke token create`
-			// via docker exec) ends up using DefaultStateFile, a different store
-			// than the running hub, so its tokens are never seen. Make the
-			// fallback visible.
-			fmt.Fprintf(os.Stderr, "warning: no config file at %q; using built-in defaults (state_file %q)\n", path, config.DefaultStateFile)
-			return config.Default(), nil
-		}
-	}
-	return config.Load(path)
-}
-
-// boxLimits converts the YAML box block into the per-box sandbox.Limits,
-// translating the operator-friendly units (mebibytes, fractional CPUs) into the
-// raw byte / nano-CPU counts the Docker API expects. A zero field stays zero
-// (unlimited) so the conversion preserves "no limit" semantics.
-//
-// @arg b The box resource configuration from the YAML config.
-// @return sandbox.Limits The equivalent per-box caps and max-box ceiling.
-//
-// @testcase TestBoxLimitsConvertsUnits converts mebibytes and CPUs to bytes and nano-CPUs.
-func boxLimits(b config.BoxConfig) sandbox.Limits {
-	return sandbox.Limits{
-		MemoryBytes: int64(b.MemoryMB) * 1024 * 1024,
-		NanoCPUs:    int64(b.CPUs * 1e9),
-		PidsLimit:   b.PidsLimit,
-		MaxBoxes:    b.MaxBoxes,
-	}
-}
-
-// registryAuths turns the configured registry credentials into the per-host
-// auth map the Docker provisioner consumes, keyed by registry host. It returns nil
-// when no registries are configured, which leaves every image pull anonymous.
-//
-// @arg regs The configured registry credentials (each carrying a resolved password).
-// @return map[string]registry.AuthConfig Pull credentials keyed by registry host, or nil when none are configured.
-//
-// @testcase TestRegistryAuthsKeyedByHost maps each entry by its registry host and returns nil when empty.
-func registryAuths(regs []config.RegistryConfig) map[string]registry.AuthConfig {
-	if len(regs) == 0 {
-		return nil
-	}
-	auths := make(map[string]registry.AuthConfig, len(regs))
-	for _, r := range regs {
-		auths[r.Registry] = registry.AuthConfig{
-			Username:      r.Username,
-			Password:      r.Password,
-			ServerAddress: r.Registry,
-		}
-	}
-	return auths
 }
 
 // run assembles and serves the llmbox hub from cfg: it builds the Docker manager
@@ -223,8 +148,8 @@ func run(parent context.Context, cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	prov.SetPerBoxLimits(boxLimits(cfg.Box))
-	prov.SetRegistryAuths(registryAuths(cfg.Registries))
+	prov.SetPerBoxLimits(cli.BoxLimits(cfg.Box))
+	prov.SetRegistryAuths(cli.RegistryAuths(cfg.Registries))
 	// Scope this hub's local boxes to its configured namespace so it never lists,
 	// reaps, or destroys boxes owned by another spoke sharing the Docker daemon.
 	prov.SetNamespace(cfg.Box.Namespace)

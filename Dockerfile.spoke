@@ -1,0 +1,48 @@
+# llmbox-spoke — a hub-and-spoke spoke that runs boxes on the local Docker daemon.
+#
+# It connects to a hub over a WebSocket and serves box operations against the
+# local Docker daemon, so boxes can be placed on this host from a central hub. It
+# drives the Docker daemon, so it must be given access to a Docker socket at
+# runtime (and, running as non-root, the socket's group via --group-add).
+#
+# Build:
+#   docker build -f Dockerfile.spoke -t llmbox-spoke .
+#
+# Run (enroll with a one-time join token minted on the hub; persist the issued
+# credential to a volume so the token isn't needed again):
+#   docker run -d --name llmbox-spoke --restart unless-stopped \
+#     -v llmbox-spoke:/state \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     --group-add "$(stat -c '%g' /var/run/docker.sock)" \
+#     llmbox-spoke \
+#     --hub wss://hub.example.com/spoke/connect --token <join-token> \
+#     --state /state/llmbox-spoke.json
+#
+# The `token` subcommand (mint/list/revoke join tokens) runs against the hub's
+# state file: `llmbox-spoke token create --name <spoke> --config <hub.yaml>`.
+#
+# This image ships only the spoke binary; the box image (which bakes in Claude)
+# is pulled by the spoke from a registry at box-creation time.
+
+# ---- build stage ----
+FROM golang:1.26-bookworm AS build
+
+WORKDIR /src
+
+# Cache dependencies first (copy just the module files so this layer stays
+# cacheable across source-only changes).
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Build a static binary so it runs on a distroless base.
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath -ldflags="-s -w" \
+    -o /out/llmbox-spoke ./cmd/llmbox-spoke
+
+# ---- runtime stage ----
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=build /out/llmbox-spoke /usr/local/bin/llmbox-spoke
+
+ENTRYPOINT ["/usr/local/bin/llmbox-spoke"]

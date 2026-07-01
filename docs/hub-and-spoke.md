@@ -59,7 +59,7 @@ Two-phase, so the long-lived credential is never the thing humans copy-paste:
 
 1. **Join token** — generated on the hub by an operator with shell access:
 
-       llmbox spoke token create --name worker-1 [--ttl 1h]
+       llmbox-spoke token create --name worker-1 [--ttl 1h]
 
    High-entropy random secret with the **spoke name baked in** and a TTL.
    Stored **hashed** (SHA-256) in a new bbolt bucket; the plaintext is printed
@@ -133,9 +133,9 @@ new `ClusterStore` methods.
 
 ## CLI / config
 
-- `llmbox spoke token create --name <name> [--ttl 1h]` — hub-side; prints the
+- `llmbox-spoke token create --name <name> [--ttl 1h]` — hub-side; prints the
   token once. (Runs against the hub's state file / config.)
-- `llmbox spoke --hub wss://hub/spoke/connect --token <join-token> [--config …]`
+- `llmbox-spoke --hub wss://hub/spoke/connect --token <join-token> [--config …]`
   — runs a spoke: connects to a local Docker daemon via `docker.NewManager`,
   enrolls (or reconnects with its saved credential), and serves verbs.
 - config: hub enables the `/spoke/connect` route automatically; a spoke uses a
@@ -149,7 +149,7 @@ Each spoke normally owns its own Docker daemon, so scoping box operations to the
 hub plus a spoke) against the same daemon**, give each a distinct **namespace** so
 they do not list, reap, or destroy each other's boxes:
 
-- `llmbox spoke --hub … --namespace spoke-a` (flag), or `box.namespace: spoke-a`
+- `llmbox-spoke --hub … --namespace spoke-a` (flag), or `box.namespace: spoke-a`
   in the config file (the flag wins). The hub's local provisioner reads
   `box.namespace` too.
 - A namespaced provisioner stamps every box and its network with
