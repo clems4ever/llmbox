@@ -21,7 +21,7 @@
 //	claude_image: "ghcr.io/clems4ever/llmbox-box:latest"  # base image per box; must bake in Claude, tini, util-linux, and a CA bundle (see Dockerfile.box)
 //	remote_args:  "--spawn same-dir"       # args passed to `claude remote-control`
 //	auth_ttl:     "5m"                      # how long a box may stay un-authenticated (Go duration)
-//	state_file:   "llmbox-sessions.db"     # bbolt file persisting the session registry
+//	state_file:   "llmbox-sessions.db"     # SQLite file persisting the session registry
 //
 // Box lifecycle hooks (optional). hooks is a list of external executables llmbox
 // runs at box.create and box.destroy, exchanging JSON per the hookproto

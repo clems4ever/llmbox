@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// TestBoltStoreRoundTrip checks a session survives save, reload, and close.
-func TestBoltStoreRoundTrip(t *testing.T) {
+// TestSQLiteStoreRoundTrip checks a session survives save, reload, and close.
+func TestSQLiteStoreRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sessions.db")
 	st, err := Open(path)
 	if err != nil {
@@ -51,9 +51,9 @@ func TestBoltStoreRoundTrip(t *testing.T) {
 	}
 }
 
-// TestBoltStoreDelete checks a deleted session is gone and deleting a missing
+// TestSQLiteStoreDelete checks a deleted session is gone and deleting a missing
 // token is a harmless no-op.
-func TestBoltStoreDelete(t *testing.T) {
+func TestSQLiteStoreDelete(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sessions.db")
 	st, err := Open(path)
 	if err != nil {

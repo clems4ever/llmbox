@@ -113,8 +113,8 @@
 			"function_name": "allSpokes",
 			"receiver": "Server",
 			"documentation_hash": "aab26cd72f54dcc52387fcba08eccf974578dd3d89356baf98be3a4fe1a9f42b",
-			"definition_hash": "b95b33b41dcc729ee8bf530d524a895c31107364fcbe64d0bb7ca07820393b5f",
-			"reviewed_at": "2026-06-19T19:47:04.414391227Z"
+			"definition_hash": "653bf1022bc4ffb9422f38d33fb6c3a5b8b2b1d584f9274783994d65d15b01ae",
+			"reviewed_at": "2026-06-30T21:46:24.494987819Z"
 		},
 		{
 			"function_name": "reapAllSpokes",

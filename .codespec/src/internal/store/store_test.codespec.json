@@ -1,18 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "TestBoltStoreRoundTrip",
-			"documentation_hash": "2aabd2b6a18cc2b2a75cc928efbe884f92045b42a6a2c64ff60e037c95e64600",
-			"definition_hash": "9151e6126b95e4907ca93560edc04b1cf874fda470b4276aefd320f45452bb04",
-			"reviewed_at": "2026-06-29T15:39:25.720674979Z"
-		},
-		{
-			"function_name": "TestBoltStoreDelete",
-			"documentation_hash": "91768d260f6a0443a54ab229530c6c3180b3b5455d93671e86177cced0770bfd",
-			"definition_hash": "0d3781a87b6923648215c74a6490a63a2e1c385e5e58b9bdd85d8680101b5d6a",
-			"reviewed_at": "2026-06-29T15:39:25.720916787Z"
-		},
-		{
 			"function_name": "TestLoginStoreFlowRoundTrip",
 			"documentation_hash": "99abf786b387519183f12337fd8d3978dce315359a52875116ed3522686c3050",
 			"definition_hash": "9ddaab03e10070d83a02e16dc1edebdfdb18bc0881fb7fd5e3c42264f7db4615",
@@ -29,6 +17,18 @@
 			"documentation_hash": "da0ea11ec990460c8ad68ecbbaeeb4c599a5c5038d417ee60cc3f3b3ac2cab4f",
 			"definition_hash": "3bb200dac984221dd86cdf667d5027fb1ea640715e244fbb55802722e6f46cf7",
 			"reviewed_at": "2026-06-29T15:39:25.758011798Z"
+		},
+		{
+			"function_name": "TestSQLiteStoreRoundTrip",
+			"documentation_hash": "9bb4a2425d331fdda89bbaa8d3030d31b8c7fa2914535ab11f31e1448ae654b4",
+			"definition_hash": "aef2c1bfa5d6c7ee5cf86c73310293988f552c3f05850cc5b2a08f745d261bcd",
+			"reviewed_at": "2026-06-30T21:45:26.18788501Z"
+		},
+		{
+			"function_name": "TestSQLiteStoreDelete",
+			"documentation_hash": "d1bf44f9a6cd52b1fdebbf006e8b2d799f7fc37bd3eccc04dc0a5eb923dc42cc",
+			"definition_hash": "f4d454a060fd84e1076a8581f93c4261d633416207673974e503039c869490ae",
+			"reviewed_at": "2026-06-30T21:45:26.19135168Z"
 		}
 	]
 }

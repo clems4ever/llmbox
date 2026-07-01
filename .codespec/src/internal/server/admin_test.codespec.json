@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "newAdminServer",
-			"documentation_hash": "0b92a67bc94fd0898ae235fd61feab0f751fe0dc127229d924b42c4184d38339",
+			"documentation_hash": "fd5b47c8505e800a829750e08537d9c6de3fefee8405a1b30a62e34af68b2c55",
 			"definition_hash": "fbbf2f5c92d65b3e047d5be33e7f40783aa20df4673de026c9b8c182e671a95e",
-			"reviewed_at": "2026-06-27T11:23:32.108883936Z"
+			"reviewed_at": "2026-06-30T21:45:26.173277378Z"
 		},
 		{
 			"function_name": "signIn",

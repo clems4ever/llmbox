@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"strings"
 	"sync"
@@ -330,9 +331,7 @@ func (s *Server) spoke(name string) (boxManager, error) {
 func (s *Server) allSpokes() map[string]boxManager {
 	out := map[string]boxManager{localSpokeName: s.mgr}
 	if s.hub != nil {
-		for name, bm := range s.hub.Spokes() {
-			out[name] = bm
-		}
+		maps.Copy(out, s.hub.Spokes())
 	}
 	return out
 }
@@ -392,7 +391,7 @@ type SpokeStatus struct {
 	Name       string    `json:"name" jsonschema:"the spoke's name; 'local' is the in-process spoke"`
 	Connected  bool      `json:"connected" jsonschema:"whether the spoke currently has a live connection to the hub"`
 	Local      bool      `json:"local,omitempty" jsonschema:"true for the in-process spoke (always connected)"`
-	EnrolledAt time.Time `json:"enrolled_at,omitempty" jsonschema:"when the remote spoke enrolled (absent for the local spoke)"`
+	EnrolledAt time.Time `json:"enrolled_at" jsonschema:"when the remote spoke enrolled (absent for the local spoke)"`
 }
 
 // SpokeStatuses reports every spoke and its health: the in-process "local"
