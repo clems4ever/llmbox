@@ -220,8 +220,8 @@ func TestToolCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("toolCreate: %v", err)
 	}
-	if out.BoxID != "web-box" || out.ContainerID != "abcdef012345" {
-		t.Errorf("box/container = %q/%q, want web-box/abcdef012345", out.BoxID, out.ContainerID)
+	if out.BoxID != "web-box" || out.InstanceID != "abcdef012345" {
+		t.Errorf("box/container = %q/%q, want web-box/abcdef012345", out.BoxID, out.InstanceID)
 	}
 	if out.AuthURL != "https://boxes.example.com/auth/tok-123" || out.AuthToken != "tok-123" {
 		t.Errorf("auth url/token = %q/%q", out.AuthURL, out.AuthToken)
@@ -285,8 +285,8 @@ func TestToolGet(t *testing.T) {
 // listing error.
 func TestToolList(t *testing.T) {
 	f := &fakeBackend{boxes: []sandbox.Box{
-		{ContainerID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
-		{ContainerID: "0123456789abcdef"},
+		{InstanceID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
+		{InstanceID: "0123456789abcdef"},
 	}}
 	h := &handlers{b: f}
 

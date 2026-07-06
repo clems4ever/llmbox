@@ -1,0 +1,153 @@
+{
+	"functions": [
+		{
+			"function_name": "NewProvisioner",
+			"documentation_hash": "af01d81cbdb182462e5ae3c24999c913aa6f3f98e8482216f7a937067ada7c54",
+			"definition_hash": "4f1aab916fe07a59c061328b420f325be0d1ce0a63c1d9894d93382da5a3e70c",
+			"reviewed_at": "2026-07-06T08:21:16.993757985Z"
+		},
+		{
+			"function_name": "SetNetworking",
+			"receiver": "Provisioner",
+			"documentation_hash": "49d4f371c24cb8051f5220f3f28d21cc674e11e9e3716fe73e8d6876f7cdac0a",
+			"definition_hash": "d2a2c4bbe526c7270590e3780792aaaee0edfe4ec17360ef47da092d2fcffa44",
+			"reviewed_at": "2026-07-04T20:24:29.455787024Z"
+		},
+		{
+			"function_name": "SetPerBoxLimits",
+			"receiver": "Provisioner",
+			"documentation_hash": "6b6b325d5ee785228f436bd8956fe33e66f1a0c1fdcf29bda2a5df963e1c3efa",
+			"definition_hash": "5fad866ce0ba7dcdca800ff6b920147b36bc73c4701b4cb80cb9338d12c67c2f",
+			"reviewed_at": "2026-07-04T20:24:29.465342398Z"
+		},
+		{
+			"function_name": "SetNamespace",
+			"receiver": "Provisioner",
+			"documentation_hash": "fe564f7aedbabedbb6195d85c89c8630429952e25dbf904a1a8b94295295e46b",
+			"definition_hash": "967d68fc99f6f9a8a0ee8668bb9313f3cdb74495166eadebc8c57d0693bf0794",
+			"reviewed_at": "2026-07-04T20:24:29.46608298Z"
+		},
+		{
+			"function_name": "realMachineFactory",
+			"receiver": "Provisioner",
+			"documentation_hash": "e47b8cbc70a0d05a17c0db4fa5723387feabb9e16e22e9e21d0dbea9dfffb7e5",
+			"definition_hash": "c80f3bacc34f5465b5847ba06d7a518b74eec99331d9146351221d730bd84366",
+			"reviewed_at": "2026-07-06T08:23:15.58973552Z"
+		},
+		{
+			"function_name": "Provision",
+			"receiver": "Provisioner",
+			"documentation_hash": "eb6f346b3aaf58ff19d2b5309221b8a64b97fa77fa66cda54c99b7d5af8899f2",
+			"definition_hash": "b5b35e769ea25bc52bc6f3b3f029fab71b42afc520a33e92a568b10ec3741d27",
+			"reviewed_at": "2026-07-06T08:23:15.590903219Z"
+		},
+		{
+			"function_name": "List",
+			"receiver": "Provisioner",
+			"documentation_hash": "006aad5cc408e7555da1e6022525db3cc890a4f7d9092d9af8f5a603dfa4d465",
+			"definition_hash": "2f7586e269acd8c7394e9653ad3a2a182228d29ee2f3d469ce49b90d37174782",
+			"reviewed_at": "2026-07-04T20:24:29.469905166Z"
+		},
+		{
+			"function_name": "Find",
+			"receiver": "Provisioner",
+			"documentation_hash": "0c41d9cb209800f2c92ab1b4124c1500491a838fe966abc01d8a1a85e991488d",
+			"definition_hash": "e6d9bdcd8068c82e4bc5005fc86cde46ab211d0ed404323a5db4a4c07c3e78b6",
+			"reviewed_at": "2026-07-04T20:24:29.471119562Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "Provisioner",
+			"documentation_hash": "1e0e4bb6511d3aae7500062013d6dad79b408e9c6a3c75026cfcbce8e268a93e",
+			"definition_hash": "f29e1d57dd818d486ddcd2b727478492fecb529aa75c09edcd854cb4e550e519",
+			"reviewed_at": "2026-07-06T08:23:15.601631646Z"
+		},
+		{
+			"function_name": "allocIndexLocked",
+			"receiver": "Provisioner",
+			"documentation_hash": "65ac1119fe947358f39edee2b48aee625fc7555a80e1890ebc8b0632d2ce47d3",
+			"definition_hash": "88366d3639957b8ad8b486ef8d5d0b849fef550020a4ca65bcf1ba69e0c7ac9a",
+			"reviewed_at": "2026-07-04T22:54:32.294686154Z"
+		},
+		{
+			"function_name": "vcpuCount",
+			"receiver": "Provisioner",
+			"documentation_hash": "019328be65a633225b1a32056991c982d33d9be9cbec6b9eb9fc2bfd162b57e9",
+			"definition_hash": "9e8ef085e489fa7caeb893970373b9aa5c280df26a33b8d4798b35bec7840628",
+			"reviewed_at": "2026-07-04T20:24:29.476096361Z"
+		},
+		{
+			"function_name": "memSizeMib",
+			"receiver": "Provisioner",
+			"documentation_hash": "fd067d36f7b52f748997c76da56d1899f18dcdb7cbadcc8b560b809b95e96196",
+			"definition_hash": "8b27783dec8f6b3be1bcdfb6099b6a2aedd9906c84e30354dba83e5c1b0457bb",
+			"reviewed_at": "2026-07-04T20:24:29.477732694Z"
+		},
+		{
+			"function_name": "newToken",
+			"documentation_hash": "af68f51d45dfb4022fbf2f9fc6328799c9ce4a3af11b918f4f688c9c534bd078",
+			"definition_hash": "908a082a4163a3e08f966ae5c27daf13cc7c2804cb445c9c0404cefd7770bfa8",
+			"reviewed_at": "2026-07-04T20:24:29.479164641Z"
+		},
+		{
+			"function_name": "macForIndex",
+			"documentation_hash": "a22ba27e6d398468625d3bb2a232356078b2fc0f2f658c5bbf5d334355ada6f1",
+			"definition_hash": "caa07c0fb622c551baa3ba4a9f618598f9ca735a0406afa99e1bc8247fd4d2b2",
+			"reviewed_at": "2026-07-04T20:24:29.481029627Z"
+		},
+		{
+			"function_name": "copyFile",
+			"documentation_hash": "c5084f75af5bf8fbbc6c47b9be5c97fbefb1fff7c29f7dff41c859423a435c5f",
+			"definition_hash": "19250e834fc09428787d2086d7ff5cbaeb68a7a69c380f346fbd2d30ba26cfb8",
+			"reviewed_at": "2026-07-04T20:24:29.482320579Z"
+		},
+		{
+			"function_name": "waitForAgent",
+			"documentation_hash": "e2f648dbc3c4346282fa33c1d8650c9141c23c41c34ad4258692631c673a0fb0",
+			"definition_hash": "3552c210100b203cb286d8f3e326ec06995d45896c5c0d65bb5ecb997d6d0094",
+			"reviewed_at": "2026-07-04T20:24:29.483539237Z"
+		},
+		{
+			"function_name": "Meta",
+			"receiver": "fcInstance",
+			"documentation_hash": "25a2e9e370884f96558019d979a2fbe29ae37a1821aac67d52670af871dd8e84",
+			"definition_hash": "1995bb341e16598da8d531fd5c9ca72ba4fe754a950fccb383b70ba3541dae32",
+			"reviewed_at": "2026-07-04T20:24:29.484688458Z"
+		},
+		{
+			"function_name": "Control",
+			"receiver": "fcInstance",
+			"documentation_hash": "74495bb1e72a168cb2ea5b67fdaba13557b86dfcdc3266b2ad97d0965d151c0e",
+			"definition_hash": "8d90c2fdbe896b58aaa1c663d282ffd4c829df3ea736baddcb7a3d507ec25ead",
+			"reviewed_at": "2026-07-04T20:24:29.486186448Z"
+		},
+		{
+			"function_name": "MarkReady",
+			"receiver": "fcInstance",
+			"documentation_hash": "f289a9a1fd958abdaf13ebb6a70cf85b891efa962adc848a79631cefdaa5db54",
+			"definition_hash": "66a835e3e74b6f79dc8f33cb95dd8a27b5864beccca72ca3c2c84eaa796d53eb",
+			"reviewed_at": "2026-07-04T20:24:29.48682216Z"
+		},
+		{
+			"function_name": "Destroy",
+			"receiver": "fcInstance",
+			"documentation_hash": "af00784878ccf2480cba1b9407f8ab8f5cf38b6c8b911140400d7e1acf2956df",
+			"definition_hash": "86065ccf775fcdc5cde847dd92135aec538e34593a2175cf1f6134b8ddd09343",
+			"reviewed_at": "2026-07-04T22:54:32.295500963Z"
+		},
+		{
+			"function_name": "SetPoolSize",
+			"receiver": "Provisioner",
+			"documentation_hash": "d0bd6aa84f3f926123a1e20a5056c8ee215632f0cfa5035ac1097b50b2c04f0a",
+			"definition_hash": "3dcbab50a00db2350ae0d58e6afc9493d89509f5b635dc5c25a0dc192a6ce83d",
+			"reviewed_at": "2026-07-04T22:54:32.291271676Z"
+		},
+		{
+			"function_name": "EnsureNetwork",
+			"receiver": "Provisioner",
+			"documentation_hash": "bf22b067aeca024b8071c65bcd5721a24dcc63baf22bc4e9b6d984ed578666ea",
+			"definition_hash": "1a5a3e92e3724222fd487bd5fe8e0c2bfded3f2ec723b3fc3c4d7ab758124aec",
+			"reviewed_at": "2026-07-04T22:54:32.292278785Z"
+		}
+	]
+}

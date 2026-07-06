@@ -63,10 +63,12 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/auth"
 	"github.com/clems4ever/llmbox/internal/box"
+	"github.com/clems4ever/llmbox/internal/box/backend"
 	"github.com/clems4ever/llmbox/internal/cli"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
+	_ "github.com/clems4ever/llmbox/internal/firecracker" // registers the "firecracker" box backend
 	"github.com/clems4ever/llmbox/internal/hooks"
 	"github.com/clems4ever/llmbox/internal/server"
 )
@@ -142,27 +144,45 @@ func newRootCmd() *cobra.Command {
 func run(parent context.Context, cfg *config.Config) error {
 	authTTL := time.Duration(cfg.AuthTTL)
 
-	// Resolve the per-box image once, here on the hub: an unset claude_image falls
-	// back to the built-in default at this single point, so every box-creation
-	// request carries an explicit image. Spokes are config-free and supply none of
-	// their own — the hub is the only source of the box image, default included.
-	boxImage := cfg.ClaudeImage
-	if boxImage == "" {
-		boxImage = docker.DefaultImage
+	// Resolve the per-box image once, here on the hub, so every box-creation
+	// request carries an explicit image and spokes (config-free) supply none of
+	// their own. What "image" means depends on the backend: for Docker it is the
+	// container image (claude_image, or the built-in default); for Firecracker it
+	// is the guest rootfs path, so the hub sends the configured rootfs rather than
+	// a Docker ref (which the microVM backend cannot boot).
+	var boxImage string
+	if cfg.Backend == "firecracker" {
+		boxImage = cfg.Firecracker.RootfsImage
+	} else {
+		boxImage = cfg.ClaudeImage
+		if boxImage == "" {
+			boxImage = docker.DefaultImage
+		}
 	}
 
-	prov, err := docker.NewProvisioner(boxImage, cfg.Box.SocketDir, cfg.BoxPeers)
+	// Select the box backend by name (Docker by default). The Docker-specific and
+	// microVM-specific fields are both passed; each backend reads only the ones
+	// that apply. The hub scopes its local boxes to its configured namespace so it
+	// never lists, reaps, or destroys boxes owned by another spoke on the same host.
+	prov, err := backend.New(cfg.Backend, backend.Options{
+		DefaultImage:    boxImage,
+		SocketDir:       cfg.Box.SocketDir,
+		Peers:           cfg.BoxPeers,
+		Limits:          cli.BoxLimits(cfg.Box),
+		Namespace:       cfg.Box.Namespace,
+		RegistryAuths:   cli.RegistryAuths(cfg.Registries),
+		KernelImagePath: cfg.Firecracker.KernelImage,
+		RootfsImagePath: cfg.Firecracker.RootfsImage,
+		StateDir:        cfg.Firecracker.StateDir,
+		DisableEgress:   cfg.Firecracker.DisableEgress,
+		PoolSize:        cfg.Firecracker.PoolSize,
+	})
 	if err != nil {
 		return err
 	}
-	prov.SetPerBoxLimits(cli.BoxLimits(cfg.Box))
-	prov.SetRegistryAuths(cli.RegistryAuths(cfg.Registries))
-	// Scope this hub's local boxes to its configured namespace so it never lists,
-	// reaps, or destroys boxes owned by another spoke sharing the Docker daemon.
-	prov.SetNamespace(cfg.Box.Namespace)
 	defer func() {
 		if err := prov.Close(); err != nil {
-			log.Printf("closing docker provisioner: %v", err)
+			log.Printf("closing box backend: %v", err)
 		}
 	}()
 	mgr := box.NewManager(prov, box.Config{RemoteArgs: cfg.RemoteArgs, MaxBoxes: cfg.Box.MaxBoxes})

@@ -1,7 +1,7 @@
 // Package box holds the backend-neutral box manager. A Manager turns the box
 // verbs (cluster.BoxManager) into two collaborators: a Provisioner that creates
-// and tears down the compute (a Docker container today; a microVM or remote VM
-// later) and exposes a control channel to the in-box agent, and the agent client
+// and tears down the compute (a Docker container or a Firecracker microVM) and
+// exposes a control channel to the in-box agent, and the agent client
 // that runs the actual box behaviour (login, exec, logs, port dialing) over that
 // channel. All the lifecycle logic that is the same regardless of backend —
 // box-id validation and uniqueness, the create/login handshake, the box count
@@ -27,11 +27,11 @@ type Provisioner interface {
 	Provision(ctx context.Context, opts sandbox.CreateOptions) (Instance, error)
 	// List returns a handle to every managed box.
 	List(ctx context.Context) ([]Instance, error)
-	// Find resolves a box handle — the ContainerID returned by Provision or the
+	// Find resolves a box handle — the InstanceID returned by Provision or the
 	// caller-assigned BoxID — to the single managed box it identifies, returning a
-	// wrapped sandbox.ErrBoxNotFound when none matches. This mirrors Docker's
-	// address-by-id-or-name model: a box is created with an optional BoxID alias
-	// and afterwards addressed by whichever handle the caller kept.
+	// wrapped sandbox.ErrBoxNotFound when none matches. A box is created with an
+	// optional BoxID alias and afterwards addressed by whichever handle the caller
+	// kept (its backend instance ID or its box ID).
 	Find(ctx context.Context, idOrName string) (Instance, error)
 }
 

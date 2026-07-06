@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "init",
+			"documentation_hash": "fa62642b1c9e467083a8d8c68d4306c2c378db91d306f6978ab46b711e27571e",
+			"definition_hash": "8fe60af9d3047afbba1f6490939191556cf2682737117c765db310ff8312b2f5",
+			"reviewed_at": "2026-07-04T20:24:40.916677941Z"
+		},
+		{
+			"function_name": "newBackend",
+			"documentation_hash": "fee03badd0bb21dc7f85580e797566519323b7f644764204e02ad57a5e2c4abf",
+			"definition_hash": "f6c0699de107de33859f50bdb8460ab67a6e6f947a4cf779f76e4d3e5c939db5",
+			"reviewed_at": "2026-07-04T22:54:32.295643486Z"
+		}
+	]
+}

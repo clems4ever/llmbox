@@ -37,8 +37,8 @@
 			"function_name": "Restore",
 			"receiver": "Server",
 			"documentation_hash": "dfd4bad1e8ae5940cd0d48b2d14fb2bc5ed6fd40d3f61a31c0b2a7feaa0a49ce",
-			"definition_hash": "a3b80892932154b8ef5a853fe89ce4eab329aa864d1858d1f65837b23aa2be83",
-			"reviewed_at": "2026-06-29T15:39:25.350381822Z"
+			"definition_hash": "06eca3253fc3a36276b646c63a13864551a1f2d1dbffa81ee3b7b44d7935a5cd",
+			"reviewed_at": "2026-07-04T20:12:47.851303744Z"
 		},
 		{
 			"function_name": "runDestroyHooks",
@@ -202,8 +202,8 @@
 			"function_name": "spokeHostingBox",
 			"receiver": "Server",
 			"documentation_hash": "80d908719cbe9db30abf2e3a0286c0fdfdc4daf1ea7bb56b56ebf0f6e7632de6",
-			"definition_hash": "50007d3f1474a4c547df4a261b5f040952e527af49df37be446307b234aafd3c",
-			"reviewed_at": "2026-06-26T12:33:43.256534715Z"
+			"definition_hash": "2b189dc14df0fc68f24270ec165b7f0f287666fe2a56d34a703d6b47e10b8dbd",
+			"reviewed_at": "2026-07-04T20:12:47.855525253Z"
 		},
 		{
 			"function_name": "SetProxyBaseDomain",
@@ -216,8 +216,8 @@
 			"function_name": "reconcileProxies",
 			"receiver": "Server",
 			"documentation_hash": "386635f7d96832bd53bc1d1cd906eef242e3438403cb3cae5f7c1a9634d1d4fc",
-			"definition_hash": "240ae54f9c86af68a46f15df948bece37fd4a32e03f02903ac7368709269aa98",
-			"reviewed_at": "2026-06-29T15:39:25.385455722Z"
+			"definition_hash": "5c31ce76e123b914d0b155d00e16c95bfa85837381bc3cc43144228ce7326b74",
+			"reviewed_at": "2026-07-04T20:12:47.853217666Z"
 		},
 		{
 			"function_name": "releaseBoxID",

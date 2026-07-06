@@ -105,9 +105,9 @@ func TestClusterEndToEnd(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	containerID, _ := createOut["container_id"].(string)
+	containerID, _ := createOut["instance_id"].(string)
 	if containerID == "" {
-		t.Fatalf("create_llmbox returned no container_id: %v", createOut)
+		t.Fatalf("create_llmbox returned no instance_id: %v", createOut)
 	}
 	// The box must have been created on the spoke, not the hub's local manager.
 	if edgeMgr.creates() != 1 {
@@ -210,7 +210,7 @@ func (m *fakeSpokeMgr) List(_ context.Context) ([]sandbox.Box, error) {
 	defer m.mu.Unlock()
 	var out []sandbox.Box
 	for id, boxID := range m.boxes {
-		out = append(out, sandbox.Box{ContainerID: id, BoxID: boxID, State: "running", Phase: "ready"})
+		out = append(out, sandbox.Box{InstanceID: id, BoxID: boxID, State: "running", Phase: "ready"})
 	}
 	return out, nil
 }

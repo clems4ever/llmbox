@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "Register",
+			"documentation_hash": "c34e1048806e8d75c4263f320a53da8151c2d783bfda442fe85dc02cb9249ab0",
+			"definition_hash": "3d9253538dd964d40ff272642275c725b476969c3c915169269da0f519b348be",
+			"reviewed_at": "2026-07-04T20:16:23.271234591Z"
+		},
+		{
+			"function_name": "New",
+			"documentation_hash": "49e8614ccf155521c7f69d55921fac7e9e21aa4b33cb54cb8d2e75dc39343485",
+			"definition_hash": "ca83747847686d2a160c176bb81e4b28cd05ed352b776a99339d65360effcd44",
+			"reviewed_at": "2026-07-04T20:16:23.271446966Z"
+		},
+		{
+			"function_name": "Names",
+			"documentation_hash": "f0f2d370896d4c2b2cf5d4b5f7cad65545d01aea6d687dfd2ca7237f00bcbd3a",
+			"definition_hash": "4ea87e8aa081b5523fa40000fbace1c9cc1eabc03959a52ccb335ae01a555e34",
+			"reviewed_at": "2026-07-04T20:16:23.281039483Z"
+		}
+	]
+}

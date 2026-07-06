@@ -15,7 +15,7 @@ func TestFrameRoundTrip(t *testing.T) {
 		&createResp{ID: "abc123", AuthorizeURL: "https://auth"},
 		&submitCodeReq{ID: "abc123", Code: "code-xyz"},
 		&submitCodeResp{SessionURL: "https://session"},
-		&listResp{Boxes: []sandbox.Box{{ContainerID: "c1", BoxID: "b1", Spoke: "edge"}}},
+		&listResp{Boxes: []sandbox.Box{{InstanceID: "c1", BoxID: "b1", Spoke: "edge"}}},
 		&destroyReq{IDOrName: "b1"},
 		&logsReq{IDOrName: "b1", Tail: 50},
 		&logsResp{Logs: "line1\nline2"},

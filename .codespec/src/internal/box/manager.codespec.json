@@ -17,8 +17,8 @@
 			"function_name": "Create",
 			"receiver": "Manager",
 			"documentation_hash": "f6a91785f90ec3425554562c9c276319afbbb15dab80cae4f620e79640540785",
-			"definition_hash": "4f0ee254c85a4148b4e11d00b1d1a29e08e1b1e06f37b42ab7fa505d1767e858",
-			"reviewed_at": "2026-06-30T15:30:40.823231886Z"
+			"definition_hash": "49641c4dcf9132d928e17412265a23b19184d04ac80166a214a8a9ad576bc211",
+			"reviewed_at": "2026-07-04T20:12:47.827785415Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -66,8 +66,8 @@
 			"function_name": "ReapOrphans",
 			"receiver": "Manager",
 			"documentation_hash": "7d41be2079dcf4ed0a5ba6d8328811baf5371ff9e4fbbd8bcad2dac3a66fb3bb",
-			"definition_hash": "975dd13bb3f29413ff9edbd48a2a5ce308cfc105e25da4d64366259919dccb2c",
-			"reviewed_at": "2026-06-30T15:30:40.829043509Z"
+			"definition_hash": "e4bb19dad87a890cd175c5f76b06d0e4075638d96b9a51830a3bafe684cfa75d",
+			"reviewed_at": "2026-07-04T20:12:47.82839037Z"
 		}
 	]
 }

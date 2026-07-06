@@ -9,8 +9,8 @@
 		{
 			"function_name": "TestRemoteSpokeRoundTrip",
 			"documentation_hash": "fba263705900b40995c133edd5e51a53bc47f935305eb47f3ae4620060576cb7",
-			"definition_hash": "0c06b45490bc94128236e73283a7c92f0060b388e45f747ea6388e9f015b3ec5",
-			"reviewed_at": "2026-06-29T15:39:25.034362029Z"
+			"definition_hash": "741043910ee62e66b3f00ab905efbe7454937d298338c6c1b4fb46cd66349340",
+			"reviewed_at": "2026-07-04T20:12:47.828990872Z"
 		},
 		{
 			"function_name": "TestRemoteSpokeVerbError",
@@ -33,8 +33,8 @@
 		{
 			"function_name": "TestDispatchHandlesVerbs",
 			"documentation_hash": "6a3d05679654e8d90b219f7f9bdba13aa7c39e1817ea085e507b872baf5b39e3",
-			"definition_hash": "d9d9b427516b640ab5f6411a702c51c03e12f8de5d12c37535788d2637d8a1c9",
-			"reviewed_at": "2026-06-29T15:39:25.034993857Z"
+			"definition_hash": "1dc3124acc3b7e53631ef0daccab157f6fe6e5cc1e988b8862f87c6ca6932104",
+			"reviewed_at": "2026-07-04T20:12:47.829292449Z"
 		},
 		{
 			"function_name": "TestDispatchUnknownMethod",

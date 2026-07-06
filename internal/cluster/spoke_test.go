@@ -25,7 +25,7 @@ func recvWithin(t *testing.T, tr transport) frame {
 func TestSpokeRunEnrollsAndServes(t *testing.T) {
 	spokeEnd, hubEnd := newPipe()
 	dial := func(context.Context) (transport, error) { return spokeEnd, nil }
-	fake := &fakeManager{boxes: []sandbox.Box{{ContainerID: "c1"}}}
+	fake := &fakeManager{boxes: []sandbox.Box{{InstanceID: "c1"}}}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

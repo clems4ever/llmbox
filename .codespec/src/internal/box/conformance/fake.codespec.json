@@ -38,8 +38,8 @@
 			"function_name": "Meta",
 			"receiver": "fakeInstance",
 			"documentation_hash": "5bc6f9bb881ac14da8d354659c87619132973a1e58e791f4ea377f2d256f3be9",
-			"definition_hash": "2e32497c54cc729a601e7b2a88e553a890d80a3cf67fd694b0566c7b70a09b00",
-			"reviewed_at": "2026-06-30T15:27:10.909650701Z"
+			"definition_hash": "9b1f54af1b50b2776c7cbd9c558d13f0a99406480848310206aeece64b5c0d7f",
+			"reviewed_at": "2026-07-04T20:12:47.827337363Z"
 		},
 		{
 			"function_name": "Control",

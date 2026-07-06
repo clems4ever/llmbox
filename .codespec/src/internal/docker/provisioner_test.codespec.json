@@ -142,8 +142,8 @@
 		{
 			"function_name": "TestListMapsManagedContainers",
 			"documentation_hash": "e803bf2bc49f1973156fdd59e0c2709965cd651adff70babfde355ce49d382e1",
-			"definition_hash": "53faa9cb99f55e47ddee2127cacfd8cde2b2f912913889d3871541954aa6a87b",
-			"reviewed_at": "2026-06-30T16:44:28.401201637Z"
+			"definition_hash": "d089e50e5c339cc899159c7452ccf1cbeaf1daa5b90dcd282732356d337b9d50",
+			"reviewed_at": "2026-07-04T20:12:47.836081444Z"
 		},
 		{
 			"function_name": "TestFindResolvesByIDAndBoxID",
@@ -166,20 +166,20 @@
 		{
 			"function_name": "TestMarkReadyRenamesContainer",
 			"documentation_hash": "ebab0972ba37af80792b06684f9b4092909ea13219e3787f6196d9bdb45a52dd",
-			"definition_hash": "324ea5db5cb3ab364d7b8fcfdd93ab11a76eb5dadedde81a2280f143c06c692c",
-			"reviewed_at": "2026-06-30T16:11:46.375347994Z"
+			"definition_hash": "5532783e2b478c190005714e92ae130f5fea0042477d70e3a9aa8a55078b1c81",
+			"reviewed_at": "2026-07-04T20:12:47.837282005Z"
 		},
 		{
 			"function_name": "TestDestroyRemovesNetworkAndSocket",
 			"documentation_hash": "90483a7ba4eb60a2debdd7b041a3e4af7ce408d1e6682b9ebd407abfc560c43e",
-			"definition_hash": "9007724ad3ade296641082fc23bfb3768e5b1301d5f7d182426a0dafaf99ed05",
-			"reviewed_at": "2026-06-30T16:11:46.376207538Z"
+			"definition_hash": "6c3b050906426e152416b8a290d9d4a5275f051d4bf29a245eb5ceaa9344dc96",
+			"reviewed_at": "2026-07-04T20:12:47.839023979Z"
 		},
 		{
 			"function_name": "TestDestroyAlreadyGone",
 			"documentation_hash": "22dc3961ef4dab362f2bf38025c8ad562074befe1150d6d92c7364d25ffaf9ef",
-			"definition_hash": "0168bf980892963829cc7b2bc8f634ae0286abc96649b3e24b6afd892a1529be",
-			"reviewed_at": "2026-06-30T16:43:41.281108777Z"
+			"definition_hash": "1ebcd568ff068b108e002525b8964ce7c947bdb993efcacb1927b6944cd0d202",
+			"reviewed_at": "2026-07-04T20:12:47.84022208Z"
 		},
 		{
 			"function_name": "TestIsNotFound",
@@ -220,20 +220,20 @@
 		{
 			"function_name": "TestDestroyRemoveError",
 			"documentation_hash": "1538fbfbcbffb486c97bc00b9a999fe32d0a05445333d257481eefec4aa9e88f",
-			"definition_hash": "0b2f1b6a7a30cd0b75c8ca6f88a5293ff9e0fc010ba00daf97eed182f7ad9ff3",
-			"reviewed_at": "2026-06-30T16:36:14.109220947Z"
+			"definition_hash": "a3098c641cd0161d2f57bd132b9637d32df9fb2d92134949d9a79011bfa399b1",
+			"reviewed_at": "2026-07-04T20:12:47.841462Z"
 		},
 		{
 			"function_name": "TestDestroyToleratesNetworkErrors",
 			"documentation_hash": "3f342f7a16849301deba709346b72b2f7f7a0d61c17012a2c7e6b0d529efa01e",
-			"definition_hash": "e6bfc92157d56231a3d7b1cab35536c73b62f5772a8c8c2827930d54a82b3b03",
-			"reviewed_at": "2026-06-30T16:36:14.143419918Z"
+			"definition_hash": "46f62105351761c99c92768c90cd3c32c71e728fdbdb51c398505ab695663edb",
+			"reviewed_at": "2026-07-04T20:12:47.842899237Z"
 		},
 		{
 			"function_name": "TestMarkReadyError",
 			"documentation_hash": "b2c5770ffa417acf410edb65cc8fcf9dcd99acf2d7a6f43dcb20b8d4dfdfa534",
-			"definition_hash": "40ba3d40ccaf5dd23b0d178370cceb483da0059cf811314b501d36138eac5bb4",
-			"reviewed_at": "2026-06-30T16:36:14.144558455Z"
+			"definition_hash": "c1c6ad4ffab9a617f02dbcfd40e63121e4736f4c529fa1939c9fb9217c455c22",
+			"reviewed_at": "2026-07-04T20:12:47.844149823Z"
 		},
 		{
 			"function_name": "TestRegistryAuthFor",

@@ -117,8 +117,8 @@
 		{
 			"function_name": "TestToolCreate",
 			"documentation_hash": "d2401e32158cf44466b23e3adbecab4e5c0b7b3a3799ea4ea3c18f51a3a17786",
-			"definition_hash": "5ca9a4ddc7d4a660debb461730b5c32101c5dd3e76a43d62f80a280b4834cdb8",
-			"reviewed_at": "2026-06-27T17:12:53.681759413Z"
+			"definition_hash": "a242cf0dbba4ace730b03b63b37bde2d905e043f4015973baf08c1b57714b223",
+			"reviewed_at": "2026-07-04T20:12:47.845570582Z"
 		},
 		{
 			"function_name": "TestToolCreateRequiresBoxID",
@@ -141,8 +141,8 @@
 		{
 			"function_name": "TestToolList",
 			"documentation_hash": "470e0d8c27f8caf188bf1d4fc7d03748a843c723fd96f226f6a62d44036dcc9e",
-			"definition_hash": "c5bfea371ed149e923406e416a987668f2f5f726e85d651804b192058943ff79",
-			"reviewed_at": "2026-06-29T15:39:25.124326722Z"
+			"definition_hash": "e0eff145edfb65686bfef849f8816b1f2f7126b091c2a75bc70c6362ebb0e866",
+			"reviewed_at": "2026-07-04T20:12:47.84650091Z"
 		},
 		{
 			"function_name": "TestToolListSpokes",

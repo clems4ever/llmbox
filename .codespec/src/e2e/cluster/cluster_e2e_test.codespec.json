@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestClusterEndToEnd",
 			"documentation_hash": "23fcc25d19c4f7e34061cdbfb319ef7f44f81ebee6329d0d15e49719b40f43ad",
-			"definition_hash": "b2cd54ded5b8e8a65cbcfe877eb5372683d7b9c9a1cf888d711618c08a584c75",
-			"reviewed_at": "2026-07-01T13:11:48.266163279Z"
+			"definition_hash": "a8b826de39d18a020135b8df0b36cf9bc8b3ed231210696d42ac50aaea17e7f9",
+			"reviewed_at": "2026-07-04T20:12:47.82181612Z"
 		},
 		{
 			"function_name": "newFakeSpokeMgr",
@@ -30,8 +30,8 @@
 			"function_name": "List",
 			"receiver": "fakeSpokeMgr",
 			"documentation_hash": "707cad061b856d83f20be435ae16a52f80614e8c2342f71a1ac7c3ef38528728",
-			"definition_hash": "95ad7258e9350ccde2cee6f23d4bf922d3a689e9248c205e8eb22f93bc609a94",
-			"reviewed_at": "2026-06-29T15:39:24.959552869Z"
+			"definition_hash": "42a1b2b9d25c397f26c515b20478088cf456a3ea62193586f157b5f707895538",
+			"reviewed_at": "2026-07-04T20:12:47.822901727Z"
 		},
 		{
 			"function_name": "Destroy",

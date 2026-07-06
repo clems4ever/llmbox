@@ -1,0 +1,76 @@
+{
+	"functions": [
+		{
+			"function_name": "netFor",
+			"documentation_hash": "be9e025f15dc50927642fa9f5cc1e9f515c9b7d411934550ef4f5285ac27f3d4",
+			"definition_hash": "0c42f1110839f1172938e4f75e852ad3458741f5cd49bfcd8dd916c9e6f34eb2",
+			"reviewed_at": "2026-07-04T22:54:32.287321108Z"
+		},
+		{
+			"function_name": "kernelIPArg",
+			"receiver": "boxNet",
+			"documentation_hash": "aaaa1f3a7d456ee3565adae3992875cbbc2883593277a8b9716e3b00a1689a35",
+			"definition_hash": "065fc80af99f6e425caafe4983f100bac33041ed0f47de158ba80bc44439027b",
+			"reviewed_at": "2026-07-04T20:24:22.766017749Z"
+		},
+		{
+			"function_name": "resolveUplink",
+			"receiver": "hostEgress",
+			"documentation_hash": "9f8598eec83c5cf8485c3282d83a09aa1d5c1c530aa3b3f858168faa6e2d741e",
+			"definition_hash": "cf17fad1d96c5af9016bfb1e7f7bb0299268ca8df6d015812f9b996c616571dc",
+			"reviewed_at": "2026-07-04T22:54:32.29000309Z"
+		},
+		{
+			"function_name": "run",
+			"documentation_hash": "bc7adf19ae2ff986fb1e80f2049bb9abbe26601de1cf8e66fd3142ddd3846204",
+			"definition_hash": "841e0f911627c355baa881d8ad2ad8be5fa1df1a86f8a453a9f51b54aa445078",
+			"reviewed_at": "2026-07-04T20:24:22.768658434Z"
+		},
+		{
+			"function_name": "tapName",
+			"documentation_hash": "e7f59615dc9188b7e4ffaf580aa5b136ad1c6ada4eb41f3a390f270321fae608",
+			"definition_hash": "3770732b61f3c4dff65dce6560f91a291d401a42f8c17e493e6928be68b5e6a7",
+			"reviewed_at": "2026-07-04T22:54:32.286953667Z"
+		},
+		{
+			"function_name": "EnsurePool",
+			"receiver": "hostEgress",
+			"documentation_hash": "52a98f6a981f3784e255954e3f38bbb425d154e72d49d5866bc37381075d53bc",
+			"definition_hash": "d767d3797435b938c4d816e3529ed88d72b8f5de276d3f124613089539ec50a4",
+			"reviewed_at": "2026-07-04T22:54:32.287684057Z"
+		},
+		{
+			"function_name": "ensureTap",
+			"receiver": "hostEgress",
+			"documentation_hash": "e304bba9bf2a2b789a0b571cfc97bc9abf62aad0f2a71818147f7b8839b7e9fa",
+			"definition_hash": "5a840232bbbb165c1fd696401553dcf20797cf72a0d2545609e25506f3f924a3",
+			"reviewed_at": "2026-07-04T22:54:32.288006795Z"
+		},
+		{
+			"function_name": "ensureRule",
+			"receiver": "hostEgress",
+			"documentation_hash": "27fe49149722e8e62881c60f15048704358101a8034d11d344c4c5ee9edd558d",
+			"definition_hash": "29f4b5bee67b5fa53afc7ad8c542e823d50cb22ee88a20ab5c8a55ab76066d10",
+			"reviewed_at": "2026-07-04T22:54:32.288333707Z"
+		},
+		{
+			"function_name": "insertVerb",
+			"documentation_hash": "d0efaba37e71eb91f2ed409816924a090e90f26ee3f44e63faad112e11f6814e",
+			"definition_hash": "7a6f61228625749fd8e5c387e3dbb6464c1be5602cded552a7201298fa9a2c44",
+			"reviewed_at": "2026-07-04T22:54:32.288662546Z"
+		},
+		{
+			"function_name": "TeardownPool",
+			"receiver": "hostEgress",
+			"documentation_hash": "48c36788c96db8ae126cd82b6692c284bc430f5119b16c6420da776a382edea4",
+			"definition_hash": "0f04ac9eb5b61df61738786ed91338b03ab727d84cf973bd52b41b8a3b706a8d",
+			"reviewed_at": "2026-07-04T22:54:32.289228312Z"
+		},
+		{
+			"function_name": "delInsertAt",
+			"documentation_hash": "e9fa85841958d2ea2c6e9def91dc96259fb8c5e55d2f266ed1bd8fbf3394bf7f",
+			"definition_hash": "79aec80a73f58f6282f2e7957e2c101efc40de605532f759eca163ff3366ccbf",
+			"reviewed_at": "2026-07-04T22:54:32.289643436Z"
+		}
+	]
+}

@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "TestNewBackendConfiguresProvisioner",
+			"documentation_hash": "9e2f931854210d5261ed53f8841ef7bc6b6215c83be5c32772c0edf9ddea9018",
+			"definition_hash": "ca2bfa900f50339a36b70ca9a5fbaf3fa11c6f7d3756c9440c3872bf2e2518da",
+			"reviewed_at": "2026-07-04T22:54:32.29575179Z"
+		},
+		{
+			"function_name": "TestFirecrackerBackendRegistered",
+			"documentation_hash": "ac62b02c01c37eb1bebd801a81aee993fd05d9eeaf3a772268ca50b3d1514d40",
+			"definition_hash": "61afeac70cdfb8484e8c3882ed8e0a01152819076ae5fe9a0daa0122c85f0a14",
+			"reviewed_at": "2026-07-04T20:24:51.721537002Z"
+		}
+	]
+}

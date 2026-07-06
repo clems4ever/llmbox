@@ -1,0 +1,17 @@
+{
+	"functions": [
+		{
+			"function_name": "dialVsock",
+			"documentation_hash": "eec8021e668c632b5f949f7c95c716bf709ead8dd927546e967823d349f2f486",
+			"definition_hash": "043ec4240291ae6c02ffa0f3e1610520b16800696be67615155327481a238317",
+			"reviewed_at": "2026-07-04T20:25:13.279482873Z"
+		},
+		{
+			"function_name": "Read",
+			"receiver": "bufConn",
+			"documentation_hash": "5178551c1b09246ea0f7e608fada69e1cbe0c458f5cbf940f7f51f00b4f36214",
+			"definition_hash": "ee6b49adfd0ebad705925ecd6cdc1243a9ce06ada4cd50dc677ab8535a8ad78b",
+			"reviewed_at": "2026-07-04T20:25:13.279784846Z"
+		}
+	]
+}

@@ -469,7 +469,7 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 			return false, false
 		}
 		for _, b := range boxes {
-			if strings.HasPrefix(containerID, b.ContainerID) {
+			if strings.HasPrefix(containerID, b.InstanceID) {
 				return true, true
 			}
 		}
@@ -540,7 +540,7 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 			// Prefer the container ID (the exact box generation); fall back to box ID
 			// for a proxy persisted before container IDs were recorded.
 			if p.ContainerID != "" {
-				if strings.HasPrefix(p.ContainerID, b.ContainerID) {
+				if strings.HasPrefix(p.ContainerID, b.InstanceID) {
 					alive = true
 					break
 				}
@@ -1055,7 +1055,7 @@ func (s *Server) spokeHostingBox(ctx context.Context, idOrName string) (boxManag
 			continue
 		}
 		for _, b := range boxes {
-			if idMatchesBox(b.BoxID, b.ContainerID, idOrName) {
+			if idMatchesBox(b.BoxID, b.InstanceID, idOrName) {
 				return bm, nil
 			}
 		}

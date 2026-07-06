@@ -280,7 +280,7 @@ func boxFromSummary(c container.Summary) sandbox.Box {
 		name = strings.TrimPrefix(c.Names[0], "/")
 	}
 	return sandbox.Box{
-		ContainerID: c.ID[:12],
+		InstanceID:  c.ID[:12],
 		Name:        name,
 		BoxID:       c.Labels[BoxIDLabel],
 		Description: c.Labels[DescriptionLabel],
@@ -329,8 +329,8 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 		b := inst.Meta()
 		if b.Name == idOrName ||
 			(b.BoxID != "" && b.BoxID == idOrName) ||
-			strings.HasPrefix(b.ContainerID, idOrName) ||
-			strings.HasPrefix(idOrName, b.ContainerID) ||
+			strings.HasPrefix(b.InstanceID, idOrName) ||
+			strings.HasPrefix(idOrName, b.InstanceID) ||
 			b.Name == pendingPrefix+idOrName ||
 			b.Name == readyPrefix+idOrName {
 			return inst, nil
@@ -470,7 +470,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	return &dockerInstance{
 		prov: p,
 		box: sandbox.Box{
-			ContainerID: id[:12],
+			InstanceID:  id[:12],
 			Name:        pendingPrefix + id[:12],
 			BoxID:       opts.BoxID,
 			Description: opts.Description,
@@ -744,7 +744,7 @@ func (i *dockerInstance) Control(ctx context.Context) (net.Conn, error) {
 //
 // @testcase TestMarkReadyRenamesContainer renames the box to the ready prefix.
 func (i *dockerInstance) MarkReady(ctx context.Context) error {
-	id := i.box.ContainerID
+	id := i.box.InstanceID
 	if err := i.prov.cli.ContainerRename(ctx, id, readyPrefix+id); err != nil {
 		return fmt.Errorf("marking box %s ready: %w", id, err)
 	}
@@ -761,7 +761,7 @@ func (i *dockerInstance) MarkReady(ctx context.Context) error {
 // @testcase TestDestroyRemovesNetworkAndSocket stops the box, removes its network, and deletes its socket dir.
 // @testcase TestDestroyAlreadyGone reports ErrBoxNotFound when the container is missing.
 func (i *dockerInstance) Destroy(ctx context.Context) error {
-	id := i.box.ContainerID
+	id := i.box.InstanceID
 	timeout := int(stopTimeout.Seconds())
 	if err := i.prov.cli.ContainerStop(ctx, id, container.StopOptions{Timeout: &timeout}); err != nil {
 		if errdefs.IsNotFound(err) {

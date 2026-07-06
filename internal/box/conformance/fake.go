@@ -189,13 +189,13 @@ func (i *fakeInstance) Meta() sandbox.Box {
 	phase := i.phase
 	i.mu.Unlock()
 	return sandbox.Box{
-		ContainerID: i.id,
-		Name:        i.id,
-		BoxID:       i.boxID,
-		Image:       "fake",
-		State:       "running",
-		Phase:       phase,
-		Created:     i.created,
+		InstanceID: i.id,
+		Name:       i.id,
+		BoxID:      i.boxID,
+		Image:      "fake",
+		State:      "running",
+		Phase:      phase,
+		Created:    i.created,
 	}
 }
 

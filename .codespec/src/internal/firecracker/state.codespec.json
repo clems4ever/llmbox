@@ -1,0 +1,36 @@
+{
+	"functions": [
+		{
+			"function_name": "boxDir",
+			"documentation_hash": "372bbb5e7fd06394a90dd03032105848e668a10016b821e4dec7a310e1c602b8",
+			"definition_hash": "5c22aff7a9d1705b03ee4bb389d47fac35731d33e626c29268cef585103a7628",
+			"reviewed_at": "2026-07-04T20:25:01.883337236Z"
+		},
+		{
+			"function_name": "save",
+			"receiver": "boxMeta",
+			"documentation_hash": "5b9b2605e9aa03f85e02ed6794c147412caee3295a2d681e4017a2ec8a4adf89",
+			"definition_hash": "826e416fdc0deee28232f9622f70a101386b6090b849aadc07016ae4814c6a2d",
+			"reviewed_at": "2026-07-04T20:25:01.883825919Z"
+		},
+		{
+			"function_name": "loadMetas",
+			"documentation_hash": "c5c88be1ebb1c79b18a00f4d3e3c310bacb3d9c8cbe500117e542c2688549d38",
+			"definition_hash": "61dcf519a204c2a29c5ed8906664817399e79fe750420e553f3d2d2426ea3bc7",
+			"reviewed_at": "2026-07-04T20:25:01.893673958Z"
+		},
+		{
+			"function_name": "toBox",
+			"receiver": "boxMeta",
+			"documentation_hash": "fc9f57f63e05e5e75a03c912be171249a51328545e2621c985df957946d3e2b1",
+			"definition_hash": "e17d6e353ad2466e291e5e2d757f84c25186f4f09cb5df874eb84b3e82bd8111",
+			"reviewed_at": "2026-07-04T20:25:01.894243531Z"
+		},
+		{
+			"function_name": "namePrefix",
+			"documentation_hash": "1785ff2c3234779357fe2ffc10a5db08e183a877bc9281fffe43a5032b85e41a",
+			"definition_hash": "1c472d0274212c3c732f89d9e06477bc1e092e32909fafec31d0746eba7d5797",
+			"reviewed_at": "2026-07-04T20:25:01.894762009Z"
+		}
+	]
+}

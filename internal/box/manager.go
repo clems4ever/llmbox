@@ -90,7 +90,7 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (id, a
 		for _, inst := range insts {
 			if opts.BoxID != "" && strings.EqualFold(inst.Meta().BoxID, opts.BoxID) {
 				m.createMu.Unlock()
-				return "", "", fmt.Errorf("box ID %q is already used by %s; choose a different box ID", opts.BoxID, inst.Meta().ContainerID)
+				return "", "", fmt.Errorf("box ID %q is already used by %s; choose a different box ID", opts.BoxID, inst.Meta().InstanceID)
 			}
 		}
 	}
@@ -116,7 +116,7 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (id, a
 		_ = inst.Destroy(context.Background())
 		return "", "", fmt.Errorf("starting box: %w", err)
 	}
-	return inst.Meta().ContainerID, start.AuthorizeURL, nil
+	return inst.Meta().InstanceID, start.AuthorizeURL, nil
 }
 
 // SubmitCode writes the OAuth code to a pending box, waits for the session URL,
@@ -263,7 +263,7 @@ func (m *Manager) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string,
 		meta := inst.Meta()
 		if meta.Phase == "pending" && meta.Created < cutoff {
 			if err := inst.Destroy(ctx); err == nil || errors.Is(err, sandbox.ErrBoxNotFound) {
-				reaped = append(reaped, meta.ContainerID)
+				reaped = append(reaped, meta.InstanceID)
 			}
 		}
 	}
