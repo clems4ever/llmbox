@@ -77,7 +77,37 @@ The rootfs must boot with the llmbox agent as its init, listening on vsock. Its
 `init` mounts `/proc`, `/sys`, `/dev` (devtmpfs) and `/dev/pts` (devpts, for the
 agent's PTY), brings up `lo`, then `exec`s `llmbox-agent --vsock-port 5000`.
 
-Two build scripts are provided:
+### Full Debian server (recommended for real use)
+
+For a box that behaves like a real machine — systemd, Docker, services, whatever
+Claude wants to run — use the full-server pair:
+
+- **`scripts/firecracker/build-kernel.sh`** builds a Firecracker guest kernel
+  (`vmlinux-full`) with the container-runtime + systemd features the minimal CI
+  kernel lacks: overlayfs, bridge/veth, netfilter (iptables + nftables + NAT +
+  conntrack), `br_netfilter`, all cgroup controllers, autofs, tun, bpf. It compiles
+  in an `ubuntu:22.04` container (~15 min).
+- **`scripts/firecracker/build-debian-rootfs.sh`** builds a real Debian bookworm
+  rootfs (`debian-rootfs.ext4`) with **systemd as PID 1**, Docker, Node, and the
+  standalone `claude`, assembled as root inside a Debian container (so ownership
+  and `/tmp` perms are correct). The llmbox agent runs as a systemd unit on vsock;
+  systemd does all the mounts and reaps Claude's children.
+
+```yaml
+firecracker:
+  kernel_image: ~/fc-assets/vmlinux-full
+  rootfs_image: ~/fc-assets/debian-rootfs.ext4
+  disable_egress: false          # egress on; run the server as root
+```
+
+Verified on boot: systemd reaches its targets, the agent unit is reachable over
+vsock, `/tmp` is `1777`, and the Docker daemon starts with `overlay2` + cgroup v2
+and no missing-feature warnings — so `docker run` works (image pulls need egress).
+
+### Minimal rootfs (agent-as-init, no systemd)
+
+For a lightweight box or the conformance test, two simpler scripts build a
+busybox/container-fs rootfs with the agent as PID 1 (no systemd, no Docker):
 
 - **`scripts/firecracker/build-box-rootfs.sh`** — a **production** rootfs from the
   `llmbox-box` container image (the same image the Docker backend runs), with the

@@ -304,8 +304,10 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 
 	// Kernel args: the guest gets a static eth0 (via the ip= arg, on its pooled TAP)
 	// only when egress networking is enabled; a control-only box boots with just
-	// loopback and vsock.
-	kernelArgs := "console=ttyS0 reboot=k panic=1 pci=off init=/init"
+	// loopback and vsock. net.ifnames=0 keeps the NIC named eth0 (so the ip= arg
+	// and a systemd guest's network config agree); init=/init lets a rootfs point
+	// /init at its real init (systemd, or the agent directly).
+	kernelArgs := "console=ttyS0 reboot=k panic=1 pci=off net.ifnames=0 init=/init"
 	if p.netEnabled {
 		kernelArgs += " " + n.kernelIPArg()
 	}
