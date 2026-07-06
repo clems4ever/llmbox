@@ -85,6 +85,36 @@ test: ## Run the unit test suite.
 test-integration: ## Run integration tests (needs Docker + a Claude binary; see integration_test.go).
 	go test -tags integration ./...
 
+# Live Firecracker box conformance + regression tests. Needs a KVM host: the
+# firecracker binary, /dev/kvm, and a guest kernel + rootfs. The artifacts are
+# built on demand by scripts/firecracker/*.sh (see the firecracker-assets target)
+# and cached under $(FC_DIR); override FC_KERNEL/FC_ROOTFS to point at your own
+# (e.g. the full Debian server pair). Run as root to exercise the real TAP/NAT
+# egress path (unprivileged boots control-only boxes). See docs/firecracker.md.
+FC_DIR    ?= $(HOME)/fc-assets
+FC_KERNEL ?= $(FC_DIR)/vmlinux
+FC_ROOTFS ?= $(FC_DIR)/rootfs.ext4
+FC_BIN    ?= $(HOME)/.local/bin/firecracker
+
+# Fetch the firecracker binary into ~/.local/bin if it isn't there yet.
+$(FC_BIN):
+	DEST="$(dir $(FC_BIN))" scripts/firecracker/fetch-firecracker.sh
+
+# build-conformance-rootfs.sh emits BOTH the guest kernel and the rootfs in one
+# run, so a single grouped rule (&:) produces the pair — only when either is
+# missing. Rebuild by deleting the files (or `rm -rf $(FC_DIR)`).
+$(FC_KERNEL) $(FC_ROOTFS) &:
+	OUT="$(FC_DIR)" scripts/firecracker/build-conformance-rootfs.sh
+
+.PHONY: firecracker-assets
+firecracker-assets: $(FC_BIN) $(FC_KERNEL) $(FC_ROOTFS) ## Build the firecracker binary + conformance kernel/rootfs if missing (cached in $(FC_DIR)).
+
+.PHONY: test-firecracker
+test-firecracker: firecracker-assets ## Build the firecracker artifacts if missing, then run the live conformance tests (needs KVM; see docs/firecracker.md).
+	PATH="$(dir $(FC_BIN)):$$PATH" \
+	LLMBOX_FC_KERNEL="$(FC_KERNEL)" LLMBOX_FC_ROOTFS="$(FC_ROOTFS)" \
+		go test -v ./internal/firecracker/ -run 'TestConformanceFirecracker|TestVMSurvivesRequestContextCancel'
+
 .PHONY: test-e2e
 test-e2e: ## Run the end-to-end browser tests (needs Chrome + chromedriver; see e2e/ and internal/server/admin_browser_e2e_test.go).
 	go test -tags e2e ./e2e/... ./internal/server/...
