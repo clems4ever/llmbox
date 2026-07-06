@@ -79,7 +79,8 @@ cat > "$ROOTDIR/init" <<'INIT'
 /bin/busybox mount -t proc proc /proc 2>/dev/null
 /bin/busybox mount -t sysfs sysfs /sys 2>/dev/null
 /bin/busybox mount -t devtmpfs devtmpfs /dev 2>/dev/null
-/bin/busybox mkdir -p /dev/pts /tmp /root /run /workspace
+/bin/busybox mkdir -p /dev/pts /tmp /var/tmp /root /run /workspace
+/bin/busybox chmod 1777 /tmp /var/tmp 2>/dev/null
 /bin/busybox mount -t devpts devpts /dev/pts 2>/dev/null
 [ -e /dev/ptmx ] || /bin/busybox ln -s /dev/pts/ptmx /dev/ptmx
 /bin/busybox ip link set lo up 2>/dev/null || /bin/busybox ifconfig lo up 2>/dev/null

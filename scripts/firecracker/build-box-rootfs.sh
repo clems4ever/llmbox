@@ -63,9 +63,13 @@ cat > "$ROOTDIR/init" <<INIT
 mount -t proc proc /proc 2>/dev/null
 mount -t sysfs sysfs /sys 2>/dev/null
 mount -t devtmpfs devtmpfs /dev 2>/dev/null
-mkdir -p /dev/pts /tmp /run /root /workspace
+mkdir -p /dev/pts /tmp /var/tmp /run /root /workspace
 mount -t devpts devpts /dev/pts 2>/dev/null
 [ -e /dev/ptmx ] || ln -s /dev/pts/ptmx /dev/ptmx
+# Restore /tmp's sticky world-writable mode: building the rootfs as a non-root
+# user drops the special bits, leaving /tmp 755, which breaks apt (its _apt
+# sandbox user cannot write there → "Couldn't create temporary file /tmp/...").
+chmod 1777 /tmp /var/tmp 2>/dev/null
 ip link set lo up 2>/dev/null || ifconfig lo up 2>/dev/null
 # eth0 is configured by the kernel ip= arg (when egress is enabled) before init
 # runs; DNS is not, so seed a resolver for outbound HTTPS to the Claude API.
