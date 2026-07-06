@@ -23,10 +23,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/box"
+	"github.com/clems4ever/llmbox/internal/box/backend"
 	"github.com/clems4ever/llmbox/internal/cli"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
-	"github.com/clems4ever/llmbox/internal/docker"
+	_ "github.com/clems4ever/llmbox/internal/docker"      // registers the "docker" box backend
+	_ "github.com/clems4ever/llmbox/internal/firecracker" // registers the "firecracker" box backend
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
@@ -54,6 +56,16 @@ type spokeOptions struct {
 	statePath  string
 	boxGPUs    string
 	remoteArgs string
+	// backend selects the box isolation backend by name ("docker" or
+	// "firecracker"); empty defaults to Docker.
+	backend string
+	// fcKernelImage/fcRootfsImage/fcStateDir are the Firecracker backend's guest
+	// kernel, default rootfs image, and state directory; unused for Docker.
+	fcKernelImage   string
+	fcRootfsImage   string
+	fcStateDir      string
+	fcDisableEgress bool
+	fcPoolSize      int
 	// box carries the per-box resource caps, socket dir, and namespace, reusing
 	// the config type so cli.BoxLimits does the unit conversion.
 	box           config.BoxConfig
@@ -137,6 +149,12 @@ func NewRootCmd(name, version string) *cobra.Command {
 	f.Int64Var(&o.box.PidsLimit, "box-pids-limit", config.DefaultBoxPidsLimit, "max processes/threads per box, blunts fork bombs (0 = unlimited)")
 	f.IntVar(&o.box.MaxBoxes, "max-boxes", 0, "max concurrent boxes on this spoke (0 = unlimited)")
 	f.StringVar(&o.box.SocketDir, "box-socket-dir", "", "host directory holding each box's control socket; empty uses the provisioner default")
+	f.StringVar(&o.backend, "backend", "", `box isolation backend: "docker" (default) or "firecracker"`)
+	f.StringVar(&o.fcKernelImage, "fc-kernel", "", "firecracker backend: host path to the guest kernel (vmlinux) every box boots")
+	f.StringVar(&o.fcRootfsImage, "fc-rootfs", "", "firecracker backend: host path to the default guest rootfs image booted when a create supplies none")
+	f.StringVar(&o.fcStateDir, "fc-state-dir", "", "firecracker backend: directory for per-box state; empty uses the backend default")
+	f.BoolVar(&o.fcDisableEgress, "fc-disable-egress", false, "firecracker backend: boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network")
+	f.IntVar(&o.fcPoolSize, "fc-pool-size", 0, "firecracker backend: number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default")
 	f.StringArrayVar(&o.boxPeers, "box-peer", nil, "container name connected into every box's network so boxes can reach it (repeatable)")
 	f.StringArrayVar(&o.allowedImages, "allowed-image", nil, "restrict which box images this spoke will launch (repeatable; empty places no restriction)")
 	f.StringVar(&o.registry.host, "registry", "", `registry host to authenticate to when pulling box images, e.g. "ghcr.io" (empty pulls anonymously)`)
@@ -371,26 +389,35 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// default included) and sends it with every create, and validateCreate rejects
 	// any create that arrives without one. Pass no default here so nothing local
 	// can stand in for what the hub sends.
-	prov, err := docker.NewProvisioner("", o.box.SocketDir, o.boxPeers)
-	if err != nil {
-		return err
-	}
-	prov.SetPerBoxLimits(cli.BoxLimits(o.box))
 	regs, err := o.registries()
 	if err != nil {
 		return err
 	}
-	prov.SetRegistryAuths(cli.RegistryAuths(regs))
-	// GPUs are machine-local: attach the host's GPUs to every box this spoke runs.
-	if err := prov.SetBoxGPUs(o.boxGPUs); err != nil {
+	// Select the box backend by name (Docker by default). Both Docker-specific
+	// (GPUs, registry auths) and microVM-specific (kernel/rootfs/state) fields are
+	// passed; each backend uses only the ones that apply. GPUs are machine-local,
+	// so they are attached to every box this spoke runs. The namespace scopes this
+	// spoke's boxes so two spokes can share one host without listing, reaping, or
+	// destroying each other's boxes.
+	prov, err := backend.New(o.backend, backend.Options{
+		SocketDir:       o.box.SocketDir,
+		Peers:           o.boxPeers,
+		Limits:          cli.BoxLimits(o.box),
+		Namespace:       o.box.Namespace,
+		GPUs:            o.boxGPUs,
+		RegistryAuths:   cli.RegistryAuths(regs),
+		KernelImagePath: o.fcKernelImage,
+		RootfsImagePath: o.fcRootfsImage,
+		StateDir:        o.fcStateDir,
+		DisableEgress:   o.fcDisableEgress,
+		PoolSize:        o.fcPoolSize,
+	})
+	if err != nil {
 		return err
 	}
-	// Scope this spoke's boxes to a namespace so two spokes can share one Docker
-	// daemon without listing/reaping/destroying each other's containers.
-	prov.SetNamespace(o.box.Namespace)
 	defer func() {
 		if err := prov.Close(); err != nil {
-			log.Printf("closing docker provisioner: %v", err)
+			log.Printf("closing box backend: %v", err)
 		}
 	}()
 	mgr := box.NewManager(prov, box.Config{RemoteArgs: o.remoteArgs, MaxBoxes: o.box.MaxBoxes})

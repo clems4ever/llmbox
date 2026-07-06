@@ -446,8 +446,8 @@ func TestGetByBoxID(t *testing.T) {
 // each box's box ID (the hostname the user sees) along with its description.
 func TestListLlmboxesReturnsBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: []sandbox.Box{
-		{ContainerID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
-		{ContainerID: "0123456789abcdef"},
+		{InstanceID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
+		{InstanceID: "0123456789abcdef"},
 	}}
 	s := newTestServer(f)
 

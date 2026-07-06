@@ -40,7 +40,7 @@ func TestHubEnrollAndRoute(t *testing.T) {
 	defer srv.Close()
 	url := "ws" + srv.URL[len("http"):] + "/"
 
-	fake := &fakeManager{boxes: []sandbox.Box{{ContainerID: "c1", BoxID: "b1"}}}
+	fake := &fakeManager{boxes: []sandbox.Box{{InstanceID: "c1", BoxID: "b1"}}}
 	spokeCtx, spokeCancel := context.WithCancel(context.Background())
 	defer spokeCancel()
 	saved := make(chan Credentials, 1)

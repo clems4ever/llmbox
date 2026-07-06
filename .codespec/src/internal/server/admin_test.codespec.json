@@ -75,8 +75,8 @@
 		{
 			"function_name": "TestAdminDashboardShowsActivationURL",
 			"documentation_hash": "306ab681b602d622d2c198322495f04d566763dc098fbb3b36156d2024d7ada8",
-			"definition_hash": "ce4f47b0169b82a92578e7c527846e10c3cddac1c76c81988bee9a5f493a1edb",
-			"reviewed_at": "2026-06-29T15:39:25.157675027Z"
+			"definition_hash": "497c90adecd78cc872f60241edca4de58788cefab5429e8ea9d633d8f40dcfa9",
+			"reviewed_at": "2026-07-04T20:12:47.84766564Z"
 		},
 		{
 			"function_name": "TestAdminActionJSON",

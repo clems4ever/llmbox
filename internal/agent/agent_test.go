@@ -12,6 +12,28 @@ import (
 	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
+// TestListenVsockReturns checks ListenVsockAndServe does not hang: on a host
+// without an AF_VSOCK transport it returns the listen error, and if a vsock
+// listener can be created it returns cleanly once the context is cancelled. The
+// microVM path is exercised end-to-end by the Firecracker integration test; this
+// only guards the entrypoint against blocking forever.
+func TestListenVsockReturns(t *testing.T) {
+	a := New(Options{ClaudeCmd: "/bin/true"})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel up front so a successful listen still unblocks serve
+
+	done := make(chan error, 1)
+	go func() { done <- a.ListenVsockAndServe(ctx, 5005) }()
+
+	select {
+	case <-done:
+		// Either a listen error (no vsock on this host) or nil (listen ok,
+		// serve returned on the cancelled context) — both are non-hanging.
+	case <-time.After(3 * time.Second):
+		t.Fatal("ListenVsockAndServe hung instead of returning")
+	}
+}
+
 // mockClaude mimics the standalone `claude` binary closely enough to exercise the
 // agent's PTY handling and URL scanning: `auth login` prints an authorize URL and
 // blocks reading the OAuth code, then `remote-control` prints a session URL and

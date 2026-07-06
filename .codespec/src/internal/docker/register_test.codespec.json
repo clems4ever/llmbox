@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "TestNewBackendConfiguresProvisioner",
+			"documentation_hash": "7aaff29c10b07e7da6d5c057f099b644816f0cd7ed04b361eac64c91cfac74d5",
+			"definition_hash": "e788e6722b86adbb3a111260c68fab71a713c33ff9bad5c9b701dd6f348cedcd",
+			"reviewed_at": "2026-07-04T20:20:27.149125586Z"
+		},
+		{
+			"function_name": "TestNewBackendRejectsBadGPUs",
+			"documentation_hash": "301391edad70ac8fb93c5ca1bfc8742b48c484c875d29e90a84ef6f877931def",
+			"definition_hash": "6a24541a31b2337147ff21b2603396f52fec746222bbc15b3388904f8dd138be",
+			"reviewed_at": "2026-07-04T20:20:27.152138913Z"
+		},
+		{
+			"function_name": "TestDockerBackendRegistered",
+			"documentation_hash": "5cef3aba36cb6fec4bd49c1d69122e23ea24f822c690055c091ba8d5c0bc88ba",
+			"definition_hash": "81fd0f111b5f3cbc97fe4588cbfb4623a3d25da74dd832b896355768f2dea9c6",
+			"reviewed_at": "2026-07-04T20:20:27.16134759Z"
+		}
+	]
+}

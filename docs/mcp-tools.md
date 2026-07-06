@@ -6,9 +6,9 @@ server's box-control API). Add `llmbox-mcp` as a remote MCP server in your clien
 
 | Tool             | Arguments | Returns |
 |------------------|-----------|---------|
-| `create_llmbox`  | `image?`, `box_id?`, `description?` | `box_id`, `container_id`, `auth_url`, `auth_token`, `status`, `instructions` |
+| `create_llmbox`  | `image?`, `box_id?`, `description?` | `box_id`, `instance_id`, `auth_url`, `auth_token`, `status`, `instructions` |
 | `get_llmbox`     | `box_id` | `status` (pending/ready/error), `box_id`, `description`, `session_url` when ready |
-| `list_llmboxes`  | – | the managed boxes (container_id, name, box_id, description, image, state, phase, created) |
+| `list_llmboxes`  | – | the managed boxes (instance_id, name, box_id, description, image, state, phase, created) |
 | `destroy_llmbox` | `box_id` | the destroyed box's box ID |
 | `get_llmbox_logs` | `box_id`, `tail?` | `box_id`, `logs` (the box's recent, ANSI-stripped console output) |
 | `exec_llmbox` | `box_id`, `command` | `box_id`, `stdout`, `stderr`, `exit_code` |

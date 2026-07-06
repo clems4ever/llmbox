@@ -80,7 +80,7 @@ func TestRestoreLoadsAndReconciles(t *testing.T) {
 	}
 
 	// Docker only reports the live box (short 12-char ID).
-	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{ContainerID: "aaaaaaaaaaaa"}}}
+	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa"}}}
 	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
 
 	n, err := s.Restore(context.Background())

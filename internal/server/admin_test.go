@@ -260,7 +260,7 @@ func TestAdminJSServed(t *testing.T) {
 // shown in the dashboard table, so it survives a page refresh.
 func TestAdminDashboardShowsActivationURL(t *testing.T) {
 	s, f, st := newAdminServer(t)
-	f.ListResult = []sandbox.Box{{ContainerID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
+	f.ListResult = []sandbox.Box{{InstanceID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
 	sess, err := s.createBox(t.Context(), sandbox.CreateOptions{BoxID: "foo"})
 	if err != nil {
 		t.Fatal(err)

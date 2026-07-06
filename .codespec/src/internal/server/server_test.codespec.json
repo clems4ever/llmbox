@@ -137,8 +137,8 @@
 		{
 			"function_name": "TestListLlmboxesReturnsBoxID",
 			"documentation_hash": "5574c05c0782a6523d7e2560de4a9c5c04c04806cdb9727b56324a3a0f28e974",
-			"definition_hash": "c41347a7734b9599590b327d9df03d1c3e266cd9c56fe6a922eed237be105e88",
-			"reviewed_at": "2026-07-01T13:13:04.542245296Z"
+			"definition_hash": "3f3cc80f930a97630609a204e89331c7e862475bc1a73674f7d1c76918673ab1",
+			"reviewed_at": "2026-07-04T20:12:47.856642044Z"
 		},
 		{
 			"function_name": "TestCreateRequiresBoxID",

@@ -20,7 +20,7 @@ func TestFakeProvisionerDirect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Provision: %v", err)
 	}
-	id := inst.Meta().ContainerID
+	id := inst.Meta().InstanceID
 
 	if _, err := f.Find(ctx, id); err != nil {
 		t.Fatalf("Find by id: %v", err)

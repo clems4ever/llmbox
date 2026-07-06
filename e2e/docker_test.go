@@ -140,7 +140,7 @@ func (m *fakeBoxManager) List(_ context.Context) ([]sandbox.Box, error) {
 			name, phase = "llmbox-"+short, "ready"
 		}
 		out = append(out, sandbox.Box{
-			ContainerID: short,
+			InstanceID:  short,
 			Name:        name,
 			BoxID:       b.boxID,
 			Description: b.description,

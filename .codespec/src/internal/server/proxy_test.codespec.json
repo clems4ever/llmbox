@@ -143,8 +143,8 @@
 		{
 			"function_name": "TestRestoreReconcilesProxies",
 			"documentation_hash": "f04dc9dbd3d0ff79038fc13210b0972c1e8c2d45418bea0666a84bd10d7b1ab4",
-			"definition_hash": "f4f5dfbf33e16dab1c7ed2f8c092dea129a966b244ba30872182fd18af5f9989",
-			"reviewed_at": "2026-06-29T15:39:25.300899288Z"
+			"definition_hash": "bb946c532cdbf6edbe867c8ca7b90e273433a406703a7f0ab610a45a6c13a3a8",
+			"reviewed_at": "2026-07-04T20:12:47.850020881Z"
 		},
 		{
 			"function_name": "TestCreateProxyIdempotentKeepsDescription",

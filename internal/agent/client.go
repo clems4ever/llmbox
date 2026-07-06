@@ -13,8 +13,9 @@ import (
 
 // Client is the host-side handle to one box's agent. It opens a fresh control
 // connection per call via Dial, so concurrent operations don't contend on a
-// single connection. The backend supplies Dial (an AF_UNIX dial to the box's
-// bind-mounted socket for the container backend; a vsock dial later).
+// single connection. The backend supplies Dial via its Instance.Control: an
+// AF_UNIX dial to the box's bind-mounted socket for the Docker backend, or a
+// vsock CONNECT handshake over the hypervisor UDS for the Firecracker backend.
 type Client struct {
 	// Dial opens a new control connection to the box's agent.
 	Dial func(ctx context.Context) (net.Conn, error)

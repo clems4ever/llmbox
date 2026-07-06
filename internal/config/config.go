@@ -73,20 +73,24 @@ type Config struct {
 	// JSON API (under /api/v1/) plus the UI (auth pages, admin, spoke connect,
 	// health, favicon). The box-control API is unauthenticated by the server itself
 	// (see internal/server/http.go), so run behind an authenticating reverse proxy.
-	HTTPAddr    string        `yaml:"http_addr"`
-	PublicURL   string        `yaml:"public_url"`
-	ClaudeImage string        `yaml:"claude_image"`
-	RemoteArgs  string        `yaml:"remote_args"`
-	AuthTTL     Duration      `yaml:"auth_ttl"`
-	StateFile   string        `yaml:"state_file"`
-	Hooks       []string      `yaml:"hooks"`
-	BoxPeers    []string      `yaml:"box_peers"`
-	Auth        AuthConfig    `yaml:"auth"`
-	Cluster     ClusterConfig `yaml:"cluster"`
-	Spoke       SpokeConfig   `yaml:"spoke"`
-	Box         BoxConfig     `yaml:"box"`
-	Proxy       ProxyConfig   `yaml:"proxy"`
-	TLS         TLSConfig     `yaml:"tls"`
+	HTTPAddr  string `yaml:"http_addr"`
+	PublicURL string `yaml:"public_url"`
+	// Backend selects the box isolation backend by name ("docker" or
+	// "firecracker"); empty defaults to Docker, preserving prior behaviour.
+	Backend     string            `yaml:"backend"`
+	ClaudeImage string            `yaml:"claude_image"`
+	RemoteArgs  string            `yaml:"remote_args"`
+	AuthTTL     Duration          `yaml:"auth_ttl"`
+	StateFile   string            `yaml:"state_file"`
+	Hooks       []string          `yaml:"hooks"`
+	BoxPeers    []string          `yaml:"box_peers"`
+	Auth        AuthConfig        `yaml:"auth"`
+	Cluster     ClusterConfig     `yaml:"cluster"`
+	Spoke       SpokeConfig       `yaml:"spoke"`
+	Box         BoxConfig         `yaml:"box"`
+	Firecracker FirecrackerConfig `yaml:"firecracker"`
+	Proxy       ProxyConfig       `yaml:"proxy"`
+	TLS         TLSConfig         `yaml:"tls"`
 	// Registries holds credentials for pulling box images from authenticated
 	// container registries. The manager selects the entry whose host matches the
 	// image being pulled; an image whose registry has no entry is pulled
@@ -142,6 +146,31 @@ type BoxConfig struct {
 	// collapse each other's containers. Empty is unscoped (the default: one spoke
 	// per daemon sees every box). On a spoke, the --namespace flag overrides it.
 	Namespace string `yaml:"namespace"`
+}
+
+// FirecrackerConfig holds the microVM-backend settings, used only when backend is
+// "firecracker". A Docker deployment leaves it empty.
+type FirecrackerConfig struct {
+	// KernelImage is the host path to the guest kernel (vmlinux) every box boots.
+	KernelImage string `yaml:"kernel_image"`
+	// RootfsImage is the host path to the default guest root filesystem image
+	// booted when a create supplies no image of its own.
+	RootfsImage string `yaml:"rootfs_image"`
+	// StateDir is where the backend persists per-box metadata (Firecracker has no
+	// daemon registry) so List/Find/reap survive a restart. Empty uses the
+	// backend default.
+	StateDir string `yaml:"state_dir"`
+	// DisableEgress boots control-only boxes (loopback + vsock, no TAP/NAT), which
+	// removes the CAP_NET_ADMIN requirement so the server can run unprivileged.
+	// The guest then has no outbound network, so a box cannot reach the Claude API
+	// — use it for air-gapped boxes or local plumbing tests, not real sessions.
+	// Default false (egress enabled).
+	DisableEgress bool `yaml:"disable_egress"`
+	// PoolSize is the number of egress TAP devices provisioned once at startup and
+	// reused across boxes; it caps concurrent networked boxes. Provisioning them at
+	// startup (not per box) keeps a same-host browser from aborting requests with
+	// ERR_NETWORK_CHANGED when a box is created. Empty uses the backend default.
+	PoolSize int `yaml:"pool_size"`
 }
 
 // ProxyConfig enables exposing box HTTP ports through the hub. When base_domain

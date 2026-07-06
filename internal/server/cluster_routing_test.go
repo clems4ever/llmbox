@@ -64,8 +64,8 @@ func TestCreateBoxDefaultsToLocalSpoke(t *testing.T) {
 
 // TestListFansOutAcrossSpokes checks list aggregates boxes from every spoke, each tagged.
 func TestListFansOutAcrossSpokes(t *testing.T) {
-	local := &testutils.FakeMgr{ListResult: []sandbox.Box{{ContainerID: "L", BoxID: "lbox"}}}
-	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{ContainerID: "E", BoxID: "ebox"}}}
+	local := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "L", BoxID: "lbox"}}}
+	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "E", BoxID: "ebox"}}}
 	s := newTestServer(local)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
@@ -159,7 +159,7 @@ func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
 func TestDestroySessionlessBoxFindsSpoke(t *testing.T) {
 	local := &testutils.FakeMgr{}
 	// The edge spoke reports a box "test" with no session tracking it.
-	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{BoxID: "test", ContainerID: "edgecid"}}}
+	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{BoxID: "test", InstanceID: "edgecid"}}}
 	s := newTestServer(local)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 

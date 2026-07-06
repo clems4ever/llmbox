@@ -1,0 +1,183 @@
+{
+	"functions": [
+		{
+			"function_name": "shortStateDir",
+			"documentation_hash": "24614ec6e2e2918a523289253650d72c6dd438b4ad37ebc6f1deac36c5562b51",
+			"definition_hash": "ed840da058ed1891d16de69a609dc09aae86dfe6ea469991f21903310b42d1f9",
+			"reviewed_at": "2026-07-04T20:20:41.22362468Z"
+		},
+		{
+			"function_name": "serveFakeVsock",
+			"documentation_hash": "9282e80b353014fd60c2d4a148cb9fb33576f497218f7845d5d43f09dc9160cf",
+			"definition_hash": "e1db5cb2f10c0129b58cb18a43580851bef0bbcc1826dedcfa4576e7e7b37f7c",
+			"reviewed_at": "2026-07-04T20:20:41.22752921Z"
+		},
+		{
+			"function_name": "newFakeProvisioner",
+			"documentation_hash": "aa478865a5ab00e9f10eef5f3b81593434a833d06a1a439f5956a42b3fece712",
+			"definition_hash": "f4a9c909091f1bf8bfe737f4ad2eecc861fd44da5428005181fd78a0c3519e90",
+			"reviewed_at": "2026-07-04T20:20:41.287097304Z"
+		},
+		{
+			"function_name": "TestProvisionerBookkeeping",
+			"documentation_hash": "6ce4a5dcaf3334bf53777a70e9f3aea60f00ee3c658a7130784c1925b0458906",
+			"definition_hash": "f8a71301f062f2b1ea285dec6264d780a452820468cbd2fda695580a51bb11f3",
+			"reviewed_at": "2026-07-04T22:54:32.281696835Z"
+		},
+		{
+			"function_name": "TestProvisionCleansUpOnBootFailure",
+			"documentation_hash": "b7a2ab5fe341ddc7a647303a281e1b1e8f517ee48e3bf49f6b34a6f5285293b4",
+			"definition_hash": "14958f6a754c376f3073e0e00af7a528b34b9cef767c4691940afc7b96771c96",
+			"reviewed_at": "2026-07-04T22:54:32.28252209Z"
+		},
+		{
+			"function_name": "TestProvisionerNamespaceScoping",
+			"documentation_hash": "a7215d2d83dea7a4274b05b9d2d6db08272ed1ad8aa4e6cdb625b586f59ae654",
+			"definition_hash": "a4034a64fe288aa11eeb8bf7015bd3ed0ee98387bd523ec5aaa92484f55e7bec",
+			"reviewed_at": "2026-07-04T20:20:55.186323023Z"
+		},
+		{
+			"function_name": "TestFindUnknownBox",
+			"documentation_hash": "db9bc1b765204eaaf122031828ded095c76bccf40e66163f2c2cfb3e0026aba8",
+			"definition_hash": "f294841283395d27b3591af13a5174141c3132130b572833ab0ffb8d015227a6",
+			"reviewed_at": "2026-07-04T20:20:55.224314382Z"
+		},
+		{
+			"function_name": "TestDestroyAlreadyGone",
+			"documentation_hash": "4360fc8e900e0462bc4d128ab19fba92faa0c6db4fb9eda0544386a287e168e4",
+			"definition_hash": "d8269916258793d05a71cba777156a507a8a2c0f7f11aea96b2d45a93cc0c8e9",
+			"reviewed_at": "2026-07-04T20:20:55.229057057Z"
+		},
+		{
+			"function_name": "TestMachineSizing",
+			"documentation_hash": "6af3a39cece516b6e820f4ab2d1a43a36143f6b3a4d9c0568e42581c9a8d773a",
+			"definition_hash": "d604f46ab7f793ef1d52a49bb1deaf7e0410a8aff3235bd80b6f9cb0df16e682",
+			"reviewed_at": "2026-07-04T20:21:09.623281185Z"
+		},
+		{
+			"function_name": "TestMacForIndex",
+			"documentation_hash": "d3919be552cabd644903e78462252c103d84cece9402b8e0d726e199f4f9782a",
+			"definition_hash": "0580a7a192f1b60f25142ac0ce6b3be272163e0436a092a78cd4258fb98a5e03",
+			"reviewed_at": "2026-07-04T20:21:09.630569687Z"
+		},
+		{
+			"function_name": "TestCopyFile",
+			"documentation_hash": "1c5666663587947e45294c220935c02e026004628fcf695f67cde8d9412a7624",
+			"definition_hash": "c80f33fff2ce476f5274679f81e76dc6b2e4bb256d6eb819029d55d06af0daf2",
+			"reviewed_at": "2026-07-04T20:21:09.64029041Z"
+		},
+		{
+			"function_name": "TestWaitForAgent",
+			"documentation_hash": "9abdd9786b43642eacae6059a1d55283898ed8bb23283ab34b53e872e30cb8fc",
+			"definition_hash": "b7fc2403413b15e8db29c1dfd38ba86edb708c35dcc8ed634fabd404be41dcaf",
+			"reviewed_at": "2026-07-04T20:21:09.647371769Z"
+		},
+		{
+			"function_name": "TestWaitForAgentTimesOut",
+			"documentation_hash": "73d1a98d9af9df86cd5402a9a1f8847b60f963b045e9c26e4ade622de2638a3c",
+			"definition_hash": "7bf88fe0a25d812b191b0492f1a4eb0604299df164534825aad733cd046e511b",
+			"reviewed_at": "2026-07-04T20:21:23.922045817Z"
+		},
+		{
+			"function_name": "TestDialVsockHandshake",
+			"documentation_hash": "cb5b66b9014e2bea6b5b2be2af8bb6d30a779db271e2dc9fc7e3aed9462d8880",
+			"definition_hash": "32e9b4ae1567027cca7c07603c6ffb6457caa6fde53d67678b39badeaba32e89",
+			"reviewed_at": "2026-07-04T20:21:23.926647084Z"
+		},
+		{
+			"function_name": "TestDialVsockRejected",
+			"documentation_hash": "f119cd68411b974d10fbdaf1f486488a03efed72944cacfb752e3b5ebfbaed36",
+			"definition_hash": "f6d8c31920d360919295bb349856579c285e38ffa8056e5f72cc43e5d3a99000",
+			"reviewed_at": "2026-07-04T20:21:23.940002542Z"
+		},
+		{
+			"function_name": "TestNetFor",
+			"documentation_hash": "8c7efa43881f8f1843f773d8e946ae9528fc3b48ab2e76e732bc253f0da76fa8",
+			"definition_hash": "05ae2dbad5f70cdb57580539801945086770e8b2f7ca417f6ec264ac00b81144",
+			"reviewed_at": "2026-07-04T22:54:32.283789871Z"
+		},
+		{
+			"function_name": "TestKernelIPArg",
+			"documentation_hash": "9cbd7026f718ca7403e40d128c42a0c22fdef3426874bfa8e6e4f21846543e94",
+			"definition_hash": "57bb32c70a440ef479fafc2de021aaa714d04ba4d4b8eedfeeec3816d5a65264",
+			"reviewed_at": "2026-07-04T22:54:32.284713641Z"
+		},
+		{
+			"function_name": "TestRunReportsFailure",
+			"documentation_hash": "4a4518f7b866cfce679f8c3c819193f96d7e237f29d5fcb6ae9f7e34fb19efa2",
+			"definition_hash": "624db1a071423afabcf322b73bfb3252e264e38c68b4fc496d46e7fc9e0091d0",
+			"reviewed_at": "2026-07-04T20:21:38.397021818Z"
+		},
+		{
+			"function_name": "TestSaveLoadMeta",
+			"documentation_hash": "47cb29c8f3e3a25fc01dc5369e0cd4f5e4b594dd09d74d5371cb5619a8136148",
+			"definition_hash": "eedf4d5dc7f11f55708408847fa1a34d6f66eaef3a0a8662245d571bc2064d38",
+			"reviewed_at": "2026-07-04T20:21:52.698564952Z"
+		},
+		{
+			"function_name": "TestLoadMetasSkipsJunk",
+			"documentation_hash": "33cc77013bbf12efeba2d9b40fb78a359e66fcb3ff5a31440d3858aec3e4c9ee",
+			"definition_hash": "fc8b45b1696b3b3dd2aeb1c5eadc9e5018560a975f2a4f1e06c18c2539574826",
+			"reviewed_at": "2026-07-04T20:21:52.703300827Z"
+		},
+		{
+			"function_name": "Start",
+			"receiver": "fakeMachine",
+			"documentation_hash": "2a9a8691f1a8e85e444e2f05945e93785b4ec29f4551094133c6700f508cb5c7",
+			"definition_hash": "fccd1a433d3986525f49164d3a5dc1f08130508bb82fabc4544390051c7f2313",
+			"reviewed_at": "2026-07-04T20:23:40.85349658Z"
+		},
+		{
+			"function_name": "StopVMM",
+			"receiver": "fakeMachine",
+			"documentation_hash": "f0fc11ea1582f698e774492335d152191aef19e680ab1b57c415254758c3acf8",
+			"definition_hash": "3f8e51f37502c8302eb2505d1e1f26faf21149a97265fb4171792904fa552744",
+			"reviewed_at": "2026-07-04T20:23:40.854996318Z"
+		},
+		{
+			"function_name": "Wait",
+			"receiver": "fakeMachine",
+			"documentation_hash": "9a9fcbcf984c05bd37036e785389b6968fd27b87467f8c9a60c7845b86402ee6",
+			"definition_hash": "13a63ba0f05ef93290616f474e3fa6be0fd8f1d544cc4877e9e2bca8319bb006",
+			"reviewed_at": "2026-07-04T20:23:40.864759471Z"
+		},
+		{
+			"function_name": "mustFind",
+			"documentation_hash": "d12114ca67eaf3742de3e5c1e803be765dbdc625e147facebac1746647a1ae4d",
+			"definition_hash": "2c7c8ef6cf5f763362242af225cbaf837d9aeb8e591c42beb6182989b8b5f5b6",
+			"reviewed_at": "2026-07-04T20:23:40.870299546Z"
+		},
+		{
+			"function_name": "readFull",
+			"documentation_hash": "384f8d13c0e8fd1e0b989ce99a89c69836af31b5c015d6ac484cdd88084e9907",
+			"definition_hash": "1d06ff596a0dfb573467b76951f9300221b4dca5f7c351ab4f23ed34b00c9347",
+			"reviewed_at": "2026-07-04T20:23:40.87164414Z"
+		},
+		{
+			"function_name": "EnsurePool",
+			"receiver": "fakeEgress",
+			"documentation_hash": "0ad1611f7459d6fef3579e48ed53c7f63dc5cdb12c22b5442efb47de670adee1",
+			"definition_hash": "5f13b6c74863309504a6e8d25130a3f7222e13aa0273d4c7e924e8d18513ca90",
+			"reviewed_at": "2026-07-04T22:54:32.271816652Z"
+		},
+		{
+			"function_name": "TeardownPool",
+			"receiver": "fakeEgress",
+			"documentation_hash": "0233a0eb2c9c96102e47a8d626f94938d129a4fc71bf056caa298ba84db0e930",
+			"definition_hash": "ead4ac8b5703e152297e0539482741f57413e501157df9c2cee87f2c3ce2d0b8",
+			"reviewed_at": "2026-07-04T22:54:32.272884154Z"
+		},
+		{
+			"function_name": "TestInsertVerb",
+			"documentation_hash": "f9dce66943d650fcba09e1b86deae35a8dc5ebd2660cda25d3043c8346529670",
+			"definition_hash": "21a3e5b14a6af591dc61309a41c78c02d3b4fa8a8942af5fba9ad12d22af0211",
+			"reviewed_at": "2026-07-04T22:54:32.285474933Z"
+		},
+		{
+			"function_name": "TestHostEgressPoolSkipsWithoutRoot",
+			"documentation_hash": "63764d0bcd604664f008286db15f6f5563aca8563c8d801db5c782db170e7587",
+			"definition_hash": "c702749dff7e298d5784ddacbb59d45b0e39b10d3fa11f7c73383ff3dc1edbdb",
+			"reviewed_at": "2026-07-04T22:54:32.286440769Z"
+		}
+	]
+}

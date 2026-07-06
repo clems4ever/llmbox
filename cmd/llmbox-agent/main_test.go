@@ -18,7 +18,7 @@ func TestRunServesAndStops(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	errc := make(chan error, 1)
-	go func() { errc <- run(ctx, sock, "/bin/true", log) }()
+	go func() { errc <- run(ctx, sock, 0, "/bin/true", log) }()
 
 	deadline := time.Now().Add(3 * time.Second)
 	for {

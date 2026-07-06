@@ -9,7 +9,10 @@ tmp_dir = "tmp"
   # Build the server into tmp/ and run it with the workspace config.
   cmd = "go build -o ./tmp/llmbox-server ./cmd/llmbox-server"
   bin = "./tmp/llmbox-server"
-  full_bin = "./tmp/llmbox-server --config .workspace/llmbox.yaml"
+  # Prepend ~/.local/bin to PATH so the firecracker backend can find the
+  # `firecracker` binary (installed there by scripts/firecracker/fetch-firecracker.sh);
+  # air runs full_bin via `/bin/sh -c`, so this env prefix takes effect.
+  full_bin = "PATH=\"$PATH:$HOME/.local/bin\" ./tmp/llmbox-server --config .workspace/llmbox.yaml"
 
   # Watch Go sources plus the embedded UI assets (templates/JS/SVG are baked in
   # via go:embed, so a change there needs a rebuild to take effect).

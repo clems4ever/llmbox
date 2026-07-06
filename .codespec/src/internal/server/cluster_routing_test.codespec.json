@@ -27,8 +27,8 @@
 		{
 			"function_name": "TestListFansOutAcrossSpokes",
 			"documentation_hash": "8393a920927eb5095fe21ac621cd1c38e3695579cd8345ae209262554d97b8a9",
-			"definition_hash": "5293f81f3a1ec6504dd173b90547269ea9f4e70d51074ff43fd23b02d92424f8",
-			"reviewed_at": "2026-06-29T15:39:25.196351887Z"
+			"definition_hash": "92e64e2815b388d91abf29bf77888e3c6e86b186e1ab1f038eb49a6ac6b98618",
+			"reviewed_at": "2026-07-04T20:12:47.848149776Z"
 		},
 		{
 			"function_name": "TestReapFansOutAcrossSpokes",
@@ -69,8 +69,8 @@
 		{
 			"function_name": "TestDestroySessionlessBoxFindsSpoke",
 			"documentation_hash": "f5f614ef4247eea921fa2cc45e4a17585f493e82a647223ede8600ea062a8d58",
-			"definition_hash": "4ce185e8c4e175afe8cee47cfffd4fef4213c02db2752c428c184c061c72b5c9",
-			"reviewed_at": "2026-06-29T15:39:25.227291367Z"
+			"definition_hash": "5f4657b653b57803f16a4d1ce7ef2a115417975cbb161779fa592aa66b08b3a8",
+			"reviewed_at": "2026-07-04T20:12:47.848677651Z"
 		},
 		{
 			"function_name": "TestDestroyAlreadyGoneBoxSucceeds",

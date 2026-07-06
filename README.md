@@ -69,6 +69,7 @@ arguments and return values.
 | [Running & configuration](docs/configuration.md) | Running the server, connecting a chatbot, and the YAML config reference. |
 | [Authenticating activation](docs/authentication.md) | Gating activation behind a sign-in provider (OIDC) so a leaked token can't hijack a box. |
 | [Box lifecycle hooks](docs/hooks.md) | Injecting per-box secrets/files via `box.create`/`box.destroy` hooks, plus box networking and isolation. |
+| [Firecracker backend](docs/firecracker.md) | Running each box as a Firecracker microVM instead of a Docker container: vsock control, TAP/NAT egress, and building a guest rootfs. |
 | [Operations](docs/operations.md) | Session persistence, box credentials across restarts, and orphan cleanup. |
 | [Development](docs/development.md) | Building, CI, and the unit / integration / end-to-end test suites. |
 

@@ -230,7 +230,7 @@ func TestDestroySessionlessBoxRemovesProxies(t *testing.T) {
 // closing the reuse window where a box vanishes out of band before a restart.
 func TestRestoreReconcilesProxies(t *testing.T) {
 	mgr := &testutils.FakeMgr{ListResult: []sandbox.Box{
-		{ContainerID: "live123", BoxID: "live-box", State: "running", Phase: "ready"},
+		{InstanceID: "live123", BoxID: "live-box", State: "running", Phase: "ready"},
 	}}
 	s, st := newProxyServer(t, mgr, nil)
 	// One proxy for a live box, one for a box that no longer exists.

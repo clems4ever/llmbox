@@ -25,8 +25,8 @@
 			"function_name": "List",
 			"receiver": "browserSpokeMgr",
 			"documentation_hash": "f82104cf626537c1579eabd33066a3e8e2866d90c890170ff0b596e0035a2f1e",
-			"definition_hash": "e49e982c755d465ff5b0c9039cde90bb22cf6571b2ec3c2b2f95f9dd845f8356",
-			"reviewed_at": "2026-06-29T15:39:24.964546922Z"
+			"definition_hash": "da04d64aa072e16e84c9e0851d72aa3daabb458578a9441b70b34f8f06218f84",
+			"reviewed_at": "2026-07-04T20:12:47.823567718Z"
 		},
 		{
 			"function_name": "Logs",

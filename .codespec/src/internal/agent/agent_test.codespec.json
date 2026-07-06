@@ -95,6 +95,12 @@
 			"documentation_hash": "bb9878a0464f00b033bfb21867ba7d4478b4a45cbfca066b7ccea62997feb487",
 			"definition_hash": "76cd1e7ac0563a8cc0d66f7d0ba7d022d45a3bc70e89654c16206b60a96071fd",
 			"reviewed_at": "2026-06-30T15:27:10.627058889Z"
+		},
+		{
+			"function_name": "TestListenVsockReturns",
+			"documentation_hash": "eeb39e0b9863887d0ad1e185e504247866ff825750671f836bc9478d891746ea",
+			"definition_hash": "8b96fed1a90933fd54909b0fca0e295b3cee344f068effb7831ae4b6e3e77857",
+			"reviewed_at": "2026-07-04T20:12:47.826947884Z"
 		}
 	]
 }

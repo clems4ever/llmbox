@@ -50,8 +50,8 @@
 		{
 			"function_name": "boxFromSummary",
 			"documentation_hash": "fa1fa62fdef912f13ab999f180c0d0efbf7b97c1223abc0f65dd9670b61ef345",
-			"definition_hash": "a1a5a36681286681e16aeae968ba0622ed8fe36600e74f50540ce76d5c5dccd8",
-			"reviewed_at": "2026-06-30T16:10:22.277760167Z"
+			"definition_hash": "886d4f87aabb2a0700722b53ecefd2b125b1b163e99ab7bd0e7f96478e39b719",
+			"reviewed_at": "2026-07-04T20:12:47.830230697Z"
 		},
 		{
 			"function_name": "List",
@@ -64,15 +64,15 @@
 			"function_name": "Find",
 			"receiver": "Provisioner",
 			"documentation_hash": "fa34903cf403ad9f962e61d831f130b4ff25809231cf2e1caab522f5723b1e23",
-			"definition_hash": "d57b820d36b1148dbd0cbfb471e6ad758725b2cc75df7e66dc72a3ce1a461020",
-			"reviewed_at": "2026-06-30T16:43:41.274070583Z"
+			"definition_hash": "e52a99842dce6fa748579c93005895d61f32d5ef9eb7282853b41b0a5e6131a5",
+			"reviewed_at": "2026-07-04T20:12:47.831411543Z"
 		},
 		{
 			"function_name": "Provision",
 			"receiver": "Provisioner",
 			"documentation_hash": "cd5faf211805df2f1311d67d890818580ae6377128fda84e439f8753549f6852",
-			"definition_hash": "52608fbc0d8681bd8b2e7d3d8fd960fe5e943a8aa756f8e6e0fc01c2937d6394",
-			"reviewed_at": "2026-07-01T09:19:43.162739679Z"
+			"definition_hash": "e66fb7b176f8c98199dd3a767daeb79f37b377cb9c88b5984d578e1889c421c2",
+			"reviewed_at": "2026-07-04T20:12:47.83245677Z"
 		},
 		{
 			"function_name": "waitForSocket",
@@ -163,15 +163,15 @@
 			"function_name": "MarkReady",
 			"receiver": "dockerInstance",
 			"documentation_hash": "bc6a16dfbbfec8b3a18536d1582004530cc588c0fbbea3f445ff924740360ba3",
-			"definition_hash": "9e28dd98d6fca895be79a59aebabd9d4fd22fab08af1131ef54284ee32b2de05",
-			"reviewed_at": "2026-06-30T16:10:22.356851663Z"
+			"definition_hash": "d9de3418db2063b04af9059b84ec88ddfb3988a8bd804fdbe930e0596fb30a1d",
+			"reviewed_at": "2026-07-04T20:12:47.833726118Z"
 		},
 		{
 			"function_name": "Destroy",
 			"receiver": "dockerInstance",
 			"documentation_hash": "be8d138ca940f21935dfc3d664ebea4b082071c1017ac5e32168f0f55c71d594",
-			"definition_hash": "32744fe4ecbd4c1693762b02783ddf58ab3e4bb7a27c5d1a098e06e609beca5e",
-			"reviewed_at": "2026-06-30T16:43:41.27868125Z"
+			"definition_hash": "5f2b47b5169925e5006a838ce27da3b7b4e3a6e216a506f3714477e8ef041776",
+			"reviewed_at": "2026-07-04T20:12:47.834678648Z"
 		},
 		{
 			"function_name": "SetNamespace",

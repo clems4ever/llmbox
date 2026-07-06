@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/creack/pty"
+	"github.com/mdlayher/vsock"
 
 	"github.com/clems4ever/llmbox/internal/sandbox"
 )
@@ -173,6 +174,39 @@ func (a *Agent) ListenAndServe(ctx context.Context, path string) error {
 		return fmt.Errorf("setting control socket mode: %w", err)
 	}
 
+	return a.serve(ctx, ln)
+}
+
+// ListenVsockAndServe listens on the guest AF_VSOCK port and serves control
+// connections until ctx is cancelled or the listener fails. It is the microVM
+// transport: the host reaches this listener over the hypervisor's vsock, so no
+// filesystem socket crosses a bind mount. The control protocol served is
+// identical to the Unix-socket transport.
+//
+// @arg ctx Context whose cancellation stops the accept loop and closes the listener.
+// @arg port The guest AF_VSOCK port to listen on.
+// @error error if the vsock listener cannot be created or the accept loop fails for a reason other than ctx cancellation.
+//
+// @testcase TestListenVsockReturns returns promptly (an error when AF_VSOCK is unavailable, or nil once ctx is cancelled) rather than hanging.
+func (a *Agent) ListenVsockAndServe(ctx context.Context, port uint32) error {
+	ln, err := vsock.Listen(port, nil)
+	if err != nil {
+		return fmt.Errorf("listening on vsock port %d: %w", port, err)
+	}
+	defer ln.Close()
+	return a.serve(ctx, ln)
+}
+
+// serve runs the accept loop on ln, dispatching each connection to handleConn,
+// until ctx is cancelled (a clean stop) or Accept fails for another reason. It is
+// transport-agnostic so the Unix-socket and vsock entrypoints share it.
+//
+// @arg ctx Context whose cancellation closes the listener and ends the loop.
+// @arg ln The listener to accept control connections on.
+// @error error if the accept loop fails for a reason other than ctx cancellation.
+//
+// @testcase TestAgentLifecycle serves over a listener via serve.
+func (a *Agent) serve(ctx context.Context, ln net.Listener) error {
 	go func() {
 		<-ctx.Done()
 		ln.Close()

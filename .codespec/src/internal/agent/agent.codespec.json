@@ -10,8 +10,8 @@
 			"function_name": "ListenAndServe",
 			"receiver": "Agent",
 			"documentation_hash": "f4064d48009b852902a064ba34c348f8268926ff687def9114c3077bdcaac2f7",
-			"definition_hash": "0e444b532d6fb627b453e00e39d96c289a9bb30fe3ac3b1aef08ea6ce7547dde",
-			"reviewed_at": "2026-06-30T16:10:22.19652829Z"
+			"definition_hash": "58f9dfb30fe295d3c1a6ebbe8e581c414450063755c15b1ead26045e36782c3e",
+			"reviewed_at": "2026-07-04T20:12:47.824571557Z"
 		},
 		{
 			"function_name": "Shutdown",
@@ -113,6 +113,20 @@
 			"documentation_hash": "5897581859666baa503a6c31be361c1596888c6a4206d064c84229b892da3dfa",
 			"definition_hash": "862f37b0f3bb1ca826f6069ae12c856b4b059ab158e4ff2be121749afaece211",
 			"reviewed_at": "2026-06-30T15:27:10.624181844Z"
+		},
+		{
+			"function_name": "ListenVsockAndServe",
+			"receiver": "Agent",
+			"documentation_hash": "b44db4b0436f0444ab9fec05ea5b164fdc7709269f4e42dfe0dfb7f080d76620",
+			"definition_hash": "5605069cd55efe4bc50b489c8e1e00b6774f057f0a405a81cf0c51cb51e03bbd",
+			"reviewed_at": "2026-07-04T20:12:47.825654498Z"
+		},
+		{
+			"function_name": "serve",
+			"receiver": "Agent",
+			"documentation_hash": "1320609345d62cb1d8b0efd15a1f4924cc55465c2638ad4537d6ab004cb480d1",
+			"definition_hash": "2cf194d12e3b124ced082526f214edceb1130a681084cd662723c2eb85cb1987",
+			"reviewed_at": "2026-07-04T20:12:47.826390091Z"
 		}
 	]
 }

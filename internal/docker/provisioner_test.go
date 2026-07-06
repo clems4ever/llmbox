@@ -431,7 +431,7 @@ func TestListMapsManagedContainers(t *testing.T) {
 		t.Fatalf("List = %v, %v", insts, err)
 	}
 	b := insts[0].Meta()
-	if b.BoxID != "b1" || b.Phase != "ready" || b.ContainerID != "abcdef012345" {
+	if b.BoxID != "b1" || b.Phase != "ready" || b.InstanceID != "abcdef012345" {
 		t.Fatalf("meta = %+v", b)
 	}
 }
@@ -480,7 +480,7 @@ func TestSetBoxGPUsParsesSpec(t *testing.T) {
 func TestMarkReadyRenamesContainer(t *testing.T) {
 	f := &fakeDocker{}
 	p := newTestProvisioner(t, f)
-	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}}
 	if err := inst.MarkReady(context.Background()); err != nil {
 		t.Fatalf("MarkReady: %v", err)
 	}
@@ -498,7 +498,7 @@ func TestDestroyRemovesNetworkAndSocket(t *testing.T) {
 	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}, socketToken: "tok9"}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}, socketToken: "tok9"}
 	if err := inst.Destroy(context.Background()); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
@@ -517,7 +517,7 @@ func TestDestroyRemovesNetworkAndSocket(t *testing.T) {
 func TestDestroyAlreadyGone(t *testing.T) {
 	f := &fakeDocker{stopMissing: true}
 	p := newTestProvisioner(t, f)
-	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}}
 	if err := inst.Destroy(context.Background()); !errors.Is(err, sandbox.ErrBoxNotFound) {
 		t.Fatalf("err = %v, want sandbox.ErrBoxNotFound", err)
 	}
@@ -616,7 +616,7 @@ func TestProvisionPullFailure(t *testing.T) {
 func TestDestroyRemoveError(t *testing.T) {
 	f := &fakeDocker{removeErr: errors.New("remove boom")}
 	p := newTestProvisioner(t, f)
-	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}}
 	if err := inst.Destroy(context.Background()); err == nil {
 		t.Fatal("Destroy should surface a remove error")
 	}
@@ -632,7 +632,7 @@ func TestDestroyToleratesNetworkErrors(t *testing.T) {
 	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}, socketToken: "tokX"}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}, socketToken: "tokX"}
 	if err := inst.Destroy(context.Background()); err != nil {
 		t.Fatalf("Destroy should tolerate network errors, got %v", err)
 	}
@@ -645,7 +645,7 @@ func TestDestroyToleratesNetworkErrors(t *testing.T) {
 func TestMarkReadyError(t *testing.T) {
 	f := &fakeDocker{renameErr: errors.New("rename boom")}
 	p := newTestProvisioner(t, f)
-	inst := &dockerInstance{prov: p, box: sandbox.Box{ContainerID: "abcdef012345"}}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}}
 	if err := inst.MarkReady(context.Background()); err == nil {
 		t.Fatal("MarkReady should surface a rename error")
 	}

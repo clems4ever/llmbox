@@ -12,10 +12,17 @@ http_addr: ":8080"
 # correctly in production — it is used to build the auth-page links.
 public_url: "http://localhost:8080"
 
-# Base image launched per box. It must bake in the standalone Claude binary (on
-# PATH), tini (used as PID 1), /bin/sh, util-linux (for `script`), and a CA
-# bundle. Defaults to ghcr.io/clems4ever/llmbox-box, built by Dockerfile.box;
-# build your own FROM it to add more tooling.
+# Box isolation backend: "docker" (default) runs each box as a Docker container;
+# "firecracker" runs each box as a Firecracker microVM (see the firecracker block
+# below and docs/firecracker.md). Empty defaults to docker, so existing
+# deployments are unaffected.
+backend: "docker"
+
+# Base image launched per box (docker backend). It must bake in the standalone
+# Claude binary (on PATH), tini (used as PID 1), /bin/sh, util-linux (for
+# `script`), and a CA bundle. Defaults to ghcr.io/clems4ever/llmbox-box, built by
+# Dockerfile.box; build your own FROM it to add more tooling. (The firecracker
+# backend uses firecracker.rootfs_image instead.)
 claude_image: "ghcr.io/clems4ever/llmbox-box:latest"
 
 # Args passed to `claude remote-control`.
@@ -91,6 +98,22 @@ state_file: "llmbox-sessions.db"
 #   # unscoped — correct when one process owns the daemon. On a spoke the
 #   # --namespace flag overrides this.
 #   namespace: ""
+
+# Firecracker microVM backend settings (used only when backend: firecracker; a
+# Docker deployment ignores this block). Each box boots a shared guest kernel and
+# a per-box copy of the rootfs image, whose init is the llmbox agent listening on
+# vsock. Build the kernel + rootfs with scripts/firecracker/ — see
+# docs/firecracker.md. Host needs /dev/kvm and the firecracker binary on PATH.
+# firecracker:
+#   kernel_image: "/var/lib/llmbox/vmlinux"      # host path to the guest kernel (vmlinux)
+#   rootfs_image: "/var/lib/llmbox/rootfs.ext4"  # default guest rootfs booted per box
+#   state_dir:    "/run/llmbox/firecracker"      # per-box runtime state (empty = backend default)
+#   # Egress TAP devices are provisioned once at startup (not per box), so creating
+#   # a box never changes the host's network — important when a browser runs on the
+#   # same host (a new interface mid-request makes Chrome abort with
+#   # ERR_NETWORK_CHANGED). pool_size caps concurrent networked boxes.
+#   pool_size:      16                           # 0 = backend default (16)
+#   # disable_egress: true                       # control-only boxes (no TAP/NAT); runs unprivileged but no outbound network
 
 # Credentials for pulling box images from authenticated container registries.
 # Each entry is matched against the image's registry host: an image whose host

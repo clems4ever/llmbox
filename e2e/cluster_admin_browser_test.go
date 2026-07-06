@@ -89,7 +89,7 @@ func (m *browserSpokeMgr) List(ctx context.Context) ([]sandbox.Box, error) {
 	defer m.mu.Unlock()
 	var out []sandbox.Box
 	for id, boxID := range m.boxes {
-		out = append(out, sandbox.Box{ContainerID: id, BoxID: boxID, State: "running", Phase: "ready"})
+		out = append(out, sandbox.Box{InstanceID: id, BoxID: boxID, State: "running", Phase: "ready"})
 	}
 	return out, nil
 }
