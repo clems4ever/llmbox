@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewRootCmd",
 			"documentation_hash": "66917e619cf4625978a61e91bc0d339f94f92d4ea297ed934958fc24930abe36",
-			"definition_hash": "6830a458b5a843478de0fdb2486374d26fd2bdb53aba9cca3b19294abcca0591",
-			"reviewed_at": "2026-07-04T22:54:32.29640715Z"
+			"definition_hash": "da023afbe7008849bd69a69220a860223dd339dfe58cdacd7df31f1a8136d3df",
+			"reviewed_at": "2026-07-07T10:38:54.037809728Z"
 		},
 		{
 			"function_name": "newSpokeTokenCmd",
@@ -39,8 +39,8 @@
 		{
 			"function_name": "runSpoke",
 			"documentation_hash": "e1e2528558d9197deb578e6ff9c3eec368d1d2e19cf2b5a25677b8b58d127f19",
-			"definition_hash": "c81c5be5d7c35770213e14db4f91dc9445c89ded94e4b49c7fc0cf00bacd8936",
-			"reviewed_at": "2026-07-04T22:54:32.297165658Z"
+			"definition_hash": "bb4a42678c4d502e67a14130b36abe63eebe8c58052c1d0b6a14b30994da81cf",
+			"reviewed_at": "2026-07-07T10:38:54.03840451Z"
 		},
 		{
 			"function_name": "checkStateWritable",

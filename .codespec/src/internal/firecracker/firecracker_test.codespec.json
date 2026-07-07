@@ -178,6 +178,24 @@
 			"documentation_hash": "63764d0bcd604664f008286db15f6f5563aca8563c8d801db5c782db170e7587",
 			"definition_hash": "c702749dff7e298d5784ddacbb59d45b0e39b10d3fa11f7c73383ff3dc1edbdb",
 			"reviewed_at": "2026-07-04T22:54:32.286440769Z"
+		},
+		{
+			"function_name": "provisionCapturingCfg",
+			"documentation_hash": "a63015b1c4b344f6801e55e324f53938e1b12f99d9220b5811634f763f43960a",
+			"definition_hash": "5db91b1154b03dc2bb3b206158a1816bbac6fb1ca6a27d47c8ad0b02126d0e81",
+			"reviewed_at": "2026-07-07T10:38:54.033135531Z"
+		},
+		{
+			"function_name": "TestProvisionAttachesPayloadDrive",
+			"documentation_hash": "27e60a00e6d5183f979a1ba07f44a40c6f99d5581863d81ee1308eab5780d047",
+			"definition_hash": "3d8bd39435a88c97d4b2df5e966aad57969dce5761388439b4b30db39f4ebaac",
+			"reviewed_at": "2026-07-07T10:38:54.034057005Z"
+		},
+		{
+			"function_name": "TestProvisionWithoutPayloadHasSingleDrive",
+			"documentation_hash": "e1e70b3a550375b7423f4f4c49af8dbdb91cb7181a2c73faea5868c0be76116e",
+			"definition_hash": "6f052f84688502aaded5744dfa7679013ff775e550ce6a5467855a91784e6e5c",
+			"reviewed_at": "2026-07-07T10:38:54.034885411Z"
 		}
 	]
 }

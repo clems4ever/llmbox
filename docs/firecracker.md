@@ -87,18 +87,44 @@ Claude wants to run — use the full-server pair:
   kernel lacks: overlayfs, bridge/veth, netfilter (iptables + nftables + NAT +
   conntrack), `br_netfilter`, all cgroup controllers, autofs, tun, bpf. It compiles
   in an `ubuntu:22.04` container (~15 min).
-- **`scripts/firecracker/build-debian-rootfs.sh`** builds a real Debian bookworm
-  rootfs (`debian-rootfs.ext4`) with **systemd as PID 1**, Docker, Node, and the
-  standalone `claude`, assembled as root inside a Debian container (so ownership
-  and `/tmp` perms are correct). The llmbox agent runs as a systemd unit on vsock;
-  systemd does all the mounts and reaps Claude's children.
+The Debian box is split into two images by how often they change, so an agent
+update never rebuilds the multi-GiB OS:
+
+- **`scripts/firecracker/build-base-rootfs.sh`** builds a generic, **agent-agnostic**
+  Debian bookworm **base** (`base-rootfs.ext4`) with **systemd as PID 1**, Docker,
+  Node, and net tooling. It contains **nothing** about llmbox, `claude`, or any
+  particular agent — only a generic *payload loader* that at boot mounts the payload
+  drive (`/dev/vdb`) read-only at `/payload` and runs `/payload/entrypoint`. Because
+  it is agent-agnostic it is slow-changing and cacheable: in CI it is built once and
+  cached in GHCR keyed on its inputs (`.github/workflows/firecracker-assets.yml`);
+  `make firecracker-debian-assets` pulls the cached base before building locally.
+- **`scripts/firecracker/build-payload-drive.sh`** builds the tiny read-only
+  **payload** (`payload.ext4`) carrying **everything llmbox-specific**: the static
+  agent, the standalone `claude`, its trust seed, and an `entrypoint` that seeds a
+  writable copy of the trust file and execs the agent on vsock. This half is cheap
+  and rebuilt on every agent change, and is attached to every box as a shared
+  read-only second drive.
+- **`scripts/firecracker/build-debian-rootfs.sh`** is a convenience wrapper that
+  builds both.
+
+The base/payload contract is deliberately generic — *mount the payload drive, run
+its `entrypoint`* — so a different agent (not llmbox) is just a different payload;
+the base never changes. Because the payload is identical for every llmbox box it is
+attached read-only and **shared** across all microVMs — one image, mounted
+everywhere — while each box still gets its own writable copy of the base rootfs.
+The base's systemd does all the mounts and reaps the payload's children.
 
 ```yaml
 firecracker:
-  kernel_image: ~/fc-assets/vmlinux-full
-  rootfs_image: ~/fc-assets/debian-rootfs.ext4
+  kernel_image:  ~/fc-assets/vmlinux-full
+  rootfs_image:  ~/fc-assets/base-rootfs.ext4   # the Debian base (no agent)
+  payload_image: ~/fc-assets/payload.ext4       # agent + claude, shared read-only
   disable_egress: false          # egress on; run the server as root
 ```
+
+On a spoke, the equivalents are `--fc-rootfs`, `--fc-payload`, and `--fc-kernel`.
+Leave `payload_image` empty to fall back to the all-in-one layout (agent baked into
+the rootfs).
 
 Verified on boot: systemd reaches its targets, the agent unit is reachable over
 vsock, `/tmp` is `1777`, and the Docker daemon starts with `overlay2` + cgroup v2

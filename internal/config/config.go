@@ -156,6 +156,12 @@ type FirecrackerConfig struct {
 	// RootfsImage is the host path to the default guest root filesystem image
 	// booted when a create supplies no image of its own.
 	RootfsImage string `yaml:"rootfs_image"`
+	// PayloadImage is an optional host path to a small read-only ext4 carrying the
+	// guest agent (plus claude and its trust seed). When set, every box attaches it
+	// as a shared read-only second drive that the base rootfs mounts, so the agent
+	// can be updated by swapping this tiny image without rebuilding the multi-GiB
+	// base rootfs. Empty bakes the agent into the rootfs (the all-in-one layout).
+	PayloadImage string `yaml:"payload_image"`
 	// StateDir is where the backend persists per-box metadata (Firecracker has no
 	// daemon registry) so List/Find/reap survive a restart. Empty uses the
 	// backend default.

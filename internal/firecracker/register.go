@@ -19,7 +19,7 @@ func init() {
 // reading the microVM-specific fields (kernel, rootfs, state dir) and the common
 // limits/namespace. The Docker-only fields in opts are ignored.
 //
-// @arg opts The neutral backend options; Firecracker reads KernelImagePath, RootfsImagePath, StateDir, DisableEgress, PoolSize, Limits, and Namespace.
+// @arg opts The neutral backend options; Firecracker reads KernelImagePath, RootfsImagePath, PayloadImagePath, StateDir, DisableEgress, PoolSize, Limits, and Namespace.
 // @return backend.Provisioner A configured Firecracker provisioner with its egress pool provisioned.
 // @error error if the provisioner cannot be constructed or the egress pool cannot be provisioned.
 //
@@ -29,6 +29,7 @@ func newBackend(opts backend.Options) (backend.Provisioner, error) {
 	if err != nil {
 		return nil, err
 	}
+	p.SetPayloadImage(opts.PayloadImagePath)
 	p.SetPerBoxLimits(opts.Limits)
 	p.SetNamespace(opts.Namespace)
 	p.SetNetworking(!opts.DisableEgress)

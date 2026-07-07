@@ -96,6 +96,14 @@ FC_KERNEL ?= $(FC_DIR)/vmlinux
 FC_ROOTFS ?= $(FC_DIR)/rootfs.ext4
 FC_BIN    ?= $(HOME)/.local/bin/firecracker
 
+# The production Debian box is split into a slow-changing base rootfs (cached in
+# GHCR keyed on its inputs) and a cheap agent payload drive rebuilt on every agent
+# change. FC_BASE_REPO is the GHCR artifact the base is pulled from before falling
+# back to a local build. Boot a box with --fc-rootfs $(FC_BASE) --fc-payload $(FC_PAYLOAD).
+FC_BASE      ?= $(FC_DIR)/base-rootfs.ext4
+FC_PAYLOAD   ?= $(FC_DIR)/payload.ext4
+FC_BASE_REPO ?= ghcr.io/clems4ever/llmbox-fc-base
+
 # Fetch the firecracker binary into ~/.local/bin if it isn't there yet.
 $(FC_BIN):
 	DEST="$(dir $(FC_BIN))" scripts/firecracker/fetch-firecracker.sh
@@ -108,6 +116,25 @@ $(FC_KERNEL) $(FC_ROOTFS) &:
 
 .PHONY: firecracker-assets
 firecracker-assets: $(FC_BIN) $(FC_KERNEL) $(FC_ROOTFS) ## Build the firecracker binary + conformance kernel/rootfs if missing (cached in $(FC_DIR)).
+
+# Production Debian box assets. The base is pulled from GHCR (keyed on its input
+# hash) when available and only built locally on a cache miss — so an agent change,
+# which rebuilds only the cheap payload, never rebuilds the multi-GiB base.
+$(FC_BASE):
+	@key=$$(scripts/firecracker/asset-key.sh); \
+	ref="$(FC_BASE_REPO):$$key"; \
+	if command -v oras >/dev/null 2>&1 && oras pull -o "$(FC_DIR)" "$$ref" 2>/dev/null; then \
+		echo ">> pulled cached base rootfs from $$ref"; \
+	else \
+		echo ">> no cached base at $$ref (or oras missing); building locally"; \
+		OUT="$(FC_DIR)" scripts/firecracker/build-base-rootfs.sh; \
+	fi
+
+$(FC_PAYLOAD):
+	OUT="$(FC_DIR)" scripts/firecracker/build-payload-drive.sh
+
+.PHONY: firecracker-debian-assets
+firecracker-debian-assets: $(FC_BASE) $(FC_PAYLOAD) ## Pull-or-build the Debian base rootfs + agent payload drive for a production Firecracker box.
 
 .PHONY: test-firecracker
 test-firecracker: firecracker-assets ## Build the firecracker artifacts if missing, then run the live conformance tests (needs KVM; see docs/firecracker.md).
