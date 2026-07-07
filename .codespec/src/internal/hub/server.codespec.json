@@ -84,9 +84,9 @@
 		{
 			"function_name": "lookupByBoxID",
 			"receiver": "Server",
-			"documentation_hash": "e34a6756610d4342cfec803f623252d50cefafc91be45979b7692b0df63a636a",
+			"documentation_hash": "4b8126d8695aae85b08afe4d05d41215baf2e3748ce8ad312f74aad0e5b3caba",
 			"definition_hash": "c03d650395a834c84f80ab85b5ae1cd298dd46889cd9511e2e44bda9a8f6be6e",
-			"reviewed_at": "2026-06-29T15:39:25.388769145Z"
+			"reviewed_at": "2026-07-07T18:59:22.42241065Z"
 		},
 		{
 			"function_name": "logger",
@@ -147,8 +147,8 @@
 			"function_name": "createBox",
 			"receiver": "Server",
 			"documentation_hash": "c06c78937a949adae55035f52675f96a198775a3074871223c53a4323b88ce34",
-			"definition_hash": "0fec181c0359b3091f154d988672baa76b3e86a1b4f726c102b908fabbf87930",
-			"reviewed_at": "2026-07-07T08:15:52.612874868Z"
+			"definition_hash": "55ec05a3490a351cfc137ed2172bc2adaed33881d52adab8f947459aeca8f974",
+			"reviewed_at": "2026-07-07T18:59:22.42066997Z"
 		},
 		{
 			"function_name": "submitCode",
@@ -235,9 +235,9 @@
 		{
 			"function_name": "reserveBoxID",
 			"receiver": "Server",
-			"documentation_hash": "e3b6545d442ce1e22ad1d648f067f4fa762a17044c06350a13f7056831d6e6a2",
-			"definition_hash": "2ea47f7fc6aacb9f06d5eb0dcd0bd1f764c81e4d483bba9cd37e58a05429a0a9",
-			"reviewed_at": "2026-06-29T15:44:44.183999977Z"
+			"documentation_hash": "2c083c833a8bbd0ababe73b96b812847c75ce3036d5940661cf44c53c4055dd1",
+			"definition_hash": "d83e557a4a7167eb14e8ad3d16cab20d2b54248f687761e8cd431fc841f1a196",
+			"reviewed_at": "2026-07-07T18:59:22.418656398Z"
 		},
 		{
 			"function_name": "DefaultSpoke",

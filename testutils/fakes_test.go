@@ -35,7 +35,9 @@ func TestFakeMgr(t *testing.T) {
 	if f.GotCode != "code" {
 		t.Errorf("GotCode = %q, want code", f.GotCode)
 	}
-	if got, err := m.List(context.Background()); err != nil || len(got) != 1 {
+	// ListResult seeded one box and the Create above added another, so List returns
+	// both — created boxes track through the fake like a real spoke.
+	if got, err := m.List(context.Background()); err != nil || len(got) != 2 {
 		t.Errorf("List = %v, %v", got, err)
 	}
 	if logs, err := m.Logs(context.Background(), "b1", 5); err != nil || logs != "logs" {

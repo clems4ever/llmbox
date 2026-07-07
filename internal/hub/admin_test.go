@@ -312,8 +312,10 @@ func TestAdminJSServed(t *testing.T) {
 // TestAdminDashboardShowsActivationURL checks a pending box's activation URL is
 // shown in the dashboard table, so it survives a page refresh.
 func TestAdminDashboardShowsActivationURL(t *testing.T) {
-	s, f, st := newAdminServer(t)
-	f.ListResult = []sandbox.Box{{InstanceID: "abcdef0123456789", BoxID: "foo", Spoke: testSpoke, Phase: "pending"}}
+	s, _, st := newAdminServer(t)
+	// Creating the box registers its (pending) session and, through the fake spoke,
+	// makes it appear in the live box list — so the dashboard row resolves its
+	// activation URL from the session.
 	sess, err := s.createBox(t.Context(), sandbox.CreateOptions{BoxID: "foo"})
 	if err != nil {
 		t.Fatal(err)

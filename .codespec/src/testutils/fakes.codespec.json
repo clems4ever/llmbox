@@ -31,16 +31,16 @@
 		{
 			"function_name": "Create",
 			"receiver": "FakeMgr",
-			"documentation_hash": "c237ccfe9277a532f942c7328bc213f013b4fbf6fb621d99c3789d7596de2f6e",
-			"definition_hash": "646733ff5c300a5db48c2aa860123b66c864aa6915c526125ef82a4f84fda6af",
-			"reviewed_at": "2026-06-29T15:39:25.758192243Z"
+			"documentation_hash": "8e6c120da350e35ffda0f690f93e4b1e93b3366d0cf630e854215d243151a09d",
+			"definition_hash": "9ba460bb076a8049857b704fa2d40c612f8e089f9911f24353618d6eaabf3682",
+			"reviewed_at": "2026-07-07T18:59:22.423168508Z"
 		},
 		{
 			"function_name": "Destroy",
 			"receiver": "FakeMgr",
 			"documentation_hash": "cd7814f0222573dbfe2e5067af5312c1647d40518e35dc411e95923a0e755f5d",
-			"definition_hash": "18eebfe2517fe848bf4b9c31c3e4eab507d5b55efb0194a8e8c56d61ec2c06f2",
-			"reviewed_at": "2026-06-27T09:42:16.312853653Z"
+			"definition_hash": "84f17c621e50b8ea46636f9fc02776a2191ded3bcd57446bf0b0e6517f6a61b3",
+			"reviewed_at": "2026-07-07T18:59:22.423766925Z"
 		},
 		{
 			"function_name": "Exec",
@@ -52,9 +52,9 @@
 		{
 			"function_name": "List",
 			"receiver": "FakeMgr",
-			"documentation_hash": "78201e3545fd968e7aa69dd4fcaf0c6e24dd931d49dc5c9f6ab4e321dc3dc9ec",
-			"definition_hash": "ac8988223f2ac47de74bcb4b3c07bfd4864d737c89decad148da75b82508f0e4",
-			"reviewed_at": "2026-06-29T15:39:25.758466333Z"
+			"documentation_hash": "51452cffe6d84162113510a14b440fbac11c98b0f50a5fba27d01d9c42839059",
+			"definition_hash": "5aeb782c978f79d7ac0a24d3eeac79605554bacbe6268b1572f71a99f33ef895",
+			"reviewed_at": "2026-07-07T18:59:22.423499571Z"
 		},
 		{
 			"function_name": "Logs",
