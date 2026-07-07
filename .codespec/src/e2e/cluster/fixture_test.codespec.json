@@ -59,8 +59,8 @@
 		{
 			"function_name": "newClusterFixture",
 			"documentation_hash": "27f270b3b24a4c005fa040dc79089f96589bdd95b4ea37d1b710526b903c3327",
-			"definition_hash": "3e63c6b1609efa62c38f1d3eee65ae02ea4e0beaeda603c551c9d84fd0fe9a4b",
-			"reviewed_at": "2026-07-07T12:52:06.062617658Z"
+			"definition_hash": "d513e63d9632e6e842b7c5597237653c85f51ee9155e416cdae08d8748270372",
+			"reviewed_at": "2026-07-07T18:00:29.727156755Z"
 		},
 		{
 			"function_name": "nextMonoCell",
