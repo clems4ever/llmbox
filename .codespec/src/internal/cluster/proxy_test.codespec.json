@@ -1,37 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "DialBox",
-			"receiver": "fixedDialer",
-			"documentation_hash": "479d6529e52ded936fc8eb6037ccf856a51a8b567e9ce4290938dc79ea667fb8",
-			"definition_hash": "755e7397dfe6a714b13901c2bbb6486e7d5abdfb429876e278ab3c5e782c8bbe",
-			"reviewed_at": "2026-06-27T17:31:02.788610892Z"
-		},
-		{
-			"function_name": "TestRoundTripToBox",
-			"documentation_hash": "a44c7fc96b4fb7ccf673215a37070c93a2d7bc4a85021500c1e07bb85fb70fcd",
-			"definition_hash": "a0aceb47bf99abbcfd10b2ccc439d2f829125bc49cec25f4f1b24081abd51a8e",
-			"reviewed_at": "2026-06-27T17:31:02.788911481Z"
-		},
-		{
-			"function_name": "TestRoundTripToBoxDialError",
-			"documentation_hash": "16d905704d1b6b00591d97c9ba5eb022f8903231f109b0f8f506b8f89068cd23",
-			"definition_hash": "711c78c3093ee8ca072e7ab342fef8a5919c6eae11650182087b63c2771155c5",
-			"reviewed_at": "2026-06-27T17:31:02.798624751Z"
-		},
-		{
-			"function_name": "TestRemoteSpokeProxyHTTP",
-			"documentation_hash": "df1d4097cebd3a543d0ddd2d6b6c5182555fad47c73f3bbd205a95acccf02950",
-			"definition_hash": "e6dce587513fbc3e272d05bd84dc728b946b40762868a1a466cbe5fc6ed4daea",
-			"reviewed_at": "2026-06-27T17:31:02.798982813Z"
-		},
-		{
-			"function_name": "TestProxyHTTPUnsupportedSpoke",
-			"documentation_hash": "b08971326d4ade58d0566e1480508f05718c8958980d5832f3045f3c3f97216a",
-			"definition_hash": "c7c87433b87f11df357a57ca7d5fc0829849bc8fecaea8457fff381875e7f6b4",
-			"reviewed_at": "2026-06-27T17:31:02.79930926Z"
-		},
-		{
 			"function_name": "Create",
 			"receiver": "bareManager",
 			"documentation_hash": "2f421531b1d1c9ff0fd5531afc18772dbf7592114b69cd995f8f7c6f212b66bf",
@@ -79,6 +48,78 @@
 			"documentation_hash": "d947c1014cbec39aedaf52f870d2d023df55fd6572b2a5d2e19df53e9f64dc07",
 			"definition_hash": "98aad61e16000bdd06074ad12cab54a2f599daf3d89f298afb9eea97f0521b47",
 			"reviewed_at": "2026-06-27T17:31:02.801460565Z"
+		},
+		{
+			"function_name": "echoListener",
+			"documentation_hash": "e43cb54b6c1a42a60eb7b4a6db578d970b75171090df00677c7eef10afe89552",
+			"definition_hash": "eb1af67004781f43a84ca0ce83a3877710053828bfa5240ce886f7d1cb4f218f",
+			"reviewed_at": "2026-07-07T08:15:52.555208299Z"
+		},
+		{
+			"function_name": "TestStreamTunnelRoundTrip",
+			"documentation_hash": "88ec4d05fa56aa1974ca85cc0fd3dff79a34507d33c065036a6416245e528646",
+			"definition_hash": "a249104989481f89bef6af22442ff40b205a8f05eaf086a12b5de6526aa51d8a",
+			"reviewed_at": "2026-07-07T08:15:52.555978325Z"
+		},
+		{
+			"function_name": "TestStreamTunnelBoxEOF",
+			"documentation_hash": "3eda6b5d1d6a907b183327e777e6780bd43eb17308b5ca3131feecfb52c7f199",
+			"definition_hash": "85909243f3b92a663e842eec463153ce102df1e09b3214092583f23820de47fd",
+			"reviewed_at": "2026-07-07T08:15:52.556782921Z"
+		},
+		{
+			"function_name": "TestStreamOpenUnsupportedSpoke",
+			"documentation_hash": "3ad761a861df11ce31949e69d5f74b0ba335cf449193c8cd2503b1db33fca986",
+			"definition_hash": "2ae6af07ffbf1ee418d4d219290a2a6483d40b8bcd26497fb45fc48a737457f7",
+			"reviewed_at": "2026-07-07T08:15:52.557590609Z"
+		},
+		{
+			"function_name": "TestStreamOpenDialError",
+			"documentation_hash": "bfe537ebbcf06114f2024d9490ad0d5ea5d760cda29f2137b067d3c2a4e0a63e",
+			"definition_hash": "2f89971ee8ddcf599ee1f16f878b2bb5653d6715827a8c43bb6fed9eb154a3d9",
+			"reviewed_at": "2026-07-07T08:15:52.558169122Z"
+		},
+		{
+			"function_name": "TestClientStreamRoundTrip",
+			"documentation_hash": "1a689d68b0247ebde481f5e15bb05951dfcca19fd16ce75adedc495f3e8c5b7a",
+			"definition_hash": "535eff03d7169133402cd7f0a012247a2eed5c363ba55c8d6097a98e69223e7f",
+			"reviewed_at": "2026-07-07T09:35:35.065830511Z"
+		},
+		{
+			"function_name": "TestClientStreamDeadline",
+			"documentation_hash": "afc322da03c0cf927ea82a08258b295bb7abbff60d2099ef42d60f55545bdda1",
+			"definition_hash": "a05c417123aa1865fff67a21e90f79b88ae459a71b5440e4ca663a4310304b73",
+			"reviewed_at": "2026-07-07T08:15:52.559662915Z"
+		},
+		{
+			"function_name": "TestClientStreamCloseAfterRemote",
+			"documentation_hash": "31628326ad40ff42921f51ae3d8da0cb164b9ded7fc47c9caccbe473f8f8b292",
+			"definition_hash": "39c9450754e99d9cc537c0596a87cc151cd93747fce7f7059cac7aff5875b1a3",
+			"reviewed_at": "2026-07-07T09:35:35.06639276Z"
+		},
+		{
+			"function_name": "TestStreamTunnelDisconnect",
+			"documentation_hash": "2b0a90ca4219e6469211433c6a42109490ccd89a2e85b2b9ca1f4b8fd5096650",
+			"definition_hash": "638ac83e131a65739d6ac500ccef632c5dfab5b17fe79873e5d9b6d402276b88",
+			"reviewed_at": "2026-07-07T09:45:45.277534489Z"
+		},
+		{
+			"function_name": "TestStreamTunnelMultiplex",
+			"documentation_hash": "58cbbe224131c14d5465fb5265a0a99e2f3eec0b003d4f2a1469131693c715fb",
+			"definition_hash": "58e2f65cc0eda2a7b4073b630019e4eae4bd53bb4e3544fdf0874f6cd06ab9eb",
+			"reviewed_at": "2026-07-07T09:45:45.278148285Z"
+		},
+		{
+			"function_name": "TestStreamTunnelChunkedTransfer",
+			"documentation_hash": "dd5be0923151220327778d2af28bbfd592277e4e76e09221dc2f289bcdb47f1c",
+			"definition_hash": "78d9eb8acf09f08db0dc02f56f777ecc26a25970969aa45c682dec44153cb62a",
+			"reviewed_at": "2026-07-07T09:45:45.28755084Z"
+		},
+		{
+			"function_name": "firstDiff",
+			"documentation_hash": "2351f6138a1d85a3a8a02bf3403d1667a80a104458757a2d5182b69ee1dc79a7",
+			"definition_hash": "5bb4757381bf0c70331c8c1275acbf1e392cb111534651f259ddf59a220b2d30",
+			"reviewed_at": "2026-07-07T09:45:45.28877996Z"
 		}
 	]
 }

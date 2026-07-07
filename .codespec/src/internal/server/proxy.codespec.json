@@ -79,23 +79,16 @@
 		{
 			"function_name": "handleProxy",
 			"receiver": "Server",
-			"documentation_hash": "6494713f54aedd36f60e664a0e318fe0ee0d41871cf9e3ebfd7e0d0532c88625",
-			"definition_hash": "d24ccea183e6ad55b8222d790a7d68e8907d65fc002ce581eb7005c257ef08ce",
-			"reviewed_at": "2026-06-27T21:48:23.892118717Z"
+			"documentation_hash": "9311e5d67ab09ba3866d456e43e39bdaf124e6b18dbf60d95156a6327ab73888",
+			"definition_hash": "aa6d4710320cd3ee1d173d7d4863bcd7f6932b28c6144000b6b7aaeb9a69363f",
+			"reviewed_at": "2026-07-07T08:15:52.587042259Z"
 		},
 		{
 			"function_name": "boxTransport",
 			"receiver": "Server",
-			"documentation_hash": "6cf43a015f805395b6e5f1a8cc84d619389ae20cf5771c4ce46b8e95dea8f9f2",
-			"definition_hash": "0051876186c0da54b697e71787375be10a3e45d060856112e1d0ccc9025f88ff",
-			"reviewed_at": "2026-06-27T21:14:59.780689004Z"
-		},
-		{
-			"function_name": "RoundTrip",
-			"receiver": "clusterProxyTransport",
-			"documentation_hash": "a0d20e332339d8cfc254cb96d92c6475508ab30f91f6ea2870939a70e5473df4",
-			"definition_hash": "49454ac9bc2b3fd1cc0677160816b6a96526e98b17bb6bfed1e80062bad409be",
-			"reviewed_at": "2026-06-27T17:27:44.194385393Z"
+			"documentation_hash": "d66f82e841e03a5c03f9e62187d5a9787bc9809d784d9f14a5c4fc419aaec903",
+			"definition_hash": "7f6112caaf271f0747cf617507abca10de9ae617952eff144a418537a21870f9",
+			"reviewed_at": "2026-07-07T08:15:52.587816864Z"
 		},
 		{
 			"function_name": "isBrowserNavigation",

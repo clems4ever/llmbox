@@ -73,21 +73,18 @@ With no auth provider configured, proxying is open (like the rest of the server,
 which then relies on a front authenticating proxy) — do not expose it to
 untrusted networks in that mode.
 
-## Local vs. remote spokes
+## How the box is reached
 
-- A box on the **local** spoke is reverse-proxied with a live connection, so it
-  **streams**: WebSockets, SSE, and large transfers all work.
-- A box on a **remote** spoke is reached over the cluster transport via the
-  `proxy_http` verb, which **buffers** each request and response into one frame.
-  Ordinary HTTP and single-page apps (static assets + JSON APIs) work; live
-  streaming to a remote box (WebSocket/SSE) does not, and very large bodies are
-  capped. The same managed-only resolution applies, so the verb can only reach a
-  port inside one of the spoke's own boxes — never an arbitrary host address.
+Every box runs on a spoke, and the hub reaches its port by opening a live **byte
+tunnel** to it over the cluster transport (`stream_open`/`stream_data`/`stream_close`
+frames): the spoke dials the box with `DialBox` and splices the two together. The
+reverse proxy runs over that live connection, so it **streams** — WebSockets, SSE,
+and large transfers all work, to a box on any spoke. The same managed-only
+resolution applies, so a tunnel can only reach a port inside one of the spoke's
+own boxes — never an arbitrary host address.
 
 ## Other notes
 
-- For a containerized hub (e.g. the Docker Compose deployment), the hub must be
-  able to reach a **local**-spoke box's Docker network — run the hub as a host
-  process, or attach it to the box networks (e.g. via `box_peers`). A host-process
-  hub reaches box bridge IPs directly. Remote-spoke proxying has no such
-  requirement (the spoke reaches its own boxes).
+- The hub never touches a box's network directly: the spoke reaches its own boxes
+  and the hub only sees the tunnel over the cluster transport. So a containerized
+  hub needs no access to any box's Docker network.

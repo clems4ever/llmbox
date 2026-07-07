@@ -209,3 +209,22 @@ func (NoopStore) ListProxies() ([]store.ProxyRecord, error) { return nil, nil }
 //
 // @testcase TestNoopStore checks every no-op method is inert.
 func (NoopStore) DeleteProxy(_ string) error { return nil }
+
+// PutSetting discards the setting.
+//
+// @arg _ The setting key.
+// @arg _ The value to (not) persist.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) PutSetting(_, _ string) error { return nil }
+
+// GetSetting finds nothing.
+//
+// @arg _ The setting key.
+// @return string The empty value.
+// @return bool Always false.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) GetSetting(_ string) (string, bool, error) { return "", false, nil }

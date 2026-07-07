@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"encoding/json"
-	"net/http"
 
 	"github.com/clems4ever/llmbox/internal/sandbox"
 )
@@ -24,6 +23,15 @@ const (
 	// frameErr is a fatal protocol error (e.g. enrollment rejected); the sender
 	// closes the connection after it.
 	frameErr frameType = "err"
+	// Stream frames carry a raw bidirectional byte tunnel to a box's port,
+	// multiplexed over the same connection and correlated by ID (the stream ID).
+	// frameStreamOpen (hub→spoke) opens the tunnel (Payload is a streamOpenReq);
+	// frameStreamData carries bytes in either direction (Data); frameStreamClose
+	// ends it in either direction (Error set when the open/dial failed). This is
+	// what makes streaming proxying (WebSocket/SSE) to a box on a remote spoke work.
+	frameStreamOpen  frameType = "stream_open"
+	frameStreamData  frameType = "stream_data"
+	frameStreamClose frameType = "stream_close"
 )
 
 // Verb method names carried in a frameReq.
@@ -35,17 +43,18 @@ const (
 	methodLogs       = "logs"
 	methodExec       = "exec"
 	methodReap       = "reap"
-	methodProxyHTTP  = "proxy_http"
 )
 
 // frame is the single envelope exchanged over a cluster connection. Payload is
-// the method-specific request or response JSON; Error carries a verb-level or
-// protocol-level failure message.
+// the method-specific request or response JSON; Data carries raw stream bytes
+// (base64 in JSON) for the stream frames; Error carries a verb-level, stream-open,
+// or protocol-level failure message.
 type frame struct {
 	Type    frameType       `json:"type"`
 	ID      uint64          `json:"id,omitempty"`
 	Method  string          `json:"method,omitempty"`
 	Payload json.RawMessage `json:"payload,omitempty"`
+	Data    []byte          `json:"data,omitempty"`
 	Error   string          `json:"error,omitempty"`
 }
 
@@ -110,23 +119,14 @@ type reapResp struct {
 	Reaped []string `json:"reaped"`
 }
 
-// proxyHTTPReq carries one buffered HTTP request to forward to a box's port on
-// the spoke. The whole request and response are buffered into single frames (no
-// streaming), which is why this verb suits ordinary request/response traffic
-// (APIs, SPA assets) but not WebSockets or SSE to a remote box. Body is
-// base64-encoded by JSON. Path is the request URI (path plus raw query).
-type proxyHTTPReq struct {
-	BoxID  string      `json:"box_id"`
-	Port   int         `json:"port"`
-	Method string      `json:"method"`
-	Path   string      `json:"path"`
-	Header http.Header `json:"header,omitempty"`
-	Body   []byte      `json:"body,omitempty"`
-}
-type proxyHTTPResp struct {
-	Status int         `json:"status"`
-	Header http.Header `json:"header,omitempty"`
-	Body   []byte      `json:"body,omitempty"`
+// streamOpenReq opens a raw byte tunnel to a box's port on the spoke, carried in
+// a frameStreamOpen. The stream is identified by the frame's ID; subsequent
+// frameStreamData/frameStreamClose frames with the same ID carry its bytes and
+// its teardown. Unlike the buffered verbs, a tunnel streams live, so it proxies
+// WebSocket and SSE to a box on a remote spoke.
+type streamOpenReq struct {
+	BoxID string `json:"box_id"`
+	Port  int    `json:"port"`
 }
 
 // encodePayload marshals v into a frame payload. It panics only on a programmer

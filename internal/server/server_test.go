@@ -7,20 +7,66 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/hooks"
 	"github.com/clems4ever/llmbox/internal/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
-// newTestServer builds a Server backed by the given fake manager and no-op store,
-// with hook integration disabled (nil hooks).
+// testSpoke is the name the test fake manager is registered under, and the default
+// spoke a box created with no explicit spoke routes to.
+const testSpoke = "spoke-1"
+
+// testStore is a NoopStore that additionally keeps settings in memory, so a server
+// under test can persist and read back its default spoke.
+type testStore struct {
+	testutils.NoopStore
+	mu       sync.Mutex
+	settings map[string]string
+}
+
+// newTestStore builds an empty settings-capable test store.
+func newTestStore() *testStore { return &testStore{settings: map[string]string{}} }
+
+// PutSetting records a setting in memory.
+func (s *testStore) PutSetting(key, value string) error {
+	s.mu.Lock()
+	s.settings[key] = value
+	s.mu.Unlock()
+	return nil
+}
+
+// GetSetting reads a setting from memory.
+func (s *testStore) GetSetting(key string) (string, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v, ok := s.settings[key]
+	return v, ok, nil
+}
+
+// wireSpoke registers mgr as the single connected spoke (testSpoke), enrolls it in
+// the store, and makes it the default, so a box created with no explicit spoke
+// routes to mgr and its sessions are not treated as departed. The server's store
+// must support settings (newTestStore or a real store) for the default to persist.
+// It returns the server for chaining.
+func wireSpoke(s *Server, mgr boxManager) *Server {
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{testSpoke: mgr}})
+	_ = s.store.PutSpoke(testSpoke, cluster.SpokeRecord{Name: testSpoke, EnrolledAt: time.Now()})
+	_ = s.SetDefaultSpoke(testSpoke)
+	return s
+}
+
+// newTestServer builds a Server whose hub holds the given fake manager as the
+// single connected spoke (testSpoke), set as the default, so a box created with no
+// explicit spoke routes to it. Hook integration is disabled (nil hooks).
 func newTestServer(f *testutils.FakeMgr) *Server {
-	return New(f, nil, "https://boxes.example.com", 5*time.Minute, testutils.NoopStore{}, nil)
+	return wireSpoke(New(nil, "https://boxes.example.com", 5*time.Minute, newTestStore(), nil), f)
 }
 
 // fakeHooks is a stand-in for *hooks.Runner that records create/destroy calls.
@@ -131,7 +177,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 			{Path: "/home/node/.granular/github.yaml", Content: []byte("base_url: \"http://gh\"\n"), Mode: 0o644, UID: 1000, GID: 1000},
 		},
 	}
-	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
+	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err != nil {
@@ -170,7 +216,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 	f := &testutils.FakeMgr{CreateErr: errors.New("no image")}
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-doomed"}}
-	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
+	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
 
 	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{}); err == nil {
 		t.Fatal("expected error")
@@ -185,7 +231,7 @@ func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 func TestDestroyRunsDestroyHooks(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-live"}}
-	s := New(f, h, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
+	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err != nil {
@@ -331,7 +377,7 @@ func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
 	if !strings.Contains(body, "refactor-auth") {
 		t.Error("box id missing from activation page")
 	}
-	if !strings.Contains(body, "spoke <b>local</b>") {
+	if !strings.Contains(body, "spoke <b>"+testSpoke+"</b>") {
 		t.Error("spoke name missing from activation page")
 	}
 }

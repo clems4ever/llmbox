@@ -25,6 +25,7 @@ func TestFrameRoundTrip(t *testing.T) {
 		&reapResp{Reaped: []string{"a", "b"}},
 		&enrollReq{JoinToken: "tok"},
 		&welcomeResp{Name: "edge", Credential: "cred"},
+		&streamOpenReq{BoxID: "web-box", Port: 8000},
 	}
 	for _, want := range cases {
 		payload, err := encodePayload(want)

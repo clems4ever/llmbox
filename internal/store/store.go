@@ -74,7 +74,7 @@ type ProxyRecord struct {
 	ContainerID string `json:"container_id,omitempty"`
 	// Port is the TCP port inside the box that requests are forwarded to.
 	Port int `json:"port"`
-	// Spoke is the cluster spoke the box runs on ("local" for the in-process spoke).
+	// Spoke is the cluster spoke the box runs on.
 	Spoke string `json:"spoke,omitempty"`
 	// CreatedAt is when the proxy was enabled.
 	CreatedAt time.Time `json:"created_at"`
@@ -115,14 +115,27 @@ type SessionStore interface {
 	LoadAll() ([]PersistedSession, error)
 }
 
+// SettingsStore persists small hub-wide settings as opaque key/value strings
+// (e.g. the name of the default spoke an admin picked in the UI). It is a
+// deliberately generic key/value contract — one row per setting — so operator
+// choices that belong in the database rather than the config file can be added
+// without a schema change. All methods must be safe for concurrent use.
+type SettingsStore interface {
+	// PutSetting writes (creating or replacing) the value for key.
+	PutSetting(key, value string) error
+	// GetSetting returns the value for key; the bool is false when key is unset.
+	GetSetting(key string) (string, bool, error)
+}
+
 // Store is the aggregate persistence contract the server depends on: the session
-// registry, the activation login state, and the cluster enrollment records, plus
-// a Close that releases the backend. All methods must be safe for concurrent use.
-// Use Open for a SQLite-backed implementation.
+// registry, the activation login state, the cluster enrollment records, and
+// hub-wide settings, plus a Close that releases the backend. All methods must be
+// safe for concurrent use. Use Open for a SQLite-backed implementation.
 type Store interface {
 	SessionStore
 	LoginStore
 	ProxyStore
+	SettingsStore
 	cluster.Store
 	io.Closer
 }

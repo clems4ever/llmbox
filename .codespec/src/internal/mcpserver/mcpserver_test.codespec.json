@@ -147,8 +147,8 @@
 		{
 			"function_name": "TestToolListSpokes",
 			"documentation_hash": "8b078d4ef3ea933804d5c2594c251e3461c5da2e521e7fbc5c62fe9eed2f52ec",
-			"definition_hash": "a5d6a277ede44bfdf87bdc24c028b51724eeb8bd538c67915a9cec62a6a00c30",
-			"reviewed_at": "2026-06-27T17:12:53.685682079Z"
+			"definition_hash": "672a361b4cb8423d005cfc97b913cbb3bf6a6ad61c2889b1fb9216a35a1d3841",
+			"reviewed_at": "2026-07-07T08:15:52.564333208Z"
 		},
 		{
 			"function_name": "TestToolDestroy",

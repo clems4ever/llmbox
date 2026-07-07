@@ -45,15 +45,16 @@ state_file: "llmbox-sessions.db"
 #   cert_file: "/etc/llmbox/tls-cert.pem"
 #   key_file: "/etc/llmbox/tls-key.pem"
 
-# Hub-and-spoke clustering. When enabled, this server (the hub) exposes a
-# /spoke/connect endpoint that remote spokes join over a WebSocket, and boxes can
-# be placed on a spoke by passing its name to create_llmbox's "spoke" argument.
-# Boxes with no spoke run on this host's own Docker daemon (the "local" spoke), so
-# a single-host setup needs nothing here. To add a spoke:
+# Hub-and-spoke clustering. This server (the hub) always exposes a /spoke/connect
+# endpoint that remote spokes join over a WebSocket. The hub runs NO box backend of
+# its own — every box runs on a spoke — so even a single-host setup runs one spoke
+# alongside the hub:
 #   1. on the hub:   llmbox spoke token create --name worker-1   # prints a one-time token
 #   2. on the spoke: llmbox spoke --hub wss://<hub>/spoke/connect --token <token>
+# A box created with no "spoke" argument runs on the DEFAULT spoke, which you pick
+# in the admin UI (a stored setting — there is no config field for it). Until a
+# default is set, an unqualified create is refused.
 # cluster:
-#   enabled: true
 #   # Image shown in the admin UI's ready-to-run `docker run … spoke …` command.
 #   # Display-only (it does not change how spokes run); set it to the image/tag
 #   # your spokes actually use. Defaults to ghcr.io/clems4ever/granular-llmbox:latest.

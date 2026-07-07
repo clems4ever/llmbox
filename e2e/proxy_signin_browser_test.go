@@ -64,7 +64,8 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	a.SetCookieDomain("example.com")
 
-	srv := server.New(mgr, nil, base, 5*time.Minute, st, a)
+	srv := server.New(nil, base, 5*time.Minute, st, a)
+	wireDefaultSpoke(t, srv, st, mgr)
 	srv.SetProxyBaseDomain("proxy.example.com")
 	httpSrv := &http.Server{Handler: srv.APIHandler()}
 	go func() { _ = httpSrv.Serve(uiLn) }()

@@ -26,9 +26,6 @@ func TestAdminAPIStartThenDestroyBoxOnRemote(t *testing.T) {
 	if edge.mgr.creates() != 1 {
 		t.Errorf("edge spoke creates = %d, want 1", edge.mgr.creates())
 	}
-	if f.localMgr.creates() != 0 {
-		t.Errorf("local spoke creates = %d, want 0 (box must not run locally)", f.localMgr.creates())
-	}
 	if !edge.mgr.hasBox("b1") {
 		t.Fatal("box b1 not present on the edge spoke after create")
 	}

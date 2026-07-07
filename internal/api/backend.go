@@ -41,14 +41,14 @@ type ProxyInfo struct {
 	Description string `json:"description,omitempty" jsonschema:"the optional human-readable note supplied when the proxy was created"`
 }
 
-// SpokeStatus describes one cluster spoke and its health. The in-process spoke is
-// always present and connected; each enrolled remote spoke is reported with
-// whether it currently holds a live hub connection.
+// SpokeStatus describes one enrolled cluster spoke and its health: whether it
+// currently holds a live hub connection, and whether it is the default spoke that
+// unqualified box creates run on.
 type SpokeStatus struct {
-	Name       string    `json:"name" jsonschema:"the spoke's name; 'local' is the in-process spoke"`
+	Name       string    `json:"name" jsonschema:"the spoke's name"`
 	Connected  bool      `json:"connected" jsonschema:"whether the spoke currently has a live connection to the hub"`
-	Local      bool      `json:"local,omitempty" jsonschema:"true for the in-process spoke (always connected)"`
-	EnrolledAt time.Time `json:"enrolled_at,omitempty" jsonschema:"when the remote spoke enrolled (absent for the local spoke)"`
+	Default    bool      `json:"default,omitempty" jsonschema:"true for the default spoke unqualified box creates run on"`
+	EnrolledAt time.Time `json:"enrolled_at,omitempty" jsonschema:"when the spoke enrolled"`
 }
 
 // Backend is the box-operation contract the API layer needs. The server

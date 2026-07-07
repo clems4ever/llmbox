@@ -65,6 +65,12 @@ func TestNoopStore(t *testing.T) {
 	if err := st.DeleteSpoke("n"); err != nil {
 		t.Errorf("DeleteSpoke: %v", err)
 	}
+	if err := st.PutSetting("k", "v"); err != nil {
+		t.Errorf("PutSetting: %v", err)
+	}
+	if _, ok, err := st.GetSetting("k"); ok || err != nil {
+		t.Errorf("GetSetting = %v, %v; want false, nil", ok, err)
+	}
 	if err := st.Close(); err != nil {
 		t.Errorf("Close: %v", err)
 	}

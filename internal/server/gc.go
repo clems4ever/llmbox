@@ -6,18 +6,18 @@ import (
 	"github.com/clems4ever/llmbox/internal/hooks"
 )
 
-// knownSpokeNames returns the set of spoke names that still exist: the in-process
-// "local" spoke plus every spoke currently enrolled in the cluster store. A spoke
-// that has been de-enrolled (removed) is absent — objects pinned to it have
-// "departed". Enrollment, not live connectivity, is the test: a spoke that is
-// merely offline is still known and its boxes are kept, because it may reconnect.
+// knownSpokeNames returns the set of spoke names that still exist: every spoke
+// currently enrolled in the cluster store. A spoke that has been de-enrolled
+// (removed) is absent — objects pinned to it have "departed". Enrollment, not live
+// connectivity, is the test: a spoke that is merely offline is still known and its
+// boxes are kept, because it may reconnect.
 //
 // @return map[string]bool The set of still-existing spoke names.
 // @error error if the enrolled spokes cannot be read from the store.
 //
-// @testcase TestPruneDepartedSpokesRemovesStaleObjects keeps local and enrolled spokes.
+// @testcase TestPruneDepartedSpokesRemovesStaleObjects keeps enrolled spokes.
 func (s *Server) knownSpokeNames() (map[string]bool, error) {
-	known := map[string]bool{localSpokeName: true}
+	known := map[string]bool{}
 	enrolled, err := s.store.ListSpokes()
 	if err != nil {
 		return nil, err
@@ -29,11 +29,11 @@ func (s *Server) knownSpokeNames() (map[string]bool, error) {
 }
 
 // PruneDepartedSpokes removes every session and proxy pinned to a spoke that no
-// longer exists — a spoke de-enrolled from the cluster. The local spoke and any
-// still-enrolled spoke (even if momentarily disconnected) are kept, so a spoke
-// that is merely offline is never purged; only one that has truly disappeared.
-// Purged sessions have their destroy hooks replayed, exactly like a reap. It
-// returns the box IDs of the purged sessions.
+// longer exists — a spoke de-enrolled from the cluster. Any still-enrolled spoke
+// (even if momentarily disconnected) is kept, so a spoke that is merely offline is
+// never purged; only one that has truly disappeared. Purged sessions have their
+// destroy hooks replayed, exactly like a reap. It returns the box IDs of the
+// purged sessions.
 //
 // This is what keeps box-ID resolution unambiguous over time: a box whose spoke
 // was removed can no longer linger as a duplicate session and be selected at
@@ -61,7 +61,7 @@ func (s *Server) PruneDepartedSpokes() ([]string, error) {
 	var purgedBoxIDs, droppedTokens []string
 	var torn []tornBox
 	for tok, sess := range s.byToken {
-		if known[spokeOrLocal(sess.SpokeName)] {
+		if known[s.resolveStoredSpoke(sess.SpokeName)] {
 			continue
 		}
 		delete(s.byToken, tok)
@@ -91,8 +91,8 @@ func (s *Server) PruneDepartedSpokes() ([]string, error) {
 }
 
 // pruneProxiesForDepartedSpokes deletes every enabled proxy whose spoke is not in
-// known (the local spoke plus enrolled spokes). It is best-effort: a delete
-// failure is logged and the rest proceed. No-op when proxying is disabled.
+// known (the enrolled spokes). It is best-effort: a delete failure is logged and
+// the rest proceed. No-op when proxying is disabled.
 //
 // @arg known The set of still-existing spoke names.
 //
@@ -107,23 +107,11 @@ func (s *Server) pruneProxiesForDepartedSpokes(known map[string]bool) {
 		return
 	}
 	for _, p := range proxies {
-		if known[spokeOrLocal(p.Spoke)] {
+		if known[s.resolveStoredSpoke(p.Spoke)] {
 			continue
 		}
 		if err := s.store.DeleteProxy(p.Slug); err != nil {
 			s.logger().Warn("deleting proxy for departed spoke", "slug", p.Slug, "err", err)
 		}
 	}
-}
-
-// spokeOrLocal maps an empty spoke name to the in-process "local" spoke, matching
-// how sessions and proxies persisted before clustering are interpreted.
-//
-// @arg name The stored spoke name, possibly empty.
-// @return string The name, or "local" when empty.
-func spokeOrLocal(name string) string {
-	if name == "" {
-		return localSpokeName
-	}
-	return name
 }

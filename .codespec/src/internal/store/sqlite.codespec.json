@@ -183,6 +183,20 @@
 			"documentation_hash": "be138d50984fc1f386ea6b0d8839b39d076e2adaf8d581d2420b5cc4ebccda67",
 			"definition_hash": "08257ecd85da656ee9f1365b098cabde0a102437d2049ce6f8902a38e3a9e380",
 			"reviewed_at": "2026-06-30T21:45:32.675176918Z"
+		},
+		{
+			"function_name": "PutSetting",
+			"receiver": "sqliteStore",
+			"documentation_hash": "6789ba40c90a5bf86e629fca65aa19435a68ba5bef4074559d20ddbec78a4cf8",
+			"definition_hash": "9dcddb3be8605d420e3874d7ebc0057d700ef015fbe0ca2d8cbb16f6f2561029",
+			"reviewed_at": "2026-07-07T08:15:52.630654493Z"
+		},
+		{
+			"function_name": "GetSetting",
+			"receiver": "sqliteStore",
+			"documentation_hash": "4e208ac72424f5505eee1faecd0ff31cd5f9e3d8bccf45dffd34b306e745be69",
+			"definition_hash": "1633feb4eeb436475fd4f62a66e51b65db24e09acf11e3ebea6081bbaea9b624",
+			"reviewed_at": "2026-07-07T08:15:52.631571057Z"
 		}
 	]
 }

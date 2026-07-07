@@ -52,7 +52,7 @@ func newAdminServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 	t.Cleanup(func() { _ = st.Close() })
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/x", SubmitURL: "https://claude.ai/code/s/1"}
-	return New(f, nil, "https://boxes.example.com", time.Minute, st, a), f, st
+	return wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, a), f), f, st
 }
 
 // signIn stores a login session and returns its cookie. admin/activate control
@@ -260,7 +260,7 @@ func TestAdminJSServed(t *testing.T) {
 // shown in the dashboard table, so it survives a page refresh.
 func TestAdminDashboardShowsActivationURL(t *testing.T) {
 	s, f, st := newAdminServer(t)
-	f.ListResult = []sandbox.Box{{InstanceID: "abcdef0123456789", BoxID: "foo", Spoke: "local", Phase: "pending"}}
+	f.ListResult = []sandbox.Box{{InstanceID: "abcdef0123456789", BoxID: "foo", Spoke: testSpoke, Phase: "pending"}}
 	sess, err := s.createBox(t.Context(), sandbox.CreateOptions{BoxID: "foo"})
 	if err != nil {
 		t.Fatal(err)
@@ -314,6 +314,75 @@ func TestAdminDropSpokeRemovesAndKicks(t *testing.T) {
 	}
 }
 
+// TestAdminDropDefaultSpokeClearsDefault checks that dropping the spoke currently
+// set as the default also clears the default, so an unqualified box create fails
+// loudly rather than silently targeting a spoke that no longer exists.
+func TestAdminDropDefaultSpokeClearsDefault(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": &testutils.FakeMgr{}}})
+	if err := st.PutSpoke("edge", cluster.SpokeRecord{Name: "edge", EnrolledAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetDefaultSpoke("edge"); err != nil {
+		t.Fatalf("SetDefaultSpoke: %v", err)
+	}
+	h := s.APIHandler()
+
+	rec := postAdmin(t, h, st, "/admin/spokes/delete", url.Values{"name": {"edge"}, "csrf": {"CSRF"}})
+	if res := decodeAdminResult(t, rec); !res.OK {
+		t.Fatalf("drop result = %+v, want ok", res)
+	}
+	if def, _ := s.DefaultSpoke(); def != "" {
+		t.Errorf("default spoke = %q after dropping it, want cleared", def)
+	}
+}
+
+// postAdmin submits an admin form as a signed-in admin and returns the recorder.
+func postAdmin(t *testing.T, h http.Handler, st Store, path string, form url.Values) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(signIn(t, st, true, false))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+// TestAdminSetDefaultSpoke checks an enrolled spoke can be made the default via the
+// admin action, and it is persisted.
+func TestAdminSetDefaultSpoke(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": &testutils.FakeMgr{}}})
+	if err := st.PutSpoke("edge", cluster.SpokeRecord{Name: "edge", EnrolledAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	h := s.APIHandler()
+
+	rec := postAdmin(t, h, st, "/admin/default-spoke", url.Values{"name": {"edge"}, "csrf": {"CSRF"}})
+	if res := decodeAdminResult(t, rec); !res.OK || res.Err != "" {
+		t.Fatalf("result = %+v, want ok", res)
+	}
+	if def, _ := s.DefaultSpoke(); def != "edge" {
+		t.Errorf("default spoke = %q, want edge", def)
+	}
+}
+
+// TestAdminSetDefaultSpokeUnknown checks the default cannot be set to a spoke that
+// is not enrolled.
+func TestAdminSetDefaultSpokeUnknown(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
+	h := s.APIHandler()
+
+	rec := postAdmin(t, h, st, "/admin/default-spoke", url.Values{"name": {"ghost"}, "csrf": {"CSRF"}})
+	if res := decodeAdminResult(t, rec); res.OK || res.Err == "" {
+		t.Fatalf("result = %+v, want an error for an unenrolled spoke", res)
+	}
+	if def, _ := s.DefaultSpoke(); def == "ghost" {
+		t.Errorf("default spoke was set to the unenrolled spoke %q", def)
+	}
+}
+
 // TestAdminRevokeToken checks revoking a join token by ID removes it from the store.
 func TestAdminRevokeToken(t *testing.T) {
 	s, _, st := newAdminServer(t)
@@ -346,7 +415,7 @@ func TestAdminCreateBox(t *testing.T) {
 	s, f, st := newAdminServer(t)
 	h := s.APIHandler()
 
-	form := url.Values{"box_id": {"refactor-auth"}, "spoke": {"local"}, "csrf": {"CSRF"}}
+	form := url.Values{"box_id": {"refactor-auth"}, "spoke": {""}, "csrf": {"CSRF"}}
 	req := httptest.NewRequest(http.MethodPost, "/admin/boxes", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(signIn(t, st, true, false))
@@ -420,7 +489,7 @@ func TestToAdminTokens(t *testing.T) {
 func TestToAdminBoxes(t *testing.T) {
 	out := toAdminBoxes([]sandbox.Box{
 		{Name: "c2", BoxID: "beta", Spoke: "edge", Image: "img", State: "running", Phase: "ready", Created: 0},
-		{Name: "c1", Spoke: "local", Created: 0},
+		{Name: "c1", Spoke: testSpoke, Created: 0},
 	})
 	if out[0].BoxID != "beta" || out[1].BoxID != "c1" {
 		t.Errorf("not sorted/derived: %+v", out)

@@ -39,8 +39,8 @@
 			"function_name": "SpokeStatuses",
 			"receiver": "apiBackend",
 			"documentation_hash": "0b53a4f23a857104f27aeb87b3b6d635dfff6709725c92eb9bfcf21c82e12498",
-			"definition_hash": "fba8005b30ef3f76e6260ae6b3384ce10ad5e87c11a8566d0597aa92974a5e04",
-			"reviewed_at": "2026-07-01T13:12:00.985982509Z"
+			"definition_hash": "09f4d156b2e8c70eb46ea615c66a4f8c378fe8bdf3f7972416e7f8e39b9cf378",
+			"reviewed_at": "2026-07-07T08:15:52.576293193Z"
 		},
 		{
 			"function_name": "DestroyBox",

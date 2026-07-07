@@ -28,7 +28,7 @@ func newAuthServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 	t.Cleanup(func() { _ = st.Close() })
 	a := auth.NewTestAuthenticator()
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?x=1", SubmitURL: "https://claude.ai/code/s/1"}
-	return New(f, nil, "https://boxes.example.com", time.Minute, st, a), f, st
+	return wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, a), f), f, st
 }
 
 // TestAuthPageRequiresLogin checks that, with auth enabled, an unauthenticated

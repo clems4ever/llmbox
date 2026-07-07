@@ -41,7 +41,7 @@ func newProxyServer(t *testing.T, mgr boxManager, a *auth.Authenticator) (*Serve
 		t.Fatalf("OpenStore: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	s := New(mgr, nil, "https://boxes.example.com", 5*time.Minute, st, a)
+	s := wireSpoke(New(nil, "https://boxes.example.com", 5*time.Minute, st, a), mgr)
 	s.SetProxyBaseDomain("proxy.example.com")
 	return s, st
 }
@@ -67,8 +67,8 @@ func TestCreateProxyRegistersAndBuildsURL(t *testing.T) {
 	if rec.Slug == "" || rec.Port != 8000 || rec.BoxID != "web-box" {
 		t.Errorf("unexpected record: %+v", rec)
 	}
-	if rec.Spoke != localSpokeName {
-		t.Errorf("spoke = %q, want %q", rec.Spoke, localSpokeName)
+	if rec.Spoke != testSpoke {
+		t.Errorf("spoke = %q, want %q", rec.Spoke, testSpoke)
 	}
 	if rec.Description != "web preview" {
 		t.Errorf("description = %q, want %q", rec.Description, "web preview")
@@ -183,7 +183,7 @@ func TestCreateProxyReplacesStaleContainer(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "newcontainer00000"}, nil)
 	// Pre-seed a proxy from an earlier box generation (a different container).
 	if err := st.SaveProxy(store.ProxyRecord{
-		Slug: "oldslug", BoxID: "web-box", ContainerID: "oldcontainer00000", Port: 8000, Spoke: localSpokeName,
+		Slug: "oldslug", BoxID: "web-box", ContainerID: "oldcontainer00000", Port: 8000, Spoke: testSpoke,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +213,7 @@ func TestCreateProxyReplacesStaleContainer(t *testing.T) {
 func TestDestroySessionlessBoxRemovesProxies(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{}, nil)
 	if err := st.SaveProxy(store.ProxyRecord{
-		Slug: "slug1", BoxID: "web-box", ContainerID: "c1", Port: 8000, Spoke: localSpokeName,
+		Slug: "slug1", BoxID: "web-box", ContainerID: "c1", Port: 8000, Spoke: testSpoke,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -234,10 +234,10 @@ func TestRestoreReconcilesProxies(t *testing.T) {
 	}}
 	s, st := newProxyServer(t, mgr, nil)
 	// One proxy for a live box, one for a box that no longer exists.
-	if err := st.SaveProxy(store.ProxyRecord{Slug: "live", BoxID: "live-box", ContainerID: "live123", Port: 8000, Spoke: localSpokeName}); err != nil {
+	if err := st.SaveProxy(store.ProxyRecord{Slug: "live", BoxID: "live-box", ContainerID: "live123", Port: 8000, Spoke: testSpoke}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.SaveProxy(store.ProxyRecord{Slug: "dead", BoxID: "dead-box", ContainerID: "dead999", Port: 8000, Spoke: localSpokeName}); err != nil {
+	if err := st.SaveProxy(store.ProxyRecord{Slug: "dead", BoxID: "dead-box", ContainerID: "dead999", Port: 8000, Spoke: testSpoke}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -519,32 +519,19 @@ func TestHandleProxyAuthorizedForwards(t *testing.T) {
 	}
 }
 
-// proxySpokeMgr is a remote spoke that supports buffered HTTP proxying: it embeds
-// a FakeMgr for the box verbs and implements cluster.HTTPProxier, returning a
-// canned response and recording what it was asked to forward.
-type proxySpokeMgr struct {
-	*testutils.FakeMgr
-	gotBoxID  string
-	gotMethod string
-	gotPath   string
-	gotBody   []byte
-}
+// TestHandleProxyNamedSpokeForwards checks a proxy whose box runs on a specific
+// (non-default) spoke is forwarded to that spoke over the streaming tunnel, with
+// the query string preserved and the box dialed by its container ID.
+func TestHandleProxyNamedSpokeForwards(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Spoke", "remote")
+		_, _ = w.Write([]byte("remote box at " + r.URL.RequestURI()))
+	}))
+	defer upstream.Close()
 
-// ProxyHTTP records the forwarded request (including the box identifier, so tests
-// can assert the container ID is what crosses the wire) and returns a canned box
-// response.
-func (p *proxySpokeMgr) ProxyHTTP(_ context.Context, boxID string, _ int, method, path string, _ http.Header, body []byte) (int, http.Header, []byte, error) {
-	p.gotBoxID, p.gotMethod, p.gotPath, p.gotBody = boxID, method, path, body
-	return http.StatusOK, http.Header{"X-Spoke": {"remote"}}, []byte("remote box at " + path), nil
-}
-
-// TestHandleProxyRemoteSpokeForwards checks a proxy whose box runs on a remote
-// spoke is forwarded over the cluster HTTPProxier (buffered) path.
-func TestHandleProxyRemoteSpokeForwards(t *testing.T) {
-	spoke := &proxySpokeMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}}
-	hub := &testutils.FakeHub{Connected: map[string]boxManager{"remote1": spoke}}
+	remote := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}, target: upstream.Listener.Addr().String()}
 	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{}}, nil)
-	s.SetHub(hub)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"remote1": remote}})
 	registerBox(t, s, "web-box", "remote1")
 	rec, err := s.createProxy("web-box", 8000, "", "")
 	if err != nil {
@@ -571,11 +558,8 @@ func TestHandleProxyRemoteSpokeForwards(t *testing.T) {
 	if got := string(body[:n]); got != "remote box at /page?x=1" {
 		t.Errorf("body = %q", got)
 	}
-	if spoke.gotPath != "/page?x=1" || spoke.gotMethod != http.MethodGet {
-		t.Errorf("spoke saw %s %q", spoke.gotMethod, spoke.gotPath)
-	}
-	if spoke.gotBoxID != rec.ContainerID {
-		t.Errorf("spoke ProxyHTTP got box id %q, want container ID %q (remote spokes resolve by container ID)", spoke.gotBoxID, rec.ContainerID)
+	if remote.gotBoxID != rec.ContainerID {
+		t.Errorf("remote spoke dialed box id %q, want container ID %q", remote.gotBoxID, rec.ContainerID)
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -29,21 +30,21 @@ import (
 	"github.com/clems4ever/llmbox/internal/sandbox"
 )
 
-// localSpokeName is the registry name of the in-process spoke (the Docker
-// manager the server was built with). A box with no explicit spoke runs here, so
-// single-host deployments need no remote spoke.
-const localSpokeName = "local"
+// defaultSpokeSettingKey is the settings-store key under which the admin-chosen
+// default spoke is persisted. A box created with no explicit spoke runs on that
+// spoke; until an admin picks one, an unqualified create is refused.
+const defaultSpokeSettingKey = "default_spoke"
 
-// boxManager is the behaviour Server needs from a spoke's box layer. The local
-// implementation is *box.Manager; a remote spoke is reached over the cluster
-// transport. Tests fake it. It is an alias of cluster.BoxManager so the same
-// interface is the cluster RPC surface.
+// boxManager is the behaviour Server needs from a spoke's box layer. A spoke is
+// reached over the cluster transport (the concrete type is cluster's remoteSpoke).
+// Tests fake it. It is an alias of cluster.BoxManager so the same interface is the
+// cluster RPC surface.
 type boxManager = cluster.BoxManager
 
 // clusterHub is what Server needs from the cluster hub: resolving connected
 // remote spokes by name (for routing) and the HTTP handler spokes connect to.
-// The real implementation is *cluster.Hub; tests fake it. nil means clustering
-// is disabled (every box uses the local spoke).
+// The real implementation is *cluster.Hub; tests fake it. The hub is always
+// present in a running server — every box runs on a remote spoke.
 type clusterHub interface {
 	Spoke(name string) (boxManager, bool)
 	Spokes() map[string]boxManager
@@ -85,9 +86,9 @@ type session struct {
 	BoxID       string
 	Description string
 
-	// SpokeName is the cluster spoke the box runs on ("local" for the in-process
-	// spoke). Set at creation and immutable, so it needs no locking; per-box verbs
-	// route to this spoke.
+	// SpokeName is the cluster spoke the box runs on (resolved at creation from the
+	// request, or the admin-chosen default spoke). Set at creation and immutable, so
+	// it needs no locking; per-box verbs route to this spoke.
 	SpokeName string
 
 	mu          sync.Mutex
@@ -169,7 +170,6 @@ func sessionFromPersisted(ps persistedSession) *session {
 
 // Server orchestrates boxes and owns the session registry.
 type Server struct {
-	mgr       boxManager
 	hooks     boxHooks // runs lifecycle hooks per box; nil when none configured
 	publicURL string   // external base URL, e.g. https://boxes.example.com
 	authTTL   time.Duration
@@ -185,9 +185,8 @@ type Server struct {
 	// still being registered, cannot both take the same ID. Guarded by mu.
 	pendingBoxIDs map[string]struct{}
 
-	// hub holds the connected remote spokes (nil when clustering is not enabled).
-	// The in-process mgr is always the "local" spoke; remote spokes are resolved
-	// through the hub by name. Set once at startup via SetHub before serving.
+	// hub holds the connected remote spokes; every box runs on one of them. Set
+	// once at startup via SetHub before serving (always set in a running server).
 	hub clusterHub
 
 	// auth gates box activation behind provider sign-in (Google, …). nil leaves
@@ -231,10 +230,10 @@ func (s *Server) logger() *slog.Logger {
 // before the reaper destroys it. store persists the session registry; pass a
 // no-op store to disable persistence. hooks runs lifecycle hooks per box; pass
 // nil to disable hook integration. auth gates box activation behind provider
-// sign-in; pass nil to leave activation unauthenticated. Call Restore to load any
-// saved sessions.
+// sign-in; pass nil to leave activation unauthenticated. The server routes every
+// box to a remote spoke, so attach the cluster hub via SetHub before serving. Call
+// Restore to load any saved sessions.
 //
-// @arg mgr The box manager the server delegates Docker operations to.
 // @arg hooks The box lifecycle hook runner; nil disables hook integration.
 // @arg publicURL The externally reachable base URL for auth page links.
 // @arg authTTL How long a box may stay un-authenticated before being reaped.
@@ -244,9 +243,8 @@ func (s *Server) logger() *slog.Logger {
 //
 // @testcase TestCreateBoxRegistersSession builds a Server via New.
 // @testcase TestCreateBoxRunsCreateHooks builds a Server with a hook runner.
-func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration, store Store, auth *auth.Authenticator) *Server {
+func New(hooks boxHooks, publicURL string, authTTL time.Duration, store Store, auth *auth.Authenticator) *Server {
 	s := &Server{
-		mgr:           mgr,
 		hooks:         hooks,
 		publicURL:     strings.TrimRight(publicURL, "/"),
 		authTTL:       authTTL,
@@ -263,13 +261,64 @@ func New(mgr boxManager, hooks boxHooks, publicURL string, authTTL time.Duration
 }
 
 // SetHub attaches the cluster hub holding connected remote spokes. Call it once
-// at startup, before serving, when clustering is enabled. Without a hub the
-// server runs single-host: every box uses the in-process "local" spoke.
+// at startup, before serving. Every box runs on a remote spoke resolved through
+// the hub, so a running server always has one.
 //
 // @arg hub The cluster hub resolving remote spokes by name.
 //
 // @testcase TestCreateBoxRoutesToSpoke routes a box to a remote spoke via the hub.
 func (s *Server) SetHub(hub clusterHub) { s.hub = hub }
+
+// errNoDefaultSpoke is returned when a box is created without naming a spoke and
+// no default spoke has been chosen by an admin yet.
+var errNoDefaultSpoke = errors.New("no default spoke configured; set one in the admin UI or name a spoke when creating the box")
+
+// DefaultSpoke returns the admin-chosen default spoke a box with no explicit spoke
+// runs on, or "" when none has been set.
+//
+// @return string The default spoke name, or "" when unset.
+// @error error if the setting cannot be read from the store.
+//
+// @testcase TestDefaultSpokeRoundTrip reads back a default spoke set via SetDefaultSpoke.
+func (s *Server) DefaultSpoke() (string, error) {
+	name, _, err := s.store.GetSetting(defaultSpokeSettingKey)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+// SetDefaultSpoke persists the default spoke an unqualified box create routes to.
+// An empty name clears the default (unqualified creates then error).
+//
+// @arg name The spoke name to make the default, or "" to clear it.
+// @error error if the setting cannot be written to the store.
+//
+// @testcase TestDefaultSpokeRoundTrip persists and clears the default spoke.
+func (s *Server) SetDefaultSpoke(name string) error {
+	return s.store.PutSetting(defaultSpokeSettingKey, name)
+}
+
+// resolveStoredSpoke maps a persisted spoke name to the spoke it belongs to now,
+// resolving an empty name (a legacy pre-cluster session or proxy) to the current
+// default spoke. When no default is set it stays empty, which the callers treat as
+// an unknown/departed spoke.
+//
+// @arg name The stored spoke name, possibly empty.
+// @return string The name, or the default spoke when empty.
+//
+// @testcase TestRestoreKeepsDisconnectedSpokeSessions keeps a session on an offline spoke.
+func (s *Server) resolveStoredSpoke(name string) string {
+	if name != "" {
+		return name
+	}
+	def, err := s.DefaultSpoke()
+	if err != nil {
+		s.logger().Warn("resolving default spoke", "err", err)
+		return ""
+	}
+	return def
+}
 
 // SetSpokeImage sets the llmbox image named in the admin UI's ready-to-run spoke
 // command. It is display-only and does not affect how spokes run.
@@ -300,19 +349,28 @@ func (s *Server) SetProxyBaseDomain(domain string) {
 	s.proxyBaseDomain = strings.Trim(strings.TrimSpace(domain), ".")
 }
 
-// spoke resolves a spoke name to its box manager. An empty name or "local"
-// returns the in-process manager; any other name is looked up among the
-// connected remote spokes.
+// spoke resolves a spoke name to its box manager. An empty name resolves to the
+// admin-chosen default spoke; any name is then looked up among the connected
+// remote spokes.
 //
-// @arg name The spoke name ("" or "local" for the in-process spoke).
+// @arg name The spoke name, or "" to use the default spoke.
 // @return boxManager The resolved spoke's box manager.
-// @error error if a named remote spoke is not currently connected.
+// @error error if no default is set (for an empty name), or the named spoke is not connected.
 //
 // @testcase TestCreateBoxRoutesToSpoke resolves a connected remote spoke.
 // @testcase TestCreateBoxUnknownSpoke errors when the named spoke is not connected.
+// @testcase TestCreateBoxDefaultsToDefaultSpoke resolves an empty name to the default spoke.
+// @testcase TestCreateBoxNoDefaultSpoke errors when an empty name has no default set.
 func (s *Server) spoke(name string) (boxManager, error) {
-	if name == "" || name == localSpokeName {
-		return s.mgr, nil
+	if name == "" {
+		def, err := s.DefaultSpoke()
+		if err != nil {
+			return nil, err
+		}
+		if def == "" {
+			return nil, errNoDefaultSpoke
+		}
+		name = def
 	}
 	if s.hub != nil {
 		if bm, ok := s.hub.Spoke(name); ok {
@@ -322,14 +380,14 @@ func (s *Server) spoke(name string) (boxManager, error) {
 	return nil, fmt.Errorf("spoke %q is not connected", name)
 }
 
-// allSpokes returns every spoke to fan a cluster-wide operation (list, reap)
-// across: the in-process "local" spoke plus each connected remote spoke.
+// allSpokes returns every connected remote spoke to fan a cluster-wide operation
+// (list, reap) across, keyed by name.
 //
-// @return map[string]boxManager The local spoke plus all connected remote spokes, keyed by name.
+// @return map[string]boxManager The connected remote spokes, keyed by name.
 //
 // @testcase TestListFansOutAcrossSpokes aggregates boxes from every spoke.
 func (s *Server) allSpokes() map[string]boxManager {
-	out := map[string]boxManager{localSpokeName: s.mgr}
+	out := map[string]boxManager{}
 	if s.hub != nil {
 		maps.Copy(out, s.hub.Spokes())
 	}
@@ -384,39 +442,48 @@ func (s *Server) releaseBoxID(boxID string) {
 	s.mu.Unlock()
 }
 
-// SpokeStatus describes one cluster spoke and its health. The in-process spoke
-// is always present and connected; each enrolled remote spoke is reported with
-// whether it currently holds a live connection to the hub.
+// SpokeStatus describes one enrolled cluster spoke and its health: whether it
+// currently holds a live connection to the hub, and whether it is the default
+// spoke unqualified box creates route to.
 type SpokeStatus struct {
-	Name       string    `json:"name" jsonschema:"the spoke's name; 'local' is the in-process spoke"`
+	Name       string    `json:"name" jsonschema:"the spoke's name"`
 	Connected  bool      `json:"connected" jsonschema:"whether the spoke currently has a live connection to the hub"`
-	Local      bool      `json:"local,omitempty" jsonschema:"true for the in-process spoke (always connected)"`
-	EnrolledAt time.Time `json:"enrolled_at" jsonschema:"when the remote spoke enrolled (absent for the local spoke)"`
+	Default    bool      `json:"default,omitempty" jsonschema:"true for the default spoke unqualified box creates run on"`
+	EnrolledAt time.Time `json:"enrolled_at" jsonschema:"when the spoke enrolled"`
 }
 
-// SpokeStatuses reports every spoke and its health: the in-process "local"
-// spoke plus each enrolled remote spoke, marking which are currently connected.
-// With clustering disabled it returns just the local spoke.
+// SpokeStatuses reports every enrolled remote spoke and its health, marking which
+// are currently connected and which is the default. It returns nothing when no
+// hub is attached.
 //
 // @arg _ Context (unused; the data is in-memory and in the store).
-// @return []SpokeStatus The local spoke followed by each enrolled remote spoke.
+// @return []SpokeStatus One entry per enrolled remote spoke.
 // @error error if the enrolled spokes cannot be read from the store.
 //
 // @testcase TestSpokeStatusesReportsHealth marks enrolled spokes connected or not.
-// @testcase TestSpokeStatusesLocalOnly returns just the local spoke without a hub.
+// @testcase TestSpokeStatusesMarksDefault flags the default spoke.
 func (s *Server) SpokeStatuses(_ context.Context) ([]SpokeStatus, error) {
-	out := []SpokeStatus{{Name: localSpokeName, Connected: true, Local: true}}
 	if s.hub == nil {
-		return out, nil
+		return nil, nil
 	}
 	connected := s.hub.Spokes()
 	enrolled, err := s.store.ListSpokes()
 	if err != nil {
 		return nil, err
 	}
+	def, err := s.DefaultSpoke()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]SpokeStatus, 0, len(enrolled))
 	for _, rec := range enrolled {
 		_, isConnected := connected[rec.Name]
-		out = append(out, SpokeStatus{Name: rec.Name, Connected: isConnected, EnrolledAt: rec.EnrolledAt})
+		out = append(out, SpokeStatus{
+			Name:       rec.Name,
+			Connected:  isConnected,
+			Default:    rec.Name == def,
+			EnrolledAt: rec.EnrolledAt,
+		})
 	}
 	return out, nil
 }
@@ -427,14 +494,13 @@ func (s *Server) SpokeStatuses(_ context.Context) ([]SpokeStatus, error) {
 // whose spoke is not currently connected is kept — the box may still be alive,
 // we just can't verify it yet. Enabled proxies are reconciled the same way, so a
 // box removed out of band before this restart leaves no proxy a later same-id box
-// could reuse. Finally, when clustering is enabled, sessions and proxies pinned to
-// a spoke that has been de-enrolled (departed, not merely offline) are purged via
-// PruneDepartedSpokes. It returns the number of sessions restored. Call it once at
-// startup, before serving.
+// could reuse. Finally, sessions and proxies pinned to a spoke that has been
+// de-enrolled (departed, not merely offline) are purged via PruneDepartedSpokes.
+// It returns the number of sessions restored. Call it once at startup, before serving.
 //
 // @arg ctx Context for the spoke listings used to reconcile.
 // @return int The number of sessions restored into the registry.
-// @error error if the store cannot be read or the local spoke cannot be listed.
+// @error error if the store cannot be read.
 //
 // @testcase TestRestoreLoadsAndReconciles restores live sessions and drops dead ones.
 // @testcase TestRestoreKeepsDisconnectedSpokeSessions keeps a session whose spoke is offline.
@@ -445,15 +511,12 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("loading sessions: %w", err)
 	}
 
-	// List each reachable spoke. The local spoke must succeed; a remote spoke that
-	// errors is treated as unreachable (its sessions are kept, not dropped).
+	// List each connected spoke. A spoke that errors (or is offline) is treated as
+	// unreachable, so its sessions are kept rather than dropped.
 	boxesBySpoke := map[string][]sandbox.Box{}
 	for name, bm := range s.allSpokes() {
 		boxes, err := bm.List(ctx)
 		if err != nil {
-			if name == localSpokeName {
-				return 0, fmt.Errorf("listing boxes to reconcile sessions: %w", err)
-			}
 			s.logger().Warn("listing spoke to reconcile sessions failed; keeping its sessions", "spoke", name, "err", err)
 			continue
 		}
@@ -478,10 +541,7 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 
 	s.mu.Lock()
 	for _, ps := range saved {
-		spokeName := ps.SpokeName
-		if spokeName == "" {
-			spokeName = localSpokeName
-		}
+		spokeName := s.resolveStoredSpoke(ps.SpokeName)
 		if reachable, alive := reconcile(spokeName, ps.ContainerID); reachable && !alive {
 			if err := s.store.Delete(ps.Token); err != nil {
 				s.logger().Warn("failed to delete stale session during restore", "box", ps.BoxID, "err", err)
@@ -527,10 +587,7 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 		return
 	}
 	for _, p := range proxies {
-		spokeName := p.Spoke
-		if spokeName == "" {
-			spokeName = localSpokeName
-		}
+		spokeName := s.resolveStoredSpoke(p.Spoke)
 		boxes, listed := boxesBySpoke[spokeName]
 		if !listed {
 			continue // spoke unreachable; can't verify, so keep the proxy
@@ -564,12 +621,12 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 // box.destroy hooks if box creation later fails so nothing is left dangling. It
 // returns the session so callers can build the auth page URL. opts carries the
 // optional image, box ID, description, and the spoke to place the box on (empty
-// means the local in-process spoke).
+// resolves to the admin-chosen default spoke).
 //
 // @arg ctx Context for the box creation.
 // @arg opts The optional image, box ID, description, and target spoke for the box.
 // @return *session The registered auth session for the new box.
-// @error error if the target spoke is not connected, a box.create hook fails, the box cannot be created, or a session token cannot be generated.
+// @error error if no spoke is named and no default is set, the target spoke is not connected, a box.create hook fails, the box cannot be created, or a session token cannot be generated.
 //
 // @testcase TestCreateBoxRegistersSession checks the session is registered with box ID/description.
 // @testcase TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
@@ -577,6 +634,8 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 // @testcase TestCreateBoxRunsDestroyHooksOnCreateFailure replays hook state when box creation fails.
 // @testcase TestCreateBoxRoutesToSpoke creates the box on the named remote spoke.
 // @testcase TestCreateBoxUnknownSpoke errors when the named spoke is not connected.
+// @testcase TestCreateBoxDefaultsToDefaultSpoke creates on the default spoke when the request names none.
+// @testcase TestCreateBoxNoDefaultSpoke errors when the request names no spoke and no default is set.
 // @testcase TestCreateBoxDefaultsImageToBoxImage stamps the hub's box image when the request names none.
 // @testcase TestCreateBoxKeepsExplicitImage leaves a request's explicit image untouched.
 func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*session, error) {
@@ -587,9 +646,19 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	if opts.Image == "" {
 		opts.Image = s.boxImage
 	}
+	// Resolve an unqualified create to the admin-chosen default spoke, and pin the
+	// box to that concrete spoke name so its later verbs route there even if the
+	// default changes afterwards.
 	spokeName := opts.SpokeName
 	if spokeName == "" {
-		spokeName = localSpokeName
+		def, err := s.DefaultSpoke()
+		if err != nil {
+			return nil, err
+		}
+		if def == "" {
+			return nil, errNoDefaultSpoke
+		}
+		spokeName = def
 	}
 	mgr, err := s.spoke(spokeName)
 	if err != nil {
@@ -819,37 +888,28 @@ func (s *Server) submitCode(ctx context.Context, tok, code string) error {
 	return err
 }
 
-// listBoxes returns all managed boxes across every spoke, each tagged with the
-// spoke it runs on. The local spoke must list successfully; a connected remote
-// spoke that errors is logged and skipped so one bad spoke doesn't fail the
-// whole listing.
+// listBoxes returns all managed boxes across every connected spoke, each tagged
+// with the spoke it runs on. A spoke that errors is logged and skipped so one bad
+// spoke doesn't fail the whole listing.
 //
 // @arg ctx Context for the list request.
 // @return []sandbox.Box The boxes managed by this server, tagged with their spoke.
-// @error error if the local spoke cannot be listed.
+// @error error Always nil (per-spoke failures are logged and skipped).
 //
 // @testcase TestBoxToolsOverBackend exercises the server's box wiring.
 // @testcase TestListFansOutAcrossSpokes aggregates and tags boxes from every spoke.
 func (s *Server) listBoxes(ctx context.Context) ([]sandbox.Box, error) {
-	out, err := s.mgr.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for i := range out {
-		out[i].Spoke = localSpokeName
-	}
-	if s.hub != nil {
-		for name, bm := range s.hub.Spokes() {
-			boxes, err := bm.List(ctx)
-			if err != nil {
-				s.logger().Warn("listing spoke failed; skipping it", "spoke", name, "err", err)
-				continue
-			}
-			for i := range boxes {
-				boxes[i].Spoke = name
-			}
-			out = append(out, boxes...)
+	var out []sandbox.Box
+	for name, bm := range s.allSpokes() {
+		boxes, err := bm.List(ctx)
+		if err != nil {
+			s.logger().Warn("listing spoke failed; skipping it", "spoke", name, "err", err)
+			continue
 		}
+		for i := range boxes {
+			boxes[i].Spoke = name
+		}
+		out = append(out, boxes...)
 	}
 	return out, nil
 }
@@ -958,10 +1018,11 @@ func boxMatchesSession(sess *session, idOrName string) bool {
 // @testcase TestDestroyBoxByBoxIDRoutesToSpoke destroys a remote box by its box ID.
 // @testcase TestDestroySessionlessBoxFindsSpoke destroys a box with no tracked session on its actual spoke.
 // @testcase TestDestroyAlreadyGoneBoxSucceeds treats a not-found from the spoke as a successful, session-clearing removal.
+// @testcase TestDestroyUnknownBoxIsIdempotent treats a box no spoke reports as already gone (no-op success).
 func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 	// Route to the spoke the matching session names. idOrName may be a box ID
 	// (what the admin UI sends) or a container ID, so match on both.
-	mgr := s.mgr
+	var mgr boxManager
 	matched := false
 	var spokeErr error
 	s.mu.Lock()
@@ -979,28 +1040,29 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 	// No tracked session named the box. The admin box list is built straight from
 	// each spoke (see listBoxes), so a box can appear there — and be Remove-able —
 	// with no session: e.g. its login session expired, or it was created
-	// out-of-band. Locate the box across all spokes the way the list does, rather
-	// than blindly destroying on the local spoke, which fails ("no managed box
-	// matches") for a box that actually lives on a remote spoke.
+	// out-of-band. Locate the box across the connected spokes the way the list does.
 	if !matched {
 		hosting, err := s.spokeHostingBox(ctx, idOrName)
 		if err != nil {
 			return err
 		}
-		if hosting != nil {
-			mgr = hosting
-		}
+		mgr = hosting
 	}
-	if err := mgr.Destroy(ctx, idOrName); err != nil {
-		// Removal is idempotent: if the box's container is already gone on its
-		// spoke (e.g. an operator removed it out of band), the desired end state —
-		// the box no longer exists — already holds. Treat that as success and fall
-		// through to forget the session so the box disappears from the UI without a
-		// spurious error. Any other failure is real and surfaced.
-		if !docker.IsNotFound(err) {
-			return err
+	// mgr is nil when no session names the box and no connected spoke reports it:
+	// the box is already gone everywhere, which is the desired end state. Skip the
+	// destroy and fall through to forget any session so the UI clears without error.
+	if mgr != nil {
+		if err := mgr.Destroy(ctx, idOrName); err != nil {
+			// Removal is idempotent: if the box's container is already gone on its
+			// spoke (e.g. an operator removed it out of band), the desired end state —
+			// the box no longer exists — already holds. Treat that as success and fall
+			// through to forget the session so the box disappears from the UI without a
+			// spurious error. Any other failure is real and surfaced.
+			if !docker.IsNotFound(err) {
+				return err
+			}
+			s.logger().Info("box already gone on its spoke; treating destroy as success", "box", idOrName)
 		}
-		s.logger().Info("box already gone on its spoke; treating destroy as success", "box", idOrName)
 	}
 	s.mu.Lock()
 	var dropped []string
@@ -1034,23 +1096,19 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 // spokeHostingBox returns the manager of the spoke whose box list contains
 // idOrName (matched by box ID or container-ID prefix), or nil when no spoke
 // reports such a box. It mirrors how the admin box list is assembled (see
-// listBoxes), so a destroy can locate a box that has no tracked session instead
-// of assuming the local spoke. A remote spoke that fails to list is skipped
-// (it cannot be the host to destroy on); only the local spoke failing is fatal.
+// listBoxes), so a destroy can locate a box that has no tracked session. A spoke
+// that fails to list is skipped (it cannot be the host to destroy on).
 //
 // @arg ctx Context for the per-spoke list requests.
 // @arg idOrName The box ID or container ID to locate.
 // @return boxManager The hosting spoke's manager, or nil when no spoke reports the box.
-// @error error if the local spoke cannot be listed.
+// @error error Always nil (per-spoke list failures are logged and skipped).
 //
 // @testcase TestDestroySessionlessBoxFindsSpoke locates a sessionless remote box's spoke.
 func (s *Server) spokeHostingBox(ctx context.Context, idOrName string) (boxManager, error) {
 	for name, bm := range s.allSpokes() {
 		boxes, err := bm.List(ctx)
 		if err != nil {
-			if name == localSpokeName {
-				return nil, err
-			}
 			s.logger().Warn("listing spoke failed while locating box to destroy", "spoke", name, "err", err)
 			continue
 		}

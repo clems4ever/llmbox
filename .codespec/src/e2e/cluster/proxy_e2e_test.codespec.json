@@ -2,9 +2,15 @@
 	"functions": [
 		{
 			"function_name": "TestProxyThroughSpoke",
-			"documentation_hash": "759d172ad8bc2398ff5cd5ce98e6ac4472244cf4c524f13d39292ade7cc66771",
+			"documentation_hash": "e1742f59e9f547d1aa8dd17efbfb389991a41a30f1e429ee7f56aa5643b0890f",
 			"definition_hash": "45fe25b11f8b811513b32a1059e556c73ee2d8c25bfc2b723f24f960ae261dd9",
-			"reviewed_at": "2026-06-27T17:44:05.399932393Z"
+			"reviewed_at": "2026-07-07T08:15:52.54552237Z"
+		},
+		{
+			"function_name": "TestWebSocketProxyThroughSpoke",
+			"documentation_hash": "e1acb352f32f254f5c6207ac97dedc6e5b40800c9e5fb0cbbead7dc1fa700194",
+			"definition_hash": "61ec0ed639a9026676e1fd5e0c654e9996b3310bef713b1b1816b8fcb80508cf",
+			"reviewed_at": "2026-07-07T09:45:45.276964774Z"
 		}
 	]
 }

@@ -26,7 +26,7 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 		CreateSess:        api.BoxSession{BoxID: "web", ContainerID: "cid123", Token: "tok"},
 		Sessions:          map[string]api.BoxSession{"web": {BoxID: "web", ContainerID: "cid123", Status: "ready"}},
 		Boxes:             []sandbox.Box{{BoxID: "b1"}, {BoxID: "b2"}},
-		Spokes:            []api.SpokeStatus{{Name: "local", Connected: true, Local: true}},
+		Spokes:            []api.SpokeStatus{{Name: "edge", Connected: true, Default: true}},
 		LogsResult:        "log output",
 		ExecResult:        sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 7},
 		ProxyOn:           true,
@@ -66,7 +66,7 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	}
 
 	spokes, err := c.SpokeStatuses(ctx)
-	if err != nil || len(spokes) != 1 || !spokes[0].Local {
+	if err != nil || len(spokes) != 1 || !spokes[0].Default {
 		t.Fatalf("SpokeStatuses = %v, %v", spokes, err)
 	}
 

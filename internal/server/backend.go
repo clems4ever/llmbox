@@ -109,7 +109,7 @@ func (b apiBackend) SpokeStatuses(ctx context.Context) ([]api.SpokeStatus, error
 		out[i] = api.SpokeStatus{
 			Name:       sp.Name,
 			Connected:  sp.Connected,
-			Local:      sp.Local,
+			Default:    sp.Default,
 			EnrolledAt: sp.EnrolledAt,
 		}
 	}

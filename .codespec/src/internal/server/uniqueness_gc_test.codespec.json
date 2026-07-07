@@ -20,9 +20,9 @@
 		},
 		{
 			"function_name": "TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes",
-			"documentation_hash": "9d491b5d8b7cc88e831549b60b9a20cc18d74576c6630f1d67589e0bf14f28be",
-			"definition_hash": "786ab10e3056e829a3f4c189e8f07211ebef55178dd157ec3fbcbe538bcd77ec",
-			"reviewed_at": "2026-06-29T15:39:25.643416377Z"
+			"documentation_hash": "35825c106a753c94cf473c53675bdef88ce67c83dde8ac54700f8fa2ace57ba6",
+			"definition_hash": "8128f0448d360962b5b5deeec850907a2a5a7a7bd491997f8ec70b5f43b13a29",
+			"reviewed_at": "2026-07-07T08:15:52.629619464Z"
 		},
 		{
 			"function_name": "TestCreateBoxConcurrentSameBoxIDOnlyOneWins",
@@ -38,9 +38,9 @@
 		},
 		{
 			"function_name": "TestPruneDepartedSpokesRemovesStaleObjects",
-			"documentation_hash": "e02768fabfd5a6231cb7e9b069b6f9a9290ca99b65ff94a66fe7b57a77988246",
-			"definition_hash": "b690776e0c20bdcc4991d333af51a11dc3f68546d51d8ac24789d051b60fbbbf",
-			"reviewed_at": "2026-06-29T15:39:25.644563381Z"
+			"documentation_hash": "d78555e0e790b19e1767c8db60a6e9968fb9f43d63394ca87a2d3bdbc67f89d1",
+			"definition_hash": "259da6bb0e8b78eb5850289c3cd0c29103b3d6b343c56ad8855d1c6d6e4a15ee",
+			"reviewed_at": "2026-07-07T08:15:52.629950749Z"
 		},
 		{
 			"function_name": "TestPruneDepartedSpokesKeepsOfflineEnrolledSpoke",

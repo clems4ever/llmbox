@@ -11,13 +11,20 @@ import (
 	"github.com/clems4ever/llmbox/testutils"
 )
 
+// serverWithSpokes builds a hub-backed Server whose connected spokes are the given
+// managers, using a settings-capable in-memory store.
+func serverWithSpokes(spokes map[string]boxManager) *Server {
+	s := New(nil, "https://boxes.example.com", time.Minute, newTestStore(), nil)
+	s.SetHub(&testutils.FakeHub{Connected: spokes})
+	return s
+}
+
 // TestCreateBoxRoutesToSpoke checks a box with a spoke name is created on that
-// connected remote spoke, not the local one, and the session records the spoke.
+// connected remote spoke, not another, and the session records the spoke.
 func TestCreateBoxRoutesToSpoke(t *testing.T) {
-	local := &testutils.FakeMgr{CreateID: "local-id", CreateURL: "https://local"}
+	other := &testutils.FakeMgr{CreateID: "other-id"}
 	edge := &testutils.FakeMgr{CreateID: "edge-id", CreateURL: "https://edge"}
-	s := newTestServer(local)
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+	s := serverWithSpokes(map[string]boxManager{"edge": edge, "other": other})
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
@@ -32,42 +39,73 @@ func TestCreateBoxRoutesToSpoke(t *testing.T) {
 	if edge.GotOpts.BoxID != "b1" {
 		t.Errorf("edge spoke did not receive the create (%+v)", edge.GotOpts)
 	}
-	if local.GotOpts.BoxID != "" {
-		t.Errorf("local spoke wrongly received the create (%+v)", local.GotOpts)
+	if other.GotOpts.BoxID != "" {
+		t.Errorf("other spoke wrongly received the create (%+v)", other.GotOpts)
+	}
+}
+
+// TestDefaultSpokeRoundTrip checks the default spoke persists through the store and
+// clears back to empty.
+func TestDefaultSpokeRoundTrip(t *testing.T) {
+	s := New(nil, "https://h", time.Minute, newTestStore(), nil)
+	if def, err := s.DefaultSpoke(); err != nil || def != "" {
+		t.Fatalf("initial default = %q, err %v; want empty", def, err)
+	}
+	if err := s.SetDefaultSpoke("edge-7"); err != nil {
+		t.Fatalf("SetDefaultSpoke: %v", err)
+	}
+	if def, _ := s.DefaultSpoke(); def != "edge-7" {
+		t.Errorf("default = %q, want edge-7", def)
+	}
+	if err := s.SetDefaultSpoke(""); err != nil {
+		t.Fatalf("clear default: %v", err)
+	}
+	if def, _ := s.DefaultSpoke(); def != "" {
+		t.Errorf("default after clear = %q, want empty", def)
 	}
 }
 
 // TestCreateBoxUnknownSpoke checks creating a box on an unconnected spoke errors.
 func TestCreateBoxUnknownSpoke(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{})
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
+	s := serverWithSpokes(map[string]boxManager{})
 	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "ghost"}); err == nil {
 		t.Fatal("expected error for unconnected spoke")
 	}
 }
 
-// TestCreateBoxDefaultsToLocalSpoke checks a box with no spoke runs on the local spoke.
-func TestCreateBoxDefaultsToLocalSpoke(t *testing.T) {
-	local := &testutils.FakeMgr{CreateID: "local-id"}
-	s := newTestServer(local)
+// TestCreateBoxDefaultsToDefaultSpoke checks a box with no spoke runs on the
+// admin-chosen default spoke and the session records it.
+func TestCreateBoxDefaultsToDefaultSpoke(t *testing.T) {
+	edge := &testutils.FakeMgr{CreateID: "edge-id"}
+	s := serverWithSpokes(map[string]boxManager{"edge": edge})
+	if err := s.SetDefaultSpoke("edge"); err != nil {
+		t.Fatalf("SetDefaultSpoke: %v", err)
+	}
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if sess.SpokeName != localSpokeName {
-		t.Errorf("session spoke = %q, want %q", sess.SpokeName, localSpokeName)
+	if sess.SpokeName != "edge" {
+		t.Errorf("session spoke = %q, want edge (the default)", sess.SpokeName)
 	}
-	if local.GotOpts.BoxID != "b1" {
-		t.Error("local spoke did not receive the create")
+	if edge.GotOpts.BoxID != "b1" {
+		t.Error("default spoke did not receive the create")
+	}
+}
+
+// TestCreateBoxNoDefaultSpoke checks a box with no spoke errors when no default is set.
+func TestCreateBoxNoDefaultSpoke(t *testing.T) {
+	s := serverWithSpokes(map[string]boxManager{"edge": &testutils.FakeMgr{}})
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1"}); err == nil {
+		t.Fatal("expected error creating a box with no spoke and no default set")
 	}
 }
 
 // TestListFansOutAcrossSpokes checks list aggregates boxes from every spoke, each tagged.
 func TestListFansOutAcrossSpokes(t *testing.T) {
-	local := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "L", BoxID: "lbox"}}}
+	one := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "1", BoxID: "onebox"}}}
 	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "E", BoxID: "ebox"}}}
-	s := newTestServer(local)
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+	s := serverWithSpokes(map[string]boxManager{"one": one, "edge": edge})
 
 	boxes, err := s.listBoxes(context.Background())
 	if err != nil {
@@ -77,36 +115,34 @@ func TestListFansOutAcrossSpokes(t *testing.T) {
 	for _, b := range boxes {
 		bySpoke[b.Spoke] = b.BoxID
 	}
-	if bySpoke[localSpokeName] != "lbox" {
-		t.Errorf("local box missing or mistagged: %v", bySpoke)
+	if bySpoke["one"] != "onebox" {
+		t.Errorf("box missing or mistagged: %v", bySpoke)
 	}
 	if bySpoke["edge"] != "ebox" {
 		t.Errorf("edge box missing or mistagged: %v", bySpoke)
 	}
 }
 
-// TestReapFansOutAcrossSpokes checks reaping fans out across local and remote spokes.
+// TestReapFansOutAcrossSpokes checks reaping fans out across every connected spoke.
 func TestReapFansOutAcrossSpokes(t *testing.T) {
-	local := &testutils.FakeMgr{Reaped: []string{"l1"}}
+	one := &testutils.FakeMgr{Reaped: []string{"o1"}}
 	edge := &testutils.FakeMgr{Reaped: []string{"e1"}}
-	s := newTestServer(local)
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+	s := serverWithSpokes(map[string]boxManager{"one": one, "edge": edge})
 
 	got := map[string]bool{}
 	for _, id := range s.reapAllSpokes(context.Background(), nil) {
 		got[id] = true
 	}
-	if !got["l1"] || !got["e1"] {
-		t.Errorf("reaped across spokes = %v, want l1 and e1", got)
+	if !got["o1"] || !got["e1"] {
+		t.Errorf("reaped across spokes = %v, want o1 and e1", got)
 	}
 }
 
 // TestDestroyRoutesToSpoke checks a box is destroyed on the spoke its session names.
 func TestDestroyRoutesToSpoke(t *testing.T) {
-	local := &testutils.FakeMgr{}
+	other := &testutils.FakeMgr{}
 	edge := &testutils.FakeMgr{CreateID: "edge-id"}
-	s := newTestServer(local)
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+	s := serverWithSpokes(map[string]boxManager{"edge": edge, "other": other})
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
@@ -118,19 +154,18 @@ func TestDestroyRoutesToSpoke(t *testing.T) {
 	if len(edge.Destroyed) != 1 || edge.Destroyed[0] != "edge-id" {
 		t.Errorf("edge.Destroyed = %v, want [edge-id]", edge.Destroyed)
 	}
-	if len(local.Destroyed) != 0 {
-		t.Errorf("local.Destroyed = %v, want none", local.Destroyed)
+	if len(other.Destroyed) != 0 {
+		t.Errorf("other.Destroyed = %v, want none", other.Destroyed)
 	}
 }
 
 // TestDestroyBoxByBoxIDRoutesToSpoke checks that destroying by BOX ID (what the
 // admin Remove button sends, not the container ID) routes to the box's spoke and
-// cleans up its session — it must not fall back to the local spoke.
+// cleans up its session.
 func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
-	local := &testutils.FakeMgr{}
+	other := &testutils.FakeMgr{}
 	edge := &testutils.FakeMgr{CreateID: "edge-id"}
-	s := newTestServer(local)
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+	s := serverWithSpokes(map[string]boxManager{"edge": edge, "other": other})
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
@@ -143,25 +178,22 @@ func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
 	if len(edge.Destroyed) != 1 || edge.Destroyed[0] != "b1" {
 		t.Errorf("edge.Destroyed = %v, want [b1] (routed to the box's spoke)", edge.Destroyed)
 	}
-	if len(local.Destroyed) != 0 {
-		t.Errorf("local.Destroyed = %v, want none (must not fall back to local)", local.Destroyed)
+	if len(other.Destroyed) != 0 {
+		t.Errorf("other.Destroyed = %v, want none", other.Destroyed)
 	}
 	if s.lookup(sess.Token) != nil {
 		t.Error("session not removed after destroy by box id")
 	}
 }
 
-// TestDestroySessionlessBoxFindsSpoke checks that a box which appears in the
-// admin list (built straight from each spoke) but has NO tracked session is
-// destroyed on the spoke that actually hosts it, instead of failing because the
-// destroy fell back to the local spoke. This is the bug behind the admin UI's
-// "no managed box matches" error when removing a box on a remote spoke.
+// TestDestroySessionlessBoxFindsSpoke checks that a box which appears in the admin
+// list (built straight from each spoke) but has NO tracked session is destroyed on
+// the spoke that actually hosts it.
 func TestDestroySessionlessBoxFindsSpoke(t *testing.T) {
-	local := &testutils.FakeMgr{}
+	other := &testutils.FakeMgr{}
 	// The edge spoke reports a box "test" with no session tracking it.
 	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{BoxID: "test", InstanceID: "edgecid"}}}
-	s := newTestServer(local)
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+	s := serverWithSpokes(map[string]boxManager{"edge": edge, "other": other})
 
 	if err := s.destroyBox(context.Background(), "test"); err != nil {
 		t.Fatalf("DestroyBox sessionless: %v", err)
@@ -169,22 +201,17 @@ func TestDestroySessionlessBoxFindsSpoke(t *testing.T) {
 	if len(edge.Destroyed) != 1 || edge.Destroyed[0] != "test" {
 		t.Errorf("edge.Destroyed = %v, want [test] (routed to the hosting spoke)", edge.Destroyed)
 	}
-	if len(local.Destroyed) != 0 {
-		t.Errorf("local.Destroyed = %v, want none (must not fall back to local)", local.Destroyed)
+	if len(other.Destroyed) != 0 {
+		t.Errorf("other.Destroyed = %v, want none", other.Destroyed)
 	}
 }
 
 // TestDestroyAlreadyGoneBoxSucceeds checks that removing a box whose container is
-// already gone on its spoke (the spoke returns a not-found error, e.g. a human
-// removed it out of band) is treated as a successful, idempotent removal: no
-// error is surfaced and the tracked session is still forgotten.
+// already gone on its spoke (the spoke returns a not-found error) is treated as a
+// successful, idempotent removal: no error, and the session is still forgotten.
 func TestDestroyAlreadyGoneBoxSucceeds(t *testing.T) {
-	local := &testutils.FakeMgr{}
-	// The edge spoke no longer has the box: any destroy fails not-found, mirroring
-	// the real docker manager once the container has been removed out of band.
 	edge := &testutils.FakeMgr{CreateID: "edge-id", DestroyErr: sandbox.ErrBoxNotFound}
-	s := newTestServer(local)
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+	s := serverWithSpokes(map[string]boxManager{"edge": edge})
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 	if err != nil {
@@ -202,8 +229,23 @@ func TestDestroyAlreadyGoneBoxSucceeds(t *testing.T) {
 	}
 }
 
-// TestSpokeStatusesReportsHealth checks SpokeStatuses returns the local spoke
-// plus each enrolled spoke, marking which are currently connected.
+// TestDestroyUnknownBoxIsIdempotent checks that destroying a box no session tracks
+// and no connected spoke reports succeeds as a no-op (the box is already gone
+// everywhere) rather than erroring, and touches no spoke.
+func TestDestroyUnknownBoxIsIdempotent(t *testing.T) {
+	edge := &testutils.FakeMgr{} // lists no boxes
+	s := serverWithSpokes(map[string]boxManager{"edge": edge})
+
+	if err := s.destroyBox(context.Background(), "ghost-box"); err != nil {
+		t.Fatalf("destroying an unknown box should be a no-op success, got: %v", err)
+	}
+	if len(edge.Destroyed) != 0 {
+		t.Errorf("edge.Destroyed = %v, want none (no spoke hosts the box)", edge.Destroyed)
+	}
+}
+
+// TestSpokeStatusesReportsHealth checks SpokeStatuses returns each enrolled spoke,
+// marking which are connected and which is the default.
 func TestSpokeStatusesReportsHealth(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
 	if err != nil {
@@ -213,8 +255,11 @@ func TestSpokeStatusesReportsHealth(t *testing.T) {
 	_ = store.PutSpoke("edge", cluster.SpokeRecord{Name: "edge"})
 	_ = store.PutSpoke("offline", cluster.SpokeRecord{Name: "offline"})
 
-	s := New(&testutils.FakeMgr{}, nil, "https://h", time.Minute, store, nil)
+	s := New(nil, "https://h", time.Minute, store, nil)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": &testutils.FakeMgr{}}}) // only edge connected
+	if err := s.SetDefaultSpoke("edge"); err != nil {
+		t.Fatalf("SetDefaultSpoke: %v", err)
+	}
 
 	got, err := s.SpokeStatuses(context.Background())
 	if err != nil {
@@ -224,8 +269,8 @@ func TestSpokeStatusesReportsHealth(t *testing.T) {
 	for _, st := range got {
 		byName[st.Name] = st
 	}
-	if !byName[localSpokeName].Connected || !byName[localSpokeName].Local {
-		t.Errorf("local spoke status = %+v, want connected+local", byName[localSpokeName])
+	if len(got) != 2 {
+		t.Fatalf("SpokeStatuses = %+v, want 2 (no synthetic local)", got)
 	}
 	if !byName["edge"].Connected {
 		t.Errorf("edge should be connected: %+v", byName["edge"])
@@ -235,32 +280,59 @@ func TestSpokeStatusesReportsHealth(t *testing.T) {
 	}
 }
 
-// TestSpokeStatusesLocalOnly checks that without a hub only the local spoke is reported.
-func TestSpokeStatusesLocalOnly(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{})
+// TestSpokeStatusesMarksDefault checks the default spoke is flagged in the report.
+func TestSpokeStatusesMarksDefault(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	_ = store.PutSpoke("edge", cluster.SpokeRecord{Name: "edge"})
+	_ = store.PutSpoke("edge2", cluster.SpokeRecord{Name: "edge2"})
+
+	s := New(nil, "https://h", time.Minute, store, nil)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": &testutils.FakeMgr{}, "edge2": &testutils.FakeMgr{}}})
+	if err := s.SetDefaultSpoke("edge2"); err != nil {
+		t.Fatalf("SetDefaultSpoke: %v", err)
+	}
+
 	got, err := s.SpokeStatuses(context.Background())
 	if err != nil {
 		t.Fatalf("SpokeStatuses: %v", err)
 	}
-	if len(got) != 1 || got[0].Name != localSpokeName || !got[0].Connected {
-		t.Fatalf("SpokeStatuses without hub = %+v, want only local", got)
+	for _, st := range got {
+		if st.Name == "edge2" && !st.Default {
+			t.Errorf("edge2 should be marked default: %+v", st)
+		}
+		if st.Name == "edge" && st.Default {
+			t.Errorf("edge should not be marked default: %+v", st)
+		}
 	}
 }
 
-// TestListSpokesTool checks the MCP backend reports the spoke statuses.
+// TestListSpokesTool checks the MCP backend reports the enrolled spoke statuses.
 func TestListSpokesTool(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{})
-	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
+	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	_ = store.PutSpoke("edge", cluster.SpokeRecord{Name: "edge"})
+
+	s := New(nil, "https://h", time.Minute, store, nil)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": &testutils.FakeMgr{}}})
+
 	spokes, err := s.boxBackend().SpokeStatuses(context.Background())
 	if err != nil {
 		t.Fatalf("SpokeStatuses: %v", err)
 	}
-	if len(spokes) != 1 || spokes[0].Name != localSpokeName {
-		t.Fatalf("spokes = %+v, want the local spoke", spokes)
+	if len(spokes) != 1 || spokes[0].Name != "edge" {
+		t.Fatalf("spokes = %+v, want the enrolled edge spoke", spokes)
 	}
 }
 
-// TestRestoreKeepsDisconnectedSpokeSessions checks a session on an offline spoke is kept while a dead local one is dropped.
+// TestRestoreKeepsDisconnectedSpokeSessions checks a session on an offline spoke is
+// kept while a dead session on a connected spoke is dropped.
 func TestRestoreKeepsDisconnectedSpokeSessions(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
 	if err != nil {
@@ -268,18 +340,24 @@ func TestRestoreKeepsDisconnectedSpokeSessions(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 
-	// A live local session and a session on a spoke that isn't connected.
-	if err := store.Save(persistedSession{Token: "dead-local", ContainerID: "deadbeef", SpokeName: localSpokeName, Status: "pending"}); err != nil {
+	// Both spokes are enrolled (so neither is treated as departed); only edge is
+	// connected below.
+	_ = store.PutSpoke("edge", cluster.SpokeRecord{Name: "edge"})
+	_ = store.PutSpoke("offline", cluster.SpokeRecord{Name: "offline"})
+
+	// A dead session on a connected spoke and a session on a spoke that isn't connected.
+	if err := store.Save(persistedSession{Token: "dead-edge", ContainerID: "deadbeef", SpokeName: "edge", Status: "pending"}); err != nil {
 		t.Fatalf("save: %v", err)
 	}
-	if err := store.Save(persistedSession{Token: "edge-sess", ContainerID: "edgecid", SpokeName: "edge", Status: "ready"}); err != nil {
+	if err := store.Save(persistedSession{Token: "off-sess", ContainerID: "offcid", SpokeName: "offline", Status: "ready"}); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 
-	// Local spoke lists no boxes (so the local session is dead); no hub means the
-	// "edge" spoke is unreachable, so its session must be kept.
-	local := &testutils.FakeMgr{ListResult: nil}
-	s := New(local, nil, "https://boxes.example.com", time.Minute, store, nil)
+	// The edge spoke lists no boxes (so its session is dead); the "offline" spoke is
+	// not connected, so its session must be kept.
+	edge := &testutils.FakeMgr{ListResult: nil}
+	s := New(nil, "https://boxes.example.com", time.Minute, store, nil)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
 	n, err := s.Restore(context.Background())
 	if err != nil {
@@ -288,10 +366,10 @@ func TestRestoreKeepsDisconnectedSpokeSessions(t *testing.T) {
 	if n != 1 {
 		t.Errorf("restored %d sessions, want 1", n)
 	}
-	if s.lookup("dead-local") != nil {
-		t.Error("dead local session should have been dropped")
+	if s.lookup("dead-edge") != nil {
+		t.Error("dead session on a connected spoke should have been dropped")
 	}
-	if s.lookup("edge-sess") == nil {
-		t.Error("session on a Disconnected spoke should have been kept")
+	if s.lookup("off-sess") == nil {
+		t.Error("session on a disconnected spoke should have been kept")
 	}
 }

@@ -62,13 +62,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/box"
-	"github.com/clems4ever/llmbox/internal/box/backend"
 	"github.com/clems4ever/llmbox/internal/cli"
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/config"
 	"github.com/clems4ever/llmbox/internal/docker"
-	_ "github.com/clems4ever/llmbox/internal/firecracker" // registers the "firecracker" box backend
 	"github.com/clems4ever/llmbox/internal/hooks"
 	"github.com/clems4ever/llmbox/internal/server"
 )
@@ -128,17 +125,17 @@ func newRootCmd() *cobra.Command {
 	return rootCmd
 }
 
-// run assembles and serves the llmbox hub from cfg: it builds the Docker manager
-// (applying the configured per-box resource limits), opens the session store,
-// sets up optional lifecycle hooks and activation auth, optionally enables
-// hub-and-spoke clustering and HTTP proxying of box ports, restores persisted
-// sessions, starts the orphan reaper, and serves the box-control API and the
-// UI/API on their two separate ports until the parent context is cancelled
-// (SIGINT/SIGTERM) at which point both shut down gracefully.
+// run assembles and serves the llmbox hub from cfg: it opens the session store,
+// sets up optional lifecycle hooks and activation auth, attaches the cluster hub
+// (spokes join over the cluster transport and run every box), enables HTTP
+// proxying of box ports, restores persisted sessions, starts the orphan reaper,
+// and serves the box-control API and the UI on one HTTP port until the parent
+// context is cancelled (SIGINT/SIGTERM) at which point it shuts down gracefully.
+// The hub runs no box backend of its own — boxes run only on remote spokes.
 //
 // @arg parent The parent context whose cancellation (or a termination signal) triggers graceful shutdown.
-// @arg cfg The resolved configuration driving the manager, store, auth, clustering, and HTTP servers.
-// @error error if the manager, store, or authenticator cannot be built, a state directory cannot be created, or either HTTP server fails for a reason other than a clean shutdown.
+// @arg cfg The resolved configuration driving the store, auth, clustering, and HTTP server.
+// @error error if the store or authenticator cannot be built, a state directory cannot be created, or the HTTP server fails for a reason other than a clean shutdown.
 //
 // @testcase TestNewRootCmd covers the command that loads cfg and calls run.
 func run(parent context.Context, cfg *config.Config) error {
@@ -159,33 +156,6 @@ func run(parent context.Context, cfg *config.Config) error {
 			boxImage = docker.DefaultImage
 		}
 	}
-
-	// Select the box backend by name (Docker by default). The Docker-specific and
-	// microVM-specific fields are both passed; each backend reads only the ones
-	// that apply. The hub scopes its local boxes to its configured namespace so it
-	// never lists, reaps, or destroys boxes owned by another spoke on the same host.
-	prov, err := backend.New(cfg.Backend, backend.Options{
-		DefaultImage:    boxImage,
-		SocketDir:       cfg.Box.SocketDir,
-		Peers:           cfg.BoxPeers,
-		Limits:          cli.BoxLimits(cfg.Box),
-		Namespace:       cfg.Box.Namespace,
-		RegistryAuths:   cli.RegistryAuths(cfg.Registries),
-		KernelImagePath: cfg.Firecracker.KernelImage,
-		RootfsImagePath: cfg.Firecracker.RootfsImage,
-		StateDir:        cfg.Firecracker.StateDir,
-		DisableEgress:   cfg.Firecracker.DisableEgress,
-		PoolSize:        cfg.Firecracker.PoolSize,
-	})
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := prov.Close(); err != nil {
-			log.Printf("closing box backend: %v", err)
-		}
-	}()
-	mgr := box.NewManager(prov, box.Config{RemoteArgs: cfg.RemoteArgs, MaxBoxes: cfg.Box.MaxBoxes})
 
 	// Optional box lifecycle hooks: external programs run at box.create/destroy.
 	// New returns nil (no hooks) when the list is empty.
@@ -221,7 +191,7 @@ func run(parent context.Context, cfg *config.Config) error {
 	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := server.New(mgr, hookRunner, cfg.PublicURL, authTTL, store, authr)
+	srv := server.New(hookRunner, cfg.PublicURL, authTTL, store, authr)
 	srv.SetSpokeImage(cfg.Cluster.SpokeImage)
 	srv.SetBoxImage(boxImage)
 	srv.SetProxyBaseDomain(cfg.Proxy.BaseDomain)
@@ -229,12 +199,12 @@ func run(parent context.Context, cfg *config.Config) error {
 		log.Printf("box HTTP proxying enabled at *.%s", cfg.Proxy.BaseDomain)
 	}
 
-	// Hub-and-spoke clustering: when enabled, accept spoke connections and let
-	// boxes be placed on remote spokes (boxes still default to the local spoke).
-	if cfg.Cluster.Enabled {
-		srv.SetHub(cluster.NewHub(ctx, store, nil, nil))
-		log.Printf("clustering enabled: spokes may join at %s/spoke/connect", cfg.PublicURL)
-	}
+	// The hub runs no box backend of its own: every box runs on an independently
+	// started spoke (llmbox spoke) that joins over the cluster transport. Always
+	// accept spoke connections, and route an unqualified box create to the default
+	// spoke an admin picks in the UI.
+	srv.SetHub(cluster.NewHub(ctx, store, nil, nil))
+	log.Printf("spokes may join at %s/spoke/connect", cfg.PublicURL)
 
 	// One HTTP server for everything: the box-control JSON API (under /api/v1/) and
 	// the UI (auth pages, admin, health). The MCP protocol is served by the

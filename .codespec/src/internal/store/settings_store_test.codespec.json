@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "TestSettingsStoreRoundTrip",
+			"documentation_hash": "5d19e6160b9c4d35f7a5308216246656a8962e358e50c8b6b87df43da27b0275",
+			"definition_hash": "686ebdedb6ecae26ca33741c518567d8042b809f2d3b2428314d9369ac214a62",
+			"reviewed_at": "2026-07-07T08:21:28.103030418Z"
+		}
+	]
+}

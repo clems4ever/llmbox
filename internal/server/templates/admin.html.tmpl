@@ -125,22 +125,28 @@
 
   <div class="card" id="spokes-card">
     <h2>Spokes</h2>
+    <p class="note">A box created with no spoke runs on the <b>default</b> spoke. Set one below.</p>
     <table>
       <thead><tr><th>Name</th><th>Status</th><th>Enrolled</th><th></th></tr></thead>
       <tbody>
       {{range .Spokes}}
         <tr>
-          <td class="mono">{{.Name}}</td>
+          <td class="mono">{{.Name}}{{if .Default}} <span class="pill on">default</span>{{end}}</td>
           <td>{{if .Connected}}<span class="pill on">connected</span>{{else}}<span class="pill off">offline</span>{{end}}</td>
-          <td class="mono">{{if .Local}}—{{else}}{{.EnrolledAt.Format "2006-01-02 15:04"}}{{end}}</td>
+          <td class="mono">{{.EnrolledAt.Format "2006-01-02 15:04"}}</td>
           <td>
-            {{if not .Local}}
+            {{if not .Default}}
+            <form class="inline" method="post" action="/admin/default-spoke">
+              <input type="hidden" name="csrf" value="{{$.CSRF}}">
+              <input type="hidden" name="name" value="{{.Name}}">
+              <button type="submit">Make default</button>
+            </form>
+            {{end}}
             <form class="inline" method="post" action="/admin/spokes/delete" onsubmit="return confirm('Drop spoke {{.Name}} and kick its connection?')">
               <input type="hidden" name="csrf" value="{{$.CSRF}}">
               <input type="hidden" name="name" value="{{.Name}}">
               <button class="danger" type="submit">Drop</button>
             </form>
-            {{end}}
           </td>
         </tr>
       {{else}}
@@ -219,7 +225,7 @@
       <div class="field"><label>Description (optional)</label><input type="text" name="description" autocomplete="off"></div>
       <div class="field"><label>Spoke</label>
         <select name="spoke">
-          <option value="local">local</option>
+          <option value="">default{{if .DefaultSpoke}} ({{.DefaultSpoke}}){{end}}</option>
           {{range .ConnectedSpokes}}<option value="{{.}}">{{.}}</option>{{end}}
         </select>
       </div>
