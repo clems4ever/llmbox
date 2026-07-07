@@ -96,6 +96,30 @@
 			"documentation_hash": "31628326ad40ff42921f51ae3d8da0cb164b9ded7fc47c9caccbe473f8f8b292",
 			"definition_hash": "39c9450754e99d9cc537c0596a87cc151cd93747fce7f7059cac7aff5875b1a3",
 			"reviewed_at": "2026-07-07T09:35:35.06639276Z"
+		},
+		{
+			"function_name": "TestStreamTunnelDisconnect",
+			"documentation_hash": "2b0a90ca4219e6469211433c6a42109490ccd89a2e85b2b9ca1f4b8fd5096650",
+			"definition_hash": "638ac83e131a65739d6ac500ccef632c5dfab5b17fe79873e5d9b6d402276b88",
+			"reviewed_at": "2026-07-07T09:45:45.277534489Z"
+		},
+		{
+			"function_name": "TestStreamTunnelMultiplex",
+			"documentation_hash": "58cbbe224131c14d5465fb5265a0a99e2f3eec0b003d4f2a1469131693c715fb",
+			"definition_hash": "58e2f65cc0eda2a7b4073b630019e4eae4bd53bb4e3544fdf0874f6cd06ab9eb",
+			"reviewed_at": "2026-07-07T09:45:45.278148285Z"
+		},
+		{
+			"function_name": "TestStreamTunnelChunkedTransfer",
+			"documentation_hash": "dd5be0923151220327778d2af28bbfd592277e4e76e09221dc2f289bcdb47f1c",
+			"definition_hash": "78d9eb8acf09f08db0dc02f56f777ecc26a25970969aa45c682dec44153cb62a",
+			"reviewed_at": "2026-07-07T09:45:45.28755084Z"
+		},
+		{
+			"function_name": "firstDiff",
+			"documentation_hash": "2351f6138a1d85a3a8a02bf3403d1667a80a104458757a2d5182b69ee1dc79a7",
+			"definition_hash": "5bb4757381bf0c70331c8c1275acbf1e392cb111534651f259ddf59a220b2d30",
+			"reviewed_at": "2026-07-07T09:45:45.28877996Z"
 		}
 	]
 }

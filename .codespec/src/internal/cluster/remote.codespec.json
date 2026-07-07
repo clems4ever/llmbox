@@ -16,9 +16,9 @@
 		{
 			"function_name": "shutdown",
 			"receiver": "remoteSpoke",
-			"documentation_hash": "0ffdb5ce74b096ae021cfb49062948505a3a19667129311bf722601cf0b6b718",
+			"documentation_hash": "fb538743c0c94d7a7a11851ecf801a0a6de1180a9e7d1a9d3e93482e1af103c9",
 			"definition_hash": "c34643874eddb8744cfaca3a17c8bf16c6e46a9496e159e98531556d45b5edfb",
-			"reviewed_at": "2026-07-07T08:15:52.561532761Z"
+			"reviewed_at": "2026-07-07T09:45:45.289851248Z"
 		},
 		{
 			"function_name": "Done",
@@ -93,9 +93,9 @@
 		{
 			"function_name": "DialBox",
 			"receiver": "remoteSpoke",
-			"documentation_hash": "f6a074e727a99c84456076c356d4f8f65abc88f729715888c4df5f40f6fa4767",
+			"documentation_hash": "a020ddcf3aef8677c604df974ad6f06213e75fb43dfa27d00aed1f5df451f8a7",
 			"definition_hash": "549c8a722ed223b879d3386a29f5798ffbb3a5999c81b8366f8bcff4812d8ab1",
-			"reviewed_at": "2026-07-07T08:15:52.56211199Z"
+			"reviewed_at": "2026-07-07T09:45:45.291616061Z"
 		},
 		{
 			"function_name": "unregisterStream",

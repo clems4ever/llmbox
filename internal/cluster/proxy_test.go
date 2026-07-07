@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -93,6 +94,112 @@ func TestStreamTunnelBoxEOF(t *testing.T) {
 	if string(data) != "bye" {
 		t.Errorf("read %q, want \"bye\"", data)
 	}
+}
+
+// TestStreamTunnelDisconnect checks that when the hub↔spoke connection drops, a
+// live tunnel is torn down: a blocked Read unblocks with an error instead of
+// hanging or wrongly returning a clean EOF.
+func TestStreamTunnelDisconnect(t *testing.T) {
+	rs := startSpoke(t, &fakeManager{dialTarget: echoListener(t)})
+	conn, err := rs.DialBox(context.Background(), "web-box", 8000)
+	if err != nil {
+		t.Fatalf("DialBox: %v", err)
+	}
+	defer conn.Close()
+
+	// Read in the background so we can prove it unblocks on disconnect.
+	readErr := make(chan error, 1)
+	go func() {
+		_, err := conn.Read(make([]byte, 8))
+		readErr <- err
+	}()
+
+	_ = rs.Close() // simulate the hub↔spoke connection dropping
+
+	select {
+	case err := <-readErr:
+		if err == nil {
+			t.Fatal("Read returned nil after disconnect, want an error")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Read did not unblock after the connection dropped")
+	}
+}
+
+// TestStreamTunnelMultiplex checks that two concurrent tunnels over one connection
+// stay independent: each conn reads back only its own bytes (frames are routed by
+// stream ID, never crossed between streams).
+func TestStreamTunnelMultiplex(t *testing.T) {
+	rs := startSpoke(t, &fakeManager{dialTarget: echoListener(t)})
+
+	c1, err := rs.DialBox(context.Background(), "box-1", 8000)
+	if err != nil {
+		t.Fatalf("DialBox 1: %v", err)
+	}
+	defer c1.Close()
+	c2, err := rs.DialBox(context.Background(), "box-2", 8000)
+	if err != nil {
+		t.Fatalf("DialBox 2: %v", err)
+	}
+	defer c2.Close()
+
+	if _, err := c1.Write([]byte("AAAA1111")); err != nil {
+		t.Fatalf("write c1: %v", err)
+	}
+	if _, err := c2.Write([]byte("BBBB2222")); err != nil {
+		t.Fatalf("write c2: %v", err)
+	}
+	got1 := make([]byte, 8)
+	got2 := make([]byte, 8)
+	if _, err := io.ReadFull(c1, got1); err != nil {
+		t.Fatalf("read c1: %v", err)
+	}
+	if _, err := io.ReadFull(c2, got2); err != nil {
+		t.Fatalf("read c2: %v", err)
+	}
+	if string(got1) != "AAAA1111" {
+		t.Errorf("c1 read %q, want its own bytes AAAA1111 (streams crossed?)", got1)
+	}
+	if string(got2) != "BBBB2222" {
+		t.Errorf("c2 read %q, want its own bytes BBBB2222 (streams crossed?)", got2)
+	}
+}
+
+// TestStreamTunnelChunkedTransfer checks a payload larger than one frame chunk
+// (maxStreamChunk) round-trips intact — exercising the Write chunking loop and the
+// reassembly across many stream_data frames.
+func TestStreamTunnelChunkedTransfer(t *testing.T) {
+	rs := startSpoke(t, &fakeManager{dialTarget: echoListener(t)})
+	conn, err := rs.DialBox(context.Background(), "web-box", 8000)
+	if err != nil {
+		t.Fatalf("DialBox: %v", err)
+	}
+	defer conn.Close()
+
+	// ~3.5 chunks, with a recognizable pattern so a mis-ordered/dropped chunk shows.
+	want := make([]byte, maxStreamChunk*3+1234)
+	for i := range want {
+		want[i] = byte(i % 251)
+	}
+	go func() { _, _ = conn.Write(want) }() // write concurrently to avoid echo deadlock
+
+	got := make([]byte, len(want))
+	if _, err := io.ReadFull(conn, got); err != nil {
+		t.Fatalf("ReadFull: %v", err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("chunked transfer corrupted: %d bytes, first mismatch at %d", len(got), firstDiff(got, want))
+	}
+}
+
+// firstDiff returns the index of the first differing byte, or -1 if equal.
+func firstDiff(a, b []byte) int {
+	for i := range a {
+		if i >= len(b) || a[i] != b[i] {
+			return i
+		}
+	}
+	return -1
 }
 
 // TestStreamOpenUnsupportedSpoke checks that opening a tunnel to a spoke whose

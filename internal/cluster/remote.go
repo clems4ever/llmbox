@@ -99,11 +99,12 @@ func (r *remoteSpoke) readLoop() {
 	}
 }
 
-// shutdown marks the spoke disconnected and fails all pending calls.
+// shutdown marks the spoke disconnected and fails all pending calls and live tunnels.
 //
 // @arg cause The transport error that ended the connection.
 //
 // @testcase TestRemoteSpokeDisconnect checks pending calls observe the disconnect.
+// @testcase TestStreamTunnelDisconnect checks a live tunnel is torn down on disconnect.
 func (r *remoteSpoke) shutdown(cause error) {
 	r.mu.Lock()
 	if r.closed {
@@ -308,7 +309,7 @@ func (r *remoteSpoke) Exec(ctx context.Context, idOrName string, cmd []string) (
 // @error error if the spoke is disconnected or the open frame cannot be sent.
 //
 // @testcase TestStreamTunnelRoundTrip round-trips bytes through a dialed tunnel.
-// @testcase TestRemoteSpokeDisconnect fails a live tunnel when the connection drops.
+// @testcase TestStreamTunnelDisconnect fails a live tunnel when the connection drops.
 func (r *remoteSpoke) DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error) {
 	payload, err := encodePayload(streamOpenReq{BoxID: idOrName, Port: port})
 	if err != nil {
