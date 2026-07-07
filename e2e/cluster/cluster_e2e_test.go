@@ -59,9 +59,9 @@ func TestClusterEndToEnd(t *testing.T) {
 
 	// The hub: real server with clustering enabled, on a real listener. It runs no
 	// box backend of its own — every box runs on a remote spoke.
-	hub := cluster.NewHub(ctx, store, nil, nil)
+	clusterHub := cluster.NewHub(ctx, store, nil, nil)
 	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, nil)
-	srv.SetHub(hub)
+	srv.SetHub(clusterHub)
 	// The hub is the sole source of the box image: it stamps this onto every
 	// create so config-free spokes (which hold no default of their own) launch
 	// exactly what they are sent.

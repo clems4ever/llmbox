@@ -70,9 +70,9 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	t.Cleanup(func() { _ = store.Close() })
 
 	a := auth.NewTestAuthenticator("admin@corp.com")
-	hub := cluster.NewHub(ctx, store, nil, nil)
+	clusterHub := cluster.NewHub(ctx, store, nil, nil)
 	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, a)
-	srv.SetHub(hub)
+	srv.SetHub(clusterHub)
 	// The hub is the sole source of the box image: it stamps this onto every
 	// create so config-free spokes launch exactly what they are sent.
 	srv.SetBoxImage("box:e2e")
