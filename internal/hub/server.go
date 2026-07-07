@@ -382,30 +382,41 @@ func (s *Server) allSpokes() map[string]boxManager {
 	return out
 }
 
-// reserveBoxID atomically claims boxID for an in-flight create so no other box —
-// on this or any other spoke — can hold it. It fails if an already-registered
-// session (any spoke) or another in-flight create already uses the ID
-// (case-insensitive). An empty box ID is unnamed and exempt from uniqueness.
-// Every successful reserve must be paired with releaseBoxID once the create
-// settles (the registered session in byToken then carries the claim).
+// reserveBoxID claims boxID for an in-flight create so no other box — on this or
+// any other spoke — can hold it. Existence is read from the spokes themselves (the
+// same live source as the box list), so uniqueness can never disagree with what the
+// dashboard shows: it fails if a connected spoke already reports a box with the ID,
+// or if another in-flight create on this hub already claimed it (case-insensitive).
+// An empty box ID is unnamed and exempt. Every successful reserve must be paired
+// with releaseBoxID once the create settles. Spokes also reject a duplicate box ID
+// at provision time, which backstops the window where a spoke is briefly
+// disconnected and its boxes are not visible here.
 //
+// @arg ctx Context for the spoke box-list query.
 // @arg boxID The caller-assigned box ID to claim, or "" for an unnamed box.
-// @error if the box ID is already in use or being created.
+// @error error if the box ID is already in use on a spoke or being created.
 //
 // @testcase TestCreateBoxRejectsDuplicateBoxIDSameSpoke rejects a duplicate on one spoke.
 // @testcase TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes rejects a duplicate on another spoke.
-func (s *Server) reserveBoxID(boxID string) error {
+func (s *Server) reserveBoxID(ctx context.Context, boxID string) error {
 	if boxID == "" {
 		return nil
+	}
+	// Ask the spokes what boxes exist (the box list's source of truth) rather than
+	// consulting the session registry, which can hold a session for a box the spoke
+	// no longer has.
+	boxes, err := s.listBoxes(ctx)
+	if err != nil {
+		return err
+	}
+	for _, b := range boxes {
+		if strings.EqualFold(b.BoxID, boxID) {
+			return fmt.Errorf("box ID %q is already in use on spoke %q; choose a different box ID", boxID, b.Spoke)
+		}
 	}
 	key := strings.ToLower(boxID)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, sess := range s.byToken {
-		if strings.EqualFold(sess.BoxID, boxID) {
-			return fmt.Errorf("box ID %q is already in use on spoke %q; choose a different box ID", boxID, sess.SpokeName)
-		}
-	}
 	if _, claimed := s.pendingBoxIDs[key]; claimed {
 		return fmt.Errorf("box ID %q is already being created; choose a different box ID", boxID)
 	}
@@ -656,7 +667,7 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	// Claim the box ID hub-wide before any slow work, so a box ID is unique across
 	// every spoke (the per-spoke docker layer only sees its own boxes). The claim
 	// is held until the session is registered (or the create fails), then released.
-	if err := s.reserveBoxID(opts.BoxID); err != nil {
+	if err := s.reserveBoxID(ctx, opts.BoxID); err != nil {
 		return nil, err
 	}
 	defer s.releaseBoxID(opts.BoxID)
@@ -760,9 +771,10 @@ func (s *Server) lookup(tok string) *session {
 }
 
 // lookupByBoxID returns the session for a box's caller-assigned box ID
-// (case-insensitive), or nil. Box IDs are unique across boxes (enforced at create
-// time by reserveBoxID), so normally at most one matches. Should a duplicate ever
-// linger — e.g. a stale session from a spoke that has not yet been pruned — the
+// (case-insensitive), or nil. Box IDs are unique across live boxes (enforced at
+// create time against the spokes' box list), so normally at most one matches.
+// Should a duplicate ever linger — e.g. an orphan session for a box the spoke no
+// longer has, alongside a freshly created one reusing the ID — the
 // choice is made deterministically and health-aware rather than by random map
 // order: a session on a currently reachable spoke wins over one on an unreachable
 // spoke, then the most recently created, then the lexically smaller token. This

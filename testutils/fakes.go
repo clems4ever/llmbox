@@ -29,6 +29,10 @@ type FakeMgr struct {
 	GotCode   string
 
 	ListResult []sandbox.Box
+	// created models box existence: Create appends, Destroy removes, and List
+	// returns these on top of ListResult — so a box created through the fake shows
+	// up in the box list, like a real spoke.
+	created    []sandbox.Box
 	Destroyed  []string
 	DestroyErr error
 	Reaped     []string
@@ -46,7 +50,8 @@ type FakeMgr struct {
 	GotOpts sandbox.CreateOptions
 }
 
-// Create records the requested options and returns the canned ID/URL/error.
+// Create records the requested options and returns the canned ID/URL/error. On
+// success it also records the box so it appears in List, modelling a real spoke.
 //
 // @arg ctx Context (unused by the fake).
 // @arg opts The create options, recorded into GotOpts.
@@ -58,6 +63,9 @@ type FakeMgr struct {
 func (f *FakeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (string, string, error) {
 	f.mu.Lock()
 	f.GotOpts = opts
+	if f.CreateErr == nil {
+		f.created = append(f.created, sandbox.Box{BoxID: opts.BoxID, InstanceID: f.CreateID})
+	}
 	f.mu.Unlock()
 	return f.CreateID, f.CreateURL, f.CreateErr
 }
@@ -78,14 +86,20 @@ func (f *FakeMgr) SubmitCode(ctx context.Context, idOrName, code string) (string
 	return f.SubmitURL, f.SubmitErr
 }
 
-// List returns the canned boxes.
+// List returns the canned ListResult plus any boxes created (and not destroyed)
+// through the fake, so box existence tracks Create/Destroy like a real spoke.
 //
 // @arg ctx Context (unused by the fake).
-// @return []sandbox.Box The canned ListResult slice.
+// @return []sandbox.Box ListResult followed by the still-live created boxes.
 // @error error Always nil.
 //
 // @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
-func (f *FakeMgr) List(ctx context.Context) ([]sandbox.Box, error) { return f.ListResult, nil }
+func (f *FakeMgr) List(ctx context.Context) ([]sandbox.Box, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := append([]sandbox.Box{}, f.ListResult...)
+	return append(out, f.created...), nil
+}
 
 // Destroy records the destroyed ID and returns the canned DestroyErr (nil by
 // default), letting a test simulate a spoke whose box is already gone.
@@ -98,6 +112,13 @@ func (f *FakeMgr) List(ctx context.Context) ([]sandbox.Box, error) { return f.Li
 func (f *FakeMgr) Destroy(ctx context.Context, id string) error {
 	f.mu.Lock()
 	f.Destroyed = append(f.Destroyed, id)
+	var kept []sandbox.Box
+	for _, b := range f.created {
+		if b.BoxID != id && b.InstanceID != id {
+			kept = append(kept, b)
+		}
+	}
+	f.created = kept
 	f.mu.Unlock()
 	return f.DestroyErr
 }
