@@ -58,6 +58,11 @@ type Options struct {
 	// RootfsImagePath is the default guest root filesystem image a microVM backend
 	// boots when a create supplies no image (Firecracker only).
 	RootfsImagePath string
+	// PayloadImagePath is an optional read-only ext4 carrying the guest agent (plus
+	// claude and its trust seed), attached to every box as a shared second drive so
+	// the agent can be updated without rebuilding the base rootfs (Firecracker only).
+	// Empty keeps the all-in-one rootfs with the agent baked in.
+	PayloadImagePath string
 	// StateDir is where a backend without a daemon registry persists per-box
 	// metadata so List/Find/reap survive a process restart (Firecracker only).
 	StateDir string

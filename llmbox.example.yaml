@@ -106,9 +106,13 @@ state_file: "llmbox-sessions.db"
 # vsock. Build the kernel + rootfs with scripts/firecracker/ — see
 # docs/firecracker.md. Host needs /dev/kvm and the firecracker binary on PATH.
 # firecracker:
-#   kernel_image: "/var/lib/llmbox/vmlinux"      # host path to the guest kernel (vmlinux)
-#   rootfs_image: "/var/lib/llmbox/rootfs.ext4"  # default guest rootfs booted per box
-#   state_dir:    "/run/llmbox/firecracker"      # per-box runtime state (empty = backend default)
+#   kernel_image:  "/var/lib/llmbox/vmlinux"     # host path to the guest kernel (vmlinux)
+#   rootfs_image:  "/var/lib/llmbox/rootfs.ext4" # default guest rootfs booted per box
+#   # Optional: a small read-only ext4 carrying the guest agent (+claude), attached
+#   # to every box as a shared second drive so the agent updates without rebuilding
+#   # the multi-GiB rootfs. Empty bakes the agent into the rootfs (all-in-one).
+#   payload_image: "/var/lib/llmbox/payload.ext4"
+#   state_dir:     "/run/llmbox/firecracker"     # per-box runtime state (empty = backend default)
 #   # Egress TAP devices are provisioned once at startup (not per box), so creating
 #   # a box never changes the host's network — important when a browser runs on the
 #   # same host (a new interface mid-request makes Chrome abort with

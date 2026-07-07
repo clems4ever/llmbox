@@ -37,9 +37,9 @@
 		{
 			"function_name": "Provision",
 			"receiver": "Provisioner",
-			"documentation_hash": "eb6f346b3aaf58ff19d2b5309221b8a64b97fa77fa66cda54c99b7d5af8899f2",
-			"definition_hash": "e035b563f37792d60f49ccbacf49903cc4dcb681d4dd6c99bdb733f5b88f93cf",
-			"reviewed_at": "2026-07-06T10:45:09.93740523Z"
+			"documentation_hash": "f9e1da0e8e3f90f011ab97ac681c9a9e55c8b3af43c9c720816c18c260e8c8ef",
+			"definition_hash": "df20962a92f7f01f01695323d0dc0b8b6c2cf0a4d5b82bc290c481eb42e66408",
+			"reviewed_at": "2026-07-07T10:38:54.036725767Z"
 		},
 		{
 			"function_name": "List",
@@ -148,6 +148,13 @@
 			"documentation_hash": "bf22b067aeca024b8071c65bcd5721a24dcc63baf22bc4e9b6d984ed578666ea",
 			"definition_hash": "1a5a3e92e3724222fd487bd5fe8e0c2bfded3f2ec723b3fc3c4d7ab758124aec",
 			"reviewed_at": "2026-07-04T22:54:32.292278785Z"
+		},
+		{
+			"function_name": "SetPayloadImage",
+			"receiver": "Provisioner",
+			"documentation_hash": "ccb208cf3a2762de2e3653970b2ea8beeccd5eb397c8d972e32b420f3525bca4",
+			"definition_hash": "aebdee73ac97c7f6c245d333fcfe0d99d9ed49a32a55796e90225c031b156923",
+			"reviewed_at": "2026-07-07T10:38:54.035920223Z"
 		}
 	]
 }

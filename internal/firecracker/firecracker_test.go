@@ -243,6 +243,66 @@ func TestProvisionCleansUpOnBootFailure(t *testing.T) {
 	}
 }
 
+// provisionCapturingCfg provisions one box through p, capturing the Firecracker
+// config the box booted with (its drives, kernel args, etc.) for assertions.
+func provisionCapturingCfg(t *testing.T, p *Provisioner) fcsdk.Config {
+	t.Helper()
+	var got fcsdk.Config
+	p.newMachine = func(ctx context.Context, cfg fcsdk.Config) (machine, error) {
+		got = cfg
+		return &fakeMachine{path: cfg.VsockDevices[0].Path}, nil
+	}
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{BoxID: "drv"}); err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+	return got
+}
+
+// TestProvisionAttachesPayloadDrive checks that when a payload image is configured
+// the box boots with a second, read-only, non-root drive pointing at the shared
+// payload path unchanged — i.e. the payload is referenced, never copied per box.
+func TestProvisionAttachesPayloadDrive(t *testing.T) {
+	p, _ := newFakeProvisioner(t, &fakeEgress{})
+	const payload = "/host/fc-assets/payload.ext4"
+	p.SetPayloadImage(payload)
+
+	cfg := provisionCapturingCfg(t, p)
+	if len(cfg.Drives) != 2 {
+		t.Fatalf("drives = %d, want 2 (rootfs + payload)", len(cfg.Drives))
+	}
+	root := cfg.Drives[0]
+	if !*root.IsRootDevice || *root.IsReadOnly {
+		t.Errorf("root drive = %+v, want root & writable", root)
+	}
+	pd := cfg.Drives[1]
+	if *pd.DriveID != "payload" {
+		t.Errorf("payload drive id = %q, want %q", *pd.DriveID, "payload")
+	}
+	if *pd.IsRootDevice {
+		t.Error("payload drive marked as root device")
+	}
+	if !*pd.IsReadOnly {
+		t.Error("payload drive not read-only")
+	}
+	if *pd.PathOnHost != payload {
+		t.Errorf("payload PathOnHost = %q, want the shared image %q (must not be copied per box)", *pd.PathOnHost, payload)
+	}
+}
+
+// TestProvisionWithoutPayloadHasSingleDrive checks the default (all-in-one) layout
+// boots with just the writable root rootfs and no second drive.
+func TestProvisionWithoutPayloadHasSingleDrive(t *testing.T) {
+	p, _ := newFakeProvisioner(t, &fakeEgress{})
+
+	cfg := provisionCapturingCfg(t, p)
+	if len(cfg.Drives) != 1 {
+		t.Fatalf("drives = %d, want 1 (rootfs only)", len(cfg.Drives))
+	}
+	if !*cfg.Drives[0].IsRootDevice || *cfg.Drives[0].IsReadOnly {
+		t.Errorf("root drive = %+v, want root & writable", cfg.Drives[0])
+	}
+}
+
 // TestProvisionerNamespaceScoping checks a namespaced provisioner only sees its own
 // boxes.
 func TestProvisionerNamespaceScoping(t *testing.T) {

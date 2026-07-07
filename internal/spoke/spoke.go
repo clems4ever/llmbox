@@ -61,8 +61,12 @@ type spokeOptions struct {
 	backend string
 	// fcKernelImage/fcRootfsImage/fcStateDir are the Firecracker backend's guest
 	// kernel, default rootfs image, and state directory; unused for Docker.
-	fcKernelImage   string
-	fcRootfsImage   string
+	fcKernelImage string
+	fcRootfsImage string
+	// fcPayloadImage is an optional read-only ext4 carrying the guest agent (plus
+	// claude and its trust seed), attached to every box as a shared second drive so
+	// the agent updates without rebuilding the base rootfs; unused for Docker.
+	fcPayloadImage  string
 	fcStateDir      string
 	fcDisableEgress bool
 	fcPoolSize      int
@@ -152,6 +156,7 @@ func NewRootCmd(name, version string) *cobra.Command {
 	f.StringVar(&o.backend, "backend", "", `box isolation backend: "docker" (default) or "firecracker"`)
 	f.StringVar(&o.fcKernelImage, "fc-kernel", "", "firecracker backend: host path to the guest kernel (vmlinux) every box boots")
 	f.StringVar(&o.fcRootfsImage, "fc-rootfs", "", "firecracker backend: host path to the default guest rootfs image booted when a create supplies none")
+	f.StringVar(&o.fcPayloadImage, "fc-payload", "", "firecracker backend: host path to a read-only ext4 carrying the guest agent (+claude), attached as a shared second drive so the agent updates without rebuilding the rootfs; empty bakes the agent into the rootfs")
 	f.StringVar(&o.fcStateDir, "fc-state-dir", "", "firecracker backend: directory for per-box state; empty uses the backend default")
 	f.BoolVar(&o.fcDisableEgress, "fc-disable-egress", false, "firecracker backend: boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network")
 	f.IntVar(&o.fcPoolSize, "fc-pool-size", 0, "firecracker backend: number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default")
@@ -400,17 +405,18 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// spoke's boxes so two spokes can share one host without listing, reaping, or
 	// destroying each other's boxes.
 	prov, err := backend.New(o.backend, backend.Options{
-		SocketDir:       o.box.SocketDir,
-		Peers:           o.boxPeers,
-		Limits:          cli.BoxLimits(o.box),
-		Namespace:       o.box.Namespace,
-		GPUs:            o.boxGPUs,
-		RegistryAuths:   cli.RegistryAuths(regs),
-		KernelImagePath: o.fcKernelImage,
-		RootfsImagePath: o.fcRootfsImage,
-		StateDir:        o.fcStateDir,
-		DisableEgress:   o.fcDisableEgress,
-		PoolSize:        o.fcPoolSize,
+		SocketDir:        o.box.SocketDir,
+		Peers:            o.boxPeers,
+		Limits:           cli.BoxLimits(o.box),
+		Namespace:        o.box.Namespace,
+		GPUs:             o.boxGPUs,
+		RegistryAuths:    cli.RegistryAuths(regs),
+		KernelImagePath:  o.fcKernelImage,
+		RootfsImagePath:  o.fcRootfsImage,
+		PayloadImagePath: o.fcPayloadImage,
+		StateDir:         o.fcStateDir,
+		DisableEgress:    o.fcDisableEgress,
+		PoolSize:         o.fcPoolSize,
 	})
 	if err != nil {
 		return err

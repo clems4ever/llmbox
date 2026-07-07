@@ -1,0 +1,70 @@
+name: Firecracker assets
+
+# Build and publish the Firecracker Debian *base* rootfs — the multi-GiB, slow-
+# changing half of a box image (the OS: systemd, Docker, Node), with NO agent baked
+# in. It is stored in GHCR as an opaque OCI artifact (via oras, not a runnable
+# image) tagged by a content hash of its inputs, so the conformance/box path can
+# pull a prebuilt base instead of spending ~minutes rebuilding it on every run.
+#
+# The agent rides on a separate, tiny "payload" drive (scripts/build-payload-drive.sh)
+# that is cheap to rebuild on every commit and is therefore NOT cached here — only
+# the expensive base is.
+#
+# This runs only when an input to the base actually changes (the build script or
+# this workflow) or on manual dispatch — never on an ordinary commit. On a cache hit
+# (the input-hash tag already exists in GHCR) it skips the build entirely.
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/firecracker/build-base-rootfs.sh
+      - scripts/firecracker/asset-key.sh
+      - .github/workflows/firecracker-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  # The base is published here as an OCI artifact. Named -fc-base (not a runnable
+  # image) so it reads unambiguously in the org's Packages list.
+  BASE_REPO: ghcr.io/${{ github.repository_owner }}/llmbox-fc-base
+
+jobs:
+  base-rootfs:
+    name: Build and publish base rootfs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up oras
+        uses: oras-project/setup-oras@v1
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Resolve the input-hash key
+        id: key
+        run: echo "key=$(scripts/firecracker/asset-key.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish the base rootfs (skip if already cached)
+        env:
+          REF: ${{ env.BASE_REPO }}:${{ steps.key.outputs.key }}
+        run: |
+          set -euo pipefail
+          if oras manifest fetch "$REF" >/dev/null 2>&1; then
+            echo "base rootfs already published at $REF — nothing to build"
+            exit 0
+          fi
+          echo "no cached base for this input hash; building $REF"
+          OUT="$PWD/fc-assets" scripts/firecracker/build-base-rootfs.sh
+          cd fc-assets
+          oras push "$REF" \
+            --artifact-type application/vnd.llmbox.fc-base \
+            base-rootfs.ext4:application/vnd.llmbox.rootfs.ext4
+          # Move :latest to this build so a caller that doesn't compute the hash can
+          # still grab the newest base.
+          oras tag "$REF" latest
+          echo "published $REF (and :latest)"

@@ -81,8 +81,15 @@ type machineFactory func(ctx context.Context, cfg fcsdk.Config) (machine, error)
 // Provisioner creates and tears down Firecracker microVM boxes and exposes each
 // box's agent over the VM's vsock. It implements box.Provisioner (plus Close).
 type Provisioner struct {
-	kernelImage    string
-	defaultRootfs  string
+	kernelImage   string
+	defaultRootfs string
+	// payloadImage is an optional host path to a small read-only ext4 carrying the
+	// guest agent (plus the claude binary and trust seed). When set, every box
+	// attaches it as a second, shared, read-only drive (/dev/vdb) that the base
+	// rootfs's loader unit mounts and runs — so the agent can be updated by
+	// swapping this tiny image without rebuilding the multi-GiB base rootfs. Empty
+	// keeps the legacy all-in-one layout where the agent is baked into the rootfs.
+	payloadImage   string
 	stateDir       string
 	firecrackerBin string
 	namespace      string
@@ -174,6 +181,18 @@ func (p *Provisioner) SetPoolSize(n int) {
 	}
 }
 
+// SetPayloadImage sets an optional host path to a read-only ext4 carrying the
+// guest agent (and claude + trust seed). When non-empty, every box boots with it
+// attached as a shared read-only second drive (/dev/vdb) that the base rootfs's
+// loader unit mounts; this decouples the fast-changing agent from the slow,
+// multi-GiB base rootfs. Empty keeps the all-in-one rootfs (agent baked in).
+//
+// @arg path Host path to the payload ext4; empty disables the second drive.
+//
+// @testcase TestProvisionAttachesPayloadDrive attaches the payload as a read-only /dev/vdb.
+// @testcase TestProvisionWithoutPayloadHasSingleDrive omits the second drive when unset.
+func (p *Provisioner) SetPayloadImage(path string) { p.payloadImage = path }
+
 // EnsureNetwork provisions the egress TAP pool once, so the host interfaces exist
 // before any box is created (and before a same-host browser connects) rather than
 // being churned per box. It is a no-op when networking is disabled, and safe to
@@ -232,9 +251,10 @@ func (p *Provisioner) realMachineFactory(_ context.Context, cfg fcsdk.Config) (m
 	return fcsdk.NewMachine(p.procCtx, cfg, fcsdk.WithProcessRunner(cmd), fcsdk.WithLogger(logger))
 }
 
-// Provision boots a new microVM box: it copies the rootfs, assigns a pooled TAP
-// for egress, boots the VM with the guest kernel and a vsock device, and waits for
-// the guest agent to answer on vsock. The box is created in the pending phase.
+// Provision boots a new microVM box: it copies the rootfs, attaches the shared
+// read-only payload drive when one is configured, assigns a pooled TAP for egress,
+// boots the VM with the guest kernel and a vsock device, and waits for the guest
+// agent to answer on vsock. The box is created in the pending phase.
 //
 // @arg ctx Context for the boot and the agent wait.
 // @arg opts The caller-controlled image (rootfs), box ID, and description.
@@ -312,16 +332,31 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		kernelArgs += " " + n.kernelIPArg()
 	}
 
+	// The root drive is a per-box writable copy of the rootfs. When a payload image
+	// is configured, it rides along as a second, read-only drive (/dev/vdb) shared
+	// unchanged across every box — never copied — which is what lets the agent be
+	// swapped without rebuilding the base rootfs and keeps concurrent boxes sharing
+	// one on-disk payload.
+	drives := []models.Drive{{
+		DriveID:      fcsdk.String("rootfs"),
+		PathOnHost:   fcsdk.String(perBoxRootfs),
+		IsRootDevice: fcsdk.Bool(true),
+		IsReadOnly:   fcsdk.Bool(false),
+	}}
+	if p.payloadImage != "" {
+		drives = append(drives, models.Drive{
+			DriveID:      fcsdk.String("payload"),
+			PathOnHost:   fcsdk.String(p.payloadImage),
+			IsRootDevice: fcsdk.Bool(false),
+			IsReadOnly:   fcsdk.Bool(true),
+		})
+	}
+
 	cfg := fcsdk.Config{
 		SocketPath:      apiSock,
 		KernelImagePath: p.kernelImage,
 		KernelArgs:      kernelArgs,
-		Drives: []models.Drive{{
-			DriveID:      fcsdk.String("rootfs"),
-			PathOnHost:   fcsdk.String(perBoxRootfs),
-			IsRootDevice: fcsdk.Bool(true),
-			IsReadOnly:   fcsdk.Bool(false),
-		}},
+		Drives:          drives,
 		MachineCfg: models.MachineConfiguration{
 			VcpuCount:  fcsdk.Int64(p.vcpuCount()),
 			MemSizeMib: fcsdk.Int64(p.memSizeMib()),
