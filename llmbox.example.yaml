@@ -49,8 +49,8 @@ state_file: "llmbox-sessions.db"
 # endpoint that remote spokes join over a WebSocket. The hub runs NO box backend of
 # its own — every box runs on a spoke — so even a single-host setup runs one spoke
 # alongside the hub:
-#   1. on the hub:   llmbox spoke token create --name worker-1   # prints a one-time token
-#   2. on the spoke: llmbox spoke --hub wss://<hub>/spoke/connect --token <token>
+#   1. on the hub:   llmbox-spoke token create --name worker-1   # prints a one-time token
+#   2. on the spoke: llmbox-spoke docker --hub wss://<hub>/spoke/connect --token <token>
 # A box created with no "spoke" argument runs on the DEFAULT spoke, which you pick
 # in the admin UI (a stored setting — there is no config field for it). Until a
 # default is set, an unqualified create is refused.
@@ -60,7 +60,7 @@ state_file: "llmbox-sessions.db"
 #   # your spokes actually use. Defaults to ghcr.io/clems4ever/granular-llmbox:latest.
 #   spoke_image: "ghcr.io/clems4ever/granular-llmbox:0.0.6"
 
-# NOTE: the `llmbox spoke` command reads NO config file — it is entirely
+# NOTE: the `llmbox-spoke` command reads NO config file — it is entirely
 # flag-driven so a spoke host runs the single command the admin UI generates.
 # Everything the hub configures here has a spoke flag counterpart, e.g.
 # allowed_images -> --allowed-image, box.memory_mb -> --box-memory-mb,

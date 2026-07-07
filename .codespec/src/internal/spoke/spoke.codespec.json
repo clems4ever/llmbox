@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "NewRootCmd",
-			"documentation_hash": "66917e619cf4625978a61e91bc0d339f94f92d4ea297ed934958fc24930abe36",
-			"definition_hash": "2287c9cff8caf53f126ae6bd83735074fbc207131af16ad48d19e7a105de06a1",
-			"reviewed_at": "2026-07-07T11:11:33.014843918Z"
+			"documentation_hash": "a75d4cb3ea2be027ccdfe31fa929e81da95285308bc4a4ed0363927f0d99d8c5",
+			"definition_hash": "a9e07b2fb9c46dbbea1a3d0d379f418a73eb15c8c6a08b54e070d39140089aaf",
+			"reviewed_at": "2026-07-07T11:34:31.867233737Z"
 		},
 		{
 			"function_name": "newSpokeTokenCmd",
@@ -15,8 +15,8 @@
 		{
 			"function_name": "createJoinToken",
 			"documentation_hash": "584acbb1b3db46c29285f8e8205ce08e91bc80952b38a9d948820bd5008b27b8",
-			"definition_hash": "619c76bffc3eca5f1ef82575693f8582aa3da40476917fe8f6a0d22a55dd752b",
-			"reviewed_at": "2026-07-01T15:17:24.420556178Z"
+			"definition_hash": "47ec64b033bad9f6c2bdbe52f86fe24447b8df66084f98fc080f3160fc0a13d7",
+			"reviewed_at": "2026-07-07T11:34:31.878444777Z"
 		},
 		{
 			"function_name": "listJoinTokens",
@@ -66,6 +66,30 @@
 			"documentation_hash": "9b4046598ca29570f3fa9e94076e0e8ecdf80738ae28029cf6162038a67e788e",
 			"definition_hash": "7cd433d31bc81fd2493dd97f2f3ebe386f3631dab061ec64bbe2c0fad1ecdc54",
 			"reviewed_at": "2026-07-01T15:17:24.373259436Z"
+		},
+		{
+			"function_name": "newSpokeRunCmd",
+			"documentation_hash": "53853308364d7536d6091625ac4b8207a4fac93909c34ba7487356f00376faec",
+			"definition_hash": "115fd965ba35e55ab01c2453c269df620c4ba46255d701b18e0628bbc38a57ef",
+			"reviewed_at": "2026-07-07T11:34:31.867856106Z"
+		},
+		{
+			"function_name": "addCommonSpokeFlags",
+			"documentation_hash": "2e243a42d00c9155a08f0c89d9a369dbb8cfeb0415ef8a096a56869da63cf601",
+			"definition_hash": "c00ee48e7db0891adbdefc19ab96d5b4bb5accc7bb98031b7e68bfbec1a51c72",
+			"reviewed_at": "2026-07-07T11:34:31.875715909Z"
+		},
+		{
+			"function_name": "addDockerSpokeFlags",
+			"documentation_hash": "8a1b49ea694407c156b7e7f81993130d51703320911b6acd75dcbc263cda5f4f",
+			"definition_hash": "dbfa25c12f2de8ebf83d8a9d33921ab9f789d3730d6d29c8086aaa06c51d943f",
+			"reviewed_at": "2026-07-07T11:34:31.876883542Z"
+		},
+		{
+			"function_name": "addFirecrackerSpokeFlags",
+			"documentation_hash": "d244b287a684518f8b9e4348ea406b7eade48f50a7f7f6be314637dd2ddf9064",
+			"definition_hash": "610bee6e10cac1dd62638d837d91965929f709b0a8a288f84c907f6c17c43b55",
+			"reviewed_at": "2026-07-07T11:34:31.877653686Z"
 		}
 	]
 }

@@ -416,7 +416,7 @@ func (s *Server) spokeRunCommand(name, token string) string {
 		"-v /var/run/docker.sock:/var/run/docker.sock",
 		"--group-add \"$(stat -c '%g' /var/run/docker.sock)\"",
 		img,
-		"--hub " + s.spokeConnectURL() + " --token " + token + " --state /state/llmbox-spoke.json",
+		"docker --hub " + s.spokeConnectURL() + " --token " + token + " --state /state/llmbox-spoke.json",
 	}, " ")
 }
 

@@ -2,15 +2,15 @@
 	"functions": [
 		{
 			"function_name": "TestNewRootCmd",
-			"documentation_hash": "fa8be10e461ebb96241834d9b28c86f159bfbfbe58926057b41bc275ed0a6259",
-			"definition_hash": "0493925caca3b519a2cb01ac9c1627435e35fbe12aac36fe7d9924cfd0ab05d4",
-			"reviewed_at": "2026-07-01T15:17:24.429014238Z"
+			"documentation_hash": "f8bf3b09ee0d542754c87dd62ddee57722a7d5499f881d1f7a24f55978d78076",
+			"definition_hash": "8eaa00cc8ad316078a112247b4c40a6f459c0397fa95e1197f67f59f8fc5e6b2",
+			"reviewed_at": "2026-07-07T11:35:12.512545576Z"
 		},
 		{
 			"function_name": "TestCreateJoinTokenCmdPrintsToken",
 			"documentation_hash": "7fac5a3c481117fb30549f0b86f8311d70f56ebc9fe9cfd281799e764465e6e5",
-			"definition_hash": "24b4acbfb9037ace3a5abc077f09578ba2f43e2182b84c8556298f212a079d5b",
-			"reviewed_at": "2026-07-01T15:17:24.43101887Z"
+			"definition_hash": "d9a18b9a0a755d0e22e38b51b039d1c3e6170df3cee6743bc6f245fa0e3b663f",
+			"reviewed_at": "2026-07-07T11:35:12.51300067Z"
 		},
 		{
 			"function_name": "seedJoinToken",
@@ -83,6 +83,12 @@
 			"documentation_hash": "c9e765209cb7850ed348d02cb91a18eb34f925200de2c9077a722d810ee499da",
 			"definition_hash": "0a2bb4ee55b1ac32841b97db3e3bdf385eedecda245db932a9721baa3c7330a7",
 			"reviewed_at": "2026-07-01T15:17:24.452264263Z"
+		},
+		{
+			"function_name": "subcmd",
+			"documentation_hash": "50b0801287ff22017cd2bab152bb3713e2ff74aa93ea4a37aed834a735880064",
+			"definition_hash": "a62e12ab722563c8d9ce2f15d114b87878b9174f40c4d5102cdd878e62f4ee21",
+			"reviewed_at": "2026-07-07T11:35:12.511966599Z"
 		}
 	]
 }

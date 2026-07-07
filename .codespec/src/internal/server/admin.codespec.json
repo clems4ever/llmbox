@@ -93,8 +93,8 @@
 			"function_name": "spokeRunCommand",
 			"receiver": "Server",
 			"documentation_hash": "9535c3d3ab5f2753faae8b496017d4b0e54a50823e64b9bf961bb613a9d2f39f",
-			"definition_hash": "f6fbcf85e1e44e97550d8b25f8dbcda83117b1017695abf72ba75bb916c7f369",
-			"reviewed_at": "2026-07-01T15:17:24.454798264Z"
+			"definition_hash": "7678ac02338070c1904cb46c53f8c2ed5bb90c62cca0ee3ec1b54ad0c2cc1d55",
+			"reviewed_at": "2026-07-07T11:34:31.866165307Z"
 		},
 		{
 			"function_name": "writeJSON",

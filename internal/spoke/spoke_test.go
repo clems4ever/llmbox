@@ -9,11 +9,26 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/server"
 )
 
-// TestNewRootCmd checks the llmbox-spoke command wiring: its flags and the
+// subcmd returns the named direct subcommand of cmd, failing the test if absent.
+func subcmd(t *testing.T, cmd *cobra.Command, use string) *cobra.Command {
+	t.Helper()
+	for _, c := range cmd.Commands() {
+		if c.Use == use {
+			return c
+		}
+	}
+	t.Fatalf("subcommand %q not found under %q", use, cmd.Use)
+	return nil
+}
+
+// TestNewRootCmd checks the llmbox-spoke command wiring: the docker and firecracker
+// backend subcommands each carry their own flags (never a mix), plus the
 // token/create subcommand tree.
 func TestNewRootCmd(t *testing.T) {
 	const name = "llmbox-spoke"
@@ -21,38 +36,50 @@ func TestNewRootCmd(t *testing.T) {
 	if cmd.Use != name {
 		t.Errorf("Use = %q, want %q", cmd.Use, name)
 	}
-	// The spoke reads no config file: there is no --config flag, and every knob
-	// is exposed as a flag instead.
-	if cmd.Flags().Lookup("config") != nil {
-		t.Error("--config flag should not exist (the spoke is config-free)")
+	// The root command itself only dispatches to subcommands: it takes no run flags.
+	if cmd.Flags().Lookup("hub") != nil {
+		t.Error("root should carry no --hub flag; it lives on the backend subcommands")
 	}
-	for _, f := range []string{"hub", "token", "state", "namespace", "box-gpus", "remote-args", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "allowed-image", "registry", "registry-username", "registry-password-file"} {
-		if cmd.Flags().Lookup(f) == nil {
-			t.Errorf("missing --%s flag", f)
+
+	// Flags every backend subcommand shares, plus the config-free invariant.
+	common := []string{"hub", "token", "state", "namespace", "remote-args", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "allowed-image", "registry", "registry-username", "registry-password-file"}
+
+	docker := subcmd(t, cmd, "docker")
+	for _, f := range append([]string{"box-gpus"}, common...) {
+		if docker.Flags().Lookup(f) == nil {
+			t.Errorf("docker subcommand missing --%s flag", f)
 		}
 	}
+	// No firecracker flags and no --config leak onto the docker command.
+	for _, f := range []string{"kernel", "rootfs", "payload", "state-dir", "disable-egress", "pool-size", "config", "backend"} {
+		if docker.Flags().Lookup(f) != nil {
+			t.Errorf("docker subcommand should not have --%s", f)
+		}
+	}
+
+	fc := subcmd(t, cmd, "firecracker")
+	for _, f := range append([]string{"kernel", "rootfs", "payload", "state-dir", "disable-egress", "pool-size"}, common...) {
+		if fc.Flags().Lookup(f) == nil {
+			t.Errorf("firecracker subcommand missing --%s flag", f)
+		}
+	}
+	// No docker-only flag and no --config/--backend leak onto the firecracker command.
+	for _, f := range []string{"box-gpus", "config", "backend"} {
+		if fc.Flags().Lookup(f) != nil {
+			t.Errorf("firecracker subcommand should not have --%s", f)
+		}
+	}
+
 	// token subcommand with a create child (which reads --state-file, not --config).
-	var tokenCmd, createCmd bool
-	for _, c := range cmd.Commands() {
-		if c.Use == "token" {
-			tokenCmd = true
-			for _, cc := range c.Commands() {
-				if cc.Use == "create" {
-					createCmd = true
-					for _, f := range []string{"name", "ttl", "state-file"} {
-						if cc.Flags().Lookup(f) == nil {
-							t.Errorf("create missing --%s flag", f)
-						}
-					}
-					if cc.Flags().Lookup("config") != nil {
-						t.Error("token create should not have a --config flag")
-					}
-				}
-			}
+	token := subcmd(t, cmd, "token")
+	create := subcmd(t, token, "create")
+	for _, f := range []string{"name", "ttl", "state-file"} {
+		if create.Flags().Lookup(f) == nil {
+			t.Errorf("token create missing --%s flag", f)
 		}
 	}
-	if !tokenCmd || !createCmd {
-		t.Errorf("token/create subcommands present: token=%v create=%v", tokenCmd, createCmd)
+	if create.Flags().Lookup("config") != nil {
+		t.Error("token create should not have a --config flag")
 	}
 }
 
@@ -69,7 +96,7 @@ func TestCreateJoinTokenCmdPrintsToken(t *testing.T) {
 	if !strings.Contains(s, `spoke "edge"`) {
 		t.Errorf("output missing spoke name: %q", s)
 	}
-	if !strings.Contains(s, "llmbox spoke --hub") {
+	if !strings.Contains(s, "llmbox-spoke docker --hub") {
 		t.Errorf("output missing usage hint: %q", s)
 	}
 }

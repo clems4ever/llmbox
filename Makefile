@@ -99,7 +99,7 @@ FC_BIN    ?= $(HOME)/.local/bin/firecracker
 # The production Debian box is split into a slow-changing base rootfs (cached in
 # GHCR keyed on its inputs) and a cheap agent payload drive rebuilt on every agent
 # change. FC_BASE_REPO is the GHCR artifact the base is pulled from before falling
-# back to a local build. Boot a box with --fc-rootfs $(FC_BASE) --fc-payload $(FC_PAYLOAD).
+# back to a local build. Boot a box with --rootfs $(FC_BASE) --payload $(FC_PAYLOAD).
 FC_BASE      ?= $(FC_DIR)/base-rootfs.ext4
 FC_PAYLOAD   ?= $(FC_DIR)/payload.ext4
 FC_BASE_REPO ?= ghcr.io/clems4ever/llmbox-fc-base
