@@ -395,20 +395,28 @@ func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) 
 	}})
 }
 
+// spokeStateFile is the credential path shown in the generated spoke command. It
+// matches the llmbox-spoke default so the command is truthful, and spelling it out
+// makes the credential location visible — the operator can repoint it at a
+// persistent path — and after first enrollment the spoke reconnects from it without
+// the one-time token.
+const spokeStateFile = "llmbox-spoke.json"
+
 // spokeRunCommand builds the copy-pasteable command that starts a spoke on the
 // chosen backend and enrolls it with token. It is the bare `llmbox-spoke <backend>`
 // invocation — the operator runs the installed binary directly (a firecracker spoke
-// needs a KVM host, not a container) — carrying the hub URL and one-time token. The
-// spoke reads no config file, so every other setting is an optional flag; the state
-// file defaults, so after first enrollment the spoke reconnects without the token.
+// needs a KVM host, not a container) — carrying the hub URL, one-time token, and the
+// credential state path. The spoke reads no config file, so every other setting is
+// an optional flag.
 //
 // @arg token The one-time join token to enroll with.
 // @arg backend The box backend the spoke runs ("docker" or "firecracker").
 // @return string A single-line shell command to start the spoke.
 //
-// @testcase TestAdminCreateSpokeMintsToken renders the run command with the hub URL, backend, and token.
+// @testcase TestAdminCreateSpokeMintsToken renders the run command with the hub URL, backend, token, and state file.
 func (s *Server) spokeRunCommand(token, backend string) string {
-	return "llmbox-spoke " + backend + " --hub " + s.spokeConnectURL() + " --token " + token
+	return "llmbox-spoke " + backend + " --hub " + s.spokeConnectURL() +
+		" --token " + token + " --state " + spokeStateFile
 }
 
 // handleAdminDropSpoke removes a spoke's enrollment and any of its outstanding

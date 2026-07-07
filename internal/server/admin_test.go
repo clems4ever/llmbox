@@ -177,7 +177,7 @@ func TestAdminCreateSpokeMintsToken(t *testing.T) {
 	}
 	// The command is the bare per-backend invocation (no docker-run wrapper), and
 	// defaults to the docker backend when none is chosen.
-	for _, want := range []string{"llmbox-spoke docker --hub", "wss://boxes.example.com/spoke/connect", "--token "} {
+	for _, want := range []string{"llmbox-spoke docker --hub", "wss://boxes.example.com/spoke/connect", "--token ", "--state llmbox-spoke.json"} {
 		if !strings.Contains(got.NewSpoke.Command, want) {
 			t.Errorf("spoke command missing %q: %q", want, got.NewSpoke.Command)
 		}

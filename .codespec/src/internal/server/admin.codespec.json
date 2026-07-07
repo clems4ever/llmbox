@@ -92,9 +92,9 @@
 		{
 			"function_name": "spokeRunCommand",
 			"receiver": "Server",
-			"documentation_hash": "8721aea28d9be00a01fe0234765af75ecb956c393bb15d58ffc98361d0c34f81",
-			"definition_hash": "95a0b7a2d738749a6e7310483fb1f0ccab434cf62f4097f2c57ab2e3c5dbb0b9",
-			"reviewed_at": "2026-07-07T11:50:30.165429103Z"
+			"documentation_hash": "d4d2e63827e30985772b688b2f1541a7e6f644abd49c1e350c7786711c1d428c",
+			"definition_hash": "953482fa3b034bb56290e4c3fa6e7ea74274279de73f24734f648ab8e723fd03",
+			"reviewed_at": "2026-07-07T11:53:31.902439424Z"
 		},
 		{
 			"function_name": "writeJSON",
