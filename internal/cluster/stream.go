@@ -131,9 +131,14 @@ type clientStream struct {
 	remoteMu  sync.Mutex
 	remoteErr error // set on remote close/disconnect; nil means clean EOF
 
-	closeOnce sync.Once
-	rDeadline *connDeadline
-	wDeadline *connDeadline
+	// dataChOnce guards the single close of dataCh, shared by closeRemote and Close
+	// (whichever ends the stream first). closeOnce guards the local-close actions
+	// (signalling closed, notifying the spoke, unregistering) and is fired only by
+	// Close — so a local Close after a remote close still runs them.
+	dataChOnce sync.Once
+	closeOnce  sync.Once
+	rDeadline  *connDeadline
+	wDeadline  *connDeadline
 }
 
 // newClientStream builds a hub-side tunnel conn for stream id. onClose removes the
@@ -181,7 +186,7 @@ func (c *clientStream) closeRemote(err error) {
 	c.remoteMu.Lock()
 	c.remoteErr = err
 	c.remoteMu.Unlock()
-	c.closeOnce.Do(func() { close(c.dataCh) })
+	c.dataChOnce.Do(func() { close(c.dataCh) })
 }
 
 // Read returns tunnel bytes, blocking until data arrives, the stream ends, the
@@ -269,15 +274,17 @@ func (c *clientStream) Write(p []byte) (int, error) {
 }
 
 // Close tears down the local end of the tunnel and tells the spoke to close the
-// box connection. Closing more than once is harmless.
+// box connection. Closing more than once is harmless, and it still runs even when
+// the spoke ended the stream first (its actions are separate from the dataCh close).
 //
 // @error error Always nil (the best-effort close frame's failure is ignored).
 //
-// @testcase TestClientStreamRoundTrip closes the tunnel when done.
+// @testcase TestClientStreamCloseAfterRemote closes the tunnel after a remote close and fails a later Write.
 func (c *clientStream) Close() error {
 	c.closeOnce.Do(func() {
-		close(c.dataCh)
 		close(c.closed)
+		// dataCh may already have been closed by a remote close; guard the single close.
+		c.dataChOnce.Do(func() { close(c.dataCh) })
 		_ = c.tr.Send(context.Background(), frame{Type: frameStreamClose, ID: c.id})
 		if c.onClose != nil {
 			c.onClose(c.id)

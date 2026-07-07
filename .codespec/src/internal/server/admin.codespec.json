@@ -50,9 +50,9 @@
 		{
 			"function_name": "handleAdminDropSpoke",
 			"receiver": "Server",
-			"documentation_hash": "5ff4d5df300dc0fce5c9c4376b81ba04a603cd648f934ce7d719d5f99ad9f423",
+			"documentation_hash": "86aa3d38731279848fff6dcb6bb24f8ca6ec0b93a79d2718c612086666a2f217",
 			"definition_hash": "adc2898352642d060a7e79b8a091c52ecb9f1ead06ece7512c09c4813efc290f",
-			"reviewed_at": "2026-07-07T08:15:52.567139597Z"
+			"reviewed_at": "2026-07-07T09:35:35.079853052Z"
 		},
 		{
 			"function_name": "handleAdminRevokeToken",

@@ -188,9 +188,9 @@
 		{
 			"function_name": "destroyBox",
 			"receiver": "Server",
-			"documentation_hash": "eddaffd3da7e6c7e490580cbe690101807da0d3a7aa1d0b1f7170bebf0664f70",
+			"documentation_hash": "1a8ca4ba6a8fbbf50ce9ae1b28cf6dd255c46492c17d8b99fedfe497609f5ff4",
 			"definition_hash": "ce704f562a093e977881e8840aa8fe98b6ff1889b646d2618f9b78f644ad4658",
-			"reviewed_at": "2026-07-07T08:15:52.616735079Z"
+			"reviewed_at": "2026-07-07T09:35:35.083395759Z"
 		},
 		{
 			"function_name": "idMatchesBox",

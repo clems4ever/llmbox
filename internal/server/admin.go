@@ -428,6 +428,7 @@ func (s *Server) spokeRunCommand(name, token string) string {
 // @arg r The request carrying the spoke name.
 //
 // @testcase TestAdminDropSpokeRemovesAndKicks deletes the record and disconnects the live link.
+// @testcase TestAdminDropDefaultSpokeClearsDefault clears the default when the dropped spoke was it.
 func (s *Server) handleAdminDropSpoke(w http.ResponseWriter, r *http.Request) {
 	_, ok := s.requireAdminPost(w, r)
 	if !ok {

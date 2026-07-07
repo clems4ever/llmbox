@@ -125,22 +125,65 @@ func TestStreamOpenDialError(t *testing.T) {
 }
 
 // TestClientStreamRoundTrip checks the hub-side clientStream net.Conn on its own:
-// pushed bytes are read back, and closeRemote surfaces io.EOF after draining.
+// Write emits a data frame on the transport, pushed bytes are read back, and a
+// clean closeRemote surfaces io.EOF after draining.
 func TestClientStreamRoundTrip(t *testing.T) {
-	a, _ := newPipe()
+	a, b := newPipe()
 	cs := newClientStream(1, a, func(uint64) {})
 	if cs.LocalAddr().Network() != "llmbox-tunnel" || cs.RemoteAddr().String() != "box" {
 		t.Errorf("unexpected tunnel addr: %s/%s", cs.LocalAddr().Network(), cs.RemoteAddr())
 	}
+
+	// Write emits a stream_data frame carrying the bytes to the peer.
+	if _, err := cs.Write([]byte("ping")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	f, err := b.Recv(context.Background())
+	if err != nil {
+		t.Fatalf("Recv write frame: %v", err)
+	}
+	if f.Type != frameStreamData || f.ID != 1 || string(f.Data) != "ping" {
+		t.Errorf("write frame = %+v, want stream_data id=1 data=ping", f)
+	}
+
+	// Inbound bytes are read back; a clean remote close ends the read with io.EOF.
 	cs.push([]byte("abc"))
 	cs.closeRemote(nil)
-
 	got, err := io.ReadAll(cs)
 	if err != nil {
 		t.Fatalf("ReadAll: %v", err)
 	}
 	if string(got) != "abc" {
 		t.Errorf("read %q, want \"abc\"", got)
+	}
+}
+
+// TestClientStreamCloseAfterRemote checks that a local Close after the spoke has
+// already ended the stream still runs the local-close actions: it unregisters the
+// stream, notifies the spoke with a stream_close frame, and makes a subsequent
+// Write fail with net.ErrClosed (not a silently dropped send). This guards the
+// separation of the dataCh close from the local-close actions.
+func TestClientStreamCloseAfterRemote(t *testing.T) {
+	a, b := newPipe()
+	var unregistered bool
+	cs := newClientStream(2, a, func(uint64) { unregistered = true })
+
+	cs.closeRemote(nil) // the spoke ends the stream first
+	if err := cs.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if !unregistered {
+		t.Error("Close after a remote close did not unregister the stream")
+	}
+	f, err := b.Recv(context.Background())
+	if err != nil {
+		t.Fatalf("Recv close frame: %v", err)
+	}
+	if f.Type != frameStreamClose || f.ID != 2 {
+		t.Errorf("close frame = %+v, want stream_close id=2", f)
+	}
+	if _, err := cs.Write([]byte("x")); !errors.Is(err, net.ErrClosed) {
+		t.Errorf("Write after Close = %v, want net.ErrClosed", err)
 	}
 }
 

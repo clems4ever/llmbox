@@ -57,8 +57,8 @@
 			"function_name": "closeRemote",
 			"receiver": "clientStream",
 			"documentation_hash": "f678b25a66d7800a63fde5c4b289eec9d75fdffdd66902ea9f97b456e92f9e31",
-			"definition_hash": "25735a77a4786a85ce4ebb9c49357f4934113db5ae1b78098305604c6561dc6f",
-			"reviewed_at": "2026-07-07T08:18:08.177611243Z"
+			"definition_hash": "3c20d014c4d3c28857ae8c345e8908cc419e6059e659e2bf4f62e07f171fe76b",
+			"reviewed_at": "2026-07-07T09:35:35.077054333Z"
 		},
 		{
 			"function_name": "Read",
@@ -84,9 +84,9 @@
 		{
 			"function_name": "Close",
 			"receiver": "clientStream",
-			"documentation_hash": "f41db8eb27d81d9917f8084f714b74162051c0273c4ec68d5efc1ff036a3298f",
-			"definition_hash": "189908c380f146bd0c2ecd87bf01c34e089cec1c4a878c0954baba2bd578ca42",
-			"reviewed_at": "2026-07-07T08:19:03.608763984Z"
+			"documentation_hash": "50fb461321471337a0aa67035cbfea7fe27c33f4849ac639fd783119e9f339f0",
+			"definition_hash": "de7b9f19523febaa0855064fe46617315f4f59f10e928f8357fe11beb45d1b76",
+			"reviewed_at": "2026-07-07T09:35:35.078497892Z"
 		},
 		{
 			"function_name": "LocalAddr",

@@ -95,6 +95,12 @@
 			"documentation_hash": "a5965a1746670dc94bdc66684f7a68a467e93eab747789d96cfb142e506a4f73",
 			"definition_hash": "c24b5bcdc1fa832e4cd05e2c3e751ce4581451e840f778d74905d807cb30da72",
 			"reviewed_at": "2026-07-07T08:15:52.585026646Z"
+		},
+		{
+			"function_name": "TestDestroyUnknownBoxIsIdempotent",
+			"documentation_hash": "962c98dc098ab43f25f609a1bedd506a0c04e0b1d25912769db23715930e326f",
+			"definition_hash": "f34f2a82f8e0c5f839008aab449b176ea114b9dc25863277ce52ce1214800809",
+			"reviewed_at": "2026-07-07T09:35:35.081708598Z"
 		}
 	]
 }

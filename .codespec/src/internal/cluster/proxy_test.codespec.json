@@ -81,15 +81,21 @@
 		},
 		{
 			"function_name": "TestClientStreamRoundTrip",
-			"documentation_hash": "878e8005eecbc8e775fdd6e911406cbf8c071667588d0bab441588fd3c0a5dbe",
-			"definition_hash": "088c9fbd6bfc9ada99663a47965ad23c33d73dd1d1a0a93a2f0ded172151f9c0",
-			"reviewed_at": "2026-07-07T08:15:52.559061284Z"
+			"documentation_hash": "1a689d68b0247ebde481f5e15bb05951dfcca19fd16ce75adedc495f3e8c5b7a",
+			"definition_hash": "535eff03d7169133402cd7f0a012247a2eed5c363ba55c8d6097a98e69223e7f",
+			"reviewed_at": "2026-07-07T09:35:35.065830511Z"
 		},
 		{
 			"function_name": "TestClientStreamDeadline",
 			"documentation_hash": "afc322da03c0cf927ea82a08258b295bb7abbff60d2099ef42d60f55545bdda1",
 			"definition_hash": "a05c417123aa1865fff67a21e90f79b88ae459a71b5440e4ca663a4310304b73",
 			"reviewed_at": "2026-07-07T08:15:52.559662915Z"
+		},
+		{
+			"function_name": "TestClientStreamCloseAfterRemote",
+			"documentation_hash": "31628326ad40ff42921f51ae3d8da0cb164b9ded7fc47c9caccbe473f8f8b292",
+			"definition_hash": "39c9450754e99d9cc537c0596a87cc151cd93747fce7f7059cac7aff5875b1a3",
+			"reviewed_at": "2026-07-07T09:35:35.06639276Z"
 		}
 	]
 }

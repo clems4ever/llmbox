@@ -314,6 +314,29 @@ func TestAdminDropSpokeRemovesAndKicks(t *testing.T) {
 	}
 }
 
+// TestAdminDropDefaultSpokeClearsDefault checks that dropping the spoke currently
+// set as the default also clears the default, so an unqualified box create fails
+// loudly rather than silently targeting a spoke that no longer exists.
+func TestAdminDropDefaultSpokeClearsDefault(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": &testutils.FakeMgr{}}})
+	if err := st.PutSpoke("edge", cluster.SpokeRecord{Name: "edge", EnrolledAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetDefaultSpoke("edge"); err != nil {
+		t.Fatalf("SetDefaultSpoke: %v", err)
+	}
+	h := s.APIHandler()
+
+	rec := postAdmin(t, h, st, "/admin/spokes/delete", url.Values{"name": {"edge"}, "csrf": {"CSRF"}})
+	if res := decodeAdminResult(t, rec); !res.OK {
+		t.Fatalf("drop result = %+v, want ok", res)
+	}
+	if def, _ := s.DefaultSpoke(); def != "" {
+		t.Errorf("default spoke = %q after dropping it, want cleared", def)
+	}
+}
+
 // postAdmin submits an admin form as a signed-in admin and returns the recorder.
 func postAdmin(t *testing.T, h http.Handler, st Store, path string, form url.Values) *httptest.ResponseRecorder {
 	t.Helper()

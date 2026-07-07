@@ -1018,6 +1018,7 @@ func boxMatchesSession(sess *session, idOrName string) bool {
 // @testcase TestDestroyBoxByBoxIDRoutesToSpoke destroys a remote box by its box ID.
 // @testcase TestDestroySessionlessBoxFindsSpoke destroys a box with no tracked session on its actual spoke.
 // @testcase TestDestroyAlreadyGoneBoxSucceeds treats a not-found from the spoke as a successful, session-clearing removal.
+// @testcase TestDestroyUnknownBoxIsIdempotent treats a box no spoke reports as already gone (no-op success).
 func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 	// Route to the spoke the matching session names. idOrName may be a box ID
 	// (what the admin UI sends) or a container ID, so match on both.

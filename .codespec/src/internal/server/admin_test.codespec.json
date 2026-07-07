@@ -155,6 +155,12 @@
 			"documentation_hash": "4b521aca6905c9183b3dba8d091ab64c160a36dcc6568e645693cb6eb1226778",
 			"definition_hash": "51b82930c81aaba7f54062d89bda6e8866902cd1e4a5b0ce07d285597c6347dc",
 			"reviewed_at": "2026-07-07T08:15:52.573535704Z"
+		},
+		{
+			"function_name": "TestAdminDropDefaultSpokeClearsDefault",
+			"documentation_hash": "a3dd66aba1b8c6612d37553404eed82aa6c71d90a1d6eef682b9e8ef8856c164",
+			"definition_hash": "0013ef6f87c52eee6d73d02a96f64cd567a94668488e3ac4f051209a792a9050",
+			"reviewed_at": "2026-07-07T09:35:35.081089766Z"
 		}
 	]
 }

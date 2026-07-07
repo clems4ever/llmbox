@@ -229,6 +229,21 @@ func TestDestroyAlreadyGoneBoxSucceeds(t *testing.T) {
 	}
 }
 
+// TestDestroyUnknownBoxIsIdempotent checks that destroying a box no session tracks
+// and no connected spoke reports succeeds as a no-op (the box is already gone
+// everywhere) rather than erroring, and touches no spoke.
+func TestDestroyUnknownBoxIsIdempotent(t *testing.T) {
+	edge := &testutils.FakeMgr{} // lists no boxes
+	s := serverWithSpokes(map[string]boxManager{"edge": edge})
+
+	if err := s.destroyBox(context.Background(), "ghost-box"); err != nil {
+		t.Fatalf("destroying an unknown box should be a no-op success, got: %v", err)
+	}
+	if len(edge.Destroyed) != 0 {
+		t.Errorf("edge.Destroyed = %v, want none (no spoke hosts the box)", edge.Destroyed)
+	}
+}
+
 // TestSpokeStatusesReportsHealth checks SpokeStatuses returns each enrolled spoke,
 // marking which are connected and which is the default.
 func TestSpokeStatusesReportsHealth(t *testing.T) {
