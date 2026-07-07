@@ -375,6 +375,14 @@ func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) 
 		}
 		ttl = d
 	}
+	backend := strings.TrimSpace(r.PostFormValue("backend"))
+	if backend == "" {
+		backend = "docker"
+	}
+	if backend != "docker" && backend != "firecracker" {
+		writeResult(w, "", "invalid backend (choose docker or firecracker)")
+		return
+	}
 	token, err := cluster.CreateJoinToken(s.store, name, ttl, time.Now())
 	if err != nil {
 		writeResult(w, "", "creating token: "+err.Error())
@@ -383,41 +391,24 @@ func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, map[string]any{"ok": true, "newSpoke": &newSpokeResult{
 		Name:    name,
 		Token:   token,
-		Command: s.spokeRunCommand(name, token),
+		Command: s.spokeRunCommand(token, backend),
 	}})
 }
 
-// defaultSpokeImage is the image named in the spoke command when none was
-// configured (it is display-only — see config.DefaultSpokeImage).
-const defaultSpokeImage = "ghcr.io/clems4ever/granular-llmbox:latest"
-
-// spokeRunCommand builds the full, copy-pasteable `docker run …` command that
-// starts a spoke (the llmbox-spoke image) and enrolls it with token. It is a
-// single line so it pastes and runs as one command, and bakes in the things
-// operators routinely get wrong: a persistent state volume (so the credential
-// survives and the one-time token isn't needed again), the Docker socket mount,
-// and --group-add for the socket's group (the spoke runs as a non-root user and
-// otherwise gets "permission denied" on the socket). The spoke reads no config
-// file, so every other setting is an optional flag on this command.
+// spokeRunCommand builds the copy-pasteable command that starts a spoke on the
+// chosen backend and enrolls it with token. It is the bare `llmbox-spoke <backend>`
+// invocation — the operator runs the installed binary directly (a firecracker spoke
+// needs a KVM host, not a container) — carrying the hub URL and one-time token. The
+// spoke reads no config file, so every other setting is an optional flag; the state
+// file defaults, so after first enrollment the spoke reconnects without the token.
 //
-// @arg name The spoke name (used to name the container and its state volume).
 // @arg token The one-time join token to enroll with.
+// @arg backend The box backend the spoke runs ("docker" or "firecracker").
 // @return string A single-line shell command to start the spoke.
 //
-// @testcase TestAdminCreateSpokeMintsToken renders the run command with the hub URL and token.
-func (s *Server) spokeRunCommand(name, token string) string {
-	img := s.spokeImage
-	if img == "" {
-		img = defaultSpokeImage
-	}
-	return strings.Join([]string{
-		"docker run -d --name llmbox-spoke-" + name + " --restart unless-stopped",
-		"-v llmbox-spoke-" + name + ":/state",
-		"-v /var/run/docker.sock:/var/run/docker.sock",
-		"--group-add \"$(stat -c '%g' /var/run/docker.sock)\"",
-		img,
-		"docker --hub " + s.spokeConnectURL() + " --token " + token + " --state /state/llmbox-spoke.json",
-	}, " ")
+// @testcase TestAdminCreateSpokeMintsToken renders the run command with the hub URL, backend, and token.
+func (s *Server) spokeRunCommand(token, backend string) string {
+	return "llmbox-spoke " + backend + " --hub " + s.spokeConnectURL() + " --token " + token
 }
 
 // handleAdminDropSpoke removes a spoke's enrollment and any of its outstanding

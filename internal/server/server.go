@@ -193,10 +193,6 @@ type Server struct {
 	// activation unauthenticated (no provider configured).
 	auth *auth.Authenticator
 
-	// spokeImage is the llmbox image named in the admin UI's ready-to-run spoke
-	// command; empty falls back to a built-in default. Display-only.
-	spokeImage string
-
 	// boxImage is the hub's resolved per-box image (claude_image, or the built-in
 	// default when that is unset) stamped onto every creation request that names
 	// none. The box image is resolved here on the hub so remote spokes stay
@@ -319,14 +315,6 @@ func (s *Server) resolveStoredSpoke(name string) string {
 	}
 	return def
 }
-
-// SetSpokeImage sets the llmbox image named in the admin UI's ready-to-run spoke
-// command. It is display-only and does not affect how spokes run.
-//
-// @arg image The container image (e.g. ghcr.io/clems4ever/granular-llmbox:0.0.6).
-//
-// @testcase TestAdminCreateSpokeMintsToken shows the configured image in the command.
-func (s *Server) SetSpokeImage(image string) { s.spokeImage = image }
 
 // SetBoxImage sets the hub's resolved per-box image (claude_image, or the
 // built-in default when unset) that the server stamps onto a creation request

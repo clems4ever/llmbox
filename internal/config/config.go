@@ -24,11 +24,6 @@ const (
 	DefaultAuthTTL   = 300 * time.Second
 	DefaultStateFile = "llmbox-sessions.db"
 
-	// DefaultSpokeImage is the llmbox-spoke container image the admin UI shows in
-	// the ready-to-run `docker run …` command when cluster.spoke_image is unset.
-	// Operators on a fork or a pinned tag override it in config.
-	DefaultSpokeImage = "ghcr.io/clems4ever/granular-llmbox:latest"
-
 	// DefaultSessionTTL is how long an activation login session stays valid when
 	// auth.session_ttl is unset.
 	DefaultSessionTTL = time.Hour
@@ -85,7 +80,6 @@ type Config struct {
 	Hooks       []string          `yaml:"hooks"`
 	BoxPeers    []string          `yaml:"box_peers"`
 	Auth        AuthConfig        `yaml:"auth"`
-	Cluster     ClusterConfig     `yaml:"cluster"`
 	Spoke       SpokeConfig       `yaml:"spoke"`
 	Box         BoxConfig         `yaml:"box"`
 	Firecracker FirecrackerConfig `yaml:"firecracker"`
@@ -209,20 +203,6 @@ type TLSConfig struct {
 	CertFile string `yaml:"cert_file"`
 	// KeyFile is the path to the PEM-encoded private key matching CertFile.
 	KeyFile string `yaml:"key_file"`
-}
-
-// ClusterConfig configures the hub-and-spoke cluster. The hub always exposes the
-// /spoke/connect endpoint so remote spokes (started with `llmbox-spoke`) can join
-// and run boxes — the hub runs no box backend itself, so a box created with no
-// spoke runs on the default spoke an admin picks in the UI (a DB setting, not
-// configured here). The `llmbox-spoke` command has its own flags and does not read
-// this block.
-type ClusterConfig struct {
-	// SpokeImage is the llmbox container image shown in the admin UI's
-	// ready-to-run spoke command (defaults to DefaultSpokeImage). It does not
-	// affect how spokes run — it is purely the image named in that copy-paste
-	// command — so set it to the image/tag your spokes actually use.
-	SpokeImage string `yaml:"spoke_image"`
 }
 
 // SpokeConfig is read by the `llmbox-spoke` command. It carries the spoke's
@@ -426,9 +406,6 @@ func (c *Config) applyDefaults() {
 	}
 	if c.StateFile == "" {
 		c.StateFile = DefaultStateFile
-	}
-	if c.Cluster.SpokeImage == "" {
-		c.Cluster.SpokeImage = DefaultSpokeImage
 	}
 	if c.Auth.SessionTTL == 0 {
 		c.Auth.SessionTTL = Duration(DefaultSessionTTL)

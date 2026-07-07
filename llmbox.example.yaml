@@ -53,12 +53,9 @@ state_file: "llmbox-sessions.db"
 #   2. on the spoke: llmbox-spoke docker --hub wss://<hub>/spoke/connect --token <token>
 # A box created with no "spoke" argument runs on the DEFAULT spoke, which you pick
 # in the admin UI (a stored setting — there is no config field for it). Until a
-# default is set, an unqualified create is refused.
-# cluster:
-#   # Image shown in the admin UI's ready-to-run `docker run … spoke …` command.
-#   # Display-only (it does not change how spokes run); set it to the image/tag
-#   # your spokes actually use. Defaults to ghcr.io/clems4ever/granular-llmbox:latest.
-#   spoke_image: "ghcr.io/clems4ever/granular-llmbox:0.0.6"
+# default is set, an unqualified create is refused. The admin UI shows a
+# ready-to-run `llmbox-spoke <backend> --hub … --token …` command per enrolled
+# spoke; there is no cluster config block.
 
 # NOTE: the `llmbox-spoke` command reads NO config file — it is entirely
 # flag-driven so a spoke host runs the single command the admin UI generates.

@@ -59,10 +59,11 @@
     var note = document.createElement("p");
     note.className = "note";
     note.textContent =
-      "Runs the spoke as a daemon with a persistent state volume (so it " +
-      "reconnects without this one-time token) and grants the Docker socket's " +
-      "group (the spoke runs as a non-root user). Adjust the image tag to match " +
-      "your deployment.";
+      "Run the installed llmbox-spoke binary on the spoke host. It enrolls with " +
+      "this one-time token and saves its credential (default llmbox-spoke.json), " +
+      "so it reconnects without the token. A docker spoke needs the Docker daemon; " +
+      "a firecracker spoke needs a KVM host. Add box flags as needed " +
+      "(llmbox-spoke <backend> --help).";
     box.appendChild(note);
 
     var results = el("results");

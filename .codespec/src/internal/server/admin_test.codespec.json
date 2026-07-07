@@ -27,8 +27,8 @@
 		{
 			"function_name": "TestAdminCreateSpokeMintsToken",
 			"documentation_hash": "2c07f0c86d07eb05661528725f462c5d5ed6a67f471a66cdfde1c93565099518",
-			"definition_hash": "203e5df13a3256b7e7b5f9146b9af5b17ed6776254305c34ed629e6e3604b4f3",
-			"reviewed_at": "2026-06-25T12:45:27.763227013Z"
+			"definition_hash": "2553e29ba89aff0fe73b5f4eab74c33f010dfd7b05d89bd9bdafec45e28f38e1",
+			"reviewed_at": "2026-07-07T11:50:30.17410929Z"
 		},
 		{
 			"function_name": "TestAdminDropSpokeRemovesAndKicks",
@@ -81,8 +81,8 @@
 		{
 			"function_name": "TestAdminActionJSON",
 			"documentation_hash": "0e6a69cb22614551c269088f71ad571d09efd7b71b182fcea7f30fd0c3c39a5b",
-			"definition_hash": "806544e34bddbcf73e643e6f0d5fb58217e65eb26c2ba52b586a02905994ecfa",
-			"reviewed_at": "2026-06-25T12:45:27.767067426Z"
+			"definition_hash": "91d1a8bca127e6e62b65710b047e00c6265ee21c010660923894dfce64e9196e",
+			"reviewed_at": "2026-07-07T11:50:30.17687595Z"
 		},
 		{
 			"function_name": "TestAdminJSServed",
@@ -161,6 +161,12 @@
 			"documentation_hash": "a3dd66aba1b8c6612d37553404eed82aa6c71d90a1d6eef682b9e8ef8856c164",
 			"definition_hash": "0013ef6f87c52eee6d73d02a96f64cd567a94668488e3ac4f051209a792a9050",
 			"reviewed_at": "2026-07-07T09:35:35.081089766Z"
+		},
+		{
+			"function_name": "TestAdminCreateSpokeBackend",
+			"documentation_hash": "55799f249d2d5cab7ed7fc373723952bc7eb771aae5adabdd6422d065e3d4d5e",
+			"definition_hash": "589410c2e1f7d48fe151c6773d120eda329f8a046252cd7ca2f33ec752bd7307",
+			"reviewed_at": "2026-07-07T11:50:30.175697771Z"
 		}
 	]
 }
