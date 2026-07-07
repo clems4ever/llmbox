@@ -8,16 +8,31 @@
 # actually changes it changes, and an unrelated commit reuses the cached image.
 #
 # Used as the GHCR tag by both the publish workflow (firecracker-assets.yml) and the
-# Makefile's pull-before-build, so both agree on which cached base to look for.
+# Makefile's pull-before-build, so both agree on which cached image to look for.
+#
+# Usage: asset-key.sh [base|kernel]   (default: base)
+#
 # The base carries no agent or claude (those live on the payload drive), so the box
-# image is deliberately NOT part of the key.
+# image is deliberately NOT part of its key. The payload is not keyed here — it
+# tracks the agent, which changes every commit, so it is republished per build
+# rather than content-addressed.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUITE="${SUITE:-bookworm}"
 ROOTFS_GB="${ROOTFS_GB:-6}"
 
-{
-  printf 'suite=%s rootfs_gb=%s\n' "$SUITE" "$ROOTFS_GB"
-  cat "$DIR/build-base-rootfs.sh"
-} | sha256sum | cut -c1-16
+kind="${1:-base}"
+case "$kind" in
+  base)
+    { printf 'suite=%s rootfs_gb=%s\n' "$SUITE" "$ROOTFS_GB"; cat "$DIR/build-base-rootfs.sh"; } \
+      | sha256sum | cut -c1-16
+    ;;
+  kernel)
+    { printf 'kernel\n'; cat "$DIR/build-kernel.sh"; } | sha256sum | cut -c1-16
+    ;;
+  *)
+    echo "usage: asset-key.sh [base|kernel]" >&2
+    exit 2
+    ;;
+esac

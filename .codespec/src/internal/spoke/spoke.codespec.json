@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewRootCmd",
 			"documentation_hash": "66917e619cf4625978a61e91bc0d339f94f92d4ea297ed934958fc24930abe36",
-			"definition_hash": "da023afbe7008849bd69a69220a860223dd339dfe58cdacd7df31f1a8136d3df",
-			"reviewed_at": "2026-07-07T10:38:54.037809728Z"
+			"definition_hash": "2287c9cff8caf53f126ae6bd83735074fbc207131af16ad48d19e7a105de06a1",
+			"reviewed_at": "2026-07-07T11:11:33.014843918Z"
 		},
 		{
 			"function_name": "newSpokeTokenCmd",

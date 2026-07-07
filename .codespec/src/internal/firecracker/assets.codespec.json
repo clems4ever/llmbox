@@ -1,0 +1,42 @@
+{
+	"functions": [
+		{
+			"function_name": "newAssetResolver",
+			"documentation_hash": "c3bfbd15b9cb56b6d5cffd8aa94bf9ac290004ccddc32bdb792bffae77af89f0",
+			"definition_hash": "de0f12730d9e049b7be09225f51299672b3bbcf6e983ba047f3fa819c9ce7c6e",
+			"reviewed_at": "2026-07-07T11:12:08.159526954Z"
+		},
+		{
+			"function_name": "resolve",
+			"receiver": "assetResolver",
+			"documentation_hash": "bf1d385e8466c047ea8fe893cb19abf54732a7de1c299fbc31283b7a96434194",
+			"definition_hash": "80f89e17d45fa0f46d42fee5e623048a935ded151ff56ac164945240098ff87c",
+			"reviewed_at": "2026-07-07T11:12:08.163087967Z"
+		},
+		{
+			"function_name": "resolveImages",
+			"receiver": "assetResolver",
+			"documentation_hash": "8df825144e08b545191949b932d993a80502e133a9a8fa142728b3d1d1e7fb21",
+			"definition_hash": "f3ebd970543c16b6dc9d627a466dbf9dc73a46a99dfc64e3339842d4afb9ef96",
+			"reviewed_at": "2026-07-07T11:12:08.171382933Z"
+		},
+		{
+			"function_name": "credentialFor",
+			"documentation_hash": "5304a63c30717498f26ea60a3453f674500aa0272e308effc5d0817a2a34dd3d",
+			"definition_hash": "cf11c7e7d0ab24c1bc4641750d171f3873e8635d91782c15c546be1dfe122857",
+			"reviewed_at": "2026-07-07T11:12:08.173890118Z"
+		},
+		{
+			"function_name": "orasPull",
+			"documentation_hash": "367630ba01c65fa230e22a8daaac5a2b802f4c245cbca7fa17c5fdab26cc39e9",
+			"definition_hash": "7e964dff19b47d04c0a5f1a679e259f642c7a406cf6ebb158d66b2b3530534be",
+			"reviewed_at": "2026-07-07T11:13:54.810199648Z"
+		},
+		{
+			"function_name": "assetCacheDir",
+			"documentation_hash": "ecd4846be87ced62012b617cf1618e8a7a2d1943b7cbcdd142306b0795df16f1",
+			"definition_hash": "d33a3f00902e25d37df4ef8770e9a62b526ff233e28da120de622780755749c7",
+			"reviewed_at": "2026-07-07T11:12:08.179642404Z"
+		}
+	]
+}
