@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# Build the REAL Debian *base* rootfs for Firecracker: a full bookworm base with
-# systemd as PID 1, Docker, Node, and net tooling — but WITHOUT the llmbox agent or
-# claude baked in. Those ride on a separate, tiny read-only "payload" drive
-# (build-payload-drive.sh) that a generic loader unit in this base mounts at boot.
+# Build a generic Debian *base* rootfs for Firecracker boxes: a full bookworm base
+# with systemd as PID 1, Docker, Node, and net tooling. It is deliberately
+# AGENT-AGNOSTIC — it contains nothing about llmbox, claude, or any particular
+# agent. Everything agent-specific rides on a separate read-only "payload" drive
+# (build-payload-drive.sh) that this base mounts and runs at boot.
 #
-# Splitting them this way is the whole point: this base is multi-GiB and changes
-# only when the package set changes (rare), so it is built once and cached (in CI,
-# in GHCR keyed on the inputs — see .github/workflows/firecracker-assets.yml). The
-# agent, which changes on every commit, lives on the cheap payload drive instead, so
-# an agent change never rebuilds this image.
+# The only contract the base defines is a generic payload loader:
+#
+#   mount the payload block device (/dev/vdb) read-only at /payload,
+#   then run /payload/entrypoint
+#
+# Any agent (llmbox, or something else entirely) ships a payload with an
+# /entrypoint and its own binaries; swapping agents never touches this base. That
+# also keeps the base slow-changing and cacheable (see firecracker-assets.yml):
+# nothing an agent update changes lives here.
 #
 # Everything is assembled as root inside a throwaway Debian container (via
 # mmdebstrap), so file ownership and modes are correct (root-owned, /tmp 1777) —
@@ -26,32 +31,24 @@ SUITE="${SUITE:-bookworm}"
 ROOTFS_GB="${ROOTFS_GB:-6}"
 mkdir -p "$OUT"
 
-# The generic loader: mount the shared read-only payload drive (/dev/vdb) at
-# /opt/llmbox, seed a writable copy of the claude trust file, then run the agent
-# FROM the payload. This unit is stable — it never mentions a specific agent build —
-# so a new agent means a new payload drive, never a rebuild of this base rootfs.
-# The mount is guarded with mountpoint so Restart=always re-runs cleanly.
-cat > "$OUT/llmbox-agent.service" <<'UNIT'
+# The generic payload loader: mount the read-only payload drive (/dev/vdb) at
+# /payload and run its entrypoint. This unit names no specific agent, binary, or
+# protocol — the payload owns all of that (its entrypoint seeds whatever state it
+# needs and execs whatever it runs). Restart=always relaunches a crashed entrypoint;
+# the mount is guarded with mountpoint so it re-runs cleanly.
+cat > "$OUT/payload.service" <<'UNIT'
 [Unit]
-Description=llmbox guest agent (claude remote-control over vsock)
-# No network-online ordering on purpose: the agent serves control over vsock and
-# needs no egress to start (egress, when enabled, is configured by the kernel ip=
-# arg before userspace runs). Ordering it after network-online.target would keep a
-# control-only box (no eth0) unreachable until networkd-wait-online times out.
+Description=Payload loader (mount the payload drive and run its entrypoint)
+# No network-online ordering on purpose: a payload may serve control over vsock and
+# need no egress to start (egress, when enabled, is configured by the kernel ip= arg
+# before userspace runs). Ordering after network-online.target would keep a
+# control-only box (no eth0) waiting on networkd-wait-online to time out.
 After=basic.target
 
 [Service]
-# Mount the read-only payload (idempotent, so Restart=always re-runs cleanly) and
-# seed a writable copy of the trust file (claude rewrites ~/.claude.json at runtime,
-# so it cannot live on the read-only payload). -n keeps a box-local copy across
-# restarts.
-ExecStartPre=/bin/mkdir -p /opt/llmbox
-ExecStartPre=/bin/sh -c 'mountpoint -q /opt/llmbox || mount -o ro /dev/vdb /opt/llmbox'
-ExecStartPre=/bin/sh -c 'cp -n /opt/llmbox/claude.json /root/.claude.json 2>/dev/null || true'
-ExecStart=/opt/llmbox/llmbox-agent --vsock-port 5000 --claude /opt/llmbox/claude
-WorkingDirectory=/workspace
-Environment=HOME=/root
-Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStartPre=/bin/mkdir -p /payload
+ExecStartPre=/bin/sh -c 'mountpoint -q /payload || mount -o ro /dev/vdb /payload'
+ExecStart=/payload/entrypoint
 Restart=always
 RestartSec=1
 
@@ -72,15 +69,13 @@ docker run --rm --privileged -v "$OUT":/out debian:bookworm bash -euc "
     --components=main \
     ${SUITE} /rootfs http://deb.debian.org/debian
 
-  echo '>> installing loader unit and workspace (agent + claude arrive on the payload drive)'
-  install -d -m0700 /rootfs/root
-  install -d -m0755 /rootfs/workspace
-  install -d -m0755 /rootfs/opt/llmbox
-  install -m0644 /out/llmbox-agent.service /rootfs/etc/systemd/system/llmbox-agent.service
+  echo '>> installing the generic payload loader and mountpoint'
+  install -d -m0755 /rootfs/payload
+  install -m0644 /out/payload.service /rootfs/etc/systemd/system/payload.service
 
-  echo '>> enabling services (agent + docker) and console niceties'
-  chroot /rootfs systemctl enable llmbox-agent.service >/dev/null 2>&1 || \
-    ln -sf ../llmbox-agent.service /rootfs/etc/systemd/system/multi-user.target.wants/llmbox-agent.service
+  echo '>> enabling services (payload loader + docker) and console niceties'
+  chroot /rootfs systemctl enable payload.service >/dev/null 2>&1 || \
+    ln -sf ../payload.service /rootfs/etc/systemd/system/multi-user.target.wants/payload.service
   chroot /rootfs systemctl enable docker.service   >/dev/null 2>&1 || true
   chroot /rootfs systemctl enable systemd-networkd  >/dev/null 2>&1 || true
   # eth0 is configured by the kernel ip= arg at boot; ask systemd-networkd to leave
@@ -103,7 +98,7 @@ ExecStart=/usr/lib/systemd/systemd-networkd-wait-online --any --timeout=15
 WAIT
   # Static resolver (no systemd-resolved); NAT egress can reach these.
   printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' > /rootfs/etc/resolv.conf
-  echo llmbox > /rootfs/etc/hostname
+  echo box > /rootfs/etc/hostname
   # Let root log in on the serial console with no password, for debugging.
   chroot /rootfs passwd -d root >/dev/null 2>&1 || true
 
