@@ -9,7 +9,7 @@ server the chatbot talks to over MCP) stays the only front-end. An operator
 generates a **join token**, starts a spoke with it, and the spoke joins the
 cluster; the hub then places boxes on that spoke. The **hub runs no box backend
 of its own** — it is a pure router/registry, so every box runs on an
-independently started spoke (`llmbox spoke`). A box created with no explicit spoke
+independently started spoke (`llmbox-spoke`). A box created with no explicit spoke
 runs on the **default spoke**, which an admin chooses in the admin UI (a DB
 setting); until one is set, an unqualified create is refused. Even a single-host
 deployment therefore runs one spoke alongside the hub.
@@ -145,7 +145,7 @@ new `ClusterStore` methods.
 - `llmbox-spoke token create --name <name> [--ttl 1h] [--state-file …]` —
   hub-side; prints the token once. Writes to the hub's state file (default
   `llmbox-sessions.db`; point `--state-file` at the running hub's `state_file`).
-- `llmbox-spoke --hub wss://hub/spoke/connect --token <join-token>` — runs a
+- `llmbox-spoke docker --hub wss://hub/spoke/connect --token <join-token>` — runs a
   spoke: connects to a local Docker daemon via `docker.NewManager`, enrolls (or
   reconnects with its saved credential), and serves verbs.
 - config: **the spoke reads no config file** — every setting is a flag, so a host
@@ -163,7 +163,7 @@ Each spoke normally owns its own Docker daemon, so scoping box operations to the
 hub plus a spoke) against the same daemon**, give each a distinct **namespace** so
 they do not list, reap, or destroy each other's boxes:
 
-- on a spoke, `llmbox-spoke --hub … --namespace spoke-a` (a flag — the spoke has
+- on a spoke, `llmbox-spoke docker --hub … --namespace spoke-a` (a flag — the spoke has
   no config file). The hub's local provisioner reads `box.namespace` from the
   hub's config file.
 - A namespaced provisioner stamps every box and its network with

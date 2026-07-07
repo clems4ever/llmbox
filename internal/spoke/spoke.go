@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/clems4ever/llmbox/internal/box"
 	"github.com/clems4ever/llmbox/internal/box/backend"
@@ -56,8 +57,8 @@ type spokeOptions struct {
 	statePath  string
 	boxGPUs    string
 	remoteArgs string
-	// backend selects the box isolation backend by name ("docker" or
-	// "firecracker"); empty defaults to Docker.
+	// backend is the box isolation backend this spoke runs ("docker" or
+	// "firecracker"); it is set from the chosen run subcommand, not a flag.
 	backend string
 	// fcKernelImage/fcRootfsImage/fcStateDir are the Firecracker backend's guest
 	// kernel, default rootfs image, and state directory; unused for Docker.
@@ -113,24 +114,49 @@ func (o spokeOptions) registries() ([]config.RegistryConfig, error) {
 	}}, nil
 }
 
-// NewRootCmd builds the llmbox-spoke command tree: the root command runs a spoke
-// that joins a hub and serves boxes against the local Docker daemon, and a
-// `token` subcommand (create/list/revoke) manages the one-time join tokens on the
-// hub. The spoke reads no config file — every setting is a flag — so a host can
-// run the single command the admin UI generates. The binary name and version
-// shown by the command are passed in by the cmd/llmbox-spoke main.
+// NewRootCmd builds the llmbox-spoke command tree: a `docker` and a `firecracker`
+// subcommand each run a spoke that joins a hub and serves boxes on that backend —
+// each carrying only that backend's flags, never a mix — and a `token` subcommand
+// (create/list/revoke) manages the one-time join tokens on the hub. The spoke reads
+// no config file — every setting is a flag — so a host can run the single command
+// the admin UI generates. The binary name and version shown by the command are
+// passed in by the cmd/llmbox-spoke main.
 //
 // @arg name The command name shown in usage (the binary name).
 // @arg version The version string reported by --version.
-// @return *cobra.Command The configured root command with its token subcommand.
+// @return *cobra.Command The configured root command with its docker, firecracker, and token subcommands.
 //
-// @testcase TestNewRootCmd checks the command wiring (flags and subcommands).
+// @testcase TestNewRootCmd checks the command wiring (per-backend flags and subcommands).
 func NewRootCmd(name, version string) *cobra.Command {
-	var o spokeOptions
-	spokeCmd := &cobra.Command{
+	root := &cobra.Command{
 		Use:           name,
-		Short:         "Run a spoke that joins a hub and runs boxes on the local Docker daemon",
+		Short:         "Join a hub and run boxes on this host (choose the docker or firecracker backend)",
 		Version:       version,
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+	}
+	root.AddCommand(newSpokeRunCmd("docker", "Run a spoke that runs boxes as Docker containers", addDockerSpokeFlags))
+	root.AddCommand(newSpokeRunCmd("firecracker", "Run a spoke that runs boxes as Firecracker microVMs", addFirecrackerSpokeFlags))
+	root.AddCommand(newSpokeTokenCmd())
+	return root
+}
+
+// newSpokeRunCmd builds a backend-specific run subcommand: it registers the flags
+// common to every spoke plus the given backend's own flags, then runs a spoke on
+// that backend. backendName is passed straight to backend.New.
+//
+// @arg backendName The box backend this subcommand runs ("docker" or "firecracker").
+// @arg short The one-line command summary shown in usage.
+// @arg addBackendFlags Registers the backend-specific flags on the command.
+// @return *cobra.Command The configured run subcommand.
+//
+// @testcase TestNewRootCmd checks each backend subcommand runs on its own backend with its own flags.
+func newSpokeRunCmd(backendName, short string, addBackendFlags func(*pflag.FlagSet, *spokeOptions)) *cobra.Command {
+	o := &spokeOptions{}
+	cmd := &cobra.Command{
+		Use:           backendName,
+		Short:         short,
 		SilenceUsage:  true,
 		SilenceErrors: false,
 		Args:          cobra.NoArgs,
@@ -138,36 +164,64 @@ func NewRootCmd(name, version string) *cobra.Command {
 			if o.hubURL == "" {
 				return errors.New("--hub is required (e.g. wss://hub.example.com/spoke/connect)")
 			}
-			return runSpoke(cmd.Context(), o)
+			o.backend = backendName
+			return runSpoke(cmd.Context(), *o)
 		},
 	}
-	f := spokeCmd.Flags()
+	f := cmd.Flags()
+	addCommonSpokeFlags(f, o)
+	addBackendFlags(f, o)
+	return cmd
+}
+
+// addCommonSpokeFlags registers the flags every spoke shares regardless of backend.
+//
+// @arg f The flag set to register the flags on.
+// @arg o The options struct the flags bind into.
+//
+// @testcase TestNewRootCmd checks the common flags are present on each backend subcommand.
+func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.hubURL, "hub", "", "hub spoke-connect URL, e.g. wss://hub.example.com/spoke/connect")
 	f.StringVar(&o.token, "token", "", "one-time join token (only needed for first enrollment)")
 	f.StringVar(&o.statePath, "state", defaultSpokeStateFile, "file storing this spoke's issued credential")
-	f.StringVar(&o.box.Namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one Docker daemon without collapsing each other's containers; empty is unscoped")
-	f.StringVar(&o.boxGPUs, "box-gpus", "", `GPUs to attach to every box on this spoke, like docker run --gpus (e.g. "all", "2", or "device=0,1"); empty attaches none`)
+	f.StringVar(&o.box.Namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one host without collapsing each other's boxes; empty is unscoped")
 	f.StringVar(&o.remoteArgs, "remote-args", "", "args passed to `claude remote-control` in every box; empty uses the built-in default")
 	f.IntVar(&o.box.MemoryMB, "box-memory-mb", config.DefaultBoxMemoryMB, "hard memory limit per box in MiB (0 = unlimited)")
 	f.Float64Var(&o.box.CPUs, "box-cpus", config.DefaultBoxCPUs, "CPU quota per box, fractional allowed (0 = unlimited)")
 	f.Int64Var(&o.box.PidsLimit, "box-pids-limit", config.DefaultBoxPidsLimit, "max processes/threads per box, blunts fork bombs (0 = unlimited)")
 	f.IntVar(&o.box.MaxBoxes, "max-boxes", 0, "max concurrent boxes on this spoke (0 = unlimited)")
 	f.StringVar(&o.box.SocketDir, "box-socket-dir", "", "host directory holding each box's control socket; empty uses the provisioner default")
-	f.StringVar(&o.backend, "backend", "", `box isolation backend: "docker" (default) or "firecracker"`)
-	f.StringVar(&o.fcKernelImage, "fc-kernel", "", "firecracker backend: host path to the guest kernel (vmlinux); empty pulls the published kernel from the registry")
-	f.StringVar(&o.fcRootfsImage, "fc-rootfs", "", "firecracker backend: host path to the default guest rootfs; empty pulls the published base rootfs from the registry")
-	f.StringVar(&o.fcPayloadImage, "fc-payload", "", "firecracker backend: host path to a read-only ext4 carrying the guest agent (+claude), attached as a shared second drive so the agent updates without rebuilding the rootfs; empty pulls the published payload (unless --fc-rootfs is a custom all-in-one image)")
-	f.StringVar(&o.fcStateDir, "fc-state-dir", "", "firecracker backend: directory for per-box state; empty uses the backend default")
-	f.BoolVar(&o.fcDisableEgress, "fc-disable-egress", false, "firecracker backend: boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network")
-	f.IntVar(&o.fcPoolSize, "fc-pool-size", 0, "firecracker backend: number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default")
 	f.StringArrayVar(&o.boxPeers, "box-peer", nil, "container name connected into every box's network so boxes can reach it (repeatable)")
 	f.StringArrayVar(&o.allowedImages, "allowed-image", nil, "restrict which box images this spoke will launch (repeatable; empty places no restriction)")
 	f.StringVar(&o.registry.host, "registry", "", `registry host to authenticate to when pulling box images, e.g. "ghcr.io" (empty pulls anonymously)`)
 	f.StringVar(&o.registry.username, "registry-username", "", "username for --registry")
 	f.StringVar(&o.registry.passwordFile, "registry-password-file", "", "file holding the password or token for --registry")
+}
 
-	spokeCmd.AddCommand(newSpokeTokenCmd())
-	return spokeCmd
+// addDockerSpokeFlags registers the flags specific to the Docker backend.
+//
+// @arg f The flag set to register the flags on.
+// @arg o The options struct the flags bind into.
+//
+// @testcase TestNewRootCmd checks the docker subcommand exposes --box-gpus and no firecracker flags.
+func addDockerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
+	f.StringVar(&o.boxGPUs, "box-gpus", "", `GPUs to attach to every box on this spoke, like docker run --gpus (e.g. "all", "2", or "device=0,1"); empty attaches none`)
+}
+
+// addFirecrackerSpokeFlags registers the flags specific to the Firecracker backend.
+// Any image path left empty is auto-resolved from the published registry images.
+//
+// @arg f The flag set to register the flags on.
+// @arg o The options struct the flags bind into.
+//
+// @testcase TestNewRootCmd checks the firecracker subcommand exposes its image flags and no docker flags.
+func addFirecrackerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
+	f.StringVar(&o.fcKernelImage, "kernel", "", "host path to the guest kernel (vmlinux); empty pulls the published kernel from the registry")
+	f.StringVar(&o.fcRootfsImage, "rootfs", "", "host path to the default guest rootfs; empty pulls the published base rootfs from the registry")
+	f.StringVar(&o.fcPayloadImage, "payload", "", "host path to a read-only ext4 carrying the guest agent (+claude), attached as a shared second drive so the agent updates without rebuilding the rootfs; empty pulls the published payload (unless --rootfs is a custom all-in-one image)")
+	f.StringVar(&o.fcStateDir, "state-dir", "", "directory for per-box state; empty uses the backend default")
+	f.BoolVar(&o.fcDisableEgress, "disable-egress", false, "boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network")
+	f.IntVar(&o.fcPoolSize, "pool-size", 0, "number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default")
 }
 
 // newSpokeTokenCmd builds the `token` command tree (create/list/revoke). Token
@@ -275,7 +329,7 @@ func createJoinToken(out io.Writer, stateFile, spokeName string, ttl time.Durati
 	// Show the state file the token landed in: a token is only honored by a hub
 	// reading this exact same store, so a mismatch here (e.g. the wrong
 	// --state-file) is the usual cause of "enrollment rejected".
-	fmt.Fprintf(out, "Join token for spoke %q (valid %s, one-time use):\n\n  %s\n\nWritten to state file: %s\n(the running hub must use this same state_file, or it will reject the token)\n\nStart the spoke with:\n\n  llmbox spoke --hub wss://<hub>/spoke/connect --token %s\n", spokeName, ttl, token, stateFile, token)
+	fmt.Fprintf(out, "Join token for spoke %q (valid %s, one-time use):\n\n  %s\n\nWritten to state file: %s\n(the running hub must use this same state_file, or it will reject the token)\n\nStart the spoke with:\n\n  llmbox-spoke docker --hub wss://<hub>/spoke/connect --token %s\n", spokeName, ttl, token, stateFile, token)
 	return nil
 }
 

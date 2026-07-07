@@ -32,7 +32,7 @@ func newBackend(opts backend.Options) (backend.Provisioner, error) {
 		r := newAssetResolver(assetCacheDir(), opts.RegistryAuths)
 		var err error
 		if kernel, rootfs, payload, err = r.resolveImages(context.Background(), kernel, rootfs, payload); err != nil {
-			return nil, fmt.Errorf("resolving firecracker guest images from %s (set --fc-kernel/--fc-rootfs/--fc-payload to use local files): %w", r.registry, err)
+			return nil, fmt.Errorf("resolving firecracker guest images from %s (set --kernel/--rootfs/--payload to use local files): %w", r.registry, err)
 		}
 	}
 	p, err := NewProvisioner(kernel, rootfs, opts.StateDir)

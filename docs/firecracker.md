@@ -52,10 +52,11 @@ firecracker:
 **Spoke (flags):**
 
 ```
-llmbox spoke --backend firecracker \
-  --fc-kernel /var/lib/llmbox/vmlinux \
-  --fc-rootfs /var/lib/llmbox/rootfs.ext4 \
-  --fc-state-dir /run/llmbox/firecracker
+llmbox-spoke firecracker \
+  --hub wss://hub.example.com/spoke/connect --token <join-token> \
+  --kernel /var/lib/llmbox/vmlinux \
+  --rootfs /var/lib/llmbox/rootfs.ext4 \
+  --state-dir /run/llmbox/firecracker
 ```
 
 Per-box CPU/memory caps (`box.cpus`, `box.memory_mb`) map onto the VM's vCPU count
@@ -73,12 +74,12 @@ Per-box CPU/memory caps (`box.cpus`, `box.memory_mb`) map onto the VM's vCPU cou
 
 ## Zero-build spoke (images resolved from the registry)
 
-You do not have to build or host any of the guest images. If `--fc-kernel`,
-`--fc-rootfs`, or `--fc-payload` is left empty, the spoke pulls the published image
+You do not have to build or host any of the guest images. If `--kernel`,
+`--rootfs`, or `--payload` is left empty, the spoke pulls the published image
 from the registry on startup and caches it locally:
 
 ```sh
-llmbox spoke --hub wss://hub.example.com/spoke/connect --backend firecracker
+llmbox-spoke firecracker --hub wss://hub.example.com/spoke/connect --token <join-token>
 #   kernel  <- ghcr.io/clems4ever/llmbox-fc-kernel:latest
 #   rootfs  <- ghcr.io/clems4ever/llmbox-fc-base:latest
 #   payload <- ghcr.io/clems4ever/llmbox-fc-payload:latest
@@ -98,7 +99,7 @@ Pulls are anonymous for public packages; a registry credential configured for th
 host (see the registry section) is used automatically when present. Supplying any
 path flag uses that local file instead of pulling. Note the payload is pulled only
 when the rootfs is also auto-resolved — if you pass a custom all-in-one
-`--fc-rootfs` (agent baked in) and no `--fc-payload`, no payload is attached.
+`--rootfs` (agent baked in) and no `--payload`, no payload is attached.
 
 ## Building a rootfs
 
@@ -153,7 +154,7 @@ firecracker:
   disable_egress: false          # egress on; run the server as root
 ```
 
-On a spoke, the equivalents are `--fc-rootfs`, `--fc-payload`, and `--fc-kernel`.
+On a spoke, the equivalents are `--rootfs`, `--payload`, and `--kernel`.
 Leave `payload_image` empty to fall back to the all-in-one layout (agent baked into
 the rootfs).
 

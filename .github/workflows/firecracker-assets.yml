@@ -2,7 +2,7 @@ name: Firecracker assets
 
 # Build and publish the prebuilt Firecracker guest images to GHCR as opaque OCI
 # artifacts (pushed with oras, NOT runnable images — Firecracker boots the raw
-# files), so a spoke can run `llmbox spoke --backend firecracker` with no image
+# files), so a spoke can run `llmbox-spoke firecracker` with no image
 # flags and pull everything prebuilt:
 #
 #   llmbox-fc-base    the multi-GiB Debian base rootfs (no agent) — slow, rarely

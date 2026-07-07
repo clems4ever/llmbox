@@ -212,10 +212,10 @@ type TLSConfig struct {
 }
 
 // ClusterConfig configures the hub-and-spoke cluster. The hub always exposes the
-// /spoke/connect endpoint so remote spokes (started with `llmbox spoke`) can join
+// /spoke/connect endpoint so remote spokes (started with `llmbox-spoke`) can join
 // and run boxes — the hub runs no box backend itself, so a box created with no
 // spoke runs on the default spoke an admin picks in the UI (a DB setting, not
-// configured here). The `llmbox spoke` command has its own flags and does not read
+// configured here). The `llmbox-spoke` command has its own flags and does not read
 // this block.
 type ClusterConfig struct {
 	// SpokeImage is the llmbox container image shown in the admin UI's
@@ -225,7 +225,7 @@ type ClusterConfig struct {
 	SpokeImage string `yaml:"spoke_image"`
 }
 
-// SpokeConfig is read by the `llmbox spoke` command. It carries the spoke's
+// SpokeConfig is read by the `llmbox-spoke` command. It carries the spoke's
 // admission policy for box-creation requests arriving from the hub (defense in
 // depth on the edge). allowed_images, when set, restricts which explicit images
 // the spoke will launch; an empty list places no image restriction (a request

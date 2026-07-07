@@ -200,7 +200,7 @@ func run(parent context.Context, cfg *config.Config) error {
 	}
 
 	// The hub runs no box backend of its own: every box runs on an independently
-	// started spoke (llmbox spoke) that joins over the cluster transport. Always
+	// started spoke (llmbox-spoke) that joins over the cluster transport. Always
 	// accept spoke connections, and route an unqualified box create to the default
 	// spoke an admin picks in the UI.
 	srv.SetHub(cluster.NewHub(ctx, store, nil, nil))

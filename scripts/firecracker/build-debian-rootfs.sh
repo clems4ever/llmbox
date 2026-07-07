@@ -22,4 +22,4 @@ echo
 echo ">> Debian box assets ready:"
 echo "   base:    $OUT/base-rootfs.ext4"
 echo "   payload: $OUT/payload.ext4"
-echo ">> boot with: --fc-rootfs $OUT/base-rootfs.ext4 --fc-payload $OUT/payload.ext4"
+echo ">> boot with: --rootfs $OUT/base-rootfs.ext4 --payload $OUT/payload.ext4"

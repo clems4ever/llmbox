@@ -10,9 +10,9 @@
 # commit, so this image is rebuilt often — but it is a few hundred MiB, needs no
 # privileged mmdebstrap, and takes seconds. The multi-GiB base rootfs stays
 # untouched (and cached) across agent changes. Attach both at boot:
-#   llmbox spoke --backend firecracker \
-#     --fc-rootfs  $OUT/base-rootfs.ext4 \
-#     --fc-payload $OUT/payload.ext4
+#   llmbox-spoke firecracker \
+#     --rootfs  $OUT/base-rootfs.ext4 \
+#     --payload $OUT/payload.ext4
 #
 # mke2fs runs unprivileged: the payload is mounted read-only and only ever exec'd by
 # root in the guest, so the files being owned by the building user is fine.
