@@ -192,7 +192,6 @@ func run(parent context.Context, cfg *config.Config) error {
 	defer stop()
 
 	srv := server.New(hookRunner, cfg.PublicURL, authTTL, store, authr)
-	srv.SetSpokeImage(cfg.Cluster.SpokeImage)
 	srv.SetBoxImage(boxImage)
 	srv.SetProxyBaseDomain(cfg.Proxy.BaseDomain)
 	if cfg.Proxy.BaseDomain != "" {

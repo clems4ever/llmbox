@@ -158,6 +158,12 @@
     <form class="row" method="post" action="/admin/spokes">
       <input type="hidden" name="csrf" value="{{.CSRF}}">
       <div class="field"><label>Spoke name</label><input type="text" name="name" placeholder="edge-1" autocomplete="off" required></div>
+      <div class="field"><label>Backend</label>
+        <select name="backend">
+          <option value="docker">docker</option>
+          <option value="firecracker">firecracker</option>
+        </select>
+      </div>
       <div class="field"><label>Token TTL</label><input type="text" name="ttl" placeholder="1h" autocomplete="off"></div>
       <button type="submit">Create spoke token</button>
     </form>

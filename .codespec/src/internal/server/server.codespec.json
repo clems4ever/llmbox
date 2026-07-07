@@ -131,13 +131,6 @@
 			"reviewed_at": "2026-07-07T08:15:52.60719705Z"
 		},
 		{
-			"function_name": "SetSpokeImage",
-			"receiver": "Server",
-			"documentation_hash": "a61fe90cece522d88aa36c42e049b8b9b245fbe5db95254366f966c4a870073f",
-			"definition_hash": "23e56f207c2146774e24dd09724896047f0603b470dc54299e3b224e32a0495f",
-			"reviewed_at": "2026-06-21T18:29:19.49342911Z"
-		},
-		{
 			"function_name": "SetBoxImage",
 			"receiver": "Server",
 			"documentation_hash": "b30e462b055679d6215d3e04c386f8db480ab9d11dd8b66750a08994d3c8b491",

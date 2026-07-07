@@ -175,10 +175,63 @@ func TestAdminCreateSpokeMintsToken(t *testing.T) {
 	if !got.OK || got.NewSpoke == nil {
 		t.Fatalf("result = %+v, want ok with a newSpoke", got)
 	}
-	for _, want := range []string{"docker run", "--group-add", "/var/run/docker.sock", "wss://boxes.example.com/spoke/connect"} {
+	// The command is the bare per-backend invocation (no docker-run wrapper), and
+	// defaults to the docker backend when none is chosen.
+	for _, want := range []string{"llmbox-spoke docker --hub", "wss://boxes.example.com/spoke/connect", "--token ", "--state llmbox-spoke.json"} {
 		if !strings.Contains(got.NewSpoke.Command, want) {
 			t.Errorf("spoke command missing %q: %q", want, got.NewSpoke.Command)
 		}
+	}
+	if strings.Contains(got.NewSpoke.Command, "docker run") {
+		t.Errorf("spoke command should not wrap in docker run: %q", got.NewSpoke.Command)
+	}
+}
+
+// TestAdminCreateSpokeBackend checks the chosen backend selects the displayed
+// command, and an unknown backend is rejected.
+func TestAdminCreateSpokeBackend(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	h := s.APIHandler()
+
+	createSpoke := func(name, backend string) *httptest.ResponseRecorder {
+		form := url.Values{"name": {name}, "backend": {backend}, "csrf": {"CSRF"}}
+		req := httptest.NewRequest(http.MethodPost, "/admin/spokes", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(signIn(t, st, true, false))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+	command := func(rec *httptest.ResponseRecorder) string {
+		var got struct {
+			NewSpoke *struct {
+				Command string `json:"command"`
+			} `json:"newSpoke"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || got.NewSpoke == nil {
+			t.Fatalf("decode newSpoke: %v (body %q)", err, rec.Body.String())
+		}
+		return got.NewSpoke.Command
+	}
+
+	if cmd := command(createSpoke("fc-1", "firecracker")); !strings.Contains(cmd, "llmbox-spoke firecracker --hub") {
+		t.Errorf("firecracker command = %q, want an llmbox-spoke firecracker invocation", cmd)
+	}
+	if cmd := command(createSpoke("dk-1", "docker")); !strings.Contains(cmd, "llmbox-spoke docker --hub") {
+		t.Errorf("docker command = %q, want an llmbox-spoke docker invocation", cmd)
+	}
+
+	// An unknown backend is refused with an error result (and mints no token).
+	rec := createSpoke("bad-1", "podman")
+	var er struct {
+		OK  bool   `json:"ok"`
+		Err string `json:"err"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &er); err != nil {
+		t.Fatalf("decode err: %v (body %q)", err, rec.Body.String())
+	}
+	if er.OK || er.Err == "" {
+		t.Errorf("unknown backend should be rejected, got %+v", er)
 	}
 }
 
@@ -217,8 +270,8 @@ func TestAdminActionJSON(t *testing.T) {
 	if !ok.OK || ok.NewSpoke == nil || ok.NewSpoke.Token == "" {
 		t.Fatalf("unexpected result %+v", ok)
 	}
-	if !strings.Contains(ok.NewSpoke.Command, "docker run") {
-		t.Errorf("command missing docker run: %q", ok.NewSpoke.Command)
+	if !strings.Contains(ok.NewSpoke.Command, "llmbox-spoke ") {
+		t.Errorf("command missing llmbox-spoke invocation: %q", ok.NewSpoke.Command)
 	}
 
 	// A validation failure comes back as ok:false with an error message.

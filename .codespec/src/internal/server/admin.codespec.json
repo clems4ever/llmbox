@@ -44,8 +44,8 @@
 			"function_name": "handleAdminCreateSpoke",
 			"receiver": "Server",
 			"documentation_hash": "8766fedb9244d4878461d76b76d8b9615778faa722837d62cda79e0897d23dab",
-			"definition_hash": "3e5ee400eec2cce856f2b2fad515eb46a88d40a951ed8d7265d1f2fd3987d62a",
-			"reviewed_at": "2026-06-25T09:38:26.192255164Z"
+			"definition_hash": "fd596eca3cbd5022fed49779ecc738f931180d5c3d460e0122bf603000ba6267",
+			"reviewed_at": "2026-07-07T11:50:30.164666548Z"
 		},
 		{
 			"function_name": "handleAdminDropSpoke",
@@ -92,9 +92,9 @@
 		{
 			"function_name": "spokeRunCommand",
 			"receiver": "Server",
-			"documentation_hash": "9535c3d3ab5f2753faae8b496017d4b0e54a50823e64b9bf961bb613a9d2f39f",
-			"definition_hash": "7678ac02338070c1904cb46c53f8c2ed5bb90c62cca0ee3ec1b54ad0c2cc1d55",
-			"reviewed_at": "2026-07-07T11:34:31.866165307Z"
+			"documentation_hash": "d4d2e63827e30985772b688b2f1541a7e6f644abd49c1e350c7786711c1d428c",
+			"definition_hash": "953482fa3b034bb56290e4c3fa6e7ea74274279de73f24734f648ab8e723fd03",
+			"reviewed_at": "2026-07-07T11:53:31.902439424Z"
 		},
 		{
 			"function_name": "writeJSON",
