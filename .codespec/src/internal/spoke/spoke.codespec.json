@@ -39,8 +39,8 @@
 		{
 			"function_name": "runSpoke",
 			"documentation_hash": "e1e2528558d9197deb578e6ff9c3eec368d1d2e19cf2b5a25677b8b58d127f19",
-			"definition_hash": "d5a037199338c615513d0c512076286dcecf41b4dce32726d0e6f43836fc05b4",
-			"reviewed_at": "2026-07-07T12:01:55.076798701Z"
+			"definition_hash": "c703d5db099fb4e3d480013319cfe73be5b5fd2970695340f8f878cc857388d5",
+			"reviewed_at": "2026-07-07T12:21:36.659211304Z"
 		},
 		{
 			"function_name": "checkStateWritable",
@@ -76,8 +76,8 @@
 		{
 			"function_name": "addCommonSpokeFlags",
 			"documentation_hash": "2e243a42d00c9155a08f0c89d9a369dbb8cfeb0415ef8a096a56869da63cf601",
-			"definition_hash": "c00ee48e7db0891adbdefc19ab96d5b4bb5accc7bb98031b7e68bfbec1a51c72",
-			"reviewed_at": "2026-07-07T11:34:31.875715909Z"
+			"definition_hash": "ec6c274e69a94ec786aee5eea6a8cc1741fe2730c3b9921249279a1eef286ee3",
+			"reviewed_at": "2026-07-07T12:21:36.658430162Z"
 		},
 		{
 			"function_name": "addDockerSpokeFlags",
@@ -90,6 +90,13 @@
 			"documentation_hash": "d244b287a684518f8b9e4348ea406b7eade48f50a7f7f6be314637dd2ddf9064",
 			"definition_hash": "610bee6e10cac1dd62638d837d91965929f709b0a8a288f84c907f6c17c43b55",
 			"reviewed_at": "2026-07-07T11:34:31.877653686Z"
+		},
+		{
+			"function_name": "hubTLS",
+			"receiver": "spokeOptions",
+			"documentation_hash": "a2dba50607d37b6bf831fb6bb79fb1d4141c9440dd508945bf11a3d8a9af143a",
+			"definition_hash": "938066bfe7750a017c5a37dad99d1e6ff126379389a868fd4b5b810d785b0a0e",
+			"reviewed_at": "2026-07-07T12:21:36.657107936Z"
 		}
 	]
 }

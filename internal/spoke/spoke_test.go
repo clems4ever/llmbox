@@ -3,6 +3,13 @@ package spoke
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,6 +34,64 @@ func subcmd(t *testing.T, cmd *cobra.Command, use string) *cobra.Command {
 	return nil
 }
 
+// writeCAPEM writes a throwaway self-signed CA certificate to a temp file and
+// returns its path, for exercising --tls-ca.
+func writeCAPEM(t *testing.T) string {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("GenerateKey: %v", err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "test-ca"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("CreateCertificate: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "ca.pem")
+	if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600); err != nil {
+		t.Fatalf("write CA: %v", err)
+	}
+	return path
+}
+
+// TestSpokeHubTLS checks hubTLS turns the --tls-ca / --tls-insecure flags into the
+// right client config, and errors on an unreadable or non-cert CA file.
+func TestSpokeHubTLS(t *testing.T) {
+	// No flags: use the system trust store (nil config).
+	if cfg, err := (spokeOptions{}).hubTLS(); err != nil || cfg != nil {
+		t.Fatalf("default hubTLS = (%v, %v), want (nil, nil)", cfg, err)
+	}
+	// Insecure skip.
+	cfg, err := (spokeOptions{tlsInsecure: true}).hubTLS()
+	if err != nil || cfg == nil || !cfg.InsecureSkipVerify {
+		t.Fatalf("insecure hubTLS = (%+v, %v), want InsecureSkipVerify set", cfg, err)
+	}
+	// A valid CA bundle populates RootCAs.
+	cfg, err = (spokeOptions{tlsCAFile: writeCAPEM(t)}).hubTLS()
+	if err != nil || cfg == nil || cfg.RootCAs == nil {
+		t.Fatalf("CA hubTLS = (%+v, %v), want RootCAs set", cfg, err)
+	}
+	// A missing file and a non-cert file both error.
+	if _, err := (spokeOptions{tlsCAFile: filepath.Join(t.TempDir(), "nope.pem")}).hubTLS(); err == nil {
+		t.Error("missing --tls-ca file should error")
+	}
+	junk := filepath.Join(t.TempDir(), "junk.pem")
+	if err := os.WriteFile(junk, []byte("not a certificate"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (spokeOptions{tlsCAFile: junk}).hubTLS(); err == nil {
+		t.Error("a --tls-ca file with no certificates should error")
+	}
+}
+
 // TestNewRootCmd checks the llmbox-spoke command wiring: the docker and firecracker
 // backend subcommands each carry their own flags (never a mix), plus the
 // token/create subcommand tree.
@@ -42,7 +107,7 @@ func TestNewRootCmd(t *testing.T) {
 	}
 
 	// Flags every backend subcommand shares, plus the config-free invariant.
-	common := []string{"hub", "token", "state", "namespace", "remote-args", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "allowed-image", "registry", "registry-username", "registry-password-file"}
+	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "remote-args", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "allowed-image", "registry", "registry-username", "registry-password-file"}
 
 	docker := subcmd(t, cmd, "docker")
 	for _, f := range append([]string{"box-gpus"}, common...) {
