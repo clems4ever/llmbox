@@ -25,14 +25,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/clems4ever/llmbox/internal/box"
-	"github.com/clems4ever/llmbox/internal/box/backend"
-	"github.com/clems4ever/llmbox/internal/cli"
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/config"
-	_ "github.com/clems4ever/llmbox/internal/docker"      // registers the "docker" box backend
-	_ "github.com/clems4ever/llmbox/internal/firecracker" // registers the "firecracker" box backend
-	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/shared/cli"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/config"
+	storepkg "github.com/clems4ever/llmbox/internal/shared/store"
+	"github.com/clems4ever/llmbox/internal/spoke/box"
+	"github.com/clems4ever/llmbox/internal/spoke/box/backend"
+	_ "github.com/clems4ever/llmbox/internal/spoke/docker"      // registers the "docker" box backend
+	_ "github.com/clems4ever/llmbox/internal/spoke/firecracker" // registers the "firecracker" box backend
 )
 
 const (
@@ -353,7 +353,7 @@ const joinTokenIDLen = 12
 //
 // @testcase TestCreateJoinTokenCmdPrintsToken mints a token and prints it once.
 func createJoinToken(out io.Writer, stateFile, spokeName string, ttl time.Duration) error {
-	store, err := server.OpenStore(stateFile)
+	store, err := storepkg.Open(stateFile)
 	if err != nil {
 		return err
 	}
@@ -380,7 +380,7 @@ func createJoinToken(out io.Writer, stateFile, spokeName string, ttl time.Durati
 //
 // @testcase TestListJoinTokensCmd lists outstanding tokens with their spoke and expiry.
 func listJoinTokens(out io.Writer, stateFile string, now time.Time) error {
-	store, err := server.OpenStore(stateFile)
+	store, err := storepkg.Open(stateFile)
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func listJoinTokens(out io.Writer, stateFile string, now time.Time) error {
 // @testcase TestRevokeJoinTokenByName revokes every token for a spoke name.
 // @testcase TestRevokeJoinTokenNoMatch errors when nothing matches.
 func revokeJoinTokens(out io.Writer, stateFile, idPrefix, name string) error {
-	store, err := server.OpenStore(stateFile)
+	store, err := storepkg.Open(stateFile)
 	if err != nil {
 		return err
 	}

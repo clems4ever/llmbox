@@ -191,7 +191,7 @@ authenticate.
 ## Running the conformance suite
 
 The Firecracker backend passes the same behavioural contract as Docker and the
-in-process fake (`internal/box/conformance`). Build the test kernel + rootfs and
+in-process fake (`internal/spoke/box/conformance`). Build the test kernel + rootfs and
 run it:
 
 ```sh
@@ -201,7 +201,7 @@ scripts/firecracker/build-conformance-rootfs.sh   # vmlinux + rootfs.ext4 -> ~/f
 export PATH="$HOME/.local/bin:$PATH"
 LLMBOX_FC_KERNEL=$HOME/fc-assets/vmlinux \
 LLMBOX_FC_ROOTFS=$HOME/fc-assets/rootfs.ext4 \
-  go test ./internal/firecracker/ -run TestConformanceFirecracker -v
+  go test ./internal/spoke/firecracker/ -run TestConformanceFirecracker -v
 ```
 
 The test skips cleanly when the env vars, the firecracker binary, or `/dev/kvm`

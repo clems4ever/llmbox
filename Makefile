@@ -8,6 +8,8 @@ MCP_BINARY  := llmbox-mcp
 MCP_PKG     := ./cmd/llmbox-mcp
 SPOKE_BINARY := llmbox-spoke
 SPOKE_PKG    := ./cmd/llmbox-spoke
+AGENT_BINARY := llmbox-agent
+AGENT_PKG    := ./cmd/llmbox-agent
 IMAGE       := llmbox
 VERSION     := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVERPROFILE := coverage.out
@@ -28,7 +30,10 @@ help: ## Show this help.
 # --- build -------------------------------------------------------------------
 
 .PHONY: build
-build: ## Build the llmbox-server binary into ./$(BINARY).
+build: build-hub build-spoke build-mcp build-agent ## Build all llmbox binaries (hub, spoke, mcp, agent).
+
+.PHONY: build-hub
+build-hub: ## Build the hub (llmbox-server) binary into ./$(BINARY).
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(BINARY) $(PKG)
 
 .PHONY: build-mcp
@@ -39,9 +44,13 @@ build-mcp: ## Build the stand-alone llmbox-mcp binary into ./$(MCP_BINARY).
 build-spoke: ## Build the stand-alone llmbox-spoke binary into ./$(SPOKE_BINARY).
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(SPOKE_BINARY) $(SPOKE_PKG)
 
+.PHONY: build-agent
+build-agent: ## Build the stand-alone llmbox-agent (guest) binary into ./$(AGENT_BINARY).
+	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(AGENT_BINARY) $(AGENT_PKG)
+
 .PHONY: install
-install: ## Install the llmbox-server, llmbox-mcp, and llmbox-spoke binaries into $GOPATH/bin.
-	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG) $(SPOKE_PKG)
+install: ## Install the hub, mcp, spoke, and agent binaries into $GOPATH/bin.
+	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG) $(SPOKE_PKG) $(AGENT_PKG)
 
 .PHONY: run
 run: ## Run the server (use CONFIG=path to pick a config file).
@@ -140,11 +149,11 @@ firecracker-debian-assets: $(FC_BASE) $(FC_PAYLOAD) ## Pull-or-build the Debian 
 test-firecracker: firecracker-assets ## Build the firecracker artifacts if missing, then run the live conformance tests (needs KVM; see docs/firecracker.md).
 	PATH="$(dir $(FC_BIN)):$$PATH" \
 	LLMBOX_FC_KERNEL="$(FC_KERNEL)" LLMBOX_FC_ROOTFS="$(FC_ROOTFS)" \
-		go test -v ./internal/firecracker/ -run 'TestConformanceFirecracker|TestVMSurvivesRequestContextCancel'
+		go test -v ./internal/spoke/firecracker/ -run 'TestConformanceFirecracker|TestVMSurvivesRequestContextCancel'
 
 .PHONY: test-e2e
-test-e2e: ## Run the end-to-end browser tests (needs Chrome + chromedriver; see e2e/ and internal/server/admin_browser_e2e_test.go).
-	go test -tags e2e ./e2e/... ./internal/server/...
+test-e2e: ## Run the end-to-end browser tests (needs Chrome + chromedriver; see e2e/ and internal/hub/admin_browser_e2e_test.go).
+	go test -tags e2e ./e2e/... ./internal/hub/...
 
 .PHONY: test-e2e-cluster
 test-e2e-cluster: ## Run the hub-and-spoke clustering e2e test (no browser needed; see e2e/cluster/).
@@ -188,4 +197,4 @@ check: lint test ## Run lint and the unit tests.
 
 .PHONY: clean
 clean: ## Remove build artifacts.
-	rm -f $(BINARY) $(MCP_BINARY) $(SPOKE_BINARY) $(COVERPROFILE)
+	rm -f $(BINARY) $(MCP_BINARY) $(SPOKE_BINARY) $(AGENT_BINARY) $(COVERPROFILE)

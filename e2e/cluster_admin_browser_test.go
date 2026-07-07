@@ -28,10 +28,10 @@ import (
 
 	"github.com/tebeka/selenium"
 
-	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/sandbox"
-	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // browserSpokeMgr is an in-memory cluster.BoxManager used as a spoke's simulated
@@ -181,7 +181,7 @@ type clusterBrowserEnv struct {
 	t       *testing.T
 	ctx     context.Context
 	cancel  context.CancelFunc
-	store   server.Store
+	store   hub.Store
 	httpSrv *httptest.Server
 	wsURL   string
 	cookie  *http.Cookie
@@ -198,16 +198,16 @@ func newClusterBrowserEnv(t *testing.T) *clusterBrowserEnv {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	st, err := server.OpenStore(filepath.Join(t.TempDir(), "hub.db"))
+	st, err := hub.OpenStore(filepath.Join(t.TempDir(), "hub.db"))
 	if err != nil {
 		t.Fatalf("OpenStore: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
 
 	a := auth.NewTestAuthenticator("admin@corp.com")
-	hub := cluster.NewHub(ctx, st, nil, nil)
-	srv := server.New(nil, "https://boxes.example.com", time.Minute, st, a)
-	srv.SetHub(hub)
+	clusterHub := cluster.NewHub(ctx, st, nil, nil)
+	srv := hub.New(nil, "https://boxes.example.com", time.Minute, st, a)
+	srv.SetHub(clusterHub)
 	srv.SetBoxImage("box:e2e")
 
 	httpSrv := httptest.NewServer(srv.APIHandler())

@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // The control-plane verbs. Each is the Verb of a request frame; Dial is special

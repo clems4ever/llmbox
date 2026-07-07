@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/store"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/store"
 )
 
 // TestNoopStore checks NoopStore satisfies store.Store and that every method is

@@ -23,8 +23,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/api"
-	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -54,14 +54,14 @@ func TestEndToEndWorkflow(t *testing.T) {
 	}
 	base := "http://" + uiLn.Addr().String()
 
-	store, err := server.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
+	store, err := hub.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
 
 	// public_url is the server base, so the auth links the user follows live there.
-	srv := server.New(nil, base, 5*time.Minute, store, nil)
+	srv := hub.New(nil, base, 5*time.Minute, store, nil)
 	wireDefaultSpoke(t, srv, store, mgr)
 	httpSrv := &http.Server{Handler: srv.APIHandler()}
 	go func() { _ = httpSrv.Serve(uiLn) }()

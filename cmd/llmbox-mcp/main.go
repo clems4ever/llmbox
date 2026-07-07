@@ -22,8 +22,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 
-	"github.com/clems4ever/llmbox/internal/api"
 	"github.com/clems4ever/llmbox/internal/mcpserver"
+	"github.com/clems4ever/llmbox/internal/shared/api"
 )
 
 const (

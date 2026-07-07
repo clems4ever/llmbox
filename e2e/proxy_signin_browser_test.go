@@ -16,8 +16,8 @@ import (
 
 	"github.com/tebeka/selenium"
 
-	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/shared/auth"
 )
 
 // TestProxySignInRedirectInBrowser exercises the proxy sign-in gate end to end and
@@ -53,7 +53,7 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	}
 	base := "http://" + uiLn.Addr().String()
 
-	st, err := server.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
+	st, err := hub.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	a.SetCookieDomain("example.com")
 
-	srv := server.New(nil, base, 5*time.Minute, st, a)
+	srv := hub.New(nil, base, 5*time.Minute, st, a)
 	wireDefaultSpoke(t, srv, st, mgr)
 	srv.SetProxyBaseDomain("proxy.example.com")
 	httpSrv := &http.Server{Handler: srv.APIHandler()}

@@ -79,7 +79,7 @@ arguments and return values.
   real container and the live HTTP/MCP stack). The final **code → session URL**
   exchange needs a human to authorize in a browser; the wrapper that runs
   `claude auth login` then `claude remote-control` is in
-  [`internal/docker/manager.go`](internal/docker/manager.go) and is easy to tweak
+  [`internal/spoke/docker/manager.go`](internal/spoke/docker/manager.go) and is easy to tweak
   if your Claude version's prompts differ.
 - Each box consumes a session on the **end user's** Claude subscription. That is
   the intended model; be deliberate about who you let create boxes.

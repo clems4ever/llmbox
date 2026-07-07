@@ -18,7 +18,7 @@ deployment therefore runs one spoke alongside the hub.
 
 The split is the **box-operations interface**, not the raw Docker API. The
 `server` package already needs exactly seven verbs from the Docker layer
-(`internal/server/server.go`, the `boxManager` interface):
+(`internal/hub/server.go`, the `boxManager` interface):
 
     CreateLLMBox, SubmitCode, List, Destroy, Logs, Exec, ReapOrphans
 
@@ -123,7 +123,7 @@ session's spoke. Cluster-wide verbs fan out:
 ## Package layout
 
 ```
-internal/cluster/
+internal/shared/cluster/
   proto.go        frame + verb request/response payloads, (de)serialization
   transport.go    transport interface, wsTransport, in-memory pipe (test)
   boxmanager.go   BoxManager interface (the 7 verbs)
@@ -137,7 +137,7 @@ internal/cluster/
 ```
 
 Token/credential persistence extends the existing bolt store
-(`internal/server/store.go`) with `spoke_join_tokens` and `spokes` buckets, via
+(`internal/hub/store.go`) with `spoke_join_tokens` and `spokes` buckets, via
 new `ClusterStore` methods.
 
 ## CLI / config

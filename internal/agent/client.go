@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // Client is the host-side handle to one box's agent. It opens a fresh control

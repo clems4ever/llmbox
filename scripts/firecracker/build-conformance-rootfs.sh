@@ -15,7 +15,7 @@
 #   export PATH="$HOME/.local/bin:$PATH"          # or wherever firecracker is
 #   LLMBOX_FC_KERNEL=$OUT/vmlinux \
 #   LLMBOX_FC_ROOTFS=$OUT/rootfs.ext4 \
-#     go test ./internal/firecracker/ -run TestConformanceFirecracker -v
+#     go test ./internal/spoke/firecracker/ -run TestConformanceFirecracker -v
 #
 # Requirements on the host: docker, mke2fs (e2fsprogs), a Go toolchain, and
 # either the firecracker binary on PATH or run fetch-firecracker.sh first.

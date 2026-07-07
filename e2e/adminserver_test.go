@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/server"
-	"github.com/clems4ever/llmbox/internal/store"
+	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/store"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -29,7 +29,7 @@ const e2eDefaultSpoke = "spoke-e2e"
 // @arg srv The server to attach the hub and default to.
 // @arg st The server's store (for enrolling the spoke).
 // @arg mgr The box manager to serve as the default spoke.
-func wireDefaultSpoke(t *testing.T, srv *server.Server, st server.Store, mgr cluster.BoxManager) {
+func wireDefaultSpoke(t *testing.T, srv *hub.Server, st hub.Store, mgr cluster.BoxManager) {
 	t.Helper()
 	srv.SetHub(&testutils.FakeHub{Connected: map[string]cluster.BoxManager{e2eDefaultSpoke: mgr}})
 	if err := st.PutSpoke(e2eDefaultSpoke, cluster.SpokeRecord{Name: e2eDefaultSpoke, EnrolledAt: time.Now()}); err != nil {
@@ -45,19 +45,19 @@ func wireDefaultSpoke(t *testing.T, srv *server.Server, st server.Store, mgr clu
 // server test seams so the e2e package can wire it from outside package server.
 //
 // @arg t The test, failed if the store cannot be opened.
-// @return *server.Server The admin-enabled server.
+// @return *hub.Server The admin-enabled server.
 // @return *testutils.FakeMgr The fake box manager backing it, for seeding/assertions.
-// @return server.Store The backing store, for seeding login sessions.
-func newAdminServer(t *testing.T) (*server.Server, *testutils.FakeMgr, server.Store) {
+// @return hub.Store The backing store, for seeding login sessions.
+func newAdminServer(t *testing.T) (*hub.Server, *testutils.FakeMgr, hub.Store) {
 	t.Helper()
-	st, err := server.OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	st, err := hub.OpenStore(filepath.Join(t.TempDir(), "s.db"))
 	if err != nil {
 		t.Fatalf("OpenStore: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/x", SubmitURL: "https://claude.ai/code/s/1"}
-	srv := server.New(nil, "https://boxes.example.com", time.Minute, st, a)
+	srv := hub.New(nil, "https://boxes.example.com", time.Minute, st, a)
 	wireDefaultSpoke(t, srv, st, f)
 	return srv, f, st
 }
@@ -70,7 +70,7 @@ func newAdminServer(t *testing.T) (*server.Server, *testutils.FakeMgr, server.St
 // @arg admin Whether the session has admin capability.
 // @arg activate Whether the session may activate boxes.
 // @return *http.Cookie The login cookie naming the persisted session.
-func signIn(t *testing.T, st server.Store, admin, activate bool) *http.Cookie {
+func signIn(t *testing.T, st hub.Store, admin, activate bool) *http.Cookie {
 	t.Helper()
 	if err := st.SaveLoginSession("SID", store.LoginSession{
 		Email: "admin@corp.com", CSRF: "CSRF", ExpiresAt: time.Now().Add(time.Hour),

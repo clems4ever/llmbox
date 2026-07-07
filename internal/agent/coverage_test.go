@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // TestTranscriptAppendTrims bounds the retained transcript and keeps scanning

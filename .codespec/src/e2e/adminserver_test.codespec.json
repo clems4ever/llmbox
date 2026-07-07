@@ -2,21 +2,21 @@
 	"functions": [
 		{
 			"function_name": "newAdminServer",
-			"documentation_hash": "9f55c90db11b8c1cc74352a91fc408ce48b3358405713ea46f5624c6bfe8b353",
-			"definition_hash": "33c7110b650443b5ee66450837f3fbbcb13e1a60e2eabc4ec7b6fdef303a2f60",
-			"reviewed_at": "2026-07-07T08:15:52.541226982Z"
+			"documentation_hash": "b9000227a6774b9d3c0793ab23c1a5cefb20197cc6980165759de10a3e3ea1dc",
+			"definition_hash": "0b7697803c02e1a3c72eedbbeb9e42b13022d578624ff6b847eac821e4ca9109",
+			"reviewed_at": "2026-07-07T12:52:06.051489562Z"
 		},
 		{
 			"function_name": "signIn",
 			"documentation_hash": "64a2fbc641867d549ebc4bdd11729a7d3e8c96db05f8e711b1ca2fe2a416c685",
-			"definition_hash": "745240f86cb95e6921f1a35f0612308ca31569f48dfc4b89aa4d7cb7cb2d4762",
-			"reviewed_at": "2026-06-27T11:22:56.372738145Z"
+			"definition_hash": "88fe90c023098a78c4773ff67a5db6b37f8a862d9ca0476e3f56ab1c73868c61",
+			"reviewed_at": "2026-07-07T12:52:06.061027881Z"
 		},
 		{
 			"function_name": "wireDefaultSpoke",
 			"documentation_hash": "182e3cceb10af5ab08d49eb942ff2bb2fe45b44f3c03929a604e94ec9b05ed52",
-			"definition_hash": "cbd7bf6b7cd9b1abb55e03dccd41c617aa433ff3aa3a7e96166d33d6c1e28991",
-			"reviewed_at": "2026-07-07T08:15:52.540729774Z"
+			"definition_hash": "1d5d0975132d18c9d69cdc2407c5816aeec21ed4aa3ea4ad09ecb8d44abfaae8",
+			"reviewed_at": "2026-07-07T12:52:06.051304Z"
 		}
 	]
 }

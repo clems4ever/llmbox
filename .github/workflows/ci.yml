@@ -232,7 +232,7 @@ jobs:
           fi
 
   # The Docker-backed conformance suite. It builds a mock-claude box image and
-  # runs the same backend-neutral box contract (internal/box/conformance) against
+  # runs the same backend-neutral box contract (internal/spoke/box/conformance) against
   # real containers, validating the Docker provisioner, the per-box socket
   # bind-mount, the in-container guest agent, and exec/logs/destroy/reaping.
   # ubuntu-latest has a Docker daemon, so this needs no special runner. The
@@ -252,7 +252,7 @@ jobs:
           cache: true
 
       - name: Run Docker conformance
-        run: go test -tags=integration -run TestDockerConformance -v ./internal/docker/
+        run: go test -tags=integration -run TestDockerConformance -v ./internal/spoke/docker/
 
   # Build the images once the test, e2e, and integration jobs are green. Builds
   # both images on every event but only logs in / pushes for non-PR events
