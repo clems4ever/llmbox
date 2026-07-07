@@ -43,7 +43,7 @@ in-memory transport + the auth web handlers). An integration test against a real
 container is gated behind a build tag:
 
 ```bash
-go test -tags=integration -run Integration -v ./internal/docker/
+go test -tags=integration -run Integration -v ./internal/spoke/docker/
 ```
 
 It confirms a live `claude auth login` emits a real OAuth authorize URL (PKCE +

@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/server"
-	storepkg "github.com/clems4ever/llmbox/internal/store"
+	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	storepkg "github.com/clems4ever/llmbox/internal/shared/store"
 )
 
 // clusterFixture is a complete, in-process llmbox cluster wired for driving box
@@ -41,8 +41,8 @@ type clusterFixture struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	store server.Store
-	srv   *server.Server
+	store hub.Store
+	srv   *hub.Server
 
 	baseURL string // http://host:port of the UI/API server
 	wsURL   string // ws://host:port/spoke/connect
@@ -63,7 +63,7 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	store, err := server.OpenStore(filepath.Join(t.TempDir(), "hub.db"))
+	store, err := hub.OpenStore(filepath.Join(t.TempDir(), "hub.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
@@ -71,7 +71,7 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	hub := cluster.NewHub(ctx, store, nil, nil)
-	srv := server.New(nil, "http://placeholder", 5*time.Minute, store, a)
+	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, a)
 	srv.SetHub(hub)
 	// The hub is the sole source of the box image: it stamps this onto every
 	// create so config-free spokes launch exactly what they are sent.

@@ -12,15 +12,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/docker"
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
+	"github.com/clems4ever/llmbox/internal/spoke/docker"
 )
 
 // fakeBoxManager simulates the Docker box-lifecycle layer. The real
 // implementation is *docker.Manager, which launches a container per box and
 // drives the Claude CLI inside it; this stand-in keeps boxes in memory and runs
 // each box's OAuth handshake against the fake Anthropic platform instead. It
-// satisfies the (unexported) boxManager interface server.New expects, so the
+// satisfies the (unexported) boxManager interface hub.New expects, so the
 // real server, MCP tools, and auth web UI all run unchanged on top of it — only
 // Docker and the real Claude binary are simulated.
 type fakeBoxManager struct {

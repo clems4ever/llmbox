@@ -8,9 +8,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/api"
 	"github.com/clems4ever/llmbox/internal/mcpserver"
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/api"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // defaultAuthBase is the auth-page URL prefix FakeBackend.AuthPageURL uses when

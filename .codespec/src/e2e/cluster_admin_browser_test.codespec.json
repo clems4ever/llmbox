@@ -135,8 +135,8 @@
 		{
 			"function_name": "newClusterBrowserEnv",
 			"documentation_hash": "80960e62883bbce1e1c50529f534e6187c6c8b0d446a9efd174974f2a3209971",
-			"definition_hash": "2026cb5db70e223db4cc67e1b3eca278160c6abe3cb026d847c7fd6a61fc6eec",
-			"reviewed_at": "2026-07-07T08:15:52.547681589Z"
+			"definition_hash": "b6c471fd451de28bd4e6bd30114f876b8262979f44b82328ba702e8ba38c3d4b",
+			"reviewed_at": "2026-07-07T12:52:06.063898251Z"
 		},
 		{
 			"function_name": "TestAdminCreateAndRemoveBoxOnSpokeInBrowser",

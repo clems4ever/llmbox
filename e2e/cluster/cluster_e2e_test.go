@@ -27,10 +27,10 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/api"
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/sandbox"
-	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/shared/api"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
@@ -45,7 +45,7 @@ import (
 func TestClusterEndToEnd(t *testing.T) {
 	ctx := t.Context()
 
-	store, err := server.OpenStore(filepath.Join(t.TempDir(), "hub.db"))
+	store, err := hub.OpenStore(filepath.Join(t.TempDir(), "hub.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestClusterEndToEnd(t *testing.T) {
 	// The hub: real server with clustering enabled, on a real listener. It runs no
 	// box backend of its own — every box runs on a remote spoke.
 	hub := cluster.NewHub(ctx, store, nil, nil)
-	srv := server.New(nil, "http://placeholder", 5*time.Minute, store, nil)
+	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, nil)
 	srv.SetHub(hub)
 	// The hub is the sole source of the box image: it stamps this onto every
 	// create so config-free spokes (which hold no default of their own) launch

@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/config"
+	"github.com/clems4ever/llmbox/internal/shared/config"
 )
 
 // TestNewRootCmd checks the root command is wired up with the expected name,

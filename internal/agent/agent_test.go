@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // TestListenVsockReturns checks ListenVsockAndServe does not hang: on a host

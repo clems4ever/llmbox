@@ -53,8 +53,8 @@ they always reflect the current UI and stay reviewable; see
 | Path                 | What it is |
 |----------------------|------------|
 | `cmd/llmbox-server`  | Entry point: opens the session store, runs the HTTP server (box-control API + auth pages) and the reaper. |
-| `internal/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
-| `internal/server`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
+| `internal/spoke/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
+| `internal/hub`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
 | `Dockerfile`         | Image for **this server** (`llmbox`). Carries only the llmbox server binary; it neither runs nor ships Claude. |
 | `Dockerfile.box`     | Default box image (`claude_image`). Bakes in the standalone Claude binary, tini (PID 1), util-linux, Node.js + pm2 (so Claude can run daemons), and a CA bundle. |
 

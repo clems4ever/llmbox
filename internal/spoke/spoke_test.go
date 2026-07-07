@@ -18,8 +18,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	storepkg "github.com/clems4ever/llmbox/internal/shared/store"
 )
 
 // subcmd returns the named direct subcommand of cmd, failing the test if absent.
@@ -170,7 +170,7 @@ func TestCreateJoinTokenCmdPrintsToken(t *testing.T) {
 // returns its ID.
 func seedJoinToken(t *testing.T, stateFile, name string) string {
 	t.Helper()
-	store, err := server.OpenStore(stateFile)
+	store, err := storepkg.Open(stateFile)
 	if err != nil {
 		t.Fatalf("OpenStore: %v", err)
 	}
@@ -194,7 +194,7 @@ func seedJoinToken(t *testing.T, stateFile, name string) string {
 // countJoinTokens returns how many join tokens are stored at stateFile.
 func countJoinTokens(t *testing.T, stateFile string) int {
 	t.Helper()
-	store, err := server.OpenStore(stateFile)
+	store, err := storepkg.Open(stateFile)
 	if err != nil {
 		t.Fatalf("OpenStore: %v", err)
 	}

@@ -9,8 +9,8 @@
 		{
 			"function_name": "run",
 			"documentation_hash": "a0bae4dc94d0f6d64c25a93240657b6520447c7d6ce87571d0ac343b6b81c7fa",
-			"definition_hash": "3c39a958d990c36c330ef4bccea835f3bd053acae904d3356cd6c6c513b8f833",
-			"reviewed_at": "2026-07-07T11:50:30.163518257Z"
+			"definition_hash": "e7e50e3f376c0dffee3397807993946e8dbd4092b6e7c7fdcb3fc47943f904b3",
+			"reviewed_at": "2026-07-07T12:52:06.051089795Z"
 		},
 		{
 			"function_name": "newRootCmd",

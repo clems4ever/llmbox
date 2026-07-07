@@ -140,11 +140,11 @@ firecracker-debian-assets: $(FC_BASE) $(FC_PAYLOAD) ## Pull-or-build the Debian 
 test-firecracker: firecracker-assets ## Build the firecracker artifacts if missing, then run the live conformance tests (needs KVM; see docs/firecracker.md).
 	PATH="$(dir $(FC_BIN)):$$PATH" \
 	LLMBOX_FC_KERNEL="$(FC_KERNEL)" LLMBOX_FC_ROOTFS="$(FC_ROOTFS)" \
-		go test -v ./internal/firecracker/ -run 'TestConformanceFirecracker|TestVMSurvivesRequestContextCancel'
+		go test -v ./internal/spoke/firecracker/ -run 'TestConformanceFirecracker|TestVMSurvivesRequestContextCancel'
 
 .PHONY: test-e2e
-test-e2e: ## Run the end-to-end browser tests (needs Chrome + chromedriver; see e2e/ and internal/server/admin_browser_e2e_test.go).
-	go test -tags e2e ./e2e/... ./internal/server/...
+test-e2e: ## Run the end-to-end browser tests (needs Chrome + chromedriver; see e2e/ and internal/hub/admin_browser_e2e_test.go).
+	go test -tags e2e ./e2e/... ./internal/hub/...
 
 .PHONY: test-e2e-cluster
 test-e2e-cluster: ## Run the hub-and-spoke clustering e2e test (no browser needed; see e2e/cluster/).

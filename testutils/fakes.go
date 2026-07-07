@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // FakeMgr is a stand-in for *docker.Manager: it records the calls it receives

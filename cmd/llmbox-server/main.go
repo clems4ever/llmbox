@@ -61,13 +61,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/clems4ever/llmbox/internal/auth"
-	"github.com/clems4ever/llmbox/internal/cli"
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/config"
-	"github.com/clems4ever/llmbox/internal/docker"
-	"github.com/clems4ever/llmbox/internal/hooks"
-	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/shared/cli"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/config"
+	"github.com/clems4ever/llmbox/internal/shared/hooks"
+	"github.com/clems4ever/llmbox/internal/spoke/docker"
 )
 
 const (
@@ -167,7 +167,7 @@ func run(parent context.Context, cfg *config.Config) error {
 			return err
 		}
 	}
-	store, err := server.OpenStore(cfg.StateFile)
+	store, err := hub.OpenStore(cfg.StateFile)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func run(parent context.Context, cfg *config.Config) error {
 	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := server.New(hookRunner, cfg.PublicURL, authTTL, store, authr)
+	srv := hub.New(hookRunner, cfg.PublicURL, authTTL, store, authr)
 	srv.SetBoxImage(boxImage)
 	srv.SetProxyBaseDomain(cfg.Proxy.BaseDomain)
 	if cfg.Proxy.BaseDomain != "" {

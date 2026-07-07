@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/clems4ever/llmbox/internal/mcpserver"
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // TestFakeBackend checks the fake records its inputs and returns the canned

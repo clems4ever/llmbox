@@ -8,7 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // fakeBackend is an in-memory Backend used to drive the tool handlers in

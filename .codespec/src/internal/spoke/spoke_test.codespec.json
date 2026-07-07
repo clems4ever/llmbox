@@ -15,14 +15,14 @@
 		{
 			"function_name": "seedJoinToken",
 			"documentation_hash": "252f316d63ae5c56d0a681e70869beea51e31d22039c09fc8e082fc7594db8d2",
-			"definition_hash": "66dc24447df02784db80294ccfc5b41b1c64279ade19c488092befa48878a601",
-			"reviewed_at": "2026-07-01T15:17:24.433072074Z"
+			"definition_hash": "fc4b543356b003b68afca3e2822f192a07427eda774a1c30a46dc55fea88919c",
+			"reviewed_at": "2026-07-07T12:52:06.068251038Z"
 		},
 		{
 			"function_name": "countJoinTokens",
 			"documentation_hash": "d7613dfca6f6aadc49cf43129e386cfd20acf399b88b8d0c6ca998b35ea3cf4b",
-			"definition_hash": "18dd22abc44f5cb34862e7c4d412675afc272d0bc463a51dbccf5ce41df3b8c3",
-			"reviewed_at": "2026-07-01T15:17:24.435187838Z"
+			"definition_hash": "be7a24f741eec9dae768543e079e92d1e3e3fe7d4a20f8e016e0e78bf001e9f3",
+			"reviewed_at": "2026-07-07T12:52:06.068797636Z"
 		},
 		{
 			"function_name": "TestListJoinTokensCmd",

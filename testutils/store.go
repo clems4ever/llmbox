@@ -3,12 +3,12 @@ package testutils
 import (
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/store"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/store"
 )
 
 // NoopStore is a store.Store that persists nothing: writes are dropped and reads
-// find nothing. Tests that don't exercise persistence pass it to server.New.
+// find nothing. Tests that don't exercise persistence pass it to hub.New.
 type NoopStore struct{}
 
 // Save discards the session.

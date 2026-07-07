@@ -10,8 +10,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/clems4ever/llmbox/internal/api"
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/api"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // The box-operation contract and its data types live in internal/api (the neutral

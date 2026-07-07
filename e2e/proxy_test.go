@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/server"
+	"github.com/clems4ever/llmbox/internal/hub"
 )
 
 // TestEndToEndProxy drives the HTTP-proxy feature end to end against the real
@@ -42,13 +42,13 @@ func TestEndToEndProxy(t *testing.T) {
 	}
 	base := "http://" + uiLn.Addr().String()
 
-	store, err := server.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
+	store, err := hub.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
 
-	srv := server.New(nil, base, 5*time.Minute, store, nil)
+	srv := hub.New(nil, base, 5*time.Minute, store, nil)
 	wireDefaultSpoke(t, srv, store, mgr)
 	srv.SetProxyBaseDomain("proxy.example.com")
 	httpSrv := &http.Server{Handler: srv.APIHandler()}

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/cluster"
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // TestFakeMgr checks FakeMgr satisfies cluster.BoxManager and that each verb

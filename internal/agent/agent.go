@@ -20,7 +20,7 @@ import (
 	"github.com/creack/pty"
 	"github.com/mdlayher/vsock"
 
-	"github.com/clems4ever/llmbox/internal/sandbox"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 const (
