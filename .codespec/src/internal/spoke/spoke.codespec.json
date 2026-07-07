@@ -39,8 +39,8 @@
 		{
 			"function_name": "runSpoke",
 			"documentation_hash": "e1e2528558d9197deb578e6ff9c3eec368d1d2e19cf2b5a25677b8b58d127f19",
-			"definition_hash": "bb4a42678c4d502e67a14130b36abe63eebe8c58052c1d0b6a14b30994da81cf",
-			"reviewed_at": "2026-07-07T10:38:54.03840451Z"
+			"definition_hash": "d5a037199338c615513d0c512076286dcecf41b4dce32726d0e6f43836fc05b4",
+			"reviewed_at": "2026-07-07T12:01:55.076798701Z"
 		},
 		{
 			"function_name": "checkStateWritable",

@@ -145,6 +145,24 @@ func TestOrasPullRejectsBadReference(t *testing.T) {
 	}
 }
 
+// TestHumanBytes checks byte counts format in binary units across boundaries.
+func TestHumanBytes(t *testing.T) {
+	for _, c := range []struct {
+		n    int64
+		want string
+	}{
+		{512, "512 B"},
+		{1024, "1.0 KiB"},
+		{1536, "1.5 KiB"},
+		{5 * 1024 * 1024, "5.0 MiB"},
+		{6 * 1024 * 1024 * 1024, "6.0 GiB"},
+	} {
+		if got := humanBytes(c.n); got != c.want {
+			t.Errorf("humanBytes(%d) = %q, want %q", c.n, got, c.want)
+		}
+	}
+}
+
 // TestAssetCacheDirHonoursEnv checks the cache dir honours the override env var.
 func TestAssetCacheDirHonoursEnv(t *testing.T) {
 	t.Setenv("LLMBOX_FC_ASSET_CACHE", "/custom/cache")

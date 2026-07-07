@@ -17,8 +17,8 @@
 			"function_name": "resolveImages",
 			"receiver": "assetResolver",
 			"documentation_hash": "8df825144e08b545191949b932d993a80502e133a9a8fa142728b3d1d1e7fb21",
-			"definition_hash": "f3ebd970543c16b6dc9d627a466dbf9dc73a46a99dfc64e3339842d4afb9ef96",
-			"reviewed_at": "2026-07-07T11:12:08.171382933Z"
+			"definition_hash": "b983e30cf150a03ff4439429044b78c348cab0f7a9c3177010b8fa360b77369b",
+			"reviewed_at": "2026-07-07T12:01:55.065039458Z"
 		},
 		{
 			"function_name": "credentialFor",
@@ -29,14 +29,20 @@
 		{
 			"function_name": "orasPull",
 			"documentation_hash": "367630ba01c65fa230e22a8daaac5a2b802f4c245cbca7fa17c5fdab26cc39e9",
-			"definition_hash": "7e964dff19b47d04c0a5f1a679e259f642c7a406cf6ebb158d66b2b3530534be",
-			"reviewed_at": "2026-07-07T11:13:54.810199648Z"
+			"definition_hash": "a425db8b238c00daea1175d3610f5e323db33b3aad6e3e417dc5e6c4ad32b9bb",
+			"reviewed_at": "2026-07-07T12:01:55.065463859Z"
 		},
 		{
 			"function_name": "assetCacheDir",
 			"documentation_hash": "ecd4846be87ced62012b617cf1618e8a7a2d1943b7cbcdd142306b0795df16f1",
 			"definition_hash": "d33a3f00902e25d37df4ef8770e9a62b526ff233e28da120de622780755749c7",
 			"reviewed_at": "2026-07-07T11:12:08.179642404Z"
+		},
+		{
+			"function_name": "humanBytes",
+			"documentation_hash": "92b4d9a606238d436c3d5f7cf4d96a3b9d40d55a74e656f6ad8f18251caef808",
+			"definition_hash": "8131450fe5c31d0ac0d1ce5732b568611bfabe2d38189d0b570e526152190357",
+			"reviewed_at": "2026-07-07T12:01:55.080438834Z"
 		}
 	]
 }

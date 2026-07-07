@@ -3,6 +3,7 @@ package firecracker
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/clems4ever/llmbox/internal/box/backend"
 )
@@ -49,6 +50,9 @@ func newBackend(opts backend.Options) (backend.Provisioner, error) {
 	// interface mid-request (which a browser aborts with ERR_NETWORK_CHANGED). This
 	// also surfaces a missing CAP_NET_ADMIN as a clear startup error rather than a
 	// confusing per-create failure. A no-op when egress is disabled.
+	if !opts.DisableEgress {
+		log.Printf("firecracker: provisioning egress network (needs CAP_NET_ADMIN / root; use --disable-egress for a control-only spoke)...")
+	}
 	if err := p.EnsureNetwork(context.Background()); err != nil {
 		return nil, fmt.Errorf("provisioning firecracker egress pool (need CAP_NET_ADMIN / root, or set disable_egress): %w", err)
 	}

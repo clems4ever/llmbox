@@ -3,11 +3,13 @@ package firecracker
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -123,6 +125,7 @@ func (r *assetResolver) resolve(ctx context.Context, a fcAsset) (string, error) 
 // @testcase TestResolveImagesPullsOnlyMissing leaves supplied paths untouched and pulls the rest.
 // @testcase TestResolveImagesPayloadCoupledToRootfs skips the payload when only the rootfs is supplied.
 func (r *assetResolver) resolveImages(ctx context.Context, kernel, rootfs, payload string) (string, string, string, error) {
+	log.Printf("firecracker: resolving guest images from %s (tag %s); first run downloads a multi-GiB base rootfs and may take a while", r.registry, r.tag)
 	var err error
 	if kernel == "" {
 		if kernel, err = r.resolve(ctx, kernelAsset); err != nil {
@@ -196,6 +199,7 @@ func orasPull(ctx context.Context, ref, destDir string, cred auth.CredentialFunc
 	}
 	marker := filepath.Join(destDir, ".oci-digest")
 	if cur, err := os.ReadFile(marker); err == nil && strings.TrimSpace(string(cur)) == desc.Digest.String() {
+		log.Printf("firecracker: %s is up to date (cached)", ref)
 		return nil // cache already current for this tag
 	}
 
@@ -204,11 +208,40 @@ func orasPull(ctx context.Context, ref, destDir string, cred auth.CredentialFunc
 		return err
 	}
 	defer func() { _ = fs.Close() }()
-	if _, err := oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions); err != nil {
+	// Log each carried file (the layers with a title) as it starts, with its size,
+	// so a first-run multi-GiB download is visibly in progress rather than a hang.
+	opts := oras.DefaultCopyOptions
+	opts.PreCopy = func(_ context.Context, d ocispec.Descriptor) error {
+		if title := d.Annotations[ocispec.AnnotationTitle]; title != "" {
+			log.Printf("firecracker: downloading %s (%s) from %s ...", title, humanBytes(d.Size), ref)
+		}
+		return nil
+	}
+	if _, err := oras.Copy(ctx, repo, tag, fs, tag, opts); err != nil {
 		return err
 	}
+	log.Printf("firecracker: %s ready", ref)
 	_ = os.WriteFile(marker, []byte(desc.Digest.String()), 0o644)
 	return nil
+}
+
+// humanBytes formats a byte count in binary units (KiB/MiB/GiB) for progress logs.
+//
+// @arg n A byte count.
+// @return string A human-readable size like "5.9 GiB".
+//
+// @testcase TestHumanBytes formats bytes across unit boundaries.
+func humanBytes(n int64) string {
+	const unit = 1024
+	if n < unit {
+		return fmt.Sprintf("%d B", n)
+	}
+	div, exp := int64(unit), 0
+	for m := n / unit; m >= unit; m /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
 }
 
 // assetCacheDir is where auto-resolved guest images are cached. It must survive
