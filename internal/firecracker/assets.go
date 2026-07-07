@@ -3,11 +3,15 @@ package firecracker
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -123,6 +127,7 @@ func (r *assetResolver) resolve(ctx context.Context, a fcAsset) (string, error) 
 // @testcase TestResolveImagesPullsOnlyMissing leaves supplied paths untouched and pulls the rest.
 // @testcase TestResolveImagesPayloadCoupledToRootfs skips the payload when only the rootfs is supplied.
 func (r *assetResolver) resolveImages(ctx context.Context, kernel, rootfs, payload string) (string, string, string, error) {
+	log.Printf("firecracker: resolving guest images from %s (tag %s); first run downloads a multi-GiB base rootfs and may take a while", r.registry, r.tag)
 	var err error
 	if kernel == "" {
 		if kernel, err = r.resolve(ctx, kernelAsset); err != nil {
@@ -196,6 +201,7 @@ func orasPull(ctx context.Context, ref, destDir string, cred auth.CredentialFunc
 	}
 	marker := filepath.Join(destDir, ".oci-digest")
 	if cur, err := os.ReadFile(marker); err == nil && strings.TrimSpace(string(cur)) == desc.Digest.String() {
+		log.Printf("firecracker: %s is up to date (cached)", ref)
 		return nil // cache already current for this tag
 	}
 
@@ -204,11 +210,127 @@ func orasPull(ctx context.Context, ref, destDir string, cred auth.CredentialFunc
 		return err
 	}
 	defer func() { _ = fs.Close() }()
-	if _, err := oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions); err != nil {
+	// Wrap the destination so each carried file (the layers with a title) streams
+	// through a progress bar as it is written — a first-run multi-GiB download is
+	// visibly moving rather than a single frozen "downloading…" line.
+	if _, err := oras.Copy(ctx, repo, tag, &progressTarget{Store: fs}, tag, oras.DefaultCopyOptions); err != nil {
 		return err
 	}
+	log.Printf("firecracker: %s ready", ref)
 	_ = os.WriteFile(marker, []byte(desc.Digest.String()), 0o644)
 	return nil
+}
+
+// progressTarget wraps an oras file store so that pushing a titled layer (a guest
+// image file, as opposed to the small manifest/config blobs) renders a download
+// progress bar as the bytes are written.
+type progressTarget struct {
+	*file.Store
+}
+
+// Push writes desc's content to the underlying store, streaming a titled layer
+// through a progress bar so a large download is visibly in progress.
+//
+// @arg ctx Context for the push.
+// @arg desc The descriptor being written; a title annotation marks a guest image file.
+// @arg content The content reader.
+// @error error if the underlying store push fails.
+//
+// @testcase TestProgressTargetPush writes a titled blob through the progress wrapper.
+func (t *progressTarget) Push(ctx context.Context, desc ocispec.Descriptor, content io.Reader) error {
+	if title := desc.Annotations[ocispec.AnnotationTitle]; title != "" && desc.Size > 0 {
+		log.Printf("firecracker: downloading %s (%s)...", title, humanBytes(desc.Size))
+		content = newProgressReader(content, desc.Size)
+	}
+	return t.Store.Push(ctx, desc, content)
+}
+
+// progressReader counts bytes read from an underlying reader and renders download
+// progress. On a terminal it draws an in-place bar (updated at most ~10×/s); when
+// stderr is redirected it logs a line at each new 10% so redirected output still
+// shows progress without carriage-return spam.
+type progressReader struct {
+	r          io.Reader
+	total      int64
+	read       int64
+	tty        bool
+	lastRender time.Time
+	lastDecile int
+}
+
+// newProgressReader wraps r to render progress toward total bytes, choosing a live
+// bar on a terminal or decile log lines otherwise.
+//
+// @arg r The underlying content reader.
+// @arg total The expected total byte count.
+// @return *progressReader A reader that renders progress as it is consumed.
+//
+// @testcase TestProgressReader passes bytes through unchanged while tracking progress.
+func newProgressReader(r io.Reader, total int64) *progressReader {
+	tty := false
+	if fi, err := os.Stderr.Stat(); err == nil {
+		tty = fi.Mode()&os.ModeCharDevice != 0
+	}
+	return &progressReader{r: r, total: total, tty: tty}
+}
+
+// Read reads from the underlying reader, updating the progress display. It returns
+// exactly what the underlying reader returns, so it is a transparent wrapper.
+//
+// @arg b The read buffer.
+// @return int The number of bytes read.
+// @error error the underlying reader's error (including io.EOF).
+//
+// @testcase TestProgressReader passes bytes through unchanged while tracking progress.
+func (p *progressReader) Read(b []byte) (int, error) {
+	n, err := p.r.Read(b)
+	if n > 0 {
+		p.read += int64(n)
+	}
+	done := err == io.EOF
+	frac := 1.0
+	if p.total > 0 && p.read < p.total {
+		frac = float64(p.read) / float64(p.total)
+	}
+	if p.tty {
+		if done || time.Since(p.lastRender) >= 100*time.Millisecond {
+			p.lastRender = time.Now()
+			const w = 30
+			filled := int(frac * w)
+			if filled > w {
+				filled = w
+			}
+			fmt.Fprintf(os.Stderr, "\r  [%s%s] %5.1f%% (%s / %s)",
+				strings.Repeat("=", filled), strings.Repeat(" ", w-filled),
+				frac*100, humanBytes(p.read), humanBytes(p.total))
+			if done {
+				fmt.Fprintln(os.Stderr)
+			}
+		}
+	} else if d := int(frac * 10); d > p.lastDecile {
+		p.lastDecile = d
+		log.Printf("firecracker:   %d%% (%s / %s)", d*10, humanBytes(p.read), humanBytes(p.total))
+	}
+	return n, err
+}
+
+// humanBytes formats a byte count in binary units (KiB/MiB/GiB) for progress logs.
+//
+// @arg n A byte count.
+// @return string A human-readable size like "5.9 GiB".
+//
+// @testcase TestHumanBytes formats bytes across unit boundaries.
+func humanBytes(n int64) string {
+	const unit = 1024
+	if n < unit {
+		return fmt.Sprintf("%d B", n)
+	}
+	div, exp := int64(unit), 0
+	for m := n / unit; m >= unit; m /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
 }
 
 // assetCacheDir is where auto-resolved guest images are cached. It must survive

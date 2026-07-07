@@ -458,6 +458,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// so they are attached to every box this spoke runs. The namespace scopes this
 	// spoke's boxes so two spokes can share one host without listing, reaping, or
 	// destroying each other's boxes.
+	log.Printf("initializing %s box backend (first run may fetch guest images and set up networking)...", o.backend)
 	prov, err := backend.New(o.backend, backend.Options{
 		SocketDir:        o.box.SocketDir,
 		Peers:            o.boxPeers,
@@ -514,6 +515,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	}
 	policy := cluster.ValidationPolicy{AllowedImages: o.allowedImages}
 
+	log.Printf("connecting to hub %s ...", hubURL)
 	backoff := time.Second
 	for {
 		err := cluster.Run(ctx, dial, mgr, token, creds, save, policy)

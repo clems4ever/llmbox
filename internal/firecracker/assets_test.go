@@ -1,14 +1,19 @@
 package firecracker
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
+	"github.com/opencontainers/go-digest"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
@@ -142,6 +147,71 @@ func TestCredentialForMatchesHost(t *testing.T) {
 func TestOrasPullRejectsBadReference(t *testing.T) {
 	if err := orasPull(context.Background(), "not a valid ref!!", t.TempDir(), nil); err == nil {
 		t.Fatal("orasPull should error on a malformed reference")
+	}
+}
+
+// TestProgressReader checks the progress wrapper is a transparent reader: it yields
+// exactly the underlying bytes and tracks the full total.
+func TestProgressReader(t *testing.T) {
+	data := bytes.Repeat([]byte("llmbox"), 5000) // ~30 KiB, several Read calls
+	pr := newProgressReader(bytes.NewReader(data), int64(len(data)))
+	got, err := io.ReadAll(pr)
+	if err != nil {
+		t.Fatalf("ReadAll: %v", err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Errorf("progress reader altered the stream (%d bytes vs %d)", len(got), len(data))
+	}
+	if pr.read != int64(len(data)) {
+		t.Errorf("tracked %d bytes, want %d", pr.read, len(data))
+	}
+}
+
+// TestProgressTargetPush checks the wrapping target still writes the blob to the
+// underlying file store (the progress wrapper does not corrupt the content).
+func TestProgressTargetPush(t *testing.T) {
+	dir := t.TempDir()
+	fs, err := file.New(dir)
+	if err != nil {
+		t.Fatalf("file.New: %v", err)
+	}
+	defer func() { _ = fs.Close() }()
+
+	data := []byte("a guest image blob")
+	desc := ocispec.Descriptor{
+		MediaType:   "application/octet-stream",
+		Digest:      digest.FromBytes(data),
+		Size:        int64(len(data)),
+		Annotations: map[string]string{ocispec.AnnotationTitle: "thing.ext4"},
+	}
+	pt := &progressTarget{Store: fs}
+	if err := pt.Push(context.Background(), desc, bytes.NewReader(data)); err != nil {
+		t.Fatalf("Push: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(dir, "thing.ext4"))
+	if err != nil {
+		t.Fatalf("read pushed file: %v", err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Errorf("pushed content = %q, want %q", got, data)
+	}
+}
+
+// TestHumanBytes checks byte counts format in binary units across boundaries.
+func TestHumanBytes(t *testing.T) {
+	for _, c := range []struct {
+		n    int64
+		want string
+	}{
+		{512, "512 B"},
+		{1024, "1.0 KiB"},
+		{1536, "1.5 KiB"},
+		{5 * 1024 * 1024, "5.0 MiB"},
+		{6 * 1024 * 1024 * 1024, "6.0 GiB"},
+	} {
+		if got := humanBytes(c.n); got != c.want {
+			t.Errorf("humanBytes(%d) = %q, want %q", c.n, got, c.want)
+		}
 	}
 }
 
