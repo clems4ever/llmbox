@@ -62,19 +62,19 @@ func TestCreateBoxRejectsDuplicateBoxIDSameSpoke(t *testing.T) {
 }
 
 // TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes checks box IDs are unique
-// hub-wide: a box ID taken on the local spoke cannot be reused on a remote spoke
-// (the per-spoke docker check would never catch this, since each spoke only sees
-// its own boxes).
+// hub-wide: a box ID taken on one spoke cannot be reused on another (the per-spoke
+// docker check would never catch this, since each spoke only sees its own boxes).
 func TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes(t *testing.T) {
-	remote := &testutils.FakeMgr{CreateID: "c-remote"}
-	hub := &testutils.FakeHub{Connected: map[string]boxManager{"remote1": remote}}
-	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "c-local"}, nil)
-	s.SetHub(hub)
+	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{
+		"one": &testutils.FakeMgr{CreateID: "c-one"},
+		"two": &testutils.FakeMgr{CreateID: "c-two"},
+	}})
 
-	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "dup"}); err != nil {
-		t.Fatalf("local create: %v", err)
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "dup", SpokeName: "one"}); err != nil {
+		t.Fatalf("first create: %v", err)
 	}
-	_, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "dup", SpokeName: "remote1"})
+	_, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "dup", SpokeName: "two"})
 	if err == nil {
 		t.Fatal("duplicate box ID on another spoke succeeded, want hub-wide rejection")
 	}
@@ -128,20 +128,24 @@ func TestLookupByBoxIDPrefersReachableSpoke(t *testing.T) {
 }
 
 // TestPruneDepartedSpokesRemovesStaleObjects checks the purge drops sessions and
-// proxies pinned to a spoke that has been de-enrolled, while keeping those on the
-// local spoke and on a still-enrolled spoke.
+// proxies pinned to a spoke that has been de-enrolled, while keeping those on a
+// connected spoke and on an enrolled-but-offline spoke.
 func TestPruneDepartedSpokesRemovesStaleObjects(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{}, nil)
-	// Clustering enabled: remote1 is enrolled and connected; ghost is neither.
+	// remote1 is enrolled and connected; kept1 is enrolled but offline; ghost is
+	// neither (departed).
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"remote1": &testutils.FakeMgr{}}})
 	if err := st.PutSpoke("remote1", cluster.SpokeRecord{Name: "remote1", EnrolledAt: time.Now()}); err != nil {
 		t.Fatalf("PutSpoke: %v", err)
 	}
+	if err := st.PutSpoke("kept1", cluster.SpokeRecord{Name: "kept1", EnrolledAt: time.Now()}); err != nil {
+		t.Fatalf("PutSpoke: %v", err)
+	}
 
-	seedSession(t, s, "tok-local", "box-local", "local")
+	seedSession(t, s, "tok-kept", "box-kept", "kept1")
 	seedSession(t, s, "tok-remote", "box-remote", "remote1")
 	seedSession(t, s, "tok-ghost", "box-ghost", "ghost") // departed: not enrolled
-	mustSaveProxy(t, st, "slug-local", "box-local", "local")
+	mustSaveProxy(t, st, "slug-kept", "box-kept", "kept1")
 	mustSaveProxy(t, st, "slug-remote", "box-remote", "remote1")
 	mustSaveProxy(t, st, "slug-ghost", "box-ghost", "ghost") // departed
 
@@ -153,12 +157,12 @@ func TestPruneDepartedSpokesRemovesStaleObjects(t *testing.T) {
 		t.Fatalf("purged = %v, want [box-ghost]", purged)
 	}
 
-	// Sessions: ghost gone; local and enrolled-remote kept.
+	// Sessions: ghost gone; enrolled-offline and enrolled-remote kept.
 	if s.lookupByBoxID("box-ghost") != nil {
 		t.Error("departed spoke's session was not purged")
 	}
-	if s.lookupByBoxID("box-local") == nil {
-		t.Error("local session was wrongly purged")
+	if s.lookupByBoxID("box-kept") == nil {
+		t.Error("enrolled-offline session was wrongly purged")
 	}
 	if s.lookupByBoxID("box-remote") == nil {
 		t.Error("enrolled remote session was wrongly purged")
@@ -176,7 +180,7 @@ func TestPruneDepartedSpokesRemovesStaleObjects(t *testing.T) {
 	}
 
 	// Proxies: ghost deleted; the others kept.
-	for slug, wantPresent := range map[string]bool{"slug-ghost": false, "slug-local": true, "slug-remote": true} {
+	for slug, wantPresent := range map[string]bool{"slug-ghost": false, "slug-kept": true, "slug-remote": true} {
 		_, ok, err := st.GetProxy(slug)
 		if err != nil {
 			t.Fatalf("GetProxy %q: %v", slug, err)

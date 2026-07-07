@@ -31,7 +31,7 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 	// Seed one box so the dashboard renders a Remove button; the fake manager's
 	// Destroy just records the id, so a successful click flashes "removed box foo".
 	f.ListResult = []sandbox.Box{{
-		BoxID: "foo", Spoke: "local", Image: "img", State: "running", Phase: "ready",
+		BoxID: "foo", Spoke: e2eDefaultSpoke, Image: "img", State: "running", Phase: "ready",
 	}}
 	cookie := signIn(t, st, true, false) // admin session "SID" with CSRF "CSRF"
 

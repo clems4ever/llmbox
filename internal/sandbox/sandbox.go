@@ -25,7 +25,7 @@ type Box struct {
 	Name        string `json:"name" jsonschema:"the backend instance name"`
 	BoxID       string `json:"box_id,omitempty" jsonschema:"the box ID the caller assigned, if any (also set as the box hostname)"`
 	Description string `json:"description,omitempty" jsonschema:"the caller-supplied description label, if any"`
-	Spoke       string `json:"spoke,omitempty" jsonschema:"the cluster spoke the box runs on; 'local' for the in-process spoke"`
+	Spoke       string `json:"spoke,omitempty" jsonschema:"the cluster spoke the box runs on"`
 	Image       string `json:"image" jsonschema:"the image or rootfs the box runs (may be empty for backends without an image concept)"`
 	State       string `json:"state" jsonschema:"the instance state, e.g. running or stopped"`
 	Status      string `json:"status" jsonschema:"a human readable status string"`
@@ -53,9 +53,9 @@ type CreateOptions struct {
 	// Description is a free-form label shown by list/get to help the caller tell
 	// boxes apart. It has no effect on the box itself.
 	Description string
-	// SpokeName selects which cluster spoke the box is created on (empty or
-	// "local" means the in-process spoke). It is routing metadata used by the
-	// server's cluster layer; the box backend itself ignores it.
+	// SpokeName selects which cluster spoke the box is created on (empty means the
+	// admin-chosen default spoke). It is routing metadata used by the server's
+	// cluster layer; the box backend itself ignores it.
 	SpokeName string
 	// Files are written into the box's filesystem after it is created but before
 	// it starts, so they are present when the entrypoint runs. Used to inject

@@ -1,12 +1,10 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -15,17 +13,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/store"
 )
 
-// boxDialer is the box-reachability capability the proxy needs from a spoke's
-// box manager: open a connection to a port inside a box. Only the in-process
-// *box.Manager implements it; a remote spoke does not (streaming a live
-// connection over the cluster transport is not yet supported), so proxying to a
-// box on a remote spoke is refused rather than silently mis-routed. Keeping this
-// a separate, optional interface (not part of cluster.BoxManager) preserves the
-// cluster protocol's fixed seven-verb allowlist.
+// boxDialer is the box-reachability capability the proxy needs from a spoke's box
+// manager: open a connection to a port inside a box. A remote spoke satisfies it
+// by opening a streaming tunnel over the cluster transport (cluster's remoteSpoke
+// implements DialBox), so the reverse proxy streams — WebSocket and SSE included.
+// Keeping this a separate, optional interface (not part of cluster.BoxManager)
+// preserves the cluster protocol's box-verb RPC allowlist.
 type boxDialer interface {
 	DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error)
 }
@@ -347,9 +343,8 @@ func (s *Server) proxyAuthorized(r *http.Request) (bool, int) {
 // handleProxy serves one request to a proxy sub-domain: it resolves the slug to
 // an enabled proxy, authorizes the caller, locates the box's spoke, and reverse
 // proxies the request to the box's port. It supports streaming, SSE, and
-// WebSocket upgrades (httputil.ReverseProxy handles them over the box dialer).
-// Proxying is only available for boxes on a spoke whose manager can dial boxes
-// (the in-process spoke); a box on a remote spoke is refused with 502.
+// WebSocket upgrades (httputil.ReverseProxy handles them over the box dialer's
+// live tunnel to the spoke). A spoke that cannot dial the box is refused with 502.
 //
 // @arg w The response writer.
 // @arg r The incoming request (its Host names the proxy).
@@ -358,8 +353,7 @@ func (s *Server) proxyAuthorized(r *http.Request) (bool, int) {
 // @testcase TestHandleProxyForwards proxies an authorized request to the box.
 // @testcase TestHandleProxyUnknownSlug 404s a slug with no proxy.
 // @testcase TestHandleProxyRequiresLogin 401s an unauthenticated request when auth is on.
-// @testcase TestHandleProxyRemoteSpokeForwards proxies a box on a remote spoke over the buffered path.
-// @testcase TestHandleProxyUnsupportedSpoke 502s a box on a spoke that supports neither path.
+// @testcase TestHandleProxyUnsupportedSpoke 502s a box on a spoke that cannot dial boxes.
 func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, slug string) {
 	rec, ok, err := s.store.GetProxy(slug)
 	if err != nil {
@@ -390,10 +384,9 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, slug string
 		http.Error(w, fmt.Sprintf("the box's spoke is not available: %v", err), http.StatusBadGateway)
 		return
 	}
-	// Pick the transport by how the box is reachable. A box on the local spoke is
-	// dialed directly, so the reverse proxy streams (WebSocket/SSE work). A box on
-	// a remote spoke is reached over the cluster transport with buffered
-	// request/response (ordinary HTTP and SPAs work; live streaming does not).
+	// The box is reached by dialing a live tunnel to its port through the spoke, so
+	// the reverse proxy streams (WebSocket/SSE work). A spoke whose manager cannot
+	// dial boxes is refused.
 	transport, ok := s.boxTransport(mgr, rec)
 	if !ok {
 		http.Error(w, "this box's spoke does not support proxying", http.StatusBadGateway)
@@ -411,91 +404,37 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, slug string
 }
 
 // boxTransport returns the http.RoundTripper the reverse proxy uses to reach a
-// box, chosen by the spoke's capability: a local-spoke manager that can dial the
-// box yields a streaming transport; a remote spoke yields a buffered transport
-// that round-trips each request over the cluster's proxy_http verb. The second
-// result is false when the spoke supports neither (so proxying is refused).
+// box: a streaming transport whose every dial opens a live tunnel to the box's
+// port through the spoke. The second result is false when the spoke's manager
+// cannot dial boxes (so proxying is refused).
 //
 // @arg mgr The resolved spoke's box manager.
 // @arg rec The proxy record naming the target box and port.
 // @return http.RoundTripper The transport reaching the box, or nil when unsupported.
 // @return bool True when the spoke supports proxying.
 //
-// @testcase TestHandleProxyForwards uses the local streaming transport.
+// @testcase TestHandleProxyForwards uses the streaming transport.
 // @testcase TestHandleProxyDialsByContainerID dials the box by container ID, not box ID.
-// @testcase TestHandleProxyRemoteSpokeForwards uses the remote buffered transport.
-// @testcase TestHandleProxyUnsupportedSpoke returns false when neither path is available.
+// @testcase TestHandleProxyUnsupportedSpoke returns false when the spoke cannot dial boxes.
 func (s *Server) boxTransport(mgr boxManager, rec store.ProxyRecord) (http.RoundTripper, bool) {
-	if dialer, ok := mgr.(boxDialer); ok {
-		// Every outbound dial goes to the box itself, regardless of the synthetic
-		// target host — the box has no host-published port, so it is reached through
-		// the spoke's box dialer. This keeps the connection live (streaming).
-		//
-		// Dial by ContainerID, not BoxID: the docker manager resolves boxes through
-		// findManaged, which matches the container ID/name — never the user-facing
-		// box-id label. A box whose box ID differs from its container ID (any box
-		// created with a custom box ID) would otherwise fail with "no managed box
-		// matches <box-id>".
-		return &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return dialer.DialBox(ctx, rec.ContainerID, rec.Port)
-			},
-			ResponseHeaderTimeout: 60 * time.Second,
-		}, true
+	dialer, ok := mgr.(boxDialer)
+	if !ok {
+		return nil, false
 	}
-	if proxier, ok := mgr.(cluster.HTTPProxier); ok {
-		// As above, the remote spoke resolves the target via its own findManaged, so
-		// it must receive the container ID, not the box ID.
-		return &clusterProxyTransport{proxier: proxier, boxID: rec.ContainerID, port: rec.Port}, true
-	}
-	return nil, false
-}
-
-// clusterProxyTransport is an http.RoundTripper that forwards a request to a box
-// on a remote spoke over the cluster's buffered proxy_http verb. It reads the
-// whole request body, round-trips it, and rebuilds an *http.Response from the
-// buffered reply — so it carries ordinary request/response traffic but not live
-// streaming (WebSocket/SSE) to a remote box.
-type clusterProxyTransport struct {
-	proxier cluster.HTTPProxier
-	boxID   string
-	port    int
-}
-
-// RoundTrip buffers the request, forwards it over the cluster transport, and
-// returns the box's response.
-//
-// @arg req The outgoing request (its body is read and buffered).
-// @return *http.Response The box's response, rebuilt from the buffered reply.
-// @error error if the request body cannot be read or the cluster call fails.
-//
-// @testcase TestHandleProxyRemoteSpokeForwards round-trips a request through this transport.
-func (t *clusterProxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	var body []byte
-	if req.Body != nil {
-		b, err := io.ReadAll(req.Body)
-		_ = req.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("reading request body: %w", err)
-		}
-		body = b
-	}
-	status, header, respBody, err := t.proxier.ProxyHTTP(req.Context(), t.boxID, t.port, req.Method, req.URL.RequestURI(), req.Header, body)
-	if err != nil {
-		return nil, err
-	}
-	if header == nil {
-		header = http.Header{}
-	}
-	return &http.Response{
-		StatusCode:    status,
-		Status:        fmt.Sprintf("%d %s", status, http.StatusText(status)),
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		Header:        header,
-		Body:          io.NopCloser(bytes.NewReader(respBody)),
-		ContentLength: int64(len(respBody)),
-		Request:       req,
-	}, nil
+	// Every outbound dial goes to the box itself, regardless of the synthetic
+	// target host — the box has no host-published port, so it is reached through the
+	// spoke's box dialer (a live tunnel over the cluster transport). This keeps the
+	// connection streaming, so WebSocket and SSE work.
+	//
+	// Dial by ContainerID, not BoxID: the docker manager resolves boxes through
+	// findManaged, which matches the container ID/name — never the user-facing
+	// box-id label. A box whose box ID differs from its container ID (any box
+	// created with a custom box ID) would otherwise fail with "no managed box
+	// matches <box-id>".
+	return &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return dialer.DialBox(ctx, rec.ContainerID, rec.Port)
+		},
+		ResponseHeaderTimeout: 60 * time.Second,
+	}, true
 }

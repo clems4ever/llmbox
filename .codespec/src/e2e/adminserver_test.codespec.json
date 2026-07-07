@@ -3,14 +3,20 @@
 		{
 			"function_name": "newAdminServer",
 			"documentation_hash": "9f55c90db11b8c1cc74352a91fc408ce48b3358405713ea46f5624c6bfe8b353",
-			"definition_hash": "c44c477b77175dcda5f84d6019bf79354160b0b9e6fb09fb13fb377e6281d874",
-			"reviewed_at": "2026-06-30T21:43:55.435194445Z"
+			"definition_hash": "33c7110b650443b5ee66450837f3fbbcb13e1a60e2eabc4ec7b6fdef303a2f60",
+			"reviewed_at": "2026-07-07T08:15:52.541226982Z"
 		},
 		{
 			"function_name": "signIn",
 			"documentation_hash": "64a2fbc641867d549ebc4bdd11729a7d3e8c96db05f8e711b1ca2fe2a416c685",
 			"definition_hash": "745240f86cb95e6921f1a35f0612308ca31569f48dfc4b89aa4d7cb7cb2d4762",
 			"reviewed_at": "2026-06-27T11:22:56.372738145Z"
+		},
+		{
+			"function_name": "wireDefaultSpoke",
+			"documentation_hash": "182e3cceb10af5ab08d49eb942ff2bb2fe45b44f3c03929a604e94ec9b05ed52",
+			"definition_hash": "cbd7bf6b7cd9b1abb55e03dccd41c617aa433ff3aa3a7e96166d33d6c1e28991",
+			"reviewed_at": "2026-07-07T08:15:52.540729774Z"
 		}
 	]
 }

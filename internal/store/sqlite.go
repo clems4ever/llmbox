@@ -69,6 +69,10 @@ CREATE TABLE IF NOT EXISTS proxies (
 	created_by   TEXT NOT NULL,
 	description  TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS settings (
+	key   TEXT PRIMARY KEY,
+	value TEXT NOT NULL
+);
 `
 
 // sqliteStore is a Store backed by a single SQLite database file via the pure-Go
@@ -654,4 +658,41 @@ func (s *sqliteStore) DeleteProxy(slug string) error {
 		return fmt.Errorf("deleting proxy: %w", err)
 	}
 	return nil
+}
+
+// PutSetting writes (creating or replacing) the value for a settings key.
+//
+// @arg key The setting key.
+// @arg value The value to store.
+// @error error if the write fails.
+//
+// @testcase TestSettingsStoreRoundTrip stores a setting and reads it back.
+func (s *sqliteStore) PutSetting(key, value string) error {
+	_, err := s.db.Exec(`
+		INSERT INTO settings (key, value) VALUES (?, ?)
+		ON CONFLICT(key) DO UPDATE SET value=excluded.value`, key, value)
+	if err != nil {
+		return fmt.Errorf("saving setting %q: %w", key, err)
+	}
+	return nil
+}
+
+// GetSetting returns the value for a settings key.
+//
+// @arg key The setting key to look up.
+// @return string The stored value when key is set.
+// @return bool True when key is set, false otherwise.
+// @error error if the query fails.
+//
+// @testcase TestSettingsStoreRoundTrip reads back a stored setting and misses an unset key.
+func (s *sqliteStore) GetSetting(key string) (string, bool, error) {
+	var value string
+	err := s.db.QueryRow(`SELECT value FROM settings WHERE key = ?`, key).Scan(&value)
+	if err == sql.ErrNoRows {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("reading setting %q: %w", key, err)
+	}
+	return value, true, nil
 }

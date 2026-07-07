@@ -3,22 +3,22 @@
 		{
 			"function_name": "newRemoteSpoke",
 			"documentation_hash": "872af5a0f2a4c9fbe5afa70273202e7179078a6142f310fe9741417933263321",
-			"definition_hash": "69d47ec6a113256e798473423af934c5bf3cd7d08a7e56667d7a36f22fd0439d",
-			"reviewed_at": "2026-06-27T17:27:56.717261535Z"
+			"definition_hash": "500ca4e4d1387c6cfadbd8fbb03bdce6f2cca7e084a97d55e92ff519a45c8ee0",
+			"reviewed_at": "2026-07-07T08:15:52.560353097Z"
 		},
 		{
 			"function_name": "readLoop",
 			"receiver": "remoteSpoke",
 			"documentation_hash": "6daaee3a89534e438c145c72b5e525c1e1f33cfd09a7d99600af554c433685b9",
-			"definition_hash": "84f6f9df937c44cd59c1e373a1cb181f2ebaf5c185b96e02d01fa3d5e0bcaabc",
-			"reviewed_at": "2026-06-27T17:27:56.717939734Z"
+			"definition_hash": "e2fdd3389831505edda9c85387eff04e8878dbf381ef36966b0ee020279cd78d",
+			"reviewed_at": "2026-07-07T08:15:52.561004821Z"
 		},
 		{
 			"function_name": "shutdown",
 			"receiver": "remoteSpoke",
 			"documentation_hash": "0ffdb5ce74b096ae021cfb49062948505a3a19667129311bf722601cf0b6b718",
-			"definition_hash": "a7bd7df4721137a2e1ca1ecf586717016310641f322d85d743865918bc7a2043",
-			"reviewed_at": "2026-06-27T17:27:56.727283572Z"
+			"definition_hash": "c34643874eddb8744cfaca3a17c8bf16c6e46a9496e159e98531556d45b5edfb",
+			"reviewed_at": "2026-07-07T08:15:52.561532761Z"
 		},
 		{
 			"function_name": "Done",
@@ -84,18 +84,25 @@
 			"reviewed_at": "2026-06-29T15:39:25.034052687Z"
 		},
 		{
-			"function_name": "ProxyHTTP",
-			"receiver": "remoteSpoke",
-			"documentation_hash": "1d1cae19babc2c1401457db4bc6af4793984663d55f9f86108aea0c862d0b371",
-			"definition_hash": "0ff1f62fb5b739e4c99c5ead065216d1fb243bf3719490c463b0d178f3f870b3",
-			"reviewed_at": "2026-06-27T17:27:56.731194847Z"
-		},
-		{
 			"function_name": "ReapOrphans",
 			"receiver": "remoteSpoke",
 			"documentation_hash": "9673653f4182211a29f5d3b2d7262b950407d20479436afc9ada714d5c391b24",
 			"definition_hash": "c0e9cabf554141cfce36839f282f3c17720acaa8f7be3880ad31864321dc29d9",
 			"reviewed_at": "2026-06-27T17:27:56.731552335Z"
+		},
+		{
+			"function_name": "DialBox",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "f6a074e727a99c84456076c356d4f8f65abc88f729715888c4df5f40f6fa4767",
+			"definition_hash": "549c8a722ed223b879d3386a29f5798ffbb3a5999c81b8366f8bcff4812d8ab1",
+			"reviewed_at": "2026-07-07T08:15:52.56211199Z"
+		},
+		{
+			"function_name": "unregisterStream",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "906d5c45d43ba6a3e3ac71962a1b764bfe7b7a97ff267e26ae88dd052d6b1d18",
+			"definition_hash": "05c3260387ce1438b5a3babedd81de9cb39ac47680dca15701e7fd504274eaec",
+			"reviewed_at": "2026-07-07T08:15:52.562733755Z"
 		}
 	]
 }

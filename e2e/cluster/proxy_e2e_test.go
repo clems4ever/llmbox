@@ -16,11 +16,11 @@ import (
 )
 
 // TestProxyThroughSpoke exercises the HTTP-proxy feature against a box on a REAL
-// remote spoke: the request travels browser → hub → over the live WebSocket
-// (the proxy_http verb) → spoke → the box's server, and the response comes back
-// the same way. Only the box's Docker layer is simulated (the spoke dials a real
-// loopback server standing in for the in-box HTTP server); the hub, enrollment,
-// WebSocket transport, routing, and reverse proxy are all real.
+// remote spoke: the request travels browser → hub → over the live WebSocket (a
+// streaming stream_open/stream_data tunnel) → spoke → the box's server, and the
+// response streams back the same way. Only the box's Docker layer is simulated
+// (the spoke dials a real loopback server standing in for the in-box HTTP server);
+// the hub, enrollment, WebSocket transport, routing, and reverse proxy are all real.
 func TestProxyThroughSpoke(t *testing.T) {
 	// The "server running inside the box": a real loopback HTTP server the spoke's
 	// DialBox points at.

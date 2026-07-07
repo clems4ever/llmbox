@@ -3,8 +3,8 @@
 		{
 			"function_name": "newAuthServer",
 			"documentation_hash": "9c3ec3ce829c6bef4c95fd1715e20c7408f74fd64a267c121bf499dcf3894436",
-			"definition_hash": "a4cd3481190d68e5449ede1621f2b475cedf466099bcf87adc55136cc418470b",
-			"reviewed_at": "2026-06-30T21:45:26.179101735Z"
+			"definition_hash": "b9798543cfeffb93de625d316f7f636b2b164f431f58963fe0436be309aea3e2",
+			"reviewed_at": "2026-07-07T08:15:52.57602702Z"
 		},
 		{
 			"function_name": "TestAuthPageRequiresLogin",

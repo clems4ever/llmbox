@@ -41,9 +41,8 @@ type clusterFixture struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	store    server.Store
-	srv      *server.Server
-	localMgr *fakeSpokeMgr
+	store server.Store
+	srv   *server.Server
 
 	baseURL string // http://host:port of the UI/API server
 	wsURL   string // ws://host:port/spoke/connect
@@ -70,10 +69,9 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 
-	localMgr := newFakeSpokeMgr("local")
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	hub := cluster.NewHub(ctx, store, nil, nil)
-	srv := server.New(localMgr, nil, "http://placeholder", 5*time.Minute, store, a)
+	srv := server.New(nil, "http://placeholder", 5*time.Minute, store, a)
 	srv.SetHub(hub)
 	// The hub is the sole source of the box image: it stamps this onto every
 	// create so config-free spokes launch exactly what they are sent.
@@ -93,15 +91,14 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	t.Cleanup(func() { _ = apiSrv.Close() })
 
 	f := &clusterFixture{
-		t:        t,
-		ctx:      ctx,
-		cancel:   cancel,
-		store:    store,
-		srv:      srv,
-		localMgr: localMgr,
-		baseURL:  "http://" + addr,
-		wsURL:    "ws://" + addr + "/spoke/connect",
-		client:   &http.Client{},
+		t:       t,
+		ctx:     ctx,
+		cancel:  cancel,
+		store:   store,
+		srv:     srv,
+		baseURL: "http://" + addr,
+		wsURL:   "ws://" + addr + "/spoke/connect",
+		client:  &http.Client{},
 	}
 	waitHealthy(t, f.baseURL)
 	f.signInAdmin()

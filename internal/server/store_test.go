@@ -13,7 +13,7 @@ import (
 // TestServerWithoutStore checks the server functions with a no-op store.
 func TestServerWithoutStore(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
-	s := New(f, nil, "https://boxes.example.com", time.Minute, testutils.NoopStore{}, nil)
+	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
@@ -34,7 +34,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	defer st.Close()
 
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?z=1", SubmitURL: "https://claude.ai/code/s/1"}
-	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
+	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, nil), f)
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "h", Description: "d"})
 	if err != nil {
@@ -81,7 +81,7 @@ func TestRestoreLoadsAndReconciles(t *testing.T) {
 
 	// Docker only reports the live box (short 12-char ID).
 	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa"}}}
-	s := New(f, nil, "https://boxes.example.com", time.Minute, st, nil)
+	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, nil), f)
 
 	n, err := s.Restore(context.Background())
 	if err != nil {

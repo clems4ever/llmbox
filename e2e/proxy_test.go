@@ -48,7 +48,8 @@ func TestEndToEndProxy(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 
-	srv := server.New(mgr, nil, base, 5*time.Minute, store, nil)
+	srv := server.New(nil, base, 5*time.Minute, store, nil)
+	wireDefaultSpoke(t, srv, store, mgr)
 	srv.SetProxyBaseDomain("proxy.example.com")
 	httpSrv := &http.Server{Handler: srv.APIHandler()}
 	go func() { _ = httpSrv.Serve(uiLn) }()

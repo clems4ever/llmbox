@@ -61,7 +61,8 @@ func TestEndToEndWorkflow(t *testing.T) {
 	t.Cleanup(func() { _ = store.Close() })
 
 	// public_url is the server base, so the auth links the user follows live there.
-	srv := server.New(mgr, nil, base, 5*time.Minute, store, nil)
+	srv := server.New(nil, base, 5*time.Minute, store, nil)
+	wireDefaultSpoke(t, srv, store, mgr)
 	httpSrv := &http.Server{Handler: srv.APIHandler()}
 	go func() { _ = httpSrv.Serve(uiLn) }()
 	t.Cleanup(func() { _ = httpSrv.Close() })

@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "startSpoke",
-			"documentation_hash": "9bbc03352a790da308b4d0d4b249ee9d316b28f3f9169aa5188962d129f2efb7",
-			"definition_hash": "a54639c695b64a46e248c914f27793b5094916c3b8933e248f8d16c36f215bb8",
-			"reviewed_at": "2026-06-19T20:33:58.629575263Z"
+			"documentation_hash": "0efb49a2c0f1a706e4fbe1f6ebe773b668eb9d046843c2d35c2849c96f10d1ad",
+			"definition_hash": "e8ade2b0a7289f1129b5fbf5ce4fba1b14a06f771dd86cc1839a7dc3ed1c86d5",
+			"reviewed_at": "2026-07-07T08:15:52.5631676Z"
 		},
 		{
 			"function_name": "TestRemoteSpokeRoundTrip",

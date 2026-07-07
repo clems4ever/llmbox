@@ -4,8 +4,8 @@
 			"function_name": "registerAdminRoutes",
 			"receiver": "Server",
 			"documentation_hash": "5d0fd1d0e760908f9f9d90e8fbd996f0f1bc7ad8d6b7425099b1fac98dbab1bf",
-			"definition_hash": "630159709f9a4700b73815b993f7e30d2ff070b72e91d06eef9bb6268d3a9c0d",
-			"reviewed_at": "2026-06-27T17:02:38.530901469Z"
+			"definition_hash": "9a1d4898f6c3dd527515b15e058bace20da0ea749e6220b2aa25687a79e47066",
+			"reviewed_at": "2026-07-07T08:15:52.565198272Z"
 		},
 		{
 			"function_name": "handleAdmin",
@@ -18,8 +18,8 @@
 			"function_name": "adminDashboard",
 			"receiver": "Server",
 			"documentation_hash": "98837fe4f193d291be7463599a66299f9fe6221d93dcb799bbeb01c8416a7d38",
-			"definition_hash": "9b1803e8b24c0ff805b4cca0624e0ee91ae39ef179006eaea7a0f8b21eb0fa9f",
-			"reviewed_at": "2026-06-27T17:02:38.531686076Z"
+			"definition_hash": "d4fc5a15d058b4a0c62ba9fa3c5631858e1bef5def31d4f0af60aa752c36731a",
+			"reviewed_at": "2026-07-07T08:15:52.565979931Z"
 		},
 		{
 			"function_name": "toAdminTokens",
@@ -51,8 +51,8 @@
 			"function_name": "handleAdminDropSpoke",
 			"receiver": "Server",
 			"documentation_hash": "5ff4d5df300dc0fce5c9c4376b81ba04a603cd648f934ce7d719d5f99ad9f423",
-			"definition_hash": "984150a7968f1299b403f1c5fb62a6cb2349ca37d730bd0e8b2b32104233a572",
-			"reviewed_at": "2026-06-25T09:38:26.195055785Z"
+			"definition_hash": "adc2898352642d060a7e79b8a091c52ecb9f1ead06ece7512c09c4813efc290f",
+			"reviewed_at": "2026-07-07T08:15:52.567139597Z"
 		},
 		{
 			"function_name": "handleAdminRevokeToken",
@@ -134,6 +134,13 @@
 			"documentation_hash": "e199e3679d288596286ae423f3ba0695687414c4d96dc47b711f6a6f2c3d70df",
 			"definition_hash": "d42acfa57102cef37bb3b9bf2025ae5e7cb87634fe8716dead6190fcbace5120",
 			"reviewed_at": "2026-06-27T17:02:38.534213994Z"
+		},
+		{
+			"function_name": "handleAdminSetDefaultSpoke",
+			"receiver": "Server",
+			"documentation_hash": "93c83557dbab3bb3c394bb9fb26d09a5a1adbe44fbcf37bd8ba82a8d06a56882",
+			"definition_hash": "4a8cacdfe3b02b1d3221e07b329fb2fdbc7d36730392b453850ee422f70222fb",
+			"reviewed_at": "2026-07-07T08:15:52.568015821Z"
 		}
 	]
 }

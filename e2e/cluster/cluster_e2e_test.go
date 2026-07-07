@@ -39,7 +39,7 @@ import (
 //  1. the operator mints a one-time join token for spoke "edge";
 //  2. a spoke dials the hub over a WebSocket and enrolls with that token;
 //  3. the chatbot creates a box over MCP with spoke="edge"; the box lands on the
-//     spoke's (simulated) Docker layer, not the hub's local one;
+//     spoke's (simulated) Docker layer;
 //  4. list/exec/destroy over MCP all route to that spoke;
 //  5. the join token is one-time: a second enrollment with it is rejected.
 func TestClusterEndToEnd(t *testing.T) {
@@ -57,10 +57,10 @@ func TestClusterEndToEnd(t *testing.T) {
 		t.Fatalf("create join token: %v", err)
 	}
 
-	// The hub: real server with clustering enabled, on a real listener.
-	localMgr := newFakeSpokeMgr("local")
+	// The hub: real server with clustering enabled, on a real listener. It runs no
+	// box backend of its own — every box runs on a remote spoke.
 	hub := cluster.NewHub(ctx, store, nil, nil)
-	srv := server.New(localMgr, nil, "http://placeholder", 5*time.Minute, store, nil)
+	srv := server.New(nil, "http://placeholder", 5*time.Minute, store, nil)
 	srv.SetHub(hub)
 	// The hub is the sole source of the box image: it stamps this onto every
 	// create so config-free spokes (which hold no default of their own) launch
@@ -109,12 +109,9 @@ func TestClusterEndToEnd(t *testing.T) {
 	if containerID == "" {
 		t.Fatalf("create_llmbox returned no instance_id: %v", createOut)
 	}
-	// The box must have been created on the spoke, not the hub's local manager.
+	// The box must have been created on the spoke.
 	if edgeMgr.creates() != 1 {
 		t.Errorf("edge spoke creates = %d, want 1", edgeMgr.creates())
-	}
-	if localMgr.creates() != 0 {
-		t.Errorf("local spoke creates = %d, want 0 (box should not run locally)", localMgr.creates())
 	}
 	// The spoke launched the image the hub resolved and sent, not one of its own.
 	if got := edgeMgr.image(); got != "box:e2e" {
@@ -127,13 +124,10 @@ func TestClusterEndToEnd(t *testing.T) {
 		t.Fatalf("list shows box b1 on spoke %q, want edge", spoke)
 	}
 
-	// list_spokes reports the edge spoke (and the local spoke) as connected.
+	// list_spokes reports the edge spoke as connected.
 	spokesOut := callTool(t, cs, "list_spokes", map[string]any{})
 	if !spokeConnected(spokesOut, "edge") {
 		t.Fatalf("list_spokes does not show edge connected: %v", spokesOut)
-	}
-	if !spokeConnected(spokesOut, "local") {
-		t.Fatalf("list_spokes does not show the local spoke connected: %v", spokesOut)
 	}
 
 	// exec routes to the spoke.

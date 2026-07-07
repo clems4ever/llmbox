@@ -9,10 +9,36 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/auth"
+	"github.com/clems4ever/llmbox/internal/cluster"
 	"github.com/clems4ever/llmbox/internal/server"
 	"github.com/clems4ever/llmbox/internal/store"
 	"github.com/clems4ever/llmbox/testutils"
 )
+
+// e2eDefaultSpoke is the spoke the plain (non-cluster) e2e servers register their
+// fake box manager under and set as the default, so a box created with no explicit
+// spoke routes to it.
+const e2eDefaultSpoke = "spoke-e2e"
+
+// wireDefaultSpoke registers mgr as the single connected spoke, enrolls it in the
+// store, and makes it the default, so the hub-less-backend server routes an
+// unqualified box create to it. Use it for the plain e2e servers that stand in a
+// single fake box manager for the whole cluster.
+//
+// @arg t The test the wiring is scoped to.
+// @arg srv The server to attach the hub and default to.
+// @arg st The server's store (for enrolling the spoke).
+// @arg mgr The box manager to serve as the default spoke.
+func wireDefaultSpoke(t *testing.T, srv *server.Server, st server.Store, mgr cluster.BoxManager) {
+	t.Helper()
+	srv.SetHub(&testutils.FakeHub{Connected: map[string]cluster.BoxManager{e2eDefaultSpoke: mgr}})
+	if err := st.PutSpoke(e2eDefaultSpoke, cluster.SpokeRecord{Name: e2eDefaultSpoke, EnrolledAt: time.Now()}); err != nil {
+		t.Fatalf("PutSpoke: %v", err)
+	}
+	if err := srv.SetDefaultSpoke(e2eDefaultSpoke); err != nil {
+		t.Fatalf("SetDefaultSpoke: %v", err)
+	}
+}
 
 // newAdminServer builds an admin-enabled Server (admin@corp.com on the allow
 // list) backed by a real SQLite store and a fake box manager, using the exported
@@ -31,7 +57,9 @@ func newAdminServer(t *testing.T) (*server.Server, *testutils.FakeMgr, server.St
 	t.Cleanup(func() { _ = st.Close() })
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/x", SubmitURL: "https://claude.ai/code/s/1"}
-	return server.New(f, nil, "https://boxes.example.com", time.Minute, st, a), f, st
+	srv := server.New(nil, "https://boxes.example.com", time.Minute, st, a)
+	wireDefaultSpoke(t, srv, st, f)
+	return srv, f, st
 }
 
 // signIn stores a login session and returns its cookie. admin/activate control

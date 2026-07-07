@@ -12,14 +12,14 @@ import (
 )
 
 // startSpoke wires a remoteSpoke (hub side) to a serve loop (spoke side) backed
-// by fake over an in-memory pipe, and returns the remoteSpoke. It cancels the
+// by mgr over an in-memory pipe, and returns the remoteSpoke. It cancels the
 // serve loop on test cleanup.
-func startSpoke(t *testing.T, fake *fakeManager) *remoteSpoke {
+func startSpoke(t *testing.T, mgr BoxManager) *remoteSpoke {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	hubEnd, spokeEnd := newPipe()
-	go func() { _ = serve(ctx, spokeEnd, fake, ValidationPolicy{}) }()
+	go func() { _ = serve(ctx, spokeEnd, mgr, ValidationPolicy{}) }()
 	rs := newRemoteSpoke("s", hubEnd)
 	t.Cleanup(func() { _ = rs.Close() })
 	return rs

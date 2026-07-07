@@ -205,13 +205,13 @@ type TLSConfig struct {
 	KeyFile string `yaml:"key_file"`
 }
 
-// ClusterConfig enables hub-and-spoke clustering on the hub. When enabled, the
-// server exposes the /spoke/connect endpoint so remote spokes (started with
-// `llmbox spoke`) can join and run boxes; boxes still default to the in-process
-// "local" spoke. The `llmbox spoke` command has its own flags and does not read
+// ClusterConfig configures the hub-and-spoke cluster. The hub always exposes the
+// /spoke/connect endpoint so remote spokes (started with `llmbox spoke`) can join
+// and run boxes — the hub runs no box backend itself, so a box created with no
+// spoke runs on the default spoke an admin picks in the UI (a DB setting, not
+// configured here). The `llmbox spoke` command has its own flags and does not read
 // this block.
 type ClusterConfig struct {
-	Enabled bool `yaml:"enabled"`
 	// SpokeImage is the llmbox container image shown in the admin UI's
 	// ready-to-run spoke command (defaults to DefaultSpokeImage). It does not
 	// affect how spokes run — it is purely the image named in that copy-paste

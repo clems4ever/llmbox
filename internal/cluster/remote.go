@@ -3,7 +3,7 @@ package cluster
 import (
 	"context"
 	"errors"
-	"net/http"
+	"net"
 	"sync"
 	"time"
 
@@ -25,7 +25,8 @@ type remoteSpoke struct {
 
 	mu       sync.Mutex
 	nextID   uint64
-	pending  map[uint64]chan frame
+	pending  map[uint64]chan frame    // in-flight verb calls, by ID
+	streams  map[uint64]*clientStream // live proxy tunnels, by stream ID
 	closed   bool
 	closeErr error
 }
@@ -46,6 +47,7 @@ func newRemoteSpoke(name string, tr transport) *remoteSpoke {
 		tr:      tr,
 		done:    make(chan struct{}),
 		pending: make(map[uint64]chan frame),
+		streams: make(map[uint64]*clientStream),
 	}
 	go r.readLoop()
 	return r
@@ -62,16 +64,37 @@ func (r *remoteSpoke) readLoop() {
 			r.shutdown(err)
 			return
 		}
-		// Only responses are expected on the hub side; ignore anything else.
-		if f.Type != frameResp && f.Type != frameErr {
-			continue
-		}
-		r.mu.Lock()
-		ch := r.pending[f.ID]
-		delete(r.pending, f.ID)
-		r.mu.Unlock()
-		if ch != nil {
-			ch <- f // buffered (cap 1), so this never blocks
+		switch f.Type {
+		case frameResp, frameErr:
+			// A verb response: hand it to the waiting caller.
+			r.mu.Lock()
+			ch := r.pending[f.ID]
+			delete(r.pending, f.ID)
+			r.mu.Unlock()
+			if ch != nil {
+				ch <- f // buffered (cap 1), so this never blocks
+			}
+		case frameStreamData:
+			r.mu.Lock()
+			cs := r.streams[f.ID]
+			r.mu.Unlock()
+			if cs != nil {
+				cs.push(f.Data)
+			}
+		case frameStreamClose:
+			r.mu.Lock()
+			cs := r.streams[f.ID]
+			delete(r.streams, f.ID)
+			r.mu.Unlock()
+			if cs != nil {
+				var cause error
+				if f.Error != "" {
+					cause = errors.New(f.Error)
+				}
+				cs.closeRemote(cause)
+			}
+		default:
+			// Enroll/welcome/req are never received on the hub side; ignore.
 		}
 	}
 }
@@ -91,9 +114,15 @@ func (r *remoteSpoke) shutdown(cause error) {
 	r.closeErr = cause
 	pending := r.pending
 	r.pending = map[uint64]chan frame{}
+	streams := r.streams
+	r.streams = map[uint64]*clientStream{}
 	r.mu.Unlock()
 	for _, ch := range pending {
 		close(ch)
+	}
+	// Fail every live tunnel so its reverse-proxy conn unblocks with the cause.
+	for _, cs := range streams {
+		cs.closeRemote(cause)
 	}
 	close(r.done)
 }
@@ -264,37 +293,57 @@ func (r *remoteSpoke) Exec(ctx context.Context, idOrName string, cmd []string) (
 	return resp, nil
 }
 
-// ProxyHTTP forwards a buffered HTTP request to a box's port on the spoke and
-// returns the buffered response, implementing HTTPProxier over the cluster
-// transport. It is how the hub reaches a box's HTTP server on a remote spoke
-// (a box on the local spoke is proxied directly, with streaming).
+// DialBox opens a raw byte tunnel to a box's port on the spoke and returns it as a
+// net.Conn, implementing BoxDialer over the cluster transport. It is how the hub
+// reaches a box's TCP port on a remote spoke with full streaming, so the reverse
+// proxy carries WebSocket and SSE (not just buffered request/response). The tunnel
+// is opened optimistically: if the spoke cannot dial the box, the failure surfaces
+// on the first read of the returned conn (as a frameStreamClose carrying the
+// error), which the proxy turns into a 502 — matching how a dead upstream behaves.
 //
-// @arg ctx Context bounding the call.
-// @arg boxID The box whose port to reach.
+// @arg ctx Context bounding the open handshake (not the tunnel's lifetime).
+// @arg idOrName The box whose port to reach.
 // @arg port The port inside the box.
-// @arg method The HTTP method.
-// @arg path The request URI (path plus raw query).
-// @arg header The request headers.
-// @arg body The request body (buffered).
-// @return status The response status code.
-// @return respHeader The response headers.
-// @return respBody The response body (buffered).
-// @error error if the call fails or the spoke returns an error.
+// @return net.Conn The tunnel connection; the caller must close it.
+// @error error if the spoke is disconnected or the open frame cannot be sent.
 //
-// @testcase TestRemoteSpokeProxyHTTP round-trips a proxy request to the spoke.
-func (r *remoteSpoke) ProxyHTTP(ctx context.Context, boxID string, port int, method, path string, header http.Header, body []byte) (status int, respHeader http.Header, respBody []byte, err error) {
-	var resp proxyHTTPResp
-	if err := r.call(ctx, methodProxyHTTP, proxyHTTPReq{
-		BoxID:  boxID,
-		Port:   port,
-		Method: method,
-		Path:   path,
-		Header: header,
-		Body:   body,
-	}, &resp); err != nil {
-		return 0, nil, nil, err
+// @testcase TestStreamTunnelRoundTrip round-trips bytes through a dialed tunnel.
+// @testcase TestRemoteSpokeDisconnect fails a live tunnel when the connection drops.
+func (r *remoteSpoke) DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error) {
+	payload, err := encodePayload(streamOpenReq{BoxID: idOrName, Port: port})
+	if err != nil {
+		return nil, err
 	}
-	return resp.Status, resp.Header, resp.Body, nil
+	r.mu.Lock()
+	if r.closed {
+		err := r.closeErr
+		r.mu.Unlock()
+		return nil, err
+	}
+	r.nextID++
+	id := r.nextID
+	cs := newClientStream(id, r.tr, r.unregisterStream)
+	r.streams[id] = cs
+	r.mu.Unlock()
+
+	if err := r.tr.Send(ctx, frame{Type: frameStreamOpen, ID: id, Payload: payload}); err != nil {
+		r.unregisterStream(id)
+		return nil, err
+	}
+	return cs, nil
+}
+
+// unregisterStream drops a tunnel from the registry (called when the local end
+// closes). Deleting a missing ID is a no-op, so it is safe to race the read loop's
+// own removal on a remote close.
+//
+// @arg id The stream ID to remove.
+//
+// @testcase TestStreamTunnelRoundTrip removes a closed tunnel from the registry.
+func (r *remoteSpoke) unregisterStream(id uint64) {
+	r.mu.Lock()
+	delete(r.streams, id)
+	r.mu.Unlock()
 }
 
 // ReapOrphans reaps never-authenticated boxes on the spoke older than ttl.

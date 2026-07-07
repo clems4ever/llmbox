@@ -306,14 +306,14 @@ func TestToolList(t *testing.T) {
 // TestToolListSpokes checks list_spokes returns the backend's spoke statuses and
 // propagates an error.
 func TestToolListSpokes(t *testing.T) {
-	f := &fakeBackend{spokes: []SpokeStatus{{Name: "local", Connected: true, Local: true}, {Name: "edge"}}}
+	f := &fakeBackend{spokes: []SpokeStatus{{Name: "edge", Connected: true, Default: true}, {Name: "edge2"}}}
 	h := &handlers{b: f}
 
 	_, out, err := h.toolListSpokes(context.Background(), nil, struct{}{})
 	if err != nil {
 		t.Fatalf("toolListSpokes: %v", err)
 	}
-	if len(out.Spokes) != 2 || out.Spokes[0].Name != "local" || out.Spokes[1].Name != "edge" {
+	if len(out.Spokes) != 2 || out.Spokes[0].Name != "edge" || out.Spokes[1].Name != "edge2" {
 		t.Errorf("unexpected spokes: %+v", out.Spokes)
 	}
 

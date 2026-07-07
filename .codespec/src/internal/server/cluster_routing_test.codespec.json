@@ -2,81 +2,99 @@
 	"functions": [
 		{
 			"function_name": "TestRestoreKeepsDisconnectedSpokeSessions",
-			"documentation_hash": "22f5d173200da5775e886ce3195343eb89d9138263857fe5e66987455e8454b7",
-			"definition_hash": "4d6fc83aa7204d50586d31a65dd396ec9daab8645f337d5eb4861ccbb6ce0196",
-			"reviewed_at": "2026-06-25T10:51:16.094016151Z"
+			"documentation_hash": "2a1f26bd843763c16176401babf17da7ba27c5f9f91c7cc7785ef8a3e4cc6592",
+			"definition_hash": "9a9fb1ebbd2116a527995590d4bb35090865c1f6d84718fd8a4e3aefa9a0212a",
+			"reviewed_at": "2026-07-07T08:15:52.586109663Z"
 		},
 		{
 			"function_name": "TestCreateBoxRoutesToSpoke",
-			"documentation_hash": "f3ef3636a0c47df8becb3c2b69325697dc573c5122fa48759e840398c338e589",
-			"definition_hash": "a1b75642e5a693994abc49dea2648742abf92e979c76994e738f8b6324d81818",
-			"reviewed_at": "2026-06-29T15:39:25.19509801Z"
+			"documentation_hash": "d5b8cea56d2d2130e04d06918e5fa580e3ee6c99db3f6e02ee454c8c255d20c6",
+			"definition_hash": "ea0c1f12d1aa9c2192560d506dbe904e7aea7f0b78e776d026cc907ccf75a48d",
+			"reviewed_at": "2026-07-07T08:15:52.577705475Z"
 		},
 		{
 			"function_name": "TestCreateBoxUnknownSpoke",
 			"documentation_hash": "75c9b631cf1ff59f2cc2edbda05614c7b82b09b1307d82e2412950bf252bfa1a",
-			"definition_hash": "a84d2980d7166011c12d8c4d5e10fa7f8ee3ae76786f8148dd0a6870730a601f",
-			"reviewed_at": "2026-06-29T15:39:25.195530376Z"
-		},
-		{
-			"function_name": "TestCreateBoxDefaultsToLocalSpoke",
-			"documentation_hash": "6716b88424d386abdd08ce7f7b2ab953aebb1bdf020a035c038d08502f426af5",
-			"definition_hash": "530f7bc694053a613b9bc7945e329395c74a5f9c2c56a9284acf9b644f201ec3",
-			"reviewed_at": "2026-06-29T15:39:25.19594441Z"
+			"definition_hash": "fd22f8c3137e88552344e8042174fe091c692ca83fba9325d0d3c67e40c899cf",
+			"reviewed_at": "2026-07-07T08:15:52.578756526Z"
 		},
 		{
 			"function_name": "TestListFansOutAcrossSpokes",
 			"documentation_hash": "8393a920927eb5095fe21ac621cd1c38e3695579cd8345ae209262554d97b8a9",
-			"definition_hash": "92e64e2815b388d91abf29bf77888e3c6e86b186e1ab1f038eb49a6ac6b98618",
-			"reviewed_at": "2026-07-04T20:12:47.848149776Z"
+			"definition_hash": "fbb27fac094970d992dcde7f2a952994776b3cf361b20abf9267d80b24b2c524",
+			"reviewed_at": "2026-07-07T08:15:52.580500745Z"
 		},
 		{
 			"function_name": "TestReapFansOutAcrossSpokes",
-			"documentation_hash": "902b1eecdaee39326ebb55497645287dce6a5748d82f5fcc3e2ed98ae2f967e6",
-			"definition_hash": "9c0ca1467a5750186ec56843adebacb98918db73366360a6ba58114dcc14fb83",
-			"reviewed_at": "2026-06-25T10:51:16.084970483Z"
+			"documentation_hash": "5172c099ac0e0238d9d8e7e22627cb95dcd1333fae462901949e5794374357a4",
+			"definition_hash": "6e37756a0bc4af67e5459129df1d923a90e91920f781f2a8ebfbaf4170f856e7",
+			"reviewed_at": "2026-07-07T08:15:52.581269193Z"
 		},
 		{
 			"function_name": "TestDestroyRoutesToSpoke",
 			"documentation_hash": "5f5db8479f01713668a71f310aac664e4aec497eae25fb6b1a525d32e16a4782",
-			"definition_hash": "96a4c4d7a4461c7b7b4ce7617a0b765ae344437c79f3f827920ab1bb3bb15752",
-			"reviewed_at": "2026-06-29T15:39:25.196809703Z"
+			"definition_hash": "4720313adcde7807438970f627d09a1875c0f31299b153500bfc46a3c10def5c",
+			"reviewed_at": "2026-07-07T08:15:52.581821036Z"
 		},
 		{
 			"function_name": "TestSpokeStatusesReportsHealth",
-			"documentation_hash": "81929a5b812bc282316e4959397f24380f725235a2ad24098c6f0b2dcadf87f8",
-			"definition_hash": "d2536b215fcf677eb2547467a65c12b95b19cfc96df8b7b2237b55592d800fc9",
-			"reviewed_at": "2026-06-25T10:51:16.091592727Z"
-		},
-		{
-			"function_name": "TestSpokeStatusesLocalOnly",
-			"documentation_hash": "5d7dd2b670261a141779a086832bfec8011775f9f70c3177bcd92930195d571e",
-			"definition_hash": "b8bfce5db727cbbc30a21902357f41010d521a9cf1e9dc3e3b4286cf2ad39a67",
-			"reviewed_at": "2026-06-25T10:51:16.093174157Z"
+			"documentation_hash": "96dade66ea34c9765535270b0493319e7a6564d40bbea4b9e95ccd42e237db78",
+			"definition_hash": "351512e263416bb2cf23c58832a375b8ee7695dbb4b4e92dde21d1253e190902",
+			"reviewed_at": "2026-07-07T08:15:52.584338971Z"
 		},
 		{
 			"function_name": "TestListSpokesTool",
-			"documentation_hash": "fa141686dc086d9385124005ac41ac554c859dc131c03ff8f5152e96684c2dfa",
-			"definition_hash": "7dbda4d796c772437423ed6a43c4c4252bea58157573992bed94eb02f5f7137a",
-			"reviewed_at": "2026-07-01T13:12:11.573683461Z"
+			"documentation_hash": "32bac0b7a59443f08cea67055d452c7bd80c8871710b68feaab5f95a67609c7f",
+			"definition_hash": "a8f2128f9b9dd2ef6e27570d4ffffb470742b56e71594fb64bb42f883360a49e",
+			"reviewed_at": "2026-07-07T08:15:52.585585293Z"
 		},
 		{
 			"function_name": "TestDestroyBoxByBoxIDRoutesToSpoke",
-			"documentation_hash": "e621c13faf106c9bb2629bd45ac9c6e2366702793d782f934bf4f6ba36cfde2b",
-			"definition_hash": "2eb5b73d70e8341604a000f913087d817380265009721cd671fa640dfa4ed8ac",
-			"reviewed_at": "2026-06-29T15:39:25.226776091Z"
+			"documentation_hash": "6f0b0e3f71532118a29a4ef201b20dc8f54399385b21b888545d8b38c83e19f2",
+			"definition_hash": "8de96e8d0312c738094a3251cd11b1106b198aba035ee440b7407fd5f1bee9ec",
+			"reviewed_at": "2026-07-07T08:15:52.582359881Z"
 		},
 		{
 			"function_name": "TestDestroySessionlessBoxFindsSpoke",
-			"documentation_hash": "f5f614ef4247eea921fa2cc45e4a17585f493e82a647223ede8600ea062a8d58",
-			"definition_hash": "5f4657b653b57803f16a4d1ce7ef2a115417975cbb161779fa592aa66b08b3a8",
-			"reviewed_at": "2026-07-04T20:12:47.848677651Z"
+			"documentation_hash": "ced2b14f3dc04ae9081797620319cf4e5b6bbf8375f09f8a4a0b6ee4b2a4e74a",
+			"definition_hash": "8b1f947573da2ae1f53d1c5682d32f4db50f459babdda8f3363ef6bee4d428f6",
+			"reviewed_at": "2026-07-07T08:15:52.582893112Z"
 		},
 		{
 			"function_name": "TestDestroyAlreadyGoneBoxSucceeds",
-			"documentation_hash": "2277ef3a62ee090c4e8e7f2840e4e3979a87cee42d3513cea87a8417fc7b957a",
-			"definition_hash": "b982fb37b764aea0eeb9733f57fad359343ae40e2540d66dacffbf873ece6583",
-			"reviewed_at": "2026-06-29T15:39:25.22774203Z"
+			"documentation_hash": "fd4fa562940c9bc689e4c6e4df7466a2418f4ef31f7dcf03105a0a193768ce03",
+			"definition_hash": "1b61166f25276ff528f39234177d3f1a2228fe8a827b315928dbf8274dcbe4c8",
+			"reviewed_at": "2026-07-07T08:15:52.583402994Z"
+		},
+		{
+			"function_name": "serverWithSpokes",
+			"documentation_hash": "906effa26318e8ba5cd7fdf91a19019187027b3c752f223b71691af1e6be5ebd",
+			"definition_hash": "3ab226136ff6dfbad078eb02e1933e0adfdeeb12380dbc7d1df94f06c05e6383",
+			"reviewed_at": "2026-07-07T08:15:52.576781936Z"
+		},
+		{
+			"function_name": "TestDefaultSpokeRoundTrip",
+			"documentation_hash": "9f0831026d6edfd86d6e84c0f01926731afa82576a90cf4fe726dbce44f219b1",
+			"definition_hash": "48bea2b32ea65043d79a4a552a5ae59367ab0a87896ebe9afd1417b41c4ade07",
+			"reviewed_at": "2026-07-07T08:15:52.578243491Z"
+		},
+		{
+			"function_name": "TestCreateBoxDefaultsToDefaultSpoke",
+			"documentation_hash": "4b854d87dea65d818cbf45253070fcbb003e681b6e8916dc9756fa6749eb9436",
+			"definition_hash": "860f657a9434ab1ed308542014507c5822b829b021501a999adbe9d993edfb5f",
+			"reviewed_at": "2026-07-07T08:15:52.57925787Z"
+		},
+		{
+			"function_name": "TestCreateBoxNoDefaultSpoke",
+			"documentation_hash": "7834e11fc7a9bdffc4df9ed15fd809df353298a56450f9736710b9bafc0cad7a",
+			"definition_hash": "c180ff382ba5d2830c00c94c00465f98d658710278b224f6f2776f1b7d9d7160",
+			"reviewed_at": "2026-07-07T08:15:52.579765767Z"
+		},
+		{
+			"function_name": "TestSpokeStatusesMarksDefault",
+			"documentation_hash": "a5965a1746670dc94bdc66684f7a68a467e93eab747789d96cfb142e506a4f73",
+			"definition_hash": "c24b5bcdc1fa832e4cd05e2c3e751ce4581451e840f778d74905d807cb30da72",
+			"reviewed_at": "2026-07-07T08:15:52.585026646Z"
 		}
 	]
 }

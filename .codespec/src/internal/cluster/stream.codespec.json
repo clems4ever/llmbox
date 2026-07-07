@@ -1,0 +1,195 @@
+{
+	"functions": [
+		{
+			"function_name": "Network",
+			"receiver": "streamAddr",
+			"documentation_hash": "d9b13b6d77f166a2afc599790f0718da6f5f53efac211da5371612dbbf83185f",
+			"definition_hash": "42197ed3c5b3d1af8178878916bae511d9814edc2298b630ddc97cdf7d4b1cdc",
+			"reviewed_at": "2026-07-07T08:18:08.160429556Z"
+		},
+		{
+			"function_name": "String",
+			"receiver": "streamAddr",
+			"documentation_hash": "7dd8d3d5f386426f0646295febbf6954abbf5779a49466d1337542c1e0000715",
+			"definition_hash": "f34f8b51ff00698aea7f3438582e2198538863da955f14f9d29d87a171fcc1b1",
+			"reviewed_at": "2026-07-07T08:18:08.161122151Z"
+		},
+		{
+			"function_name": "newConnDeadline",
+			"documentation_hash": "e22871c53a78c8855b02f19d91745cc87e08609900c56d48946509f08c746bf0",
+			"definition_hash": "9368d8d470cf78c93a5c801f2ebc700c528189f2a4327c1c6f613111f89bd73f",
+			"reviewed_at": "2026-07-07T08:18:08.171254279Z"
+		},
+		{
+			"function_name": "set",
+			"receiver": "connDeadline",
+			"documentation_hash": "1cd4761f219233d793b00c62c3cdbfd5ce7aaf80c8793d7dc51192b59b68ba5c",
+			"definition_hash": "6a73f501ed1bc84b4782137ddf17a4fc7a10e468bf3aa0502bd94817d80109a7",
+			"reviewed_at": "2026-07-07T08:18:08.171970128Z"
+		},
+		{
+			"function_name": "wait",
+			"receiver": "connDeadline",
+			"documentation_hash": "813c989b1e233da84bdb6774d5683d41f7f7e3aaaefae1f47f5ffc67f79a77ed",
+			"definition_hash": "796da0d955446063e930e7ae35bfb7715056447779e3323ad7f00a13411d26d5",
+			"reviewed_at": "2026-07-07T08:18:08.172840053Z"
+		},
+		{
+			"function_name": "isClosedChan",
+			"documentation_hash": "640dda446b68adfb417fc3933641461a2da523aeefdcc74076f775a8063a18a0",
+			"definition_hash": "92da161b8b5a5bff2f2019af999dc6bcdd253ab66f5fa102d755b27ea0f49cd6",
+			"reviewed_at": "2026-07-07T08:18:08.174136681Z"
+		},
+		{
+			"function_name": "newClientStream",
+			"documentation_hash": "58d1da044e8b8d85daffb41b7787c940d54d6e82afa5d636e1d2816518f7ea37",
+			"definition_hash": "45a1a4ce80d156e605608e31b6ca860345a5eb1831199357f4f75309dd2fe299",
+			"reviewed_at": "2026-07-07T08:18:08.175167158Z"
+		},
+		{
+			"function_name": "push",
+			"receiver": "clientStream",
+			"documentation_hash": "1eb55756216c099d9dbab28291a738be414b0ca50aab057d5e06532d57fdf4d8",
+			"definition_hash": "6085b1fe7e008efe7bebc691373fd5e7a02f202473d89baf43691bf76608d95c",
+			"reviewed_at": "2026-07-07T08:18:08.176144858Z"
+		},
+		{
+			"function_name": "closeRemote",
+			"receiver": "clientStream",
+			"documentation_hash": "f678b25a66d7800a63fde5c4b289eec9d75fdffdd66902ea9f97b456e92f9e31",
+			"definition_hash": "25735a77a4786a85ce4ebb9c49357f4934113db5ae1b78098305604c6561dc6f",
+			"reviewed_at": "2026-07-07T08:18:08.177611243Z"
+		},
+		{
+			"function_name": "Read",
+			"receiver": "clientStream",
+			"documentation_hash": "b34e7557c87271fac5bffc78e3a5b9fb479d7b4f0145f76f8610e06fd2435863",
+			"definition_hash": "a55b592edf823519989ca0f8f42d528e99133ddc7fd25029bd70d772ebafcb8b",
+			"reviewed_at": "2026-07-07T08:18:08.178704216Z"
+		},
+		{
+			"function_name": "readEndErr",
+			"receiver": "clientStream",
+			"documentation_hash": "5a0f34fd7542c3035d2b3bb0feac3d993c9593ff2495c3be55f4fb357dfddbbe",
+			"definition_hash": "d9dc1dee0ec2870e4d18a7b2bbcadf2e5f87329f67deea70c2b473a9719f5cc8",
+			"reviewed_at": "2026-07-07T08:19:03.598305666Z"
+		},
+		{
+			"function_name": "Write",
+			"receiver": "clientStream",
+			"documentation_hash": "285638c388c172508c2e72c56252e7f8a22baee0fe19b271a4bc3c5ee95832a8",
+			"definition_hash": "d444ff14462b05903503aeca8373a0475a5011e6d50e74a0712e13baf97932c5",
+			"reviewed_at": "2026-07-07T08:19:03.599101425Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "clientStream",
+			"documentation_hash": "f41db8eb27d81d9917f8084f714b74162051c0273c4ec68d5efc1ff036a3298f",
+			"definition_hash": "189908c380f146bd0c2ecd87bf01c34e089cec1c4a878c0954baba2bd578ca42",
+			"reviewed_at": "2026-07-07T08:19:03.608763984Z"
+		},
+		{
+			"function_name": "LocalAddr",
+			"receiver": "clientStream",
+			"documentation_hash": "8691fa0f56bcf250a3d0dc0a71f672e6d78434b280f2f997ed82e8e5de240f18",
+			"definition_hash": "73146347732ad53d55079fef9519eab94a0d4ff005938fa1483862e52af708ea",
+			"reviewed_at": "2026-07-07T08:19:03.60990652Z"
+		},
+		{
+			"function_name": "RemoteAddr",
+			"receiver": "clientStream",
+			"documentation_hash": "17456a4e95e0db448624cdb2c52188369cb45be2e0757dca4b6010a640987acb",
+			"definition_hash": "abd98110957b6707ddcb2837b51adc322878fc3718e3b8a61543ec84e4b77ca9",
+			"reviewed_at": "2026-07-07T08:19:03.61140169Z"
+		},
+		{
+			"function_name": "SetDeadline",
+			"receiver": "clientStream",
+			"documentation_hash": "3da80474676e6976eb5f33f3e5f5ac1b3e54cafa3cd80dd24aea6808f4399197",
+			"definition_hash": "ce2e52c850e675aab02af035121ed102cf100b01820f13c6e251183fe01f638d",
+			"reviewed_at": "2026-07-07T08:19:03.612035856Z"
+		},
+		{
+			"function_name": "SetReadDeadline",
+			"receiver": "clientStream",
+			"documentation_hash": "f7df7ffd16cb57277e165aa41d6512c126bcefd557732ad7776119e974bd9443",
+			"definition_hash": "5844363b2f3d7aec22610200349fcf0531bb1fef1491aa79c65c31d19698905e",
+			"reviewed_at": "2026-07-07T08:19:03.61273166Z"
+		},
+		{
+			"function_name": "SetWriteDeadline",
+			"receiver": "clientStream",
+			"documentation_hash": "e203015caceda7615a29e3583890cf66f33d58afa13cfb2792b928149141f0a9",
+			"definition_hash": "abb0b65a7e9114b4378accdd9b243a211c7ef27fc93299be0e5a042edc7feaef",
+			"reviewed_at": "2026-07-07T08:19:03.613841055Z"
+		},
+		{
+			"function_name": "newServerStream",
+			"documentation_hash": "328b74f346a876b2c3ef21b98a646c9ea85fb0d82555bc0672ca6d6c49f7e567",
+			"definition_hash": "e8a2b84831cffa06c772d23f01b60155365c3a00ee0aa737af06550f9e4ad213",
+			"reviewed_at": "2026-07-07T08:19:03.614445734Z"
+		},
+		{
+			"function_name": "start",
+			"receiver": "serverStream",
+			"documentation_hash": "16bdac94e87bcc26774356b7d7fed5ab6890d24a9d9b89076d7b0772bf380c2a",
+			"definition_hash": "6dc0fb38ddd6f0391a08fee2d728dba128911305031b6d4293e80ac16d335866",
+			"reviewed_at": "2026-07-07T08:19:03.614987777Z"
+		},
+		{
+			"function_name": "pumpBoxToHub",
+			"receiver": "serverStream",
+			"documentation_hash": "e6434c9db2f651202670b535c740d0ff6ee51288eb6680056a54d4f929ec8cb7",
+			"definition_hash": "52de1fbaec2a076319c3feafa542b9df2c1f7bfa0063b970cc13f9abf17a5b47",
+			"reviewed_at": "2026-07-07T08:19:03.615615123Z"
+		},
+		{
+			"function_name": "writeInbound",
+			"receiver": "serverStream",
+			"documentation_hash": "e51590207ab363c58be5f0630d4127c8287916291dfb2c0f3578ab893c2dc3d8",
+			"definition_hash": "047443ea7fde24970bbcc69dd62a923888c95e310fd10ea923b8597dec79756c",
+			"reviewed_at": "2026-07-07T08:19:03.6164936Z"
+		},
+		{
+			"function_name": "teardown",
+			"receiver": "serverStream",
+			"documentation_hash": "d571ad8d05ab577c84bb3901a3a5ef6d9ddeaa4bd7098b3dd7a5eaa6a2a55023",
+			"definition_hash": "90168ce21d1e5a5a78c6ce9f1ad51eb0be18c592d325efb13d9302fa7c156355",
+			"reviewed_at": "2026-07-07T08:19:03.61706665Z"
+		},
+		{
+			"function_name": "newSpokeStreams",
+			"documentation_hash": "98a28818a9c3f18d24ebf2e00bef47de5841e8023bc21e43f9e84633964b0977",
+			"definition_hash": "431121cb408f466e04cf747bdf92d481b42eaccbcc73cf6404157d8a4caa8454",
+			"reviewed_at": "2026-07-07T08:19:03.617627644Z"
+		},
+		{
+			"function_name": "add",
+			"receiver": "spokeStreams",
+			"documentation_hash": "75851b8c3e156f1b77259206e307fe3ff3885b7f8d117378550f022f2a1c54fc",
+			"definition_hash": "9d3c472488032b0709b96f80e7e3cd41dee96e8449fbd01cdfce685529078c09",
+			"reviewed_at": "2026-07-07T08:19:03.618178053Z"
+		},
+		{
+			"function_name": "get",
+			"receiver": "spokeStreams",
+			"documentation_hash": "2498f32ab7ef424da5c1efa5c1a2c09bf93ca95fdac53e8e6923fb19b4d95b3e",
+			"definition_hash": "f5dc4ce93dfa1955720ea46906cc686db7589c395f984d04aba859873cbb16ba",
+			"reviewed_at": "2026-07-07T08:19:03.619116132Z"
+		},
+		{
+			"function_name": "del",
+			"receiver": "spokeStreams",
+			"documentation_hash": "f49fd54fb5fc41aef87585dc98b442ce61a3621036d4936f7513fc1ce15a40d3",
+			"definition_hash": "18afcb176a958e37c6ee66269cf3a0f7c8c96803946fce27947870d8d060d3f9",
+			"reviewed_at": "2026-07-07T08:19:03.619743279Z"
+		},
+		{
+			"function_name": "closeAll",
+			"receiver": "spokeStreams",
+			"documentation_hash": "f574da0ef7aba9a9d73b71f0814c0dfffc5704e4858d4fb2f0d65cae53937442",
+			"definition_hash": "f7b62768c89b6161ebbf086251afabe1ca021e825956205e00b9519e0b60717e",
+			"reviewed_at": "2026-07-07T08:19:03.620333861Z"
+		}
+	]
+}
