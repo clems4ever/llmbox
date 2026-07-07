@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
+	"github.com/clems4ever/llmbox/internal/hub/store"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
-	"github.com/clems4ever/llmbox/internal/shared/store"
 	"github.com/clems4ever/llmbox/testutils"
 )
 

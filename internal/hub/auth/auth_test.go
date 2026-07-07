@@ -13,8 +13,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/clems4ever/llmbox/internal/shared/config"
-	"github.com/clems4ever/llmbox/internal/shared/store"
+	"github.com/clems4ever/llmbox/internal/hub/config"
+	"github.com/clems4ever/llmbox/internal/hub/store"
 )
 
 // fakeVerifier stands in for a real OIDC ID-token verifier so the HTTP flow can

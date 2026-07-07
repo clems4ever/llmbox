@@ -62,11 +62,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/hub"
-	"github.com/clems4ever/llmbox/internal/shared/auth"
-	"github.com/clems4ever/llmbox/internal/shared/cli"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
+	"github.com/clems4ever/llmbox/internal/hub/config"
+	"github.com/clems4ever/llmbox/internal/hub/hooks"
+	"github.com/clems4ever/llmbox/internal/hub/token"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	"github.com/clems4ever/llmbox/internal/shared/config"
-	"github.com/clems4ever/llmbox/internal/shared/hooks"
 	"github.com/clems4ever/llmbox/internal/spoke/docker"
 )
 
@@ -85,8 +85,10 @@ func main() {
 }
 
 // newRootCmd builds the Cobra command tree: the root command loads the YAML
-// config and runs the server (the hub), and a "version" subcommand prints the
-// build version. The spoke and the MCP front-end are separate binaries
+// config and runs the server (the hub), a "version" subcommand prints the build
+// version, and a "token" subcommand manages the one-time join tokens the hub
+// issues to enroll spokes (it operates on the hub's state file, so it runs here
+// rather than on the spoke). The spoke and the MCP front-end are separate binaries
 // (llmbox-spoke, llmbox-mcp). The --config/-c flag selects the config file
 // (default ./llmbox.yaml); when that default is absent, built-in defaults are used.
 //
@@ -103,7 +105,7 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: false,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cfg, err := cli.LoadConfig(configPath, cmd.Flags().Changed("config"))
+			cfg, err := config.LoadConfig(configPath, cmd.Flags().Changed("config"))
 			if err != nil {
 				return err
 			}
@@ -121,6 +123,9 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 	rootCmd.AddCommand(versionCmd)
+	// Join-token management runs on the hub (it operates on the hub's state file),
+	// so the `token` command lives here rather than on the spoke.
+	rootCmd.AddCommand(token.NewCmd())
 
 	return rootCmd
 }

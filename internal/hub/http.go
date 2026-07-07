@@ -7,8 +7,8 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/clems4ever/llmbox/internal/hub/auth"
 	"github.com/clems4ever/llmbox/internal/shared/api"
-	"github.com/clems4ever/llmbox/internal/shared/auth"
 )
 
 // APIHandler builds the server's single HTTP handler: the box-control JSON API

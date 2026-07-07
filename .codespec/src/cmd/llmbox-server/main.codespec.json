@@ -14,9 +14,9 @@
 		},
 		{
 			"function_name": "newRootCmd",
-			"documentation_hash": "891cfb9ab1983eaa967e19f79fcee172c57d4b539e6f3a65da6f8cfeb2bea181",
-			"definition_hash": "6d49609fba543fc2e9f5bb4a6fd1ecac9e82917723619f62608af08fa594382b",
-			"reviewed_at": "2026-07-01T13:47:08.017894368Z"
+			"documentation_hash": "024042d2f398378f4877ca2ba5aa820ca6b7f00335bc16a581978ab8f78764a2",
+			"definition_hash": "bdb5d5f0a0e8bed2b0c4a31485262382950c60158f9b2cee94ac3cc2d212c56e",
+			"reviewed_at": "2026-07-07T19:45:36.271489442Z"
 		},
 		{
 			"function_name": "listenAndServe",

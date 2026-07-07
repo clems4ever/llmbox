@@ -3,8 +3,8 @@
 // login/callback handshake, and the login-session lookup the rest of the server
 // uses to learn who (if anyone) is signed in.
 //
-// The package depends only on internal/store (for the durable login state) and
-// internal/config, never on the server package, so authentication can evolve
+// The package depends only on internal/hub/store (for the durable login state) and
+// internal/hub/config, never on the server package, so authentication can evolve
 // independently of the box/spoke machinery. The server holds an *Authenticator,
 // mounts its handlers, and asks it who is signed in.
 package auth
@@ -24,8 +24,8 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 
-	"github.com/clems4ever/llmbox/internal/shared/config"
-	"github.com/clems4ever/llmbox/internal/shared/store"
+	"github.com/clems4ever/llmbox/internal/hub/config"
+	"github.com/clems4ever/llmbox/internal/hub/store"
 )
 
 // LoginCookie is the name of the cookie holding the opaque login-session ID. The

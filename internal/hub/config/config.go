@@ -1,6 +1,8 @@
-// Package config loads llmbox's YAML configuration file. It replaces the older
-// LLMBOX_* environment variables: every setting now lives in one YAML document,
-// and any field left unset falls back to a built-in default.
+// Package config loads llmbox's YAML configuration file for the hub (the
+// llmbox-server). It replaces the older LLMBOX_* environment variables: every
+// setting now lives in one YAML document, and any field left unset falls back to
+// a built-in default. This config is hub-only — the spoke reads no config file;
+// the box-provisioning knobs both sides share live in internal/shared/boxconfig.
 package config
 
 import (
@@ -13,6 +15,8 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/clems4ever/llmbox/internal/shared/boxconfig"
 )
 
 // Default values applied to config fields left unset. The Docker manager applies
@@ -27,13 +31,6 @@ const (
 	// DefaultSessionTTL is how long an activation login session stays valid when
 	// auth.session_ttl is unset.
 	DefaultSessionTTL = time.Hour
-
-	// Default per-box resource caps applied when the box block is unset. They are
-	// generous (a box runs Claude Code and its builds) but finite, so a single box
-	// cannot exhaust the host's memory/CPU/PIDs. Set box.* to 0 to lift a cap.
-	DefaultBoxMemoryMB  = 4096
-	DefaultBoxCPUs      = 2.0
-	DefaultBoxPidsLimit = 4096
 )
 
 // Duration is a time.Duration that unmarshals from a Go duration string (e.g.
@@ -72,74 +69,23 @@ type Config struct {
 	PublicURL string `yaml:"public_url"`
 	// Backend selects the box isolation backend by name ("docker" or
 	// "firecracker"); empty defaults to Docker, preserving prior behaviour.
-	Backend     string            `yaml:"backend"`
-	ClaudeImage string            `yaml:"claude_image"`
-	RemoteArgs  string            `yaml:"remote_args"`
-	AuthTTL     Duration          `yaml:"auth_ttl"`
-	StateFile   string            `yaml:"state_file"`
-	Hooks       []string          `yaml:"hooks"`
-	BoxPeers    []string          `yaml:"box_peers"`
-	Auth        AuthConfig        `yaml:"auth"`
-	Spoke       SpokeConfig       `yaml:"spoke"`
-	Box         BoxConfig         `yaml:"box"`
-	Firecracker FirecrackerConfig `yaml:"firecracker"`
-	Proxy       ProxyConfig       `yaml:"proxy"`
-	TLS         TLSConfig         `yaml:"tls"`
+	Backend     string              `yaml:"backend"`
+	ClaudeImage string              `yaml:"claude_image"`
+	RemoteArgs  string              `yaml:"remote_args"`
+	AuthTTL     Duration            `yaml:"auth_ttl"`
+	StateFile   string              `yaml:"state_file"`
+	Hooks       []string            `yaml:"hooks"`
+	BoxPeers    []string            `yaml:"box_peers"`
+	Auth        AuthConfig          `yaml:"auth"`
+	Box         boxconfig.BoxConfig `yaml:"box"`
+	Firecracker FirecrackerConfig   `yaml:"firecracker"`
+	Proxy       ProxyConfig         `yaml:"proxy"`
+	TLS         TLSConfig           `yaml:"tls"`
 	// Registries holds credentials for pulling box images from authenticated
 	// container registries. The manager selects the entry whose host matches the
 	// image being pulled; an image whose registry has no entry is pulled
 	// anonymously, as before.
-	Registries []RegistryConfig `yaml:"registries"`
-}
-
-// RegistryConfig holds the credentials used to pull box images from one
-// authenticated container registry. As with other secrets, the password is
-// referenced by file and never inlined in the YAML document.
-type RegistryConfig struct {
-	// Registry is the registry host the credentials apply to, e.g. "ghcr.io" or
-	// "registry.example.com:5000". It is matched against the host of the image
-	// being pulled; use "docker.io" for Docker Hub images (which carry no host
-	// prefix in their reference).
-	Registry string `yaml:"registry"`
-	// Username is the registry account name (for token-based registries such as
-	// ghcr.io this is the account that owns the token).
-	Username string `yaml:"username"`
-	// PasswordFile is the path to the file holding the password or access token;
-	// its contents are read at load time. The secret is never inlined in the YAML.
-	PasswordFile string `yaml:"password_file"`
-
-	// Password is read from PasswordFile at load time; it is never set in the YAML
-	// itself (secrets live in files, not in the config document).
-	Password string `yaml:"-"`
-}
-
-// BoxConfig caps the resources each box may consume and how many boxes may run
-// at once. The limits bound resource-exhaustion (CPU/memory/PID fork-bombs,
-// unbounded box counts) by a caller that can reach the by-design-unauthenticated
-// create/exec path (see the MCP endpoint comment in internal/server/http.go).
-// memory_mb/cpus/pids_limit default to finite values when left unset (set a high
-// value to effectively lift one); max_boxes is unlimited (0) unless set.
-type BoxConfig struct {
-	// MemoryMB is the hard memory limit per box in mebibytes (0 = unlimited).
-	MemoryMB int `yaml:"memory_mb"`
-	// CPUs is the fractional CPU quota per box, e.g. 1.5 (0 = unlimited).
-	CPUs float64 `yaml:"cpus"`
-	// PidsLimit caps processes/threads per box, blunting fork bombs (0 = unlimited).
-	PidsLimit int64 `yaml:"pids_limit"`
-	// MaxBoxes caps how many boxes may run at once (0 = unlimited).
-	MaxBoxes int `yaml:"max_boxes"`
-	// SocketDir is the host directory holding each box's control socket (in a 0700
-	// per-box subdirectory bind-mounted into the box). It must be reachable by
-	// this process and bind-mountable into containers. Empty uses the provisioner
-	// default (/run/llmbox/boxsockets).
-	SocketDir string `yaml:"socket_dir"`
-	// Namespace scopes this process's boxes to a subset of the shared Docker
-	// daemon's managed containers: boxes are labelled with it and list/reap/destroy
-	// only ever see boxes carrying the same namespace. Set it (to a distinct value
-	// per process) only when running two spokes against one daemon, so they do not
-	// collapse each other's containers. Empty is unscoped (the default: one spoke
-	// per daemon sees every box). On a spoke, the --namespace flag overrides it.
-	Namespace string `yaml:"namespace"`
+	Registries []boxconfig.RegistryConfig `yaml:"registries"`
 }
 
 // FirecrackerConfig holds the microVM-backend settings, used only when backend is
@@ -203,15 +149,6 @@ type TLSConfig struct {
 	CertFile string `yaml:"cert_file"`
 	// KeyFile is the path to the PEM-encoded private key matching CertFile.
 	KeyFile string `yaml:"key_file"`
-}
-
-// SpokeConfig is read by the `llmbox-spoke` command. It carries the spoke's
-// admission policy for box-creation requests arriving from the hub (defense in
-// depth on the edge). allowed_images, when set, restricts which explicit images
-// the spoke will launch; an empty list places no image restriction (a request
-// with no image uses the spoke's own configured default).
-type SpokeConfig struct {
-	AllowedImages []string `yaml:"allowed_images"`
 }
 
 // AuthConfig configures who may activate a box. When a provider is enabled, the
@@ -308,6 +245,37 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("config %s: %w", path, err)
 	}
 	return cfg, nil
+}
+
+// LoadConfig loads the YAML config at path. When the path was not given
+// explicitly on the command line and the default file is absent, it prints a
+// warning to stderr and returns the built-in defaults so the command runs without
+// a config file; an explicitly named missing or invalid file is an error. The
+// warning exists because a silent default state_file is a common cause of a
+// command (e.g. `token create`) writing to a different store than the running hub
+// reads.
+//
+// @arg path The config file path.
+// @arg explicit Whether --config was set on the command line.
+// @return *Config The loaded (or default) configuration.
+// @error error if an explicitly named file is missing, or any named file is invalid.
+//
+// @testcase TestLoadConfigDefaultsWhenAbsent returns defaults for a missing implicit file.
+// @testcase TestLoadConfigErrorsWhenExplicitMissing errors for a missing explicit file.
+// @testcase TestLoadConfigReadsFile parses an existing config file.
+func LoadConfig(path string, explicit bool) (*Config, error) {
+	if !explicit {
+		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			// Falling back to built-in defaults silently has bitten operators:
+			// a command run without the hub's config (e.g. `token create` via
+			// docker exec) ends up using DefaultStateFile, a different store than
+			// the running hub, so its tokens are never seen. Make the fallback
+			// visible.
+			fmt.Fprintf(os.Stderr, "warning: no config file at %q; using built-in defaults (state_file %q)\n", path, DefaultStateFile)
+			return Default(), nil
+		}
+	}
+	return Load(path)
 }
 
 // resolveSecrets reads every file-referenced secret into its in-memory field, so
@@ -417,12 +385,12 @@ func (c *Config) applyDefaults() {
 	// Apply finite per-box resource caps when unset so boxes are bounded out of
 	// the box (max_boxes stays unlimited unless explicitly set).
 	if c.Box.MemoryMB == 0 {
-		c.Box.MemoryMB = DefaultBoxMemoryMB
+		c.Box.MemoryMB = boxconfig.DefaultBoxMemoryMB
 	}
 	if c.Box.CPUs == 0 {
-		c.Box.CPUs = DefaultBoxCPUs
+		c.Box.CPUs = boxconfig.DefaultBoxCPUs
 	}
 	if c.Box.PidsLimit == 0 {
-		c.Box.PidsLimit = DefaultBoxPidsLimit
+		c.Box.PidsLimit = boxconfig.DefaultBoxPidsLimit
 	}
 }

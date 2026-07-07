@@ -13,8 +13,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/clems4ever/llmbox/internal/hub/hooks"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	"github.com/clems4ever/llmbox/internal/shared/hooks"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )

@@ -3,9 +3,9 @@ package hub
 import (
 	"context"
 
+	"github.com/clems4ever/llmbox/internal/hub/store"
 	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
-	"github.com/clems4ever/llmbox/internal/shared/store"
 )
 
 // boxBackend adapts the server to the api.Backend interface — the box-control API

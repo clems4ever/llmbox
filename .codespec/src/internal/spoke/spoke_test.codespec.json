@@ -2,57 +2,9 @@
 	"functions": [
 		{
 			"function_name": "TestNewRootCmd",
-			"documentation_hash": "f8bf3b09ee0d542754c87dd62ddee57722a7d5499f881d1f7a24f55978d78076",
-			"definition_hash": "d454dd926c5689ab3741cc051f6037a81bfe22f65004704b70656430ebab3fe2",
-			"reviewed_at": "2026-07-07T12:21:36.661129275Z"
-		},
-		{
-			"function_name": "TestCreateJoinTokenCmdPrintsToken",
-			"documentation_hash": "7fac5a3c481117fb30549f0b86f8311d70f56ebc9fe9cfd281799e764465e6e5",
-			"definition_hash": "d9a18b9a0a755d0e22e38b51b039d1c3e6170df3cee6743bc6f245fa0e3b663f",
-			"reviewed_at": "2026-07-07T11:35:12.51300067Z"
-		},
-		{
-			"function_name": "seedJoinToken",
-			"documentation_hash": "252f316d63ae5c56d0a681e70869beea51e31d22039c09fc8e082fc7594db8d2",
-			"definition_hash": "fc4b543356b003b68afca3e2822f192a07427eda774a1c30a46dc55fea88919c",
-			"reviewed_at": "2026-07-07T12:52:06.068251038Z"
-		},
-		{
-			"function_name": "countJoinTokens",
-			"documentation_hash": "d7613dfca6f6aadc49cf43129e386cfd20acf399b88b8d0c6ca998b35ea3cf4b",
-			"definition_hash": "be7a24f741eec9dae768543e079e92d1e3e3fe7d4a20f8e016e0e78bf001e9f3",
-			"reviewed_at": "2026-07-07T12:52:06.068797636Z"
-		},
-		{
-			"function_name": "TestListJoinTokensCmd",
-			"documentation_hash": "ecb2df9708708f792187ae284c97528d96765e18e6c33b2cafb87ebde75140fd",
-			"definition_hash": "a64ba127823e9afcf2d269e9d8057b5a36c868ce0ede817ca10851148bd986e4",
-			"reviewed_at": "2026-07-01T15:17:24.43749705Z"
-		},
-		{
-			"function_name": "TestListJoinTokensCmdEmpty",
-			"documentation_hash": "d26b18376c8a8db22b281471ca15040f788b289d050f0ba1f78a7b5af5083946",
-			"definition_hash": "fca707770858a306937b701c89a37341415f99456ed08a8a5f9e46d924f48a07",
-			"reviewed_at": "2026-07-01T15:17:24.439430404Z"
-		},
-		{
-			"function_name": "TestRevokeJoinTokenByID",
-			"documentation_hash": "c3fb9e84d55e6f676c453625b5e77928b238066d912e987f0c4cbed7dc1dd336",
-			"definition_hash": "1c97ac9b440c7cb57cefa1d27838593653e8757b5ebb763c6bcdfc6dd027bc25",
-			"reviewed_at": "2026-07-01T15:17:24.441568044Z"
-		},
-		{
-			"function_name": "TestRevokeJoinTokenByName",
-			"documentation_hash": "569aa8d1035f4f8f59d78e7feafa167ee53eb9fb55826905dc13df24d005a5b9",
-			"definition_hash": "3709d892684e6f6a3effd2ab32fdcaaf959f861a36990d16aaecb2b2192c8969",
-			"reviewed_at": "2026-07-01T15:17:24.44352707Z"
-		},
-		{
-			"function_name": "TestRevokeJoinTokenNoMatch",
-			"documentation_hash": "ab9fdc92dc333bbda9e8bd8cc1f945bd97103f7a1733a906cd3a6133b584fc99",
-			"definition_hash": "fda4a7b87171cdeac976faa5d8a5d651c84b8a54e3e61abbcbba63e4f32fb0f3",
-			"reviewed_at": "2026-07-01T15:17:24.445588762Z"
+			"documentation_hash": "dae2d6a178b7f74f3bd694fc4fcc5bb15e7dba852b753cd1436c30bd8d85ef0d",
+			"definition_hash": "c532a6bade1122798de1c8171a01fd6bfb6cd94be3a81714afc99a98949112eb",
+			"reviewed_at": "2026-07-07T19:31:48.495234345Z"
 		},
 		{
 			"function_name": "TestSpokeCredsRoundTrip",

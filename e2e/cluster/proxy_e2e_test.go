@@ -15,8 +15,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/clems4ever/llmbox/internal/shared/auth"
-	storepkg "github.com/clems4ever/llmbox/internal/shared/store"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
+	storepkg "github.com/clems4ever/llmbox/internal/hub/store"
 )
 
 // TestProxyThroughSpoke exercises the HTTP-proxy feature against a box on a REAL

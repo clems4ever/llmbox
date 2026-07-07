@@ -4,115 +4,133 @@
 			"function_name": "write",
 			"documentation_hash": "479bd1d134c8ea708cabbb338094871e6c039da5816b48e1c94d4025068d86dc",
 			"definition_hash": "10ad3af7b8999f77724f89128f6f4676381c49b0c5d99fff40bcee0cb834e910",
-			"reviewed_at": "2026-06-18T16:34:58.557797423Z"
+			"reviewed_at": "2026-07-07T19:47:49.67293696Z"
 		},
 		{
 			"function_name": "TestDefault",
 			"documentation_hash": "510cdb5ceeaaf95ba8843427dd3831652c32f25ac1114a0f2d23a6e3c3bacfef",
 			"definition_hash": "2166df270c6174765f47b8b0cd089ff3515bf12df40e124b1bea5ff3d3e2456f",
-			"reviewed_at": "2026-07-01T13:11:56.509227954Z"
+			"reviewed_at": "2026-07-07T19:47:49.675996906Z"
 		},
 		{
 			"function_name": "TestLoad",
 			"documentation_hash": "a99b8ef269ef1371f85d255c1bddc9aede16586adc848343e03823d7dacce5d9",
 			"definition_hash": "814e08830acd6cfcd613d90624c96de549a819ea1a713a0aa2fbf6bee0039e04",
-			"reviewed_at": "2026-07-01T13:11:56.50978009Z"
-		},
-		{
-			"function_name": "TestLoadAppliesDefaults",
-			"documentation_hash": "60e0219e260c50503756f9bdd49ad0d61a6ffc9f58ac71255154c849e61a9383",
-			"definition_hash": "553c356ce4dc64262225438479e638ac3abfff465b365909692946911b9f4b2c",
-			"reviewed_at": "2026-07-01T13:11:56.510315754Z"
-		},
-		{
-			"function_name": "TestLoadMissingFile",
-			"documentation_hash": "0630d57c1173a4b8fd21f6b848614ad82b91d5b9a9ab46a1867364a87e935e4d",
-			"definition_hash": "4f520b1d8e4309884f2d9d607eaf1543e373026f77791b8bc008463f44f0220a",
-			"reviewed_at": "2026-06-18T16:34:58.558849777Z"
-		},
-		{
-			"function_name": "TestLoadRejectsUnknownKey",
-			"documentation_hash": "96fbdf7f381ffa03c8244beab64ed8d41089ca5a34c16f633a5a7d72467fb4d9",
-			"definition_hash": "620212aa38b2d5819d2f745d3a50928a65bbe300481698cf32863235320353cc",
-			"reviewed_at": "2026-06-18T16:34:58.559990697Z"
-		},
-		{
-			"function_name": "TestLoadParsesDuration",
-			"documentation_hash": "c0972013b819325f6fe74ea329221a5525ee9a41f5cde1ad52962e130312dfac",
-			"definition_hash": "aa3f1a169d58bbba5062bd16e19ff44e975c619147498a301b163b8d623627f0",
-			"reviewed_at": "2026-06-18T16:34:58.561247301Z"
-		},
-		{
-			"function_name": "TestLoadRejectsBadDuration",
-			"documentation_hash": "e227345700e18455c462cc6d3041cf66708862ce7af166bcb6570726035042be",
-			"definition_hash": "4777d60302f2a19bf0a25d0df51c7e7f1a8ecbbf350855a87e62ced3af3b07b5",
-			"reviewed_at": "2026-06-18T16:34:58.562461292Z"
-		},
-		{
-			"function_name": "TestLoadEmptyFile",
-			"documentation_hash": "ee0bd7ac3af742777cf0c2347f9c603e71a2db31e9f84cc8bb7e7caaad86b26b",
-			"definition_hash": "e57eef21ef1644b2085a3bffb3c2256564f45a07f42fd491f95d6eddd11d8e37",
-			"reviewed_at": "2026-06-18T16:34:58.563409549Z"
-		},
-		{
-			"function_name": "writeFile",
-			"documentation_hash": "a1e6138a52e3eea14c86a34c58230e4264a57fc1b53b555dad037212423aaaf5",
-			"definition_hash": "f0b7e07bb5eb30c724f37ef090890798797104864e1e33691cc676ad3d5b7c6d",
-			"reviewed_at": "2026-06-18T18:20:29.612719869Z"
-		},
-		{
-			"function_name": "TestLoadGoogleAuth",
-			"documentation_hash": "64de70ee57ffd1df07f96f56c99dc63fdd31a89c2a719a08efc11b772a2b95b6",
-			"definition_hash": "a5eb77011ab0acd1b20ad51e84e081df78ac15fc1d03e4269a0c3b75731fe841",
-			"reviewed_at": "2026-06-18T18:20:29.613768793Z"
-		},
-		{
-			"function_name": "TestLoadGoogleRequiresAllowlist",
-			"documentation_hash": "8d46a47620f90b8ab9f4cf75447e1ff23ed71f346b3bdc9c41a0a8096c649d03",
-			"definition_hash": "de7e1e6877474d3f459a99282ad9ff7eebb3e98d2a26cf2d8166da360ab1cfaa",
-			"reviewed_at": "2026-06-18T18:20:29.614763996Z"
-		},
-		{
-			"function_name": "TestLoadGoogleMissingSecretFile",
-			"documentation_hash": "0568aae507e0be6c854ca70d49b4a89f48d4ec35d33b202501541eac0d39f882",
-			"definition_hash": "23e110ad1126a7119a68fc88585e008f26ffe93cdc4e795daa7258e4998bb879",
-			"reviewed_at": "2026-06-18T18:20:29.615753796Z"
+			"reviewed_at": "2026-07-07T19:47:49.67897356Z"
 		},
 		{
 			"function_name": "TestLoadAdminEmails",
 			"documentation_hash": "b2ea71bf59f8056c3d598c8de7360ffa4006d4db12c426c7fdbc9d0b7d586515",
 			"definition_hash": "5902e26589bbf555455bab5a7a3e376d4df65c1aa39ed3a0e4f18b92cf11ecbb",
-			"reviewed_at": "2026-06-21T13:23:33.260020926Z"
+			"reviewed_at": "2026-07-07T19:47:49.68184219Z"
+		},
+		{
+			"function_name": "TestLoadAppliesDefaults",
+			"documentation_hash": "60e0219e260c50503756f9bdd49ad0d61a6ffc9f58ac71255154c849e61a9383",
+			"definition_hash": "553c356ce4dc64262225438479e638ac3abfff465b365909692946911b9f4b2c",
+			"reviewed_at": "2026-07-07T19:47:49.685108601Z"
+		},
+		{
+			"function_name": "TestLoadMissingFile",
+			"documentation_hash": "0630d57c1173a4b8fd21f6b848614ad82b91d5b9a9ab46a1867364a87e935e4d",
+			"definition_hash": "4f520b1d8e4309884f2d9d607eaf1543e373026f77791b8bc008463f44f0220a",
+			"reviewed_at": "2026-07-07T19:47:49.688125278Z"
+		},
+		{
+			"function_name": "TestLoadRejectsUnknownKey",
+			"documentation_hash": "96fbdf7f381ffa03c8244beab64ed8d41089ca5a34c16f633a5a7d72467fb4d9",
+			"definition_hash": "620212aa38b2d5819d2f745d3a50928a65bbe300481698cf32863235320353cc",
+			"reviewed_at": "2026-07-07T19:47:49.691505285Z"
+		},
+		{
+			"function_name": "TestLoadParsesDuration",
+			"documentation_hash": "c0972013b819325f6fe74ea329221a5525ee9a41f5cde1ad52962e130312dfac",
+			"definition_hash": "aa3f1a169d58bbba5062bd16e19ff44e975c619147498a301b163b8d623627f0",
+			"reviewed_at": "2026-07-07T19:47:49.694707462Z"
+		},
+		{
+			"function_name": "TestLoadRejectsBadDuration",
+			"documentation_hash": "e227345700e18455c462cc6d3041cf66708862ce7af166bcb6570726035042be",
+			"definition_hash": "4777d60302f2a19bf0a25d0df51c7e7f1a8ecbbf350855a87e62ced3af3b07b5",
+			"reviewed_at": "2026-07-07T19:47:49.698415673Z"
+		},
+		{
+			"function_name": "TestLoadEmptyFile",
+			"documentation_hash": "ee0bd7ac3af742777cf0c2347f9c603e71a2db31e9f84cc8bb7e7caaad86b26b",
+			"definition_hash": "e57eef21ef1644b2085a3bffb3c2256564f45a07f42fd491f95d6eddd11d8e37",
+			"reviewed_at": "2026-07-07T19:47:49.701505161Z"
+		},
+		{
+			"function_name": "writeFile",
+			"documentation_hash": "a1e6138a52e3eea14c86a34c58230e4264a57fc1b53b555dad037212423aaaf5",
+			"definition_hash": "f0b7e07bb5eb30c724f37ef090890798797104864e1e33691cc676ad3d5b7c6d",
+			"reviewed_at": "2026-07-07T19:47:49.704769418Z"
+		},
+		{
+			"function_name": "TestLoadGoogleAuth",
+			"documentation_hash": "64de70ee57ffd1df07f96f56c99dc63fdd31a89c2a719a08efc11b772a2b95b6",
+			"definition_hash": "a5eb77011ab0acd1b20ad51e84e081df78ac15fc1d03e4269a0c3b75731fe841",
+			"reviewed_at": "2026-07-07T19:47:49.70881452Z"
+		},
+		{
+			"function_name": "TestLoadGoogleRequiresAllowlist",
+			"documentation_hash": "8d46a47620f90b8ab9f4cf75447e1ff23ed71f346b3bdc9c41a0a8096c649d03",
+			"definition_hash": "de7e1e6877474d3f459a99282ad9ff7eebb3e98d2a26cf2d8166da360ab1cfaa",
+			"reviewed_at": "2026-07-07T19:47:49.712733784Z"
+		},
+		{
+			"function_name": "TestLoadGoogleMissingSecretFile",
+			"documentation_hash": "0568aae507e0be6c854ca70d49b4a89f48d4ec35d33b202501541eac0d39f882",
+			"definition_hash": "23e110ad1126a7119a68fc88585e008f26ffe93cdc4e795daa7258e4998bb879",
+			"reviewed_at": "2026-07-07T19:47:49.716169801Z"
 		},
 		{
 			"function_name": "TestLoadRegistry",
 			"documentation_hash": "06b75d87956fa517fbcc6db70d3259650dbde452c64b3586a089d16e90c3948f",
 			"definition_hash": "0604c5a95940b190f6487366372165a712120c0f2625324c0a87f3329879d2da",
-			"reviewed_at": "2026-06-26T12:09:51.23566773Z"
+			"reviewed_at": "2026-07-07T19:47:49.719782576Z"
 		},
 		{
 			"function_name": "TestLoadRegistryMissingPasswordFile",
 			"documentation_hash": "8c42f1afc0bf3ed5a97d73eee966a2ece0d059ebaa8269f9293ca39092917d98",
 			"definition_hash": "3ce4a72e8fe22f88fa12192d70b5e7b8ffa9760fb3c48a972f1c8f13090c4512",
-			"reviewed_at": "2026-06-26T12:09:51.272413982Z"
-		},
-		{
-			"function_name": "TestLoadRegistryRequiresHost",
-			"documentation_hash": "09228fb3163359d063f5c076ec398e093d165de9a5a85307d992c1d466ea96fb",
-			"definition_hash": "b0b24f2f769386226161f229373c55281bc10cab5610e2d132d2d8ecd78809fc",
-			"reviewed_at": "2026-06-26T12:09:51.300268773Z"
+			"reviewed_at": "2026-07-07T19:47:49.724052099Z"
 		},
 		{
 			"function_name": "TestLoadTLS",
 			"documentation_hash": "432d5cfbcd30a9a08038e49fb1f820748f9c072478dfb809a74f5c858eeb051b",
 			"definition_hash": "f7a64001bf354b147c3181495bff0ee11cf3fee764c63f29f57079ee655adf76",
-			"reviewed_at": "2026-07-01T14:22:43.826575098Z"
+			"reviewed_at": "2026-07-07T19:47:49.727142641Z"
 		},
 		{
 			"function_name": "TestLoadTLSRequiresCertAndKey",
 			"documentation_hash": "42097f0b60b71afb40c62df54894b538a07c1fcf72246fc31ffe852a25af1cc7",
 			"definition_hash": "19571e12c6d5077395848d6e4f81520e2d17be939407a6bee39639df2d378f27",
-			"reviewed_at": "2026-07-01T14:22:43.828954178Z"
+			"reviewed_at": "2026-07-07T19:47:49.730423965Z"
+		},
+		{
+			"function_name": "TestLoadRegistryRequiresHost",
+			"documentation_hash": "09228fb3163359d063f5c076ec398e093d165de9a5a85307d992c1d466ea96fb",
+			"definition_hash": "b0b24f2f769386226161f229373c55281bc10cab5610e2d132d2d8ecd78809fc",
+			"reviewed_at": "2026-07-07T19:47:49.733561526Z"
+		},
+		{
+			"function_name": "TestLoadConfigDefaultsWhenAbsent",
+			"documentation_hash": "33659db2b39fe8aa39d39b79d4ee263f1d59eff1e3143e02c2a7f7ae41c7db12",
+			"definition_hash": "7ec32e38fa36931891c3c6a01967a33f2189e30628513b7f25def95d251960b4",
+			"reviewed_at": "2026-07-07T19:47:49.737211068Z"
+		},
+		{
+			"function_name": "TestLoadConfigErrorsWhenExplicitMissing",
+			"documentation_hash": "7447cbd86ee3cd7dd9a664cd951f537de8d2342dc67f70866d737dbc8dfb7c68",
+			"definition_hash": "943a0c2e6de9bc47ecc9ea3c867e5d6185b6129a26b9c2ab4b49a172e57a7b16",
+			"reviewed_at": "2026-07-07T19:47:49.740673187Z"
+		},
+		{
+			"function_name": "TestLoadConfigReadsFile",
+			"documentation_hash": "84267592107d8effaecef24abae0f643ee68f7dc090ce7ab925ad8976a1069bd",
+			"definition_hash": "921554f3d5b395dcf0a4587c505bf6ebfce8986d5e4074556005fea2d4d05a59",
+			"reviewed_at": "2026-07-07T19:47:49.743977918Z"
 		}
 	]
 }

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/shared/store"
+	"github.com/clems4ever/llmbox/internal/hub/store"
 )
 
 // boxDialer is the box-reachability capability the proxy needs from a spoke's box

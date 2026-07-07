@@ -17,7 +17,7 @@ import (
 	"github.com/tebeka/selenium"
 
 	"github.com/clems4ever/llmbox/internal/hub"
-	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
 )
 
 // TestProxySignInRedirectInBrowser exercises the proxy sign-in gate end to end and

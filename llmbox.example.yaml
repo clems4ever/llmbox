@@ -59,10 +59,10 @@ state_file: "llmbox-sessions.db"
 
 # NOTE: the `llmbox-spoke` command reads NO config file — it is entirely
 # flag-driven so a spoke host runs the single command the admin UI generates.
-# Everything the hub configures here has a spoke flag counterpart, e.g.
-# allowed_images -> --allowed-image, box.memory_mb -> --box-memory-mb,
-# registries -> --registry/--registry-username/--registry-password-file. This
-# `spoke:` block is therefore unused; run `llmbox-spoke --help` for the flags.
+# Every per-box knob has a spoke flag counterpart, e.g. box.memory_mb ->
+# --box-memory-mb, registries -> --registry/--registry-username/--registry-password-file,
+# and the spoke's own image allow-list is set with --allowed-image. Run
+# `llmbox-spoke --help` for the full list.
 
 # Optional box lifecycle hooks: external executables run at box.create/destroy
 # (JSON over stdin/stdout, per the hookproto contract). A hook may inject files
