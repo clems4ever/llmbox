@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestNewRootCmd",
 			"documentation_hash": "f8bf3b09ee0d542754c87dd62ddee57722a7d5499f881d1f7a24f55978d78076",
-			"definition_hash": "8eaa00cc8ad316078a112247b4c40a6f459c0397fa95e1197f67f59f8fc5e6b2",
-			"reviewed_at": "2026-07-07T11:35:12.512545576Z"
+			"definition_hash": "d454dd926c5689ab3741cc051f6037a81bfe22f65004704b70656430ebab3fe2",
+			"reviewed_at": "2026-07-07T12:21:36.661129275Z"
 		},
 		{
 			"function_name": "TestCreateJoinTokenCmdPrintsToken",
@@ -89,6 +89,18 @@
 			"documentation_hash": "50b0801287ff22017cd2bab152bb3713e2ff74aa93ea4a37aed834a735880064",
 			"definition_hash": "a62e12ab722563c8d9ce2f15d114b87878b9174f40c4d5102cdd878e62f4ee21",
 			"reviewed_at": "2026-07-07T11:35:12.511966599Z"
+		},
+		{
+			"function_name": "writeCAPEM",
+			"documentation_hash": "302dfc11c1fe5ad39901ca3f88d6741576210d8a6c9393022d7712699a528b91",
+			"definition_hash": "6c766a14fde9dd83238b9c9c8bb67cfae2969c3834242beb18c6ea66151190b8",
+			"reviewed_at": "2026-07-07T12:21:36.65970304Z"
+		},
+		{
+			"function_name": "TestSpokeHubTLS",
+			"documentation_hash": "833fabdb62d5f3616d3a9e6f2e9c52fd447ac0e6ceca0ba3fb19abc9b6cccda1",
+			"definition_hash": "8eba09f4f7b9601fdc98541bae6c7aac47cca43e16f35dfc8ac668b0f395f682",
+			"reviewed_at": "2026-07-07T12:21:36.660267687Z"
 		}
 	]
 }

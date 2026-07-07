@@ -2,8 +2,10 @@ package cluster
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/coder/websocket"
 )
@@ -38,15 +40,38 @@ type Dialer func(ctx context.Context) (transport, error)
 // private mesh). This dialer accepts whichever scheme the operator passes — it
 // does not (and cannot) verify the link is encrypted. The bearer credential is a
 // static secret presented verbatim on every reconnect, so anyone who captures it
-// (on the wire or at rest) can impersonate this spoke until it is revoked.
+// (on the wire or at rest) can impersonate this spoke until it is revoked. For a
+// wss:// hub with a private-CA or self-signed certificate, use WebSocketDialerTLS
+// to trust the right CA (preferred) rather than disabling verification.
 //
 // @arg url The hub's spoke-connect URL (ws:// or wss://).
 // @return Dialer A dialer that opens a WebSocket transport to that URL.
 //
 // @testcase TestSpokeRunEnrollsAndServes uses an in-memory dialer in place of this.
 func WebSocketDialer(url string) Dialer {
+	return WebSocketDialerTLS(url, nil)
+}
+
+// WebSocketDialerTLS is WebSocketDialer with a caller-supplied TLS client config
+// for wss:// links — used to trust a hub's private-CA / self-signed certificate
+// (config.RootCAs) or, as a last resort for testing, to skip verification
+// (config.InsecureSkipVerify). A nil config uses the system trust store, exactly
+// like WebSocketDialer. The same SECURITY notes as WebSocketDialer apply.
+//
+// @arg url The hub's spoke-connect URL (ws:// or wss://).
+// @arg tlsConf The TLS client config for wss:// dials; nil uses the system default.
+// @return Dialer A dialer that opens a WebSocket transport to that URL.
+//
+// @testcase TestHubEnrollAndRoute dials a real hub through this (with a nil config).
+func WebSocketDialerTLS(url string, tlsConf *tls.Config) Dialer {
 	return func(ctx context.Context) (transport, error) {
-		conn, _, err := websocket.Dial(ctx, url, nil)
+		var opts *websocket.DialOptions
+		if tlsConf != nil {
+			opts = &websocket.DialOptions{
+				HTTPClient: &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConf.Clone()}},
+			}
+		}
+		conn, _, err := websocket.Dial(ctx, url, opts)
 		if err != nil {
 			return nil, err
 		}

@@ -7,6 +7,8 @@ package spoke
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -52,11 +54,16 @@ const (
 // hub's config would have supplied is instead an optional flag with the same
 // built-in default.
 type spokeOptions struct {
-	hubURL     string
-	token      string
-	statePath  string
-	boxGPUs    string
-	remoteArgs string
+	hubURL    string
+	token     string
+	statePath string
+	// tlsCAFile trusts a PEM CA bundle for a wss:// hub with a private-CA or
+	// self-signed certificate; tlsInsecure skips certificate verification entirely
+	// (testing only). Both apply to the hub connection on any backend.
+	tlsCAFile   string
+	tlsInsecure bool
+	boxGPUs     string
+	remoteArgs  string
 	// backend is the box isolation backend this spoke runs ("docker" or
 	// "firecracker"); it is set from the chosen run subcommand, not a flag.
 	backend string
@@ -112,6 +119,34 @@ func (o spokeOptions) registries() ([]config.RegistryConfig, error) {
 		Username: o.registry.username,
 		Password: strings.TrimSpace(string(data)),
 	}}, nil
+}
+
+// hubTLS builds the TLS client config for the hub WebSocket dial. It returns nil
+// (use the system trust store) when neither TLS flag is set, a config trusting the
+// --tls-ca bundle when given, and/or one skipping verification when --tls-insecure
+// is set.
+//
+// @return *tls.Config The TLS config for the hub dial, or nil for the system default.
+// @error error if the CA bundle cannot be read or contains no certificates.
+//
+// @testcase TestSpokeHubTLS builds a config from the CA/insecure flags and errors on a bad CA file.
+func (o spokeOptions) hubTLS() (*tls.Config, error) {
+	if o.tlsCAFile == "" && !o.tlsInsecure {
+		return nil, nil
+	}
+	cfg := &tls.Config{InsecureSkipVerify: o.tlsInsecure} //nolint:gosec // opt-in via --tls-insecure, documented as testing-only
+	if o.tlsCAFile != "" {
+		pem, err := os.ReadFile(o.tlsCAFile)
+		if err != nil {
+			return nil, fmt.Errorf("reading --tls-ca: %w", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pem) {
+			return nil, fmt.Errorf("--tls-ca %q contains no valid certificates", o.tlsCAFile)
+		}
+		cfg.RootCAs = pool
+	}
+	return cfg, nil
 }
 
 // NewRootCmd builds the llmbox-spoke command tree: a `docker` and a `firecracker`
@@ -184,6 +219,8 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.hubURL, "hub", "", "hub spoke-connect URL, e.g. wss://hub.example.com/spoke/connect")
 	f.StringVar(&o.token, "token", "", "one-time join token (only needed for first enrollment)")
 	f.StringVar(&o.statePath, "state", defaultSpokeStateFile, "file storing this spoke's issued credential")
+	f.StringVar(&o.tlsCAFile, "tls-ca", "", "PEM CA bundle to trust for a wss:// hub with a private-CA or self-signed certificate")
+	f.BoolVar(&o.tlsInsecure, "tls-insecure", false, "skip TLS certificate verification when dialing a wss:// hub (testing only; prefer --tls-ca)")
 	f.StringVar(&o.box.Namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one host without collapsing each other's boxes; empty is unscoped")
 	f.StringVar(&o.remoteArgs, "remote-args", "", "args passed to `claude remote-control` in every box; empty uses the built-in default")
 	f.IntVar(&o.box.MemoryMB, "box-memory-mb", config.DefaultBoxMemoryMB, "hard memory limit per box in MiB (0 = unlimited)")
@@ -504,7 +541,11 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	dial := cluster.WebSocketDialer(hubURL)
+	tlsConf, err := o.hubTLS()
+	if err != nil {
+		return err
+	}
+	dial := cluster.WebSocketDialerTLS(hubURL, tlsConf)
 	save := func(c cluster.Credentials) error {
 		if err := saveSpokeCreds(statePath, c); err != nil {
 			return err

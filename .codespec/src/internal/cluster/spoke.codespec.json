@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "WebSocketDialer",
-			"documentation_hash": "f75ffdac29b17b6a4561543b98f17bdaadb3b6c244615f1163bd8d02df146541",
-			"definition_hash": "47bb88c59c8bf41f80f7ea8220a18bd2f3784ae327707c902b5843242b8113d6",
-			"reviewed_at": "2026-06-21T14:39:24.336713866Z"
+			"documentation_hash": "8996940e03a6f1be4858cb248345df4b87bbac3383de8bb369296d64a0f12790",
+			"definition_hash": "cd9072482b2853a9bd7a646f1ac190b9306ffb2defe39cf31b430d79e5dd116f",
+			"reviewed_at": "2026-07-07T12:21:36.646831041Z"
 		},
 		{
 			"function_name": "Run",
@@ -17,6 +17,12 @@
 			"documentation_hash": "421a8189a3790a343a3ebeebb135f886d98a64fe0920a0663520e1cdc8668eba",
 			"definition_hash": "e4996a865e3057542115bf9c58ef59dee724af0ae574904044a706790864e9d4",
 			"reviewed_at": "2026-06-19T20:33:59.794305793Z"
+		},
+		{
+			"function_name": "WebSocketDialerTLS",
+			"documentation_hash": "8f55c790ced73161fe5f4262475578b70abad1444f8f2100efcf3d266d6e3ee3",
+			"definition_hash": "dbcb7c9a2faaf86bc99edcf3c24ce1e63489fa58524395dda1fece07a1fc1a0d",
+			"reviewed_at": "2026-07-07T12:21:36.647130861Z"
 		}
 	]
 }
