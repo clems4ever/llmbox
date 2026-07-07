@@ -71,11 +71,42 @@ Per-box CPU/memory caps (`box.cpus`, `box.memory_mb`) map onto the VM's vCPU cou
 - `CAP_NET_ADMIN` (typically root) and `net.ipv4.ip_forward=1` **only** when egress
   networking is enabled.
 
+## Zero-build spoke (images resolved from the registry)
+
+You do not have to build or host any of the guest images. If `--fc-kernel`,
+`--fc-rootfs`, or `--fc-payload` is left empty, the spoke pulls the published image
+from the registry on startup and caches it locally:
+
+```sh
+llmbox spoke --hub wss://hub.example.com/spoke/connect --backend firecracker
+#   kernel  <- ghcr.io/clems4ever/llmbox-fc-kernel:latest
+#   rootfs  <- ghcr.io/clems4ever/llmbox-fc-base:latest
+#   payload <- ghcr.io/clems4ever/llmbox-fc-payload:latest
+```
+
+The images are stored as opaque OCI artifacts (pulled with an embedded oras
+client, not `docker pull` — they are raw files Firecracker boots, not runnable
+images) and published by `.github/workflows/firecracker-assets.yml`. Overrides:
+
+- `LLMBOX_FC_REGISTRY` — the OCI namespace to pull from (default
+  `ghcr.io/clems4ever`); point it at a fork's packages.
+- `LLMBOX_FC_TAG` — the tag to pull (default `latest`); pin a specific build.
+- `LLMBOX_FC_ASSET_CACHE` — where pulled images are cached (default under the user
+  cache dir; must survive reboots since the base rootfs is multi-GiB).
+
+Pulls are anonymous for public packages; a registry credential configured for the
+host (see the registry section) is used automatically when present. Supplying any
+path flag uses that local file instead of pulling. Note the payload is pulled only
+when the rootfs is also auto-resolved — if you pass a custom all-in-one
+`--fc-rootfs` (agent baked in) and no `--fc-payload`, no payload is attached.
+
 ## Building a rootfs
 
-The rootfs must boot with the llmbox agent as its init, listening on vsock. Its
-`init` mounts `/proc`, `/sys`, `/dev` (devtmpfs) and `/dev/pts` (devpts, for the
-agent's PTY), brings up `lo`, then `exec`s `llmbox-agent --vsock-port 5000`.
+If you would rather build the images yourself (e.g. to customise them), the
+scripts below produce exactly what the registry publishes. The rootfs must boot
+with the llmbox agent as its init, listening on vsock. Its `init` mounts `/proc`,
+`/sys`, `/dev` (devtmpfs) and `/dev/pts` (devpts, for the agent's PTY), brings up
+`lo`, then `exec`s `llmbox-agent --vsock-port 5000`.
 
 ### Full Debian server (recommended for real use)
 

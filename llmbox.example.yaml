@@ -106,11 +106,17 @@ state_file: "llmbox-sessions.db"
 # vsock. Build the kernel + rootfs with scripts/firecracker/ — see
 # docs/firecracker.md. Host needs /dev/kvm and the firecracker binary on PATH.
 # firecracker:
+#   # All three image paths are optional: leave one empty and the spoke pulls the
+#   # published image from the registry (ghcr.io/clems4ever/llmbox-fc-{kernel,base,
+#   # payload}:latest) on startup and caches it, so a spoke needs no prebuilt images.
+#   # Override the source with LLMBOX_FC_REGISTRY / LLMBOX_FC_TAG. Set a path to use
+#   # a local file instead.
 #   kernel_image:  "/var/lib/llmbox/vmlinux"     # host path to the guest kernel (vmlinux)
 #   rootfs_image:  "/var/lib/llmbox/rootfs.ext4" # default guest rootfs booted per box
-#   # Optional: a small read-only ext4 carrying the guest agent (+claude), attached
-#   # to every box as a shared second drive so the agent updates without rebuilding
-#   # the multi-GiB rootfs. Empty bakes the agent into the rootfs (all-in-one).
+#   # A small read-only ext4 carrying the guest agent (+claude), attached to every
+#   # box as a shared second drive so the agent updates without rebuilding the
+#   # multi-GiB rootfs. Empty pulls the published payload (unless rootfs_image is a
+#   # custom all-in-one image with the agent baked in).
 #   payload_image: "/var/lib/llmbox/payload.ext4"
 #   state_dir:     "/run/llmbox/firecracker"     # per-box runtime state (empty = backend default)
 #   # Egress TAP devices are provisioned once at startup (not per box), so creating

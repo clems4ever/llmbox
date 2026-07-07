@@ -19,6 +19,7 @@ require (
 	golang.org/x/oauth2 v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.53.0
+	oras.land/oras-go/v2 v2.6.1
 )
 
 require (
