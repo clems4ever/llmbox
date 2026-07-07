@@ -17,9 +17,9 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/hub"
-	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
+	storepkg "github.com/clems4ever/llmbox/internal/hub/store"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	storepkg "github.com/clems4ever/llmbox/internal/shared/store"
 )
 
 // clusterFixture is a complete, in-process llmbox cluster wired for driving box

@@ -3,8 +3,8 @@ package testutils
 import (
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/hub/store"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	"github.com/clems4ever/llmbox/internal/shared/store"
 )
 
 // NoopStore is a store.Store that persists nothing: writes are dropped and reads

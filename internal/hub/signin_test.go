@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
 	"github.com/clems4ever/llmbox/testutils"
 )
 

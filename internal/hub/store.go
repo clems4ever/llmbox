@@ -1,10 +1,10 @@
 package hub
 
 import (
-	"github.com/clems4ever/llmbox/internal/shared/store"
+	"github.com/clems4ever/llmbox/internal/hub/store"
 )
 
-// The persistence layer lives in the dedicated internal/store package (SQLite
+// The persistence layer lives in the dedicated internal/hub/store package (SQLite
 // today, other backends possible later). These aliases keep the names the server
 // and its callers already use bound to that package, so persistence can evolve
 // without rippling through the server.

@@ -5,46 +5,52 @@
 			"receiver": "Duration",
 			"documentation_hash": "5253179bb74f0238069fc5f1312253f2fac565b3dfc82c9bb38ff92a53dfbf76",
 			"definition_hash": "fa4f0fb6774a78fad3348af1485f6f3851a2be4f43789c7dbaf62e3e5763bde0",
-			"reviewed_at": "2026-06-18T16:34:49.319360716Z"
+			"reviewed_at": "2026-07-07T19:47:49.642773223Z"
 		},
 		{
 			"function_name": "Default",
 			"documentation_hash": "2b555584241c6c215e38734a2854bd0636e5394553b843708e819f9e7455df55",
 			"definition_hash": "5e52b32bd8186311d0a74742aa0bd50e9ce464ce667eb74aa29866d0b48809a5",
-			"reviewed_at": "2026-06-18T16:34:49.319933192Z"
+			"reviewed_at": "2026-07-07T19:47:49.645773613Z"
 		},
 		{
 			"function_name": "Load",
 			"documentation_hash": "812a32dee343c16806a74e0ddb4d9336f731f136a15d33542ef8b528985efc51",
 			"definition_hash": "ce49d83263b198b4d99b3d7c20061158df49b16a252f048c80183af4067bfe09",
-			"reviewed_at": "2026-07-01T14:22:43.82217397Z"
+			"reviewed_at": "2026-07-07T19:47:49.648723398Z"
 		},
 		{
-			"function_name": "applyDefaults",
-			"receiver": "Config",
-			"documentation_hash": "8b2b783cab0251051380f21c9a225addb076330e17f56b4879faf34098a23f9c",
-			"definition_hash": "e2ff090828285c75ad13d8928466024a209dbb5ffac4da723eda936460188d3c",
-			"reviewed_at": "2026-07-07T11:50:30.164001201Z"
+			"function_name": "LoadConfig",
+			"documentation_hash": "507bddd99738e575397c49ae2536e1090949b52719fea2166234e77713e33da6",
+			"definition_hash": "be1efd0d54902b98b2d35bdaf05a9f062130f506461ee14b897e4bca4d254632",
+			"reviewed_at": "2026-07-07T19:47:49.651612191Z"
 		},
 		{
 			"function_name": "resolveSecrets",
 			"receiver": "Config",
 			"documentation_hash": "46d032e8091ee6359b12ae0402816798444d7f55ab524ed1be5302901d5b5b2f",
 			"definition_hash": "9958c940e39fe862c90e1a60746267a5fb7fb5bfdd17d55cf0970e2103caf1cd",
-			"reviewed_at": "2026-06-26T12:09:36.43399364Z"
+			"reviewed_at": "2026-07-07T19:47:49.655989238Z"
 		},
 		{
 			"function_name": "secretFromFile",
 			"documentation_hash": "5990d6ed7d8103ab21252a38b9010e9719d26ed155b39bed3643e0af71e8e746",
 			"definition_hash": "fc064d0c2a8c7d3b68e8b113ae45c22488626737a00d506bb793964fa512ede1",
-			"reviewed_at": "2026-06-18T18:20:29.609389149Z"
+			"reviewed_at": "2026-07-07T19:47:49.658885621Z"
 		},
 		{
 			"function_name": "validate",
 			"receiver": "Config",
 			"documentation_hash": "8e2694fcf18669a216e78ad826a5af7e9310f77b22e3083a2738108d800d32b9",
 			"definition_hash": "853aa920e1028db47f6899076d4cd31016c601725cc9e5f8ff17420aba9565e1",
-			"reviewed_at": "2026-07-01T14:22:52.788174734Z"
+			"reviewed_at": "2026-07-07T19:47:49.663421838Z"
+		},
+		{
+			"function_name": "applyDefaults",
+			"receiver": "Config",
+			"documentation_hash": "8b2b783cab0251051380f21c9a225addb076330e17f56b4879faf34098a23f9c",
+			"definition_hash": "14f1865e965088667701f700c2cd6cc71155f787de695687dcb70bdebb610d05",
+			"reviewed_at": "2026-07-07T19:47:49.667967971Z"
 		}
 	]
 }

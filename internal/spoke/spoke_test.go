@@ -1,7 +1,6 @@
 package spoke
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -19,7 +18,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	storepkg "github.com/clems4ever/llmbox/internal/shared/store"
 )
 
 // subcmd returns the named direct subcommand of cmd, failing the test if absent.
@@ -93,8 +91,7 @@ func TestSpokeHubTLS(t *testing.T) {
 }
 
 // TestNewRootCmd checks the llmbox-spoke command wiring: the docker and firecracker
-// backend subcommands each carry their own flags (never a mix), plus the
-// token/create subcommand tree.
+// backend subcommands each carry their own flags (never a mix).
 func TestNewRootCmd(t *testing.T) {
 	const name = "llmbox-spoke"
 	cmd := NewRootCmd(name, "v0.1.0")
@@ -133,147 +130,6 @@ func TestNewRootCmd(t *testing.T) {
 		if fc.Flags().Lookup(f) != nil {
 			t.Errorf("firecracker subcommand should not have --%s", f)
 		}
-	}
-
-	// token subcommand with a create child (which reads --state-file, not --config).
-	token := subcmd(t, cmd, "token")
-	create := subcmd(t, token, "create")
-	for _, f := range []string{"name", "ttl", "state-file"} {
-		if create.Flags().Lookup(f) == nil {
-			t.Errorf("token create missing --%s flag", f)
-		}
-	}
-	if create.Flags().Lookup("config") != nil {
-		t.Error("token create should not have a --config flag")
-	}
-}
-
-// TestCreateJoinTokenCmdPrintsToken checks the token-create command mints a
-// token for the named spoke and prints it with a usage hint.
-func TestCreateJoinTokenCmdPrintsToken(t *testing.T) {
-	stateFile := filepath.Join(t.TempDir(), "hub.db")
-
-	var out bytes.Buffer
-	if err := createJoinToken(&out, stateFile, "edge", time.Hour); err != nil {
-		t.Fatalf("createJoinToken: %v", err)
-	}
-	s := out.String()
-	if !strings.Contains(s, `spoke "edge"`) {
-		t.Errorf("output missing spoke name: %q", s)
-	}
-	if !strings.Contains(s, "llmbox-spoke docker --hub") {
-		t.Errorf("output missing usage hint: %q", s)
-	}
-}
-
-// seedJoinToken mints a join token for name into the store at stateFile and
-// returns its ID.
-func seedJoinToken(t *testing.T, stateFile, name string) string {
-	t.Helper()
-	store, err := storepkg.Open(stateFile)
-	if err != nil {
-		t.Fatalf("OpenStore: %v", err)
-	}
-	defer func() { _ = store.Close() }()
-	if _, err := cluster.CreateJoinToken(store, name, time.Hour, time.Now()); err != nil {
-		t.Fatalf("CreateJoinToken: %v", err)
-	}
-	infos, err := store.ListJoinTokens()
-	if err != nil {
-		t.Fatalf("ListJoinTokens: %v", err)
-	}
-	for _, i := range infos {
-		if i.Name == name {
-			return i.ID
-		}
-	}
-	t.Fatalf("seeded token for %q not found", name)
-	return ""
-}
-
-// countJoinTokens returns how many join tokens are stored at stateFile.
-func countJoinTokens(t *testing.T, stateFile string) int {
-	t.Helper()
-	store, err := storepkg.Open(stateFile)
-	if err != nil {
-		t.Fatalf("OpenStore: %v", err)
-	}
-	defer func() { _ = store.Close() }()
-	infos, err := store.ListJoinTokens()
-	if err != nil {
-		t.Fatalf("ListJoinTokens: %v", err)
-	}
-	return len(infos)
-}
-
-// TestListJoinTokensCmd lists outstanding tokens with their spoke and a short ID.
-func TestListJoinTokensCmd(t *testing.T) {
-	stateFile := filepath.Join(t.TempDir(), "hub.db")
-	id := seedJoinToken(t, stateFile, "edge")
-
-	var out bytes.Buffer
-	if err := listJoinTokens(&out, stateFile, time.Now()); err != nil {
-		t.Fatalf("listJoinTokens: %v", err)
-	}
-	s := out.String()
-	if !strings.Contains(s, "edge") || !strings.Contains(s, "SPOKE") {
-		t.Errorf("listing missing spoke/header: %q", s)
-	}
-	if !strings.Contains(s, id[:joinTokenIDLen]) {
-		t.Errorf("listing missing short ID %q: %q", id[:joinTokenIDLen], s)
-	}
-}
-
-// TestListJoinTokensCmdEmpty reports when there are no tokens.
-func TestListJoinTokensCmdEmpty(t *testing.T) {
-	stateFile := filepath.Join(t.TempDir(), "hub.db")
-	var out bytes.Buffer
-	if err := listJoinTokens(&out, stateFile, time.Now()); err != nil {
-		t.Fatalf("listJoinTokens: %v", err)
-	}
-	if !strings.Contains(out.String(), "No outstanding join tokens") {
-		t.Errorf("empty listing = %q", out.String())
-	}
-}
-
-// TestRevokeJoinTokenByID revokes the single token matching an ID prefix.
-func TestRevokeJoinTokenByID(t *testing.T) {
-	stateFile := filepath.Join(t.TempDir(), "hub.db")
-	id := seedJoinToken(t, stateFile, "edge")
-
-	var out bytes.Buffer
-	if err := revokeJoinTokens(&out, stateFile, id[:10], ""); err != nil {
-		t.Fatalf("revokeJoinTokens: %v", err)
-	}
-	if !strings.Contains(out.String(), "Revoked") {
-		t.Errorf("revoke output = %q", out.String())
-	}
-	if n := countJoinTokens(t, stateFile); n != 0 {
-		t.Errorf("token count after revoke = %d, want 0", n)
-	}
-}
-
-// TestRevokeJoinTokenByName revokes every token for a spoke name.
-func TestRevokeJoinTokenByName(t *testing.T) {
-	stateFile := filepath.Join(t.TempDir(), "hub.db")
-	seedJoinToken(t, stateFile, "edge")
-	seedJoinToken(t, stateFile, "edge")
-	seedJoinToken(t, stateFile, "other")
-
-	var out bytes.Buffer
-	if err := revokeJoinTokens(&out, stateFile, "", "edge"); err != nil {
-		t.Fatalf("revokeJoinTokens: %v", err)
-	}
-	if n := countJoinTokens(t, stateFile); n != 1 {
-		t.Errorf("token count after revoking edge = %d, want 1 (other remains)", n)
-	}
-}
-
-// TestRevokeJoinTokenNoMatch errors when nothing matches.
-func TestRevokeJoinTokenNoMatch(t *testing.T) {
-	stateFile := filepath.Join(t.TempDir(), "hub.db")
-	if err := revokeJoinTokens(&bytes.Buffer{}, stateFile, "deadbeef", ""); err == nil {
-		t.Fatal("expected error when no token matches")
 	}
 }
 

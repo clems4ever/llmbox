@@ -3,7 +3,7 @@ package hub
 import (
 	"fmt"
 
-	"github.com/clems4ever/llmbox/internal/shared/hooks"
+	"github.com/clems4ever/llmbox/internal/hub/hooks"
 )
 
 // knownSpokeNames returns the set of spoke names that still exist: every spoke

@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
+	"github.com/clems4ever/llmbox/internal/hub/hooks"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	"github.com/clems4ever/llmbox/internal/shared/hooks"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/docker"
 )

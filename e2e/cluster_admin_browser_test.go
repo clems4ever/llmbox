@@ -29,7 +29,7 @@ import (
 	"github.com/tebeka/selenium"
 
 	"github.com/clems4ever/llmbox/internal/hub"
-	"github.com/clems4ever/llmbox/internal/shared/auth"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )

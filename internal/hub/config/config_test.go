@@ -309,3 +309,40 @@ registries:
 		t.Error("Load with no registry host = nil, want error")
 	}
 }
+
+// TestLoadConfigDefaultsWhenAbsent checks an implicit (non-explicit) missing
+// config path yields the built-in defaults rather than an error.
+func TestLoadConfigDefaultsWhenAbsent(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "does-not-exist.yaml")
+	cfg, err := LoadConfig(missing, false)
+	if err != nil {
+		t.Fatalf("LoadConfig implicit missing = %v, want nil", err)
+	}
+	if cfg.HTTPAddr != ":8080" {
+		t.Errorf("default HTTPAddr = %q, want :8080", cfg.HTTPAddr)
+	}
+}
+
+// TestLoadConfigErrorsWhenExplicitMissing checks an explicitly named missing
+// file is a hard error.
+func TestLoadConfigErrorsWhenExplicitMissing(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "does-not-exist.yaml")
+	if _, err := LoadConfig(missing, true); err == nil {
+		t.Error("LoadConfig explicit missing = nil, want error")
+	}
+}
+
+// TestLoadConfigReadsFile checks LoadConfig parses an existing file.
+func TestLoadConfigReadsFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "llmbox.yaml")
+	if err := os.WriteFile(path, []byte("http_addr: \":9090\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadConfig(path, true)
+	if err != nil {
+		t.Fatalf("LoadConfig = %v", err)
+	}
+	if cfg.HTTPAddr != ":9090" {
+		t.Errorf("HTTPAddr = %q, want :9090", cfg.HTTPAddr)
+	}
+}
