@@ -28,6 +28,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/hub/apikey"
 	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
@@ -83,8 +84,13 @@ func TestClusterEndToEnd(t *testing.T) {
 		_ = cluster.Run(ctx, cluster.WebSocketDialer(wsURL), edgeMgr, joinToken, nil, func(cluster.Credentials) error { return nil })
 	}()
 
-	// The chatbot side, over the box-control API on the single server.
-	cs := connectMCP(t, "http://"+uiAddr)
+	// The chatbot side, over the box-control API on the single server. The API is
+	// authenticated, so mint the key a deployed llmbox-mcp would be given.
+	mcpKey, err := apikey.Create(store, "e2e-mcp", time.Hour, time.Now())
+	if err != nil {
+		t.Fatalf("mint api key: %v", err)
+	}
+	cs := connectMCP(t, "http://"+uiAddr, mcpKey)
 
 	// Create a box on the spoke. Retry until the spoke has finished enrolling.
 	var createOut map[string]any
@@ -378,10 +384,13 @@ func waitHealthy(t *testing.T, base string) {
 // connectMCP builds an MCP session standing in for the chatbot: it wraps an
 // api client pointed at the hub's box-control API in an MCP server (as the
 // llmbox-mcp binary does) and connects an in-memory MCP client to it, so tool
-// calls travel over the real box-control HTTP API to the hub.
-func connectMCP(t *testing.T, base string) *mcp.ClientSession {
+// calls travel over the real box-control HTTP API to the hub — authenticated
+// with key exactly as a deployed llmbox-mcp would be.
+func connectMCP(t *testing.T, base, key string) *mcp.ClientSession {
 	t.Helper()
-	return testutils.ConnectMCP(t, api.NewClient(base, nil), "llmbox", "cluster-e2e")
+	c := api.NewClient(base, nil)
+	c.SetAPIKey(key)
+	return testutils.ConnectMCP(t, c, "llmbox", "cluster-e2e")
 }
 
 // callTool calls an MCP tool and returns its structured output, failing on error.

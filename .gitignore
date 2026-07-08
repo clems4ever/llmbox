@@ -33,3 +33,5 @@ CLAUDE.md
 # air live-reload working dir (see .air.toml)
 /tmp/
 /build-errors.log
+# Web app toolchain (the built dist under internal/hub/webdist IS committed)
+/web/node_modules/

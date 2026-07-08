@@ -7,18 +7,23 @@ import (
 // API route paths. Each maps 1:1 to a Backend method and is served/called with a
 // single POST carrying a JSON body (an empty body for the no-argument methods).
 const (
-	PathCreateBox     = "/api/v1/create-box"
-	PathAuthPageURL   = "/api/v1/auth-page-url"
-	PathLookupBox     = "/api/v1/lookup-box"
-	PathListBoxes     = "/api/v1/list-boxes"
-	PathSpokeStatuses = "/api/v1/spoke-statuses"
-	PathDestroyBox    = "/api/v1/destroy-box"
-	PathBoxLogs       = "/api/v1/box-logs"
-	PathBoxExec       = "/api/v1/box-exec"
-	PathProxyEnabled  = "/api/v1/proxy-enabled"
-	PathCreateProxy   = "/api/v1/create-proxy"
-	PathDeleteProxy   = "/api/v1/delete-proxy"
-	PathListProxies   = "/api/v1/list-proxies"
+	PathCreateBox       = "/api/v1/create-box"
+	PathAuthPageURL     = "/api/v1/auth-page-url"
+	PathLookupBox       = "/api/v1/lookup-box"
+	PathListBoxes       = "/api/v1/list-boxes"
+	PathSpokeStatuses   = "/api/v1/spoke-statuses"
+	PathCreateSpoke     = "/api/v1/create-spoke"
+	PathDropSpoke       = "/api/v1/drop-spoke"
+	PathSetDefaultSpoke = "/api/v1/set-default-spoke"
+	PathListJoinTokens  = "/api/v1/list-join-tokens"
+	PathRevokeJoinToken = "/api/v1/revoke-join-token"
+	PathDestroyBox      = "/api/v1/destroy-box"
+	PathBoxLogs         = "/api/v1/box-logs"
+	PathBoxExec         = "/api/v1/box-exec"
+	PathProxyEnabled    = "/api/v1/proxy-enabled"
+	PathCreateProxy     = "/api/v1/create-proxy"
+	PathDeleteProxy     = "/api/v1/delete-proxy"
+	PathListProxies     = "/api/v1/list-proxies"
 )
 
 // errorResponse is the body of every non-2xx API response; the client turns its
@@ -56,11 +61,40 @@ type lookupBoxResponse struct {
 }
 
 type listBoxesResponse struct {
-	Boxes []sandbox.Box `json:"boxes"`
+	Boxes []BoxView `json:"boxes"`
 }
 
 type spokeStatusesResponse struct {
 	Spokes []SpokeStatus `json:"spokes"`
+}
+
+type createSpokeRequest struct {
+	Name string `json:"name"`
+	// Backend picks the box backend in the returned start command ("docker" or
+	// "firecracker"); empty means docker.
+	Backend string `json:"backend,omitempty"`
+	// TTL is how long the join token stays valid, as a Go duration string
+	// (e.g. "1h"); empty uses the server default.
+	TTL string `json:"ttl,omitempty"`
+}
+type createSpokeResponse struct {
+	Spoke SpokeEnrollment `json:"spoke"`
+}
+
+type dropSpokeRequest struct {
+	Name string `json:"name"`
+}
+
+type setDefaultSpokeRequest struct {
+	Name string `json:"name"`
+}
+
+type listJoinTokensResponse struct {
+	Tokens []JoinTokenInfo `json:"tokens"`
+}
+
+type revokeJoinTokenRequest struct {
+	ID string `json:"id"`
 }
 
 type destroyBoxRequest struct {

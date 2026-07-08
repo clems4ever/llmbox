@@ -51,6 +51,37 @@ type SpokeStatus struct {
 	EnrolledAt time.Time `json:"enrolled_at,omitempty" jsonschema:"when the spoke enrolled"`
 }
 
+// BoxView is one listed box together with its activation state: the underlying
+// box plus the URL a user needs next — the activation page while the box is
+// pending, or the remote-control session URL once it is ready.
+type BoxView struct {
+	sandbox.Box
+	// AuthURL is the activation page URL for a box still awaiting sign-in; empty
+	// once the box is ready (or when the hub no longer tracks its session).
+	AuthURL string `json:"auth_url,omitempty" jsonschema:"the activation page URL while the box awaits authentication"`
+	// SessionURL is the remote-control session URL of a ready box; empty until
+	// activation completes.
+	SessionURL string `json:"session_url,omitempty" jsonschema:"the remote-control session URL once the box is ready"`
+}
+
+// SpokeEnrollment is the result of minting a join token for a new spoke: the
+// one-time token and the ready-to-run command that starts the spoke with it.
+// The token is shown once and never recoverable.
+type SpokeEnrollment struct {
+	Name    string `json:"name" jsonschema:"the spoke name the token enrolls"`
+	Token   string `json:"token" jsonschema:"the one-time join token (shown once)"`
+	Command string `json:"command" jsonschema:"the copy-pasteable command that starts the spoke and enrolls it"`
+}
+
+// JoinTokenInfo describes one outstanding spoke join token: an opaque ID to
+// revoke it by, the spoke name it enrolls, and its expiry. The token secret is
+// never recoverable.
+type JoinTokenInfo struct {
+	ID        string    `json:"id" jsonschema:"the opaque token ID used to revoke it"`
+	Name      string    `json:"name" jsonschema:"the spoke name the token enrolls"`
+	ExpiresAt time.Time `json:"expires_at" jsonschema:"when the token stops being accepted"`
+}
+
 // Backend is the box-operation contract the API layer needs. The server
 // implements it; tests supply a fake. The OAuth secret is intentionally absent:
 // CreateBox returns only a token, and AuthPageURL turns that token into the public
@@ -63,10 +94,25 @@ type Backend interface {
 	// LookupByBoxID finds a box's session by its caller-assigned box ID
 	// (case-insensitive); ok is false when none matches.
 	LookupByBoxID(boxID string) (sess BoxSession, ok bool)
-	// ListBoxes returns all boxes managed across every spoke.
-	ListBoxes(ctx context.Context) ([]sandbox.Box, error)
+	// ListBoxes returns all boxes managed across every spoke, each with its
+	// activation or session URL when known.
+	ListBoxes(ctx context.Context) ([]BoxView, error)
 	// SpokeStatuses returns every spoke and whether it is currently connected.
 	SpokeStatuses(ctx context.Context) ([]SpokeStatus, error)
+	// CreateSpoke mints a one-time join token enrolling a new spoke and returns it
+	// with the ready-to-run start command. backend picks the command's box backend
+	// ("docker" or "firecracker"; empty means docker); ttl<=0 uses the default.
+	CreateSpoke(ctx context.Context, name, backend string, ttl time.Duration) (SpokeEnrollment, error)
+	// DropSpoke removes a spoke's enrollment, revokes its join tokens, and
+	// disconnects it.
+	DropSpoke(ctx context.Context, name string) error
+	// SetDefaultSpoke makes an enrolled spoke the default that unqualified box
+	// creates run on.
+	SetDefaultSpoke(ctx context.Context, name string) error
+	// ListJoinTokens returns every outstanding spoke join token.
+	ListJoinTokens(ctx context.Context) ([]JoinTokenInfo, error)
+	// RevokeJoinToken deletes one outstanding join token by its ID.
+	RevokeJoinToken(ctx context.Context, id string) error
 	// DestroyBox stops and removes the box with the given container ID.
 	DestroyBox(ctx context.Context, containerID string) error
 	// BoxLogs returns the recent console output of the box with the given box ID.

@@ -22,7 +22,7 @@ func TestNewRootCmd(t *testing.T) {
 
 // TestRunRequiresUpstream checks run refuses to start without an upstream URL.
 func TestRunRequiresUpstream(t *testing.T) {
-	if err := run(context.Background(), "", ":0", false); err == nil {
+	if err := run(context.Background(), "", "", ":0", false); err == nil {
 		t.Fatal("run with empty upstream = nil, want an error")
 	}
 }
@@ -41,7 +41,7 @@ func TestRunHTTPServesAndStops(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	errc := make(chan error, 1)
-	go func() { errc <- run(ctx, "http://upstream.invalid", addr, false) }()
+	go func() { errc <- run(ctx, "http://upstream.invalid", "", addr, false) }()
 
 	// Wait until the listener is accepting connections.
 	deadline := time.Now().Add(3 * time.Second)

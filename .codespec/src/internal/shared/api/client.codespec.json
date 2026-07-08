@@ -9,8 +9,8 @@
 		{
 			"function_name": "post",
 			"documentation_hash": "75de5d28d7a1f52ef385612016c01152294257e2a0c102dec17233180019c399",
-			"definition_hash": "7a7f4cd4e2da21307aa4472aad8d78adb69588960214a3c19c81114798d6ab5f",
-			"reviewed_at": "2026-07-01T10:31:18.803979811Z"
+			"definition_hash": "1d8387c6b20844d91be2b768dd63ea5772fd7c30b2ad7b8aa452ca079fa894d0",
+			"reviewed_at": "2026-07-08T12:57:12.26041093Z"
 		},
 		{
 			"function_name": "CreateBox",
@@ -36,9 +36,9 @@
 		{
 			"function_name": "ListBoxes",
 			"receiver": "Client",
-			"documentation_hash": "d38e8ccfe430cf122982eee0e75ab3c19bdd8c4f5a22635ef340c1d9c2c9e807",
-			"definition_hash": "b67a01a96f5a980624b1f3498b2910ec90b345ef5c2b2fd9aecd4dc3bb38b43c",
-			"reviewed_at": "2026-07-01T10:31:18.81441855Z"
+			"documentation_hash": "dc4b3e8f5127fc9e9c9e1fb4cf19c7a7f7229e7592421693708488c60d817d4b",
+			"definition_hash": "d77c682b09dd9e82f4bbbd2960de607683ca71d14f76880002690b59f84b3f84",
+			"reviewed_at": "2026-07-08T12:57:12.260877468Z"
 		},
 		{
 			"function_name": "SpokeStatuses",
@@ -95,6 +95,48 @@
 			"documentation_hash": "de89da2dea62fccc7eb64bb5a13ca4fb44b1f895be58464793fdfc0dd7dca7b4",
 			"definition_hash": "32e6d5c74606a0a19ca690baae17f6d902cd5652da76d312460298627a92f681",
 			"reviewed_at": "2026-07-01T13:11:50.351718071Z"
+		},
+		{
+			"function_name": "SetAPIKey",
+			"receiver": "Client",
+			"documentation_hash": "3148e40234cdc0d555ff1f53c441c048a4a0fd1e7f918f8198a8d6dc9edd5643",
+			"definition_hash": "e621890d66d684d94f0d275e7b489d0478d4bafea3899a5077f6700ed1e2a3e2",
+			"reviewed_at": "2026-07-08T12:57:12.259880989Z"
+		},
+		{
+			"function_name": "CreateSpoke",
+			"receiver": "Client",
+			"documentation_hash": "247b03b9e0384dd5459031a485f9b8ea574d4ef7753c4bd76e777291a8ee3893",
+			"definition_hash": "b201abdf44b5c007de516d6c554edc2b74580ecd7cb4d7a420e515b58bfd1e88",
+			"reviewed_at": "2026-07-08T12:57:12.261324308Z"
+		},
+		{
+			"function_name": "DropSpoke",
+			"receiver": "Client",
+			"documentation_hash": "6995e8d0f2a40bd5153f4a529b5a4ca435b2b5ca774e974a7e794f0e0dbcc028",
+			"definition_hash": "266ae042c3d8aa1150f079cf7f31993ae9ffa7876a08967314ba9d2b800102c3",
+			"reviewed_at": "2026-07-08T12:57:12.261772417Z"
+		},
+		{
+			"function_name": "SetDefaultSpoke",
+			"receiver": "Client",
+			"documentation_hash": "5be10aaf6953b0e84e31294a1408c38d38a30c3194d2128e50cbaa7cfd9e4d88",
+			"definition_hash": "5c82338f4872d64f2137fc5845aaca774634e72ca7e4cf68d88455964ee36229",
+			"reviewed_at": "2026-07-08T12:57:12.262483175Z"
+		},
+		{
+			"function_name": "ListJoinTokens",
+			"receiver": "Client",
+			"documentation_hash": "21a8f014db92cf3bd752b8275c6711d74031211beba79b3ceafcfd86785c4976",
+			"definition_hash": "9e611b31c47b53096c5a80ad080646bf13c86e485a51ddf9e398d2f6ff44c387",
+			"reviewed_at": "2026-07-08T12:57:12.262976889Z"
+		},
+		{
+			"function_name": "RevokeJoinToken",
+			"receiver": "Client",
+			"documentation_hash": "a47d560a3175068049aaec72545eaa89c2321d94bae2a2da7ebfc9fe6114740e",
+			"definition_hash": "b86cba6911f6bece72050a32193331f363b43b477515017c914fcc3f60ba3497",
+			"reviewed_at": "2026-07-08T12:57:12.263461501Z"
 		}
 	]
 }

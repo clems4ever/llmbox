@@ -197,6 +197,34 @@
 			"documentation_hash": "4e208ac72424f5505eee1faecd0ff31cd5f9e3d8bccf45dffd34b306e745be69",
 			"definition_hash": "1633feb4eeb436475fd4f62a66e51b65db24e09acf11e3ebea6081bbaea9b624",
 			"reviewed_at": "2026-07-07T08:15:52.631571057Z"
+		},
+		{
+			"function_name": "PutAPIKey",
+			"receiver": "sqliteStore",
+			"documentation_hash": "51d5037f878097728a16449a727449bea3f3dba1e0b00871b21de8976804306e",
+			"definition_hash": "0a77f5675027befe1462cbc951cc3aa03f428152607ae27f423502cedc98c717",
+			"reviewed_at": "2026-07-08T12:57:12.247727371Z"
+		},
+		{
+			"function_name": "GetAPIKey",
+			"receiver": "sqliteStore",
+			"documentation_hash": "f3d85ad9030caea6c2084121ee8a0197c960ba262111436d435615fc24b1d757",
+			"definition_hash": "ff9b23ce952f1781895a00ae01a05840392b2103419c30f52612d5d0686f6d3c",
+			"reviewed_at": "2026-07-08T12:57:12.248684689Z"
+		},
+		{
+			"function_name": "ListAPIKeys",
+			"receiver": "sqliteStore",
+			"documentation_hash": "d3fcfb396a04be41fd269fa9a1a5c0e5181ac023ad68faa01083d0f48c9a1e53",
+			"definition_hash": "27e3e25913ff8af46cca21f6e84a8187b733379a3e932a659ad5446dc49a2589",
+			"reviewed_at": "2026-07-08T12:57:12.249731649Z"
+		},
+		{
+			"function_name": "DeleteAPIKey",
+			"receiver": "sqliteStore",
+			"documentation_hash": "38e076e8876a046af3d6e10a7541ce40faeee25a656ba2dc323d487399a2afc1",
+			"definition_hash": "eca70ef09275c4bd96a1dfe4f22986cbcac8f725d4ae1d6aebabe8a69de46fe9",
+			"reviewed_at": "2026-07-08T12:57:12.251008749Z"
 		}
 	]
 }

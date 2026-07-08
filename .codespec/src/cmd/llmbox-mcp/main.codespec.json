@@ -8,15 +8,15 @@
 		},
 		{
 			"function_name": "run",
-			"documentation_hash": "d22e360ab0c5dce243390db1385f468411aabfcd35ace3ec3cc6acf5d76cefd0",
-			"definition_hash": "8635954b30e4dff9e0e44f3998159f5f6c12dfb9b5d649771c76c5ced7f5e783",
-			"reviewed_at": "2026-07-01T13:11:46.952440288Z"
+			"documentation_hash": "f20bb2b27ebc6c77c25eb6fdb0bc641e436316b1c03fad34276ecb68b24418ed",
+			"definition_hash": "2b8bc22f03da7b1559b007a046d8535e85dfebd2cc8ae19d554e195feeb7777b",
+			"reviewed_at": "2026-07-08T12:57:12.197327267Z"
 		},
 		{
 			"function_name": "newRootCmd",
 			"documentation_hash": "23402bca5f1e994df913432fe8ec1bda6a4145dfae45381f25d944819b136053",
-			"definition_hash": "d400f0d650c880fdc39905a2d21243c186f609e61aac50c36a26a2e548b31116",
-			"reviewed_at": "2026-07-01T11:56:12.885276472Z"
+			"definition_hash": "d3d03f7a4c4e66c9d9c6ba6abe4351a7d5699ab17571eb1227c40f0ff12fa0c9",
+			"reviewed_at": "2026-07-08T12:57:12.196838564Z"
 		}
 	]
 }

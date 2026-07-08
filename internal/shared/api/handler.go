@@ -3,18 +3,20 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 )
 
 // NewHandler builds the HTTP handler serving b's box operations as the JSON box-
 // control API, one POST route per Backend method. It is meant to be mounted on
 // the server's mux under the /api/v1/ prefix.
 //
-// SECURITY — this API is currently UNAUTHENTICATED and carries no caller
-// identity: any client that can reach it can act on ANY box by its ID (including
-// exec'ing into a box another user activated). Until API-key / UI-session auth
-// lands, llmbox is meant to run behind an authenticating reverse proxy in front
-// of a trusted set of callers. Do NOT expose it directly to untrusted networks.
+// SECURITY — this handler performs no authentication of its own: it is pure
+// transport. The hub mounts it behind its API auth middleware (an API key as a
+// bearer token, or an admin login session with a CSRF header), so every route
+// here is only reachable by an authenticated caller. Mounting it anywhere else
+// without an equivalent gate exposes box exec/destroy to anyone who can reach it.
 //
 // @arg b The backend whose operations are exposed over HTTP.
 // @return http.Handler A mux serving the box-control routes over b.
@@ -41,6 +43,30 @@ func NewHandler(b Backend) http.Handler {
 	mux.Handle("POST "+PathSpokeStatuses, jsonHandler(func(ctx context.Context, _ struct{}) (spokeStatusesResponse, error) {
 		spokes, err := b.SpokeStatuses(ctx)
 		return spokeStatusesResponse{Spokes: spokes}, err
+	}))
+	mux.Handle("POST "+PathCreateSpoke, jsonHandler(func(ctx context.Context, req createSpokeRequest) (createSpokeResponse, error) {
+		var ttl time.Duration
+		if req.TTL != "" {
+			var err error
+			if ttl, err = time.ParseDuration(req.TTL); err != nil {
+				return createSpokeResponse{}, fmt.Errorf("invalid ttl %q: %w", req.TTL, err)
+			}
+		}
+		sp, err := b.CreateSpoke(ctx, req.Name, req.Backend, ttl)
+		return createSpokeResponse{Spoke: sp}, err
+	}))
+	mux.Handle("POST "+PathDropSpoke, jsonHandler(func(ctx context.Context, req dropSpokeRequest) (emptyResponse, error) {
+		return emptyResponse{}, b.DropSpoke(ctx, req.Name)
+	}))
+	mux.Handle("POST "+PathSetDefaultSpoke, jsonHandler(func(ctx context.Context, req setDefaultSpokeRequest) (emptyResponse, error) {
+		return emptyResponse{}, b.SetDefaultSpoke(ctx, req.Name)
+	}))
+	mux.Handle("POST "+PathListJoinTokens, jsonHandler(func(ctx context.Context, _ struct{}) (listJoinTokensResponse, error) {
+		tokens, err := b.ListJoinTokens(ctx)
+		return listJoinTokensResponse{Tokens: tokens}, err
+	}))
+	mux.Handle("POST "+PathRevokeJoinToken, jsonHandler(func(ctx context.Context, req revokeJoinTokenRequest) (emptyResponse, error) {
+		return emptyResponse{}, b.RevokeJoinToken(ctx, req.ID)
 	}))
 	mux.Handle("POST "+PathDestroyBox, jsonHandler(func(ctx context.Context, req destroyBoxRequest) (emptyResponse, error) {
 		return emptyResponse{}, b.DestroyBox(ctx, req.ContainerID)

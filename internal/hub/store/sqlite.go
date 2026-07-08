@@ -73,6 +73,12 @@ CREATE TABLE IF NOT EXISTS settings (
 	key   TEXT PRIMARY KEY,
 	value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS api_keys (
+	hash       TEXT PRIMARY KEY,
+	name       TEXT NOT NULL,
+	created_at TEXT NOT NULL,
+	expires_at TEXT NOT NULL
+);
 `
 
 // sqliteStore is a Store backed by a single SQLite database file via the pure-Go
@@ -461,6 +467,101 @@ func (s *sqliteStore) ListJoinTokens() ([]cluster.JoinTokenInfo, error) {
 func (s *sqliteStore) DeleteJoinToken(hash string) error {
 	if _, err := s.db.Exec(`DELETE FROM join_tokens WHERE hash = ?`, hash); err != nil {
 		return fmt.Errorf("deleting join token: %w", err)
+	}
+	return nil
+}
+
+// PutAPIKey writes (creating or replacing) one API key keyed by its secret hash.
+//
+// @arg hash The hex SHA-256 of the key's secret (the store key).
+// @arg rec The API key record to persist.
+// @error error if the write fails.
+//
+// @testcase TestAPIKeyStoreRoundTrip stores a key this reads back by hash.
+func (s *sqliteStore) PutAPIKey(hash string, rec APIKeyRecord) error {
+	_, err := s.db.Exec(`
+		INSERT INTO api_keys (hash, name, created_at, expires_at) VALUES (?, ?, ?, ?)
+		ON CONFLICT(hash) DO UPDATE SET name=excluded.name, created_at=excluded.created_at, expires_at=excluded.expires_at`,
+		hash, rec.Name, encodeTime(rec.CreatedAt), encodeTime(rec.ExpiresAt))
+	if err != nil {
+		return fmt.Errorf("saving api key: %w", err)
+	}
+	return nil
+}
+
+// GetAPIKey returns the API key for a secret hash; the bool is false when none
+// matches.
+//
+// @arg hash The hex SHA-256 of the presented key secret.
+// @return APIKeyRecord The decoded record when one matched.
+// @return bool True when a key matched, false otherwise.
+// @error error if the query or decoding fails.
+//
+// @testcase TestAPIKeyStoreRoundTrip finds a stored key by hash and misses cleanly on an unknown one.
+func (s *sqliteStore) GetAPIKey(hash string) (APIKeyRecord, bool, error) {
+	var (
+		rec                  APIKeyRecord
+		createdAt, expiresAt string
+	)
+	err := s.db.QueryRow(`SELECT name, created_at, expires_at FROM api_keys WHERE hash = ?`, hash).
+		Scan(&rec.Name, &createdAt, &expiresAt)
+	if err == sql.ErrNoRows {
+		return APIKeyRecord{}, false, nil
+	}
+	if err != nil {
+		return APIKeyRecord{}, false, fmt.Errorf("reading api key: %w", err)
+	}
+	if rec.CreatedAt, err = decodeTime(createdAt); err != nil {
+		return APIKeyRecord{}, false, err
+	}
+	if rec.ExpiresAt, err = decodeTime(expiresAt); err != nil {
+		return APIKeyRecord{}, false, err
+	}
+	return rec, true, nil
+}
+
+// ListAPIKeys returns every stored API key (hash ID, name, and validity window).
+//
+// @return []APIKeyInfo One entry per stored API key.
+// @error error if the query or scanning fails.
+//
+// @testcase TestAPIKeyStoreListAndDelete lists and deletes API keys.
+func (s *sqliteStore) ListAPIKeys() ([]APIKeyInfo, error) {
+	rows, err := s.db.Query(`SELECT hash, name, created_at, expires_at FROM api_keys`)
+	if err != nil {
+		return nil, fmt.Errorf("listing api keys: %w", err)
+	}
+	defer rows.Close()
+	var out []APIKeyInfo
+	for rows.Next() {
+		var (
+			info                 APIKeyInfo
+			createdAt, expiresAt string
+		)
+		if err := rows.Scan(&info.ID, &info.Name, &createdAt, &expiresAt); err != nil {
+			return nil, fmt.Errorf("scanning api key: %w", err)
+		}
+		if info.CreatedAt, err = decodeTime(createdAt); err != nil {
+			return nil, err
+		}
+		if info.ExpiresAt, err = decodeTime(expiresAt); err != nil {
+			return nil, err
+		}
+		out = append(out, info)
+	}
+	return out, rows.Err()
+}
+
+// DeleteAPIKey removes an API key by its hash ID; deleting a missing one is a
+// no-op.
+//
+// @arg hash The API key hash ID to delete.
+// @error error if the write fails.
+//
+// @testcase TestAPIKeyStoreListAndDelete deletes an API key by ID.
+func (s *sqliteStore) DeleteAPIKey(hash string) error {
+	if _, err := s.db.Exec(`DELETE FROM api_keys WHERE hash = ?`, hash); err != nil {
+		return fmt.Errorf("deleting api key: %w", err)
 	}
 	return nil
 }

@@ -2,6 +2,8 @@ package hub
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/clems4ever/llmbox/internal/hub/store"
 	"github.com/clems4ever/llmbox/internal/shared/api"
@@ -80,15 +82,126 @@ func (b apiBackend) LookupByBoxID(boxID string) (api.BoxSession, bool) {
 	}, true
 }
 
-// ListBoxes returns all boxes managed across every spoke.
+// ListBoxes returns all boxes managed across every spoke, each merged with its
+// live session state: the activation page URL while the box is pending, or the
+// remote-control session URL once it is ready. A box whose session the hub no
+// longer tracks carries neither URL.
 //
 // @arg ctx Context for the list request.
-// @return []sandbox.Box The boxes managed by this server.
+// @return []api.BoxView The boxes with their activation/session URLs.
 // @error error if listing boxes fails.
 //
 // @testcase TestListLlmboxesReturnsBoxID lists boxes through the backend.
-func (b apiBackend) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
-	return b.s.listBoxes(ctx)
+// @testcase TestListBoxesCarriesSessionURLs merges each box's auth or session URL into the view.
+func (b apiBackend) ListBoxes(ctx context.Context) ([]api.BoxView, error) {
+	boxes, err := b.s.listBoxes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]api.BoxView, len(boxes))
+	for i, box := range boxes {
+		out[i] = api.BoxView{Box: box}
+		id := box.BoxID
+		if id == "" {
+			id = box.Name
+		}
+		sess := b.s.lookupByBoxID(id)
+		if sess == nil {
+			continue
+		}
+		status, sessionURL, _ := sess.snapshot()
+		if status == "ready" {
+			out[i].SessionURL = sessionURL
+		} else {
+			out[i].AuthURL = b.s.AuthPageURL(sess.Token)
+		}
+	}
+	return out, nil
+}
+
+// CreateSpoke mints a one-time join token enrolling a new spoke and returns it
+// with the ready-to-run start command. backend picks the command's box backend
+// and is validated here ("docker" or "firecracker"; empty means docker); ttl<=0
+// uses the admin default.
+//
+// @arg _ Context (unused; the store write is synchronous).
+// @arg name The spoke name to enroll.
+// @arg backend The box backend in the returned command; empty means docker.
+// @arg ttl How long the token stays valid; <=0 uses the default.
+// @return api.SpokeEnrollment The spoke name, one-time token, and start command.
+// @error error if the backend is unknown, the name is empty, or the token cannot be minted.
+//
+// @testcase TestBackendCreateSpoke mints a token and returns the run command.
+// @testcase TestBackendCreateSpokeRejectsBackend rejects an unknown backend name.
+func (b apiBackend) CreateSpoke(_ context.Context, name, backend string, ttl time.Duration) (api.SpokeEnrollment, error) {
+	if backend == "" {
+		backend = "docker"
+	}
+	if backend != "docker" && backend != "firecracker" {
+		return api.SpokeEnrollment{}, fmt.Errorf("invalid backend %q (choose docker or firecracker)", backend)
+	}
+	if ttl <= 0 {
+		ttl = defaultAdminTokenTTL
+	}
+	token, err := b.s.createSpoke(name, ttl)
+	if err != nil {
+		return api.SpokeEnrollment{}, err
+	}
+	return api.SpokeEnrollment{Name: name, Token: token, Command: b.s.spokeRunCommand(token, backend)}, nil
+}
+
+// DropSpoke removes a spoke's enrollment, revokes its join tokens, disconnects
+// it, and clears the default spoke if the dropped one was it.
+//
+// @arg _ Context (unused; the operation is synchronous).
+// @arg name The spoke name to drop.
+// @error error if the name is empty or the enrollment cannot be deleted.
+//
+// @testcase TestBackendDropSpoke drops a spoke through the backend.
+func (b apiBackend) DropSpoke(_ context.Context, name string) error {
+	return b.s.dropSpoke(name)
+}
+
+// SetDefaultSpoke makes an enrolled spoke the default that unqualified box
+// creates run on.
+//
+// @arg _ Context (unused; the setting write is synchronous).
+// @arg name The spoke name to make the default.
+// @error error if the name is empty, the spoke is not enrolled, or the setting cannot be written.
+//
+// @testcase TestBackendSetDefaultSpoke sets the default spoke through the backend.
+func (b apiBackend) SetDefaultSpoke(_ context.Context, name string) error {
+	return b.s.chooseDefaultSpoke(name)
+}
+
+// ListJoinTokens returns every outstanding spoke join token.
+//
+// @arg _ Context (unused; the store read is synchronous).
+// @return []api.JoinTokenInfo The outstanding join tokens.
+// @error error if the tokens cannot be read.
+//
+// @testcase TestBackendJoinTokens lists tokens through the backend.
+func (b apiBackend) ListJoinTokens(_ context.Context) ([]api.JoinTokenInfo, error) {
+	tokens, err := b.s.store.ListJoinTokens()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]api.JoinTokenInfo, len(tokens))
+	for i, t := range tokens {
+		out[i] = api.JoinTokenInfo{ID: t.ID, Name: t.Name, ExpiresAt: t.ExpiresAt}
+	}
+	return out, nil
+}
+
+// RevokeJoinToken deletes one outstanding join token by its ID.
+//
+// @arg _ Context (unused; the store write is synchronous).
+// @arg id The token ID to revoke.
+// @error error if the id is empty or the token cannot be deleted.
+//
+// @testcase TestBackendJoinTokens revokes a token through the backend.
+func (b apiBackend) RevokeJoinToken(_ context.Context, id string) error {
+	return b.s.revokeJoinToken(id)
 }
 
 // SpokeStatuses returns every spoke and its connection status, translated to the
@@ -161,9 +274,11 @@ func (b apiBackend) BoxExec(ctx context.Context, boxID, command string) (sandbox
 func (b apiBackend) ProxyEnabled() bool { return b.s.ProxyEnabled() }
 
 // CreateProxy enables an HTTP proxy to a box's port and flattens it (with its
-// public URL) into the api.ProxyInfo the tool returns.
+// public URL) into the api.ProxyInfo the tool returns. The authenticated caller
+// (the admin's email or the API key's name, stamped on the request context by
+// the API auth middleware) is recorded as the proxy's creator.
 //
-// @arg _ Context (unused; the registry is in-memory and in the store).
+// @arg ctx Context carrying the authenticated principal.
 // @arg boxID The box ID whose port to expose.
 // @arg port The port inside the box to forward to.
 // @arg description An optional human-readable note for the proxy, or "" for none.
@@ -171,8 +286,9 @@ func (b apiBackend) ProxyEnabled() bool { return b.s.ProxyEnabled() }
 // @error error if proxying is disabled, the port is invalid, or no box has that box ID.
 //
 // @testcase TestBackendProxies enables a proxy through the backend and carries its description.
-func (b apiBackend) CreateProxy(_ context.Context, boxID string, port int, description string) (api.ProxyInfo, error) {
-	rec, err := b.s.createProxy(boxID, port, "", description)
+// @testcase TestCreateProxyRecordsPrincipal records the request's principal as the creator.
+func (b apiBackend) CreateProxy(ctx context.Context, boxID string, port int, description string) (api.ProxyInfo, error) {
+	rec, err := b.s.createProxy(boxID, port, principalFrom(ctx), description)
 	if err != nil {
 		return api.ProxyInfo{}, err
 	}

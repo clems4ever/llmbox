@@ -73,7 +73,7 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	waitHealthy(t, base)
 
 	// Create the box and enable a proxy for its port over the API, as the chatbot does.
-	cs := connectMCP(t, base)
+	cs := connectMCP(t, base, st)
 	callTool(t, cs, "create_llmbox", map[string]any{"box_id": "proxy-box"})
 	proxyOut := callTool(t, cs, "create_llmbox_proxy", map[string]any{"box_id": "proxy-box", "port": 8000})
 	proxyURL, _ := proxyOut["url"].(string)

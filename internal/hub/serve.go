@@ -129,9 +129,9 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 }
 
 // insecureTransportWarning returns the multi-line banner logged at startup when
-// the server serves plaintext HTTP (TLS disabled). It is loud on purpose: the
-// box-control API is unauthenticated and OAuth codes are relayed through it, so
-// running without TLS is only safe behind a TLS-terminating reverse proxy.
+// the server serves plaintext HTTP (TLS disabled). It is loud on purpose: API
+// keys, login cookies, and relayed OAuth codes all cross this port, so running
+// without TLS is only safe behind a TLS-terminating reverse proxy.
 //
 // @return []string The banner lines, each logged on its own line.
 //
@@ -141,8 +141,8 @@ func insecureTransportWarning() []string {
 		"!! ==================================================================== !!",
 		"!!  WARNING: serving over PLAINTEXT HTTP -- traffic is NOT encrypted.    !!",
 		"!!                                                                      !!",
-		"!!  The box-control API is unauthenticated and OAuth codes are relayed  !!",
-		"!!  through this server. Only run like this behind a TLS-terminating    !!",
+		"!!  API keys, login cookies, and relayed OAuth codes cross this port.   !!",
+		"!!  Only run like this behind a TLS-terminating                         !!",
 		"!!  reverse proxy on a trusted network. To terminate TLS in-process,    !!",
 		"!!  set tls.enabled with tls.cert_file and tls.key_file in the config.  !!",
 		"!! ==================================================================== !!",

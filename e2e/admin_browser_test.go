@@ -15,12 +15,11 @@ import (
 )
 
 // TestAdminRemoveBoxInBrowser drives the cluster-admin "Remove" button through a
-// real headless Chrome, reproducing the exact path a user takes: admin.js
-// intercepts the form and submits it over fetch() as urlencoded, and the server
-// answers with JSON. This guards the AJAX-only admin flow end-to-end through the
-// page's JavaScript (the regression where the click was rejected with "Invalid
-// or missing form token"); the unit test TestAdminDeleteBox pins the same path
-// at the HTTP layer.
+// real headless Chrome, reproducing the exact path a user takes: the admin SPA
+// bootstraps its session from /api/v1/me and submits the destroy over the
+// authenticated box-control API with the CSRF header. This guards the whole
+// browser flow (cookie → /me → CSRF header → API action) end-to-end through the
+// page's JavaScript.
 //
 // It is opt-in via `-tags e2e` (it needs Chrome + ChromeDriver), like the rest
 // of the e2e suite, so a missing browser is a fatal failure rather than a skip.
@@ -59,10 +58,10 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 	if err := b.wd.Get(httpSrv.URL + "/admin"); err != nil {
 		t.Fatalf("loading /admin: %v", err)
 	}
-	removeBtn := b.waitFor(t, selenium.ByXPATH, `//form[@action='/admin/boxes/delete']//button`)
+	removeBtn := b.waitFor(t, selenium.ByXPATH, `//button[@data-box='foo']`)
 
-	// The Remove form guards on confirm(); accept it unconditionally so the
-	// headless click proceeds to the real fetch() submit admin.js makes.
+	// The Remove button guards on confirm(); accept it unconditionally so the
+	// headless click proceeds to the real fetch() submit the SPA makes.
 	if _, err := b.wd.ExecuteScript("window.confirm = function () { return true; };", nil); err != nil {
 		t.Fatalf("stubbing confirm(): %v", err)
 	}
@@ -70,14 +69,14 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 		t.Fatalf("clicking Remove: %v", err)
 	}
 
-	// On success admin.js flashes "removed box foo" and refreshes the cards in
-	// place. Under the bug the same banner would instead carry the CSRF error, so
+	// On success the SPA flashes "removed box foo" and refreshes the cards in
+	// place; a broken CSRF path would flash the server's error instead, so
 	// waiting for the success banner is what distinguishes fixed from broken.
 	b.waitFor(t, selenium.ByXPATH,
 		`//div[contains(@class,'banner')][contains(normalize-space(.),'removed box foo')]`)
 
 	src, _ := b.wd.PageSource()
-	if strings.Contains(src, "Invalid or missing form token") {
+	if strings.Contains(src, "invalid or missing X-CSRF-Token") {
 		t.Fatalf("Remove hit the CSRF error path:\n%s", src)
 	}
 }

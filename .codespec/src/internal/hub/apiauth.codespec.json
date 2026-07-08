@@ -1,0 +1,36 @@
+{
+	"functions": [
+		{
+			"function_name": "principalFrom",
+			"documentation_hash": "d3e2c2bbd7c869dea3b003ddc0ab5ee7a3bd24a8b7f8a5848f8208bdc0e2a43d",
+			"definition_hash": "65b673cc4ea2ee07720b8ed563962a17ed86b942907bb229919f907248c19086",
+			"reviewed_at": "2026-07-08T12:59:26.488493538Z"
+		},
+		{
+			"function_name": "requireAPIAuth",
+			"receiver": "Server",
+			"documentation_hash": "3f3101eeed57efed7ad0a7f80ae378f438bd192545137bb4a4ee97b13cfd6112",
+			"definition_hash": "5b7df6d27b228c01e4925ccc1f0981153086bb2bd33908751f9f940f3014d071",
+			"reviewed_at": "2026-07-08T12:59:26.488829655Z"
+		},
+		{
+			"function_name": "bearerToken",
+			"documentation_hash": "08b8027a3c683cc649926acb41089fac628023ff033642f8a1f645252a80a53a",
+			"definition_hash": "d6ee1607259a7dc620998d256410f12b3fd40134eadd5a895821089c1e968922",
+			"reviewed_at": "2026-07-08T12:59:26.498729186Z"
+		},
+		{
+			"function_name": "writeJSONError",
+			"documentation_hash": "6ca3214d29d43cb4a0439ef2ac4d0fb79f75be5ac86e71a20f984d43fb5bfe36",
+			"definition_hash": "0a380978060f3af32a42beee7bb1a640bc1c4796e76b07be1e863428631ad998",
+			"reviewed_at": "2026-07-08T12:59:26.4991436Z"
+		},
+		{
+			"function_name": "handleMe",
+			"receiver": "Server",
+			"documentation_hash": "3e5b302ffad2bb04cb81e3cd8bb5b2090aaad8984aae9fd31ac4089107c0e794",
+			"definition_hash": "ea8cfddb25467b5c0ec9c7c47be66b3094d48fb902e22b998eab62a876401ba6",
+			"reviewed_at": "2026-07-08T12:59:26.499903466Z"
+		}
+	]
+}

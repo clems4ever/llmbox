@@ -9,8 +9,9 @@
 //
 // The MCP protocol itself is served by a separate binary (llmbox-mcp), which
 // forwards every call to the box-control API over HTTP. The box-control API is
-// currently unauthenticated (API-key / UI-session auth is planned), so run llmbox
-// behind an authenticating reverse proxy in front of trusted callers.
+// authenticated: callers present an API key as a bearer token (minted with
+// `llmbox-server apikey add`), and the admin web app uses the signed-in admin's
+// login cookie plus a CSRF header.
 //
 // Boxes that are never authenticated are destroyed after a TTL.
 //
@@ -51,6 +52,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/hub/apikey"
 	"github.com/clems4ever/llmbox/internal/hub/config"
 	"github.com/clems4ever/llmbox/internal/hub/token"
 )
@@ -108,9 +110,11 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 	rootCmd.AddCommand(versionCmd)
-	// Join-token management runs on the hub (it operates on the hub's state file),
-	// so the `token` command lives here rather than on the spoke.
+	// Join-token and API-key management run on the hub (they operate on the hub's
+	// state file), so the `token` and `apikey` commands live here rather than on
+	// the spoke.
 	rootCmd.AddCommand(token.NewCmd())
+	rootCmd.AddCommand(apikey.NewCmd())
 
 	return rootCmd
 }

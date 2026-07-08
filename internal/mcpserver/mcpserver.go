@@ -198,7 +198,7 @@ func (h *handlers) toolGet(_ context.Context, _ *mcp.CallToolRequest, in getInpu
 }
 
 type listOutput struct {
-	Boxes []sandbox.Box `json:"boxes" jsonschema:"the boxes managed by this server"`
+	Boxes []api.BoxView `json:"boxes" jsonschema:"the boxes managed by this server, each with its activation or session URL when known"`
 }
 
 // toolList handles the list_llmboxes tool: it returns all managed boxes.

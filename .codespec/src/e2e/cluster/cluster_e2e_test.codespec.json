@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestClusterEndToEnd",
 			"documentation_hash": "20fd993dd07458965df0f0a461d34dcec2d40e48807ef5a6e70b579c92f6aae5",
-			"definition_hash": "63a9e5f6d065e1a5925bd4b4e0dc739ebfc9717ddadee818618f5d280f9c14ed",
-			"reviewed_at": "2026-07-08T09:42:50.8589383Z"
+			"definition_hash": "914aefeec7923ff57c6d31dd22bb0c27e5d31c71e6f2e7782350623118deec55",
+			"reviewed_at": "2026-07-08T12:57:12.208720573Z"
 		},
 		{
 			"function_name": "newFakeSpokeMgr",
@@ -114,9 +114,9 @@
 		},
 		{
 			"function_name": "connectMCP",
-			"documentation_hash": "5a58bc55e4e01eb7a5f716d7ccb8f650dd3adf9ff98dfd4a40abba8357a185fd",
-			"definition_hash": "1a8a162dc6088d1144552804c1d1a611eef5d725105bc28d827b5281783225e2",
-			"reviewed_at": "2026-07-01T13:11:48.267184668Z"
+			"documentation_hash": "305da52bdbbe6347ff2a4b83674db94837954859f7ae7e73dba54b6c88d5594b",
+			"definition_hash": "9b7bc1e47088ccd8a1461b064925d6d2a56849c8a4361c3da19f0cde9ea7bce3",
+			"reviewed_at": "2026-07-08T12:57:12.212570091Z"
 		},
 		{
 			"function_name": "callTool",

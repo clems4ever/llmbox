@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestEndToEndWorkflow",
 			"documentation_hash": "c1998d3510cca65b445144277f76f2be838cd73df907053f068dd580567eff08",
-			"definition_hash": "2f1bc06f4491014a99ba42d2ec66d74bd290947e48e5d7ce229be262fa9113d2",
-			"reviewed_at": "2026-07-07T12:52:06.064762803Z"
+			"definition_hash": "f0f8a999328a6a544975a40553e2d37fcf6a5578e43ee17c3e866b94bc281a9d",
+			"reviewed_at": "2026-07-08T12:57:12.226565528Z"
 		},
 		{
 			"function_name": "waitHealthy",
@@ -14,9 +14,9 @@
 		},
 		{
 			"function_name": "connectMCP",
-			"documentation_hash": "741b30970c298d4093822450f9c491a8ce883871e896d344fdfd3dace39344d6",
-			"definition_hash": "9399b5352e1e0382b0f3bb9b7b920b6fea1e728ae3ed4c00069ea902a46537c7",
-			"reviewed_at": "2026-07-01T13:11:49.488182255Z"
+			"documentation_hash": "a1331d9783ee94d55d736c900a0a5b32b17f42bd561f306e90a8e7153a8c5e68",
+			"definition_hash": "66f9929e18e395ab0d8bb89fb14bbae61afbfcb36c99b99c0cca18bc59d0aabf",
+			"reviewed_at": "2026-07-08T12:57:12.22736369Z"
 		},
 		{
 			"function_name": "callTool",

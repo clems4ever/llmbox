@@ -155,8 +155,8 @@
 		{
 			"function_name": "TestAPIHandlerServesUIAndAPI",
 			"documentation_hash": "0b7b80ded5a65aebb00421fee15efc67c6f350e2de4f5486ad5ec1b409849b17",
-			"definition_hash": "0a70487e51d9b0c9d432c92dfe7866a42e07f35710f1e35255c5c0173306ad31",
-			"reviewed_at": "2026-07-01T13:13:04.538532826Z"
+			"definition_hash": "8ed24a0dbc05a713853cff093fba0fe1532c890f695d778d4ed331fe5d362a78",
+			"reviewed_at": "2026-07-08T12:57:12.246603831Z"
 		},
 		{
 			"function_name": "TestBoxToolsOverBackend",
@@ -166,9 +166,9 @@
 		},
 		{
 			"function_name": "newTestStore",
-			"documentation_hash": "2e92db02eba18ed890054dbcd311e2ad7fc036049a63bd8dbe0406b7a905503a",
-			"definition_hash": "61652c8713c16d2e78d64a2cff000731fb4e00fac01709a838fed0aa2d7a6cec",
-			"reviewed_at": "2026-07-07T08:15:52.619369071Z"
+			"documentation_hash": "dd8a93c689fc116e3f6a9bd2a5c74c880cd0e2dc028d8061afe5f5470f4f350f",
+			"definition_hash": "fdff13f74dc4c971cd846bfc7ce013df6d80ce8ee570b0a23ff999c47eaace86",
+			"reviewed_at": "2026-07-08T12:57:12.242623582Z"
 		},
 		{
 			"function_name": "PutSetting",
@@ -189,6 +189,20 @@
 			"documentation_hash": "a39e5ed9631c02802cb36c8a8c48447ad9821fcca771755c20486a70d30e5563",
 			"definition_hash": "f68e7fec2b7cf678b3ee1bb805c92b69e9df35b111375367422d4d1419c37bfb",
 			"reviewed_at": "2026-07-07T08:15:52.622700357Z"
+		},
+		{
+			"function_name": "PutAPIKey",
+			"receiver": "testStore",
+			"documentation_hash": "6c07bc56fe4a6e7120bceb2b7e3c31b90602e77b7ec60844b6377dc58577ea75",
+			"definition_hash": "7332df266a6ac37f47339e0c5e3addd2bb74dbcfd5edf4ee7442c68d90fa8940",
+			"reviewed_at": "2026-07-08T12:57:12.244207909Z"
+		},
+		{
+			"function_name": "GetAPIKey",
+			"receiver": "testStore",
+			"documentation_hash": "02deb4dc71bc87368d3c9b53f9f2669587891e4425836d848e6153fc274428e6",
+			"definition_hash": "3908175ff13ee2ed5dbde136f24c7f1aab1c0668c3c757f3c152c85078b568ec",
+			"reviewed_at": "2026-07-08T12:57:12.245513719Z"
 		}
 	]
 }

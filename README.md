@@ -50,7 +50,8 @@ docker run -d --name llmbox-mcp -p 8082:8082 \
 
 Then add `llmbox-mcp`'s URL (streamable HTTP) — or run it with `--stdio` as a
 child process — as a remote MCP server in your client. The box-control API is
-unauthenticated for now (API-key / UI-session auth is planned), so run llmbox
+authenticated with API keys (`llmbox-server apikey add`) or an admin login
+session; still run llmbox
 behind an authenticating proxy. Full details — Docker socket permissions,
 `docker compose`, TLS — are in [Running & configuration](docs/configuration.md).
 
@@ -84,7 +85,8 @@ arguments and return values.
 - Each box consumes a session on the **end user's** Claude subscription. That is
   the intended model; be deliberate about who you let create boxes.
 - [Activation auth](docs/authentication.md) gates *activation* (closing the
-  leaked-token hijack), but box **creation** over MCP is still unauthenticated, so
+  leaked-token hijack), and every box-control API call (creation included)
+  requires an API key or an admin session, so
   a caller can create boxes (a DoS bounded by the un-authenticated reaper TTL).
   Authenticating MCP clients per-user, and binding a box to the specific
   initiator, are the natural follow-ups.

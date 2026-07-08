@@ -24,8 +24,11 @@ docker run -d --name llmbox \
 
 llmbox listens on a single port (`8080`): it serves the box-control JSON API
 (under `/api/v1/`) and the UI (auth pages, admin, health) together. The API is
-unauthenticated for now (API-key / UI-session auth is planned), so run llmbox
-behind an authenticating reverse proxy (e.g. oauth2-proxy). The MCP protocol
+authenticated: headless callers (llmbox-mcp, scripts) present an API key as a
+bearer token, and the admin web app authenticates with the signed-in admin's
+login cookie plus a CSRF header. Mint keys on the hub host with
+`llmbox-server apikey add --name <label> [--ttl 8760h]` (list/delete likewise);
+only the key's SHA-256 lands in the state file. The MCP protocol
 itself is served by the separate `llmbox-mcp` binary (see [Connecting a
 chatbot](#connecting-a-chatbot)), which forwards to this box-control API.
 
@@ -45,18 +48,21 @@ every tool call to the llmbox server's box-control API (the server's `http_addr`
 default `:8080`). Run it pointing at that upstream:
 
 ```bash
+# Mint an API key once, on the hub host (against the hub's state file):
+llmbox-server apikey add --name mcp
+
 # Streamable HTTP on :8082, forwarding to the llmbox server's box-control API.
-llmbox-mcp --upstream http://llmbox:8080 --addr :8082
+LLMBOX_API_KEY=lbx_... llmbox-mcp --upstream http://llmbox:8080 --addr :8082
 
 # …or over stdio, for a chatbot that launches it as a child process.
-llmbox-mcp --stdio --upstream http://llmbox:8080
+LLMBOX_API_KEY=lbx_... llmbox-mcp --stdio --upstream http://llmbox:8080
 ```
 
 Add `llmbox-mcp`'s URL (streamable HTTP) or its stdio command as a remote MCP
 server in your client. It holds no state and needs no Docker socket, so it can
-run anywhere that can reach the box-control API. Put it (or the box-control API)
-behind an authenticating proxy before exposing it. See [MCP tools](mcp-tools.md)
-for the full tool reference.
+run anywhere that can reach the box-control API. Give it an API key minted with
+`llmbox-server apikey add` via `--api-key` or `$LLMBOX_API_KEY`. See
+[MCP tools](mcp-tools.md) for the full tool reference.
 
 ## Configuration
 
@@ -68,7 +74,7 @@ optional:
 
 | YAML key       | Default                   | Purpose |
 |----------------|---------------------------|---------|
-| `http_addr`    | `:8080`                   | Single listen address for the whole server: the box-control API (`/api/v1/`) and the UI (auth pages, admin, health). The API is unauthenticated by the server itself, so run behind an authenticating proxy; never expose it directly to untrusted networks. |
+| `http_addr`    | `:8080`                   | Single listen address for the whole server: the box-control API (`/api/v1/`, authenticated by API key or admin session) and the UI (auth pages, admin app, health). |
 | `public_url`   | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
 | `auth_ttl`     | `5m`                      | Destroy un-authenticated boxes after this long (a Go duration string, e.g. `300s`, `5m`). |
 | `state_file`   | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](operations.md#session-persistence)). |

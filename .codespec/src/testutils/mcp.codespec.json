@@ -24,9 +24,9 @@
 		{
 			"function_name": "ListBoxes",
 			"receiver": "FakeBackend",
-			"documentation_hash": "5f3ff70891edae1dd5abd54c0860f8aebed4ba703290d4afbe65f0c1265cd80c",
-			"definition_hash": "0f7239dcc1114f4924fe3f4ffd5ca57cf9325f945697c59311006d132813b49c",
-			"reviewed_at": "2026-07-01T11:56:15.205368606Z"
+			"documentation_hash": "9712bb1967fea4edcc3bd4991b82d55302c985d7ae9ced2adf5deb26f047113a",
+			"definition_hash": "228b7367e4daa5c9d38f8be7d781ae26cdd509849721f4ed3c22ab62c28f124d",
+			"reviewed_at": "2026-07-08T12:57:12.264094021Z"
 		},
 		{
 			"function_name": "SpokeStatuses",
@@ -89,6 +89,41 @@
 			"documentation_hash": "e7c6c95eb9ac81a6ec0b72b226722a19fe4804acd4ae1e3123665fbd82ffdca5",
 			"definition_hash": "19e1a3c2a9c13f31665718744e9c01a12d5318625846a3c1736950eee61c5409",
 			"reviewed_at": "2026-07-01T13:13:15.249633266Z"
+		},
+		{
+			"function_name": "CreateSpoke",
+			"receiver": "FakeBackend",
+			"documentation_hash": "6b534cc3453e8adacb1756c8d6820454e5377fd123b0a6484797cf54ad3109dd",
+			"definition_hash": "7eef3214f2e0881037e1ff6c630c851c2782ba87cadb95021c17b60e7fbeb494",
+			"reviewed_at": "2026-07-08T12:57:12.264499149Z"
+		},
+		{
+			"function_name": "DropSpoke",
+			"receiver": "FakeBackend",
+			"documentation_hash": "e0d7101a990f9a527c0007b02943bbb6dfccb4e0c1a1354f6a24010c04edcaf2",
+			"definition_hash": "ca65cafd308db0784cf45040cda7955e25f9508ed704064c25b3cf93db95d2e3",
+			"reviewed_at": "2026-07-08T12:57:12.264902016Z"
+		},
+		{
+			"function_name": "SetDefaultSpoke",
+			"receiver": "FakeBackend",
+			"documentation_hash": "d6c62dc86641cc8e6d300ba36a70778bce2b4eb6925dd52503ad6cc690b0a253",
+			"definition_hash": "7b8590eda1d5566a892a21da6c57f8feef023fbfedc8534bbbbc8f3bbe88faeb",
+			"reviewed_at": "2026-07-08T12:57:12.265625047Z"
+		},
+		{
+			"function_name": "ListJoinTokens",
+			"receiver": "FakeBackend",
+			"documentation_hash": "97a3fc7c3a7c1401e3844bf0d1dd44df332e3f61584a068f3fc83542d9b72548",
+			"definition_hash": "3f6921d1e76ca8826c5b35121ecba744aa30ea25bd8b82e9aa46d1f3984fa746",
+			"reviewed_at": "2026-07-08T12:57:12.266040624Z"
+		},
+		{
+			"function_name": "RevokeJoinToken",
+			"receiver": "FakeBackend",
+			"documentation_hash": "518161dac795ffe114a62ab7230f172bda86a1cbcb781a3620650f4b211c554c",
+			"definition_hash": "01c11f5b5621dfdf7e9cf4bec4248dcaac849469a1639a2f4f7be8eac19e09de",
+			"reviewed_at": "2026-07-08T12:57:12.266448513Z"
 		}
 	]
 }

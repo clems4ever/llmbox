@@ -102,6 +102,43 @@ type ProxyStore interface {
 	DeleteProxy(slug string) error
 }
 
+// APIKeyRecord is the on-disk form of one API key: its human-readable name and
+// its validity window. The key's secret is never stored — only its SHA-256 hash,
+// which is the store key — so a leaked database cannot be replayed as keys.
+type APIKeyRecord struct {
+	// Name is the operator-chosen label identifying what the key is for
+	// (e.g. "ci", "mcp-prod").
+	Name string `json:"name"`
+	// CreatedAt is when the key was minted.
+	CreatedAt time.Time `json:"created_at"`
+	// ExpiresAt is when the key stops authenticating; keys always expire.
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// APIKeyInfo describes one stored API key for listing/revocation. ID is the
+// key's secret hash (an opaque handle the operator can delete by); the secret
+// itself is never recoverable.
+type APIKeyInfo struct {
+	ID        string
+	Name      string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+// APIKeyStore persists the API keys that authenticate box-control API callers.
+// Keys are keyed by the SHA-256 hash of their secret, so the store never holds
+// a usable credential. All methods must be safe for concurrent use.
+type APIKeyStore interface {
+	// PutAPIKey writes (creating or replacing) one API key keyed by its secret hash.
+	PutAPIKey(hash string, rec APIKeyRecord) error
+	// GetAPIKey returns the API key for a secret hash; the bool is false when none matches.
+	GetAPIKey(hash string) (APIKeyRecord, bool, error)
+	// ListAPIKeys returns every stored API key.
+	ListAPIKeys() ([]APIKeyInfo, error)
+	// DeleteAPIKey removes the API key for a hash; deleting a missing hash is a no-op.
+	DeleteAPIKey(hash string) error
+}
+
 // SessionStore persists the box auth-session registry across restarts. It is the
 // store's own concern (logins and cluster enrollment are separate contracts), so
 // a backend can implement and test it in isolation. All methods must be safe for
@@ -128,14 +165,16 @@ type SettingsStore interface {
 }
 
 // Store is the aggregate persistence contract the server depends on: the session
-// registry, the activation login state, the cluster enrollment records, and
-// hub-wide settings, plus a Close that releases the backend. All methods must be
-// safe for concurrent use. Use Open for a SQLite-backed implementation.
+// registry, the activation login state, the cluster enrollment records, API
+// keys, and hub-wide settings, plus a Close that releases the backend. All
+// methods must be safe for concurrent use. Use Open for a SQLite-backed
+// implementation.
 type Store interface {
 	SessionStore
 	LoginStore
 	ProxyStore
 	SettingsStore
+	APIKeyStore
 	cluster.Store
 	io.Closer
 }
