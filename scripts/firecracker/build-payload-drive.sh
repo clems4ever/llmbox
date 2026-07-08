@@ -35,15 +35,25 @@ echo ">> building static llmbox-agent (linux/amd64)"
 ( cd "$REPO_ROOT" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags="-s -w" -o "$PDIR/llmbox-agent" ./cmd/llmbox-agent )
 
-echo ">> lifting the standalone claude binary, trust seed, and skills from $BOX_IMAGE"
+echo ">> lifting the standalone claude binary and trust seed from $BOX_IMAGE"
 cid="$(docker create "$BOX_IMAGE")"
 docker cp "$cid":/usr/local/bin/claude "$PDIR/claude"
 docker cp "$cid":/root/.claude.json "$PDIR/claude.json" 2>/dev/null || echo '{}' > "$PDIR/claude.json"
-# The image's baked-in Claude Code skills (e.g. box-ports). The payload flow
-# boots the agent-agnostic base rootfs, so nothing from the image's /root
-# arrives unless this entrypoint seeds it.
-docker cp "$cid":/root/.claude/skills "$PDIR/skills" 2>/dev/null || mkdir -p "$PDIR/skills"
 docker rm "$cid" >/dev/null
+
+echo ">> copying Claude Code skills from the repo checkout ($REPO_ROOT/docker/skills)"
+# Skills (e.g. box-ports) ship straight from the source tree, NOT lifted out of
+# the box image. They are plain text tracked in git, so taking them from the
+# checkout keeps them in lockstep with the commit being built. Lifting them from
+# ghcr.io/.../llmbox-box:latest instead would lag by a commit: that image is
+# (re)published by a separate, slower workflow (ci.yml build-push, gated on
+# tests), while this payload workflow finishes first — so it would ship the
+# *previous* commit's skills. The base rootfs is agent-agnostic, so the payload
+# entrypoint seeds these into /root/.claude/skills at boot.
+mkdir -p "$PDIR/skills"
+if [ -d "$REPO_ROOT/docker/skills" ]; then
+  cp -a "$REPO_ROOT/docker/skills/." "$PDIR/skills/"
+fi
 
 # The entrypoint the base's generic loader runs after mounting this payload at
 # /payload. It owns all the agent-specific wiring the base deliberately does not
@@ -57,7 +67,7 @@ export HOME=/root
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 mkdir -p /workspace
 cp -n /payload/claude.json /root/.claude.json 2>/dev/null || true
-# Seed the image's Claude Code skills (box-ports etc.); -n keeps box-local edits.
+# Seed the payload's Claude Code skills (box-ports etc.); -n keeps box-local edits.
 mkdir -p /root/.claude/skills
 cp -rn /payload/skills/. /root/.claude/skills/ 2>/dev/null || true
 cd /workspace
