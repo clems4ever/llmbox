@@ -284,7 +284,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	prov, err := backend.New(o.backend, backend.Options{
 		SocketDir:        o.box.SocketDir,
 		Peers:            o.boxPeers,
-		Limits:           boxconfig.BoxLimits(o.box),
+		Limits:           BoxLimits(o.box),
 		Namespace:        o.box.Namespace,
 		GPUs:             o.boxGPUs,
 		RegistryAuths:    boxconfig.RegistryAuths(regs),

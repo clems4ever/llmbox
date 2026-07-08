@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "TestBoxLimitsConvertsUnits",
+			"documentation_hash": "69900a0d9891becae5aed1ff2ed9771a417d289a1b38088504c586c9d18e2c54",
+			"definition_hash": "5609920450d27bbd1b2506015f8395b8d31c940df3bdd42d318ce5474655e3c1",
+			"reviewed_at": "2026-07-08T08:50:43.82402113Z"
+		}
+	]
+}

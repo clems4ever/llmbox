@@ -1,16 +1,15 @@
 // Package boxconfig holds the box-provisioning configuration shared by the hub
 // (which fills these from its YAML config) and the spoke (which fills them from
 // command-line flags): the per-box resource caps and the registry credentials,
-// their built-in defaults, and the conversions into the domain types the box layer
-// consumes (sandbox.Limits and the Docker registry auth map). Keeping these in a
-// small shared package lets the hub-only config loader and the config-free spoke
-// share one definition of a box's knobs without either depending on the other.
+// their built-in defaults, and the conversion into the Docker registry auth map
+// the box layer consumes. Keeping these in a small shared package lets the
+// hub-only config loader and the config-free spoke share one definition of a
+// box's knobs without either depending on the other. The spoke-only conversion
+// of these caps into sandbox.Limits lives with the spoke (see BoxLimits there).
 package boxconfig
 
 import (
 	"github.com/docker/docker/api/types/registry"
-
-	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // Default per-box resource caps applied when the box block is unset. They are
@@ -70,24 +69,6 @@ type RegistryConfig struct {
 	// Password is read from PasswordFile at load time; it is never set in the YAML
 	// itself (secrets live in files, not in the config document).
 	Password string `yaml:"-"`
-}
-
-// BoxLimits converts a box config block into the per-box sandbox.Limits,
-// translating the operator-friendly units (mebibytes, fractional CPUs) into the
-// raw byte / nano-CPU counts the Docker API expects. A zero field stays zero
-// (unlimited) so the conversion preserves "no limit" semantics.
-//
-// @arg b The box resource configuration (from YAML on the hub, or flags on the spoke).
-// @return sandbox.Limits The equivalent per-box caps and max-box ceiling.
-//
-// @testcase TestBoxLimitsConvertsUnits converts mebibytes and CPUs to bytes and nano-CPUs.
-func BoxLimits(b BoxConfig) sandbox.Limits {
-	return sandbox.Limits{
-		MemoryBytes: int64(b.MemoryMB) * 1024 * 1024,
-		NanoCPUs:    int64(b.CPUs * 1e9),
-		PidsLimit:   b.PidsLimit,
-		MaxBoxes:    b.MaxBoxes,
-	}
 }
 
 // RegistryAuths turns the configured registry credentials into the per-host auth

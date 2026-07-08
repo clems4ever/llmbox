@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "BoxLimits",
+			"documentation_hash": "e522981c60a39ea6867f3200da049740dd315a32ea1071ff17fdd9a270686adb",
+			"definition_hash": "67553903370e539d678a462a12fb64a7db18b97464dff73ce2e7db5bad30df13",
+			"reviewed_at": "2026-07-08T08:50:34.333823287Z"
+		}
+	]
+}
