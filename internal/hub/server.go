@@ -289,6 +289,106 @@ func (s *Server) SetDefaultSpoke(name string) error {
 	return s.store.PutSetting(defaultSpokeSettingKey, name)
 }
 
+// createSpoke mints a one-time join token that enrolls a new spoke under name,
+// valid for ttl. It is the spoke-creation operation admin (and any future
+// authorized caller) share, sitting alongside createBox/createProxy as the
+// server's single home for the operation; the copy-pasteable run command is
+// presentation the caller builds from the returned token.
+//
+// @arg name The spoke name to enroll; must be non-empty.
+// @arg ttl How long the minted join token stays valid.
+// @return string The one-time join token.
+// @error error if the name is empty or the token cannot be minted.
+//
+// @testcase TestAdminCreateSpokeMintsToken mints a token for a named spoke.
+func (s *Server) createSpoke(name string, ttl time.Duration) (string, error) {
+	if name == "" {
+		return "", errors.New("spoke name is required")
+	}
+	return cluster.CreateJoinToken(s.store, name, ttl, time.Now())
+}
+
+// dropSpoke removes a spoke entirely: it deletes the enrollment record, revokes
+// every outstanding join token for that name so it cannot re-enroll, force-closes
+// its live hub connection, and clears the default spoke if the dropped one was it
+// (so an unqualified create fails loudly rather than targeting a spoke that no
+// longer exists). Once the record is gone the cleanup steps are best-effort —
+// logged, not fatal.
+//
+// @arg name The spoke name to drop; must be non-empty.
+// @error error if the name is empty or the enrollment record cannot be deleted.
+//
+// @testcase TestAdminDropSpokeRemovesAndKicks deletes the record and disconnects the live link.
+// @testcase TestAdminDropDefaultSpokeClearsDefault clears the default when the dropped spoke was it.
+func (s *Server) dropSpoke(name string) error {
+	if name == "" {
+		return errors.New("spoke name is required")
+	}
+	if err := s.store.DeleteSpoke(name); err != nil {
+		return err
+	}
+	// Revoke any outstanding join tokens for this spoke so it can't re-enroll.
+	if tokens, err := s.store.ListJoinTokens(); err == nil {
+		for _, t := range tokens {
+			if t.Name == name {
+				if derr := s.store.DeleteJoinToken(t.ID); derr != nil {
+					s.logger().Warn("dropSpoke: deleting join token", "spoke", name, "err", derr)
+				}
+			}
+		}
+	}
+	if s.hub != nil {
+		s.hub.Disconnect(name)
+	}
+	// A box created with no spoke routes to the default spoke; if the one just
+	// dropped was the default, clear it.
+	if def, err := s.DefaultSpoke(); err == nil && def == name {
+		if cerr := s.SetDefaultSpoke(""); cerr != nil {
+			s.logger().Warn("dropSpoke: clearing default spoke after drop", "spoke", name, "err", cerr)
+		}
+	}
+	return nil
+}
+
+// chooseDefaultSpoke makes an enrolled spoke the default that unqualified box
+// creates run on. It rejects a spoke that is not currently enrolled so a typo
+// can't silently disable unqualified box creation.
+//
+// @arg name The spoke to make the default; must be non-empty and enrolled.
+// @error error if the name is empty, the enrolled spokes cannot be read, the spoke is not enrolled, or the setting cannot be written.
+//
+// @testcase TestAdminSetDefaultSpoke persists the chosen default spoke.
+// @testcase TestAdminSetDefaultSpokeUnknown rejects a spoke that is not enrolled.
+func (s *Server) chooseDefaultSpoke(name string) error {
+	if name == "" {
+		return errors.New("spoke name is required")
+	}
+	enrolled, err := s.store.ListSpokes()
+	if err != nil {
+		return fmt.Errorf("listing spokes: %w", err)
+	}
+	for _, rec := range enrolled {
+		if rec.Name == name {
+			return s.SetDefaultSpoke(name)
+		}
+	}
+	return fmt.Errorf("spoke %s is not enrolled", name)
+}
+
+// revokeJoinToken deletes a single outstanding join token by its opaque ID so it
+// can no longer be used to enroll a spoke.
+//
+// @arg id The token ID (its hash handle); must be non-empty.
+// @error error if the id is empty or the token cannot be deleted.
+//
+// @testcase TestAdminRevokeToken deletes the token by ID.
+func (s *Server) revokeJoinToken(id string) error {
+	if id == "" {
+		return errors.New("token id is required")
+	}
+	return s.store.DeleteJoinToken(id)
+}
+
 // resolveStoredSpoke maps a persisted spoke name to the spoke it belongs to now,
 // resolving an empty name (a legacy pre-cluster session or proxy) to the current
 // default spoke. When no default is set it stays empty, which the callers treat as

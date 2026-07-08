@@ -44,22 +44,22 @@
 			"function_name": "handleAdminCreateSpoke",
 			"receiver": "Server",
 			"documentation_hash": "8766fedb9244d4878461d76b76d8b9615778faa722837d62cda79e0897d23dab",
-			"definition_hash": "fd596eca3cbd5022fed49779ecc738f931180d5c3d460e0122bf603000ba6267",
-			"reviewed_at": "2026-07-07T11:50:30.164666548Z"
+			"definition_hash": "9334a9a8e74c77865b7a1153d3aeaa3f6c1f8bf47d2dfdbfe53de571fdf88d46",
+			"reviewed_at": "2026-07-08T10:21:46.904738929Z"
 		},
 		{
 			"function_name": "handleAdminDropSpoke",
 			"receiver": "Server",
 			"documentation_hash": "86aa3d38731279848fff6dcb6bb24f8ca6ec0b93a79d2718c612086666a2f217",
-			"definition_hash": "adc2898352642d060a7e79b8a091c52ecb9f1ead06ece7512c09c4813efc290f",
-			"reviewed_at": "2026-07-07T09:35:35.079853052Z"
+			"definition_hash": "bc3594512174276efe7aa2a3d38950ef6c0ce8f14b6ad6f483be9a8598c96612",
+			"reviewed_at": "2026-07-08T10:21:46.905705162Z"
 		},
 		{
 			"function_name": "handleAdminRevokeToken",
 			"receiver": "Server",
 			"documentation_hash": "10a1083c8e09b43a2cd23393f854e000455a99838e1c59ec4fa9407800fcbcef",
-			"definition_hash": "20814ba1a9134217a81ff482c629dbd77dab3e41278d27ac4ff0158ea54d7454",
-			"reviewed_at": "2026-06-25T09:38:26.197212946Z"
+			"definition_hash": "f808522bf1ed53a02a852782bea0f358c2d8ff32f67fdaf5404b9aba35e1720d",
+			"reviewed_at": "2026-07-08T10:21:46.916609854Z"
 		},
 		{
 			"function_name": "handleAdminCreateBox",
@@ -139,8 +139,8 @@
 			"function_name": "handleAdminSetDefaultSpoke",
 			"receiver": "Server",
 			"documentation_hash": "93c83557dbab3bb3c394bb9fb26d09a5a1adbe44fbcf37bd8ba82a8d06a56882",
-			"definition_hash": "4a8cacdfe3b02b1d3221e07b329fb2fdbc7d36730392b453850ee422f70222fb",
-			"reviewed_at": "2026-07-07T08:15:52.568015821Z"
+			"definition_hash": "3cbbb97608b8e7b9613e2d1a393c11868d68f45b8000d9b3da87715d3438863d",
+			"reviewed_at": "2026-07-08T10:21:46.915489323Z"
 		}
 	]
 }

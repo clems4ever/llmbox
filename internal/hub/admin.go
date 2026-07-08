@@ -362,10 +362,6 @@ func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	name := strings.TrimSpace(r.PostFormValue("name"))
-	if name == "" {
-		writeResult(w, "", "spoke name is required")
-		return
-	}
 	ttl := defaultAdminTokenTTL
 	if v := strings.TrimSpace(r.PostFormValue("ttl")); v != "" {
 		d, err := time.ParseDuration(v)
@@ -375,6 +371,9 @@ func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) 
 		}
 		ttl = d
 	}
+	// The backend only shapes the copy-pasteable run command shown to the admin
+	// (the join token itself is backend-agnostic), so it is validated here in the
+	// presentation layer rather than in the createSpoke operation.
 	backend := strings.TrimSpace(r.PostFormValue("backend"))
 	if backend == "" {
 		backend = "docker"
@@ -383,9 +382,9 @@ func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) 
 		writeResult(w, "", "invalid backend (choose docker or firecracker)")
 		return
 	}
-	token, err := cluster.CreateJoinToken(s.store, name, ttl, time.Now())
+	token, err := s.createSpoke(name, ttl)
 	if err != nil {
-		writeResult(w, "", "creating token: "+err.Error())
+		writeResult(w, "", err.Error())
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true, "newSpoke": &newSpokeResult{
@@ -434,34 +433,9 @@ func (s *Server) handleAdminDropSpoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimSpace(r.PostFormValue("name"))
-	if name == "" {
-		writeResult(w, "", "spoke name is required")
-		return
-	}
-	if err := s.store.DeleteSpoke(name); err != nil {
+	if err := s.dropSpoke(name); err != nil {
 		writeResult(w, "", "dropping spoke: "+err.Error())
 		return
-	}
-	// Revoke any outstanding join tokens for this spoke so it can't re-enroll.
-	if tokens, err := s.store.ListJoinTokens(); err == nil {
-		for _, t := range tokens {
-			if t.Name == name {
-				if derr := s.store.DeleteJoinToken(t.ID); derr != nil {
-					s.logger().Warn("admin: deleting join token", "spoke", name, "err", derr)
-				}
-			}
-		}
-	}
-	if s.hub != nil {
-		s.hub.Disconnect(name)
-	}
-	// A box created with no spoke routes to the default spoke; if the one just
-	// dropped was the default, clear it so unqualified creates fail loudly rather
-	// than silently targeting a spoke that no longer exists.
-	if def, err := s.DefaultSpoke(); err == nil && def == name {
-		if cerr := s.SetDefaultSpoke(""); cerr != nil {
-			s.logger().Warn("admin: clearing default spoke after drop", "spoke", name, "err", cerr)
-		}
 	}
 	writeResult(w, "dropped spoke "+name, "")
 }
@@ -479,30 +453,8 @@ func (s *Server) handleAdminSetDefaultSpoke(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	name := strings.TrimSpace(r.PostFormValue("name"))
-	if name == "" {
-		writeResult(w, "", "spoke name is required")
-		return
-	}
-	// Only allow enrolled spokes as the default so a typo can't silently disable
-	// unqualified box creation.
-	enrolled, err := s.store.ListSpokes()
-	if err != nil {
-		writeResult(w, "", "listing spokes: "+err.Error())
-		return
-	}
-	known := false
-	for _, rec := range enrolled {
-		if rec.Name == name {
-			known = true
-			break
-		}
-	}
-	if !known {
-		writeResult(w, "", "spoke "+name+" is not enrolled")
-		return
-	}
-	if err := s.SetDefaultSpoke(name); err != nil {
-		writeResult(w, "", "setting default spoke: "+err.Error())
+	if err := s.chooseDefaultSpoke(name); err != nil {
+		writeResult(w, "", err.Error())
 		return
 	}
 	writeResult(w, "default spoke is now "+name, "")
@@ -520,11 +472,7 @@ func (s *Server) handleAdminRevokeToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	id := strings.TrimSpace(r.PostFormValue("id"))
-	if id == "" {
-		writeResult(w, "", "token id is required")
-		return
-	}
-	if err := s.store.DeleteJoinToken(id); err != nil {
+	if err := s.revokeJoinToken(id); err != nil {
 		writeResult(w, "", "revoking token: "+err.Error())
 		return
 	}
