@@ -3,14 +3,14 @@
 		{
 			"function_name": "startSpoke",
 			"documentation_hash": "0efb49a2c0f1a706e4fbe1f6ebe773b668eb9d046843c2d35c2849c96f10d1ad",
-			"definition_hash": "e8ade2b0a7289f1129b5fbf5ce4fba1b14a06f771dd86cc1839a7dc3ed1c86d5",
-			"reviewed_at": "2026-07-07T08:15:52.5631676Z"
+			"definition_hash": "3b4e793627b0bb4d8f4e7741c67c7c191a80329be6f7eda5893dad1832d768f3",
+			"reviewed_at": "2026-07-08T09:43:14.70531279Z"
 		},
 		{
 			"function_name": "TestRemoteSpokeRoundTrip",
 			"documentation_hash": "fba263705900b40995c133edd5e51a53bc47f935305eb47f3ae4620060576cb7",
-			"definition_hash": "741043910ee62e66b3f00ab905efbe7454937d298338c6c1b4fb46cd66349340",
-			"reviewed_at": "2026-07-04T20:12:47.828990872Z"
+			"definition_hash": "855933afe958f37bfbad8b9280aacf3fb42fc7042ab3b6059431520e0f410e33",
+			"reviewed_at": "2026-07-08T09:43:14.705642253Z"
 		},
 		{
 			"function_name": "TestRemoteSpokeVerbError",
@@ -33,20 +33,26 @@
 		{
 			"function_name": "TestDispatchHandlesVerbs",
 			"documentation_hash": "6a3d05679654e8d90b219f7f9bdba13aa7c39e1817ea085e507b872baf5b39e3",
-			"definition_hash": "1dc3124acc3b7e53631ef0daccab157f6fe6e5cc1e988b8862f87c6ca6932104",
-			"reviewed_at": "2026-07-04T20:12:47.829292449Z"
+			"definition_hash": "ef00de81dd383bf8bd7b43af15cdf74e07da263455b4099719a9bf91e2be0cdb",
+			"reviewed_at": "2026-07-08T09:43:14.705976727Z"
 		},
 		{
 			"function_name": "TestDispatchUnknownMethod",
 			"documentation_hash": "0703710ecefe8046eee5cf33aaf1f63595f98331a0d034adf55ad73774de9464",
-			"definition_hash": "80a1ecbd01d9f3774c0acd1a12e7644d939af9e66dbdf4d5286db7ffa0e252b5",
-			"reviewed_at": "2026-06-19T20:33:58.631395785Z"
+			"definition_hash": "10b04d8587172998dbd08312101fbe576e2726f5a128db614e1328140f595d55",
+			"reviewed_at": "2026-07-08T09:43:14.706621163Z"
 		},
 		{
 			"function_name": "TestDispatchBadPayload",
 			"documentation_hash": "4cea948bc564ab042141bc66272af91b47247e6953c19eada9074aadf814c1b0",
-			"definition_hash": "e7f17f0c860feb8dabf24142dfa9a7732478a0fd2c305866b2f0b3d03b753f9b",
-			"reviewed_at": "2026-06-19T20:33:58.631654623Z"
+			"definition_hash": "48819cb1d3eb8990b35d0258938e41b75be41cd8359264f884a5f6bbd1d77335",
+			"reviewed_at": "2026-07-08T09:43:14.706997752Z"
+		},
+		{
+			"function_name": "TestDispatchRejectsInvalidCreate",
+			"documentation_hash": "6bf1494f48bf7c1ff66d434a16e841850870dbd9253430644b31d88b8992df46",
+			"definition_hash": "4cc748f43ce8d78a1521f15c40032ae58a31ee9e128ce36817f467e5c9b964a8",
+			"reviewed_at": "2026-07-08T09:43:14.707312145Z"
 		}
 	]
 }

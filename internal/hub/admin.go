@@ -535,7 +535,7 @@ func (s *Server) handleAdminRevokeToken(w http.ResponseWriter, r *http.Request) 
 // as JSON (the box still needs a user to complete activation).
 //
 // @arg w The response writer the JSON result is written to.
-// @arg r The request carrying the box ID, optional image/description, and spoke.
+// @arg r The request carrying the box ID, optional description, and spoke.
 //
 // @testcase TestAdminCreateBox creates a box on the requested spoke.
 func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
@@ -549,7 +549,6 @@ func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, err := s.createBox(r.Context(), sandbox.CreateOptions{
 		BoxID:       boxID,
-		Image:       strings.TrimSpace(r.PostFormValue("image")),
 		Description: strings.TrimSpace(r.PostFormValue("description")),
 		SpokeName:   strings.TrimSpace(r.PostFormValue("spoke")),
 	})

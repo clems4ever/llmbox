@@ -9,9 +9,9 @@
 		{
 			"function_name": "Create",
 			"receiver": "fakeBoxManager",
-			"documentation_hash": "da7aa2de48bfeac6e550a379546f940cf7b02402e1a853b92f004608e19c6601",
-			"definition_hash": "c073b51fd94330c56cd6fc9a94caf3d6483025d43aad29a5c11031ac27a5753a",
-			"reviewed_at": "2026-06-29T15:39:24.996933963Z"
+			"documentation_hash": "d9cbf8029b578d6d498e5992c27a37267f9f2425db01aa9fc58a1e20b1ca6ccf",
+			"definition_hash": "581c0a1990353adfd171656487faafd3dc857ce9c7bdcdc155d24151f9b0d3ba",
+			"reviewed_at": "2026-07-08T09:43:14.688630374Z"
 		},
 		{
 			"function_name": "SubmitCode",

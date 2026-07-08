@@ -87,8 +87,8 @@
 			"function_name": "start",
 			"receiver": "browserRemote",
 			"documentation_hash": "227186b80e672d8f16bb70e20114897866d8ce3cde3d39712dc58496187cc8c0",
-			"definition_hash": "0cb8713072554bc3c1d7a3f32faf0b25e8a0365fddee709268e6214f5ac3fe16",
-			"reviewed_at": "2026-06-27T10:01:08.708937428Z"
+			"definition_hash": "cd80850518dfdebddc2543ac9273c530301be05a1704ad628d422f60bf9c93f7",
+			"reviewed_at": "2026-07-08T09:43:14.687356268Z"
 		},
 		{
 			"function_name": "connectSpoke",
@@ -135,8 +135,8 @@
 		{
 			"function_name": "newClusterBrowserEnv",
 			"documentation_hash": "80960e62883bbce1e1c50529f534e6187c6c8b0d446a9efd174974f2a3209971",
-			"definition_hash": "d6a5f5341e296328844111f779fa23b2570ba808bb6fe03c5535c7858e79d4c7",
-			"reviewed_at": "2026-07-07T18:00:29.728887803Z"
+			"definition_hash": "b58069f357bc6a17e28193d8df4a25e453324a651d1e9dde12f2aca5d668dbf4",
+			"reviewed_at": "2026-07-08T09:43:14.685146056Z"
 		},
 		{
 			"function_name": "TestAdminCreateAndRemoveBoxOnSpokeInBrowser",

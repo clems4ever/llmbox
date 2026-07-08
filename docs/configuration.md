@@ -70,33 +70,16 @@ optional:
 |----------------|---------------------------|---------|
 | `http_addr`    | `:8080`                   | Single listen address for the whole server: the box-control API (`/api/v1/`) and the UI (auth pages, admin, health). The API is unauthenticated by the server itself, so run behind an authenticating proxy; never expose it directly to untrusted networks. |
 | `public_url`   | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
-| `claude_image` | `ghcr.io/clems4ever/llmbox-box:latest` | Base image launched per box. Must bake in the standalone Claude binary, tini (PID 1), util-linux, and a CA bundle (see `Dockerfile.box`); build your own FROM it to add tooling. |
-| `remote_args`  | `--spawn same-dir`        | Args passed to `claude remote-control`. |
 | `auth_ttl`     | `5m`                      | Destroy un-authenticated boxes after this long (a Go duration string, e.g. `300s`, `5m`). |
 | `state_file`   | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](operations.md#session-persistence)). |
 | `hooks`        | (empty)                   | List of [box lifecycle hook](hooks.md) executables. |
-| `box_peers`    | (empty)                   | List of container names wired into every box's network (see [Box networking](hooks.md#box-networking-and-isolation)). |
-| `registries`   | (empty)                   | Per-registry pull credentials for box images on private registries (see below). |
 | `auth`         | (disabled)                | Require sign-in before a box can be activated (see [Authenticating activation](authentication.md)). |
 
-The Docker client itself is still configured the standard way (`DOCKER_HOST`,
-etc.). Unknown keys in the config file are rejected so typos surface as errors.
+Unknown keys in the config file are rejected so typos surface as errors.
 
-If `claude_image` isn't present on the daemon, the server pulls it on the
-first box creation and retries.
-
-### Private registries
-
-To pull box images from an authenticated registry, give llmbox the credentials
-directly under `registries` instead of relying on the Docker daemon being logged
-in. Each entry is matched against the host of the image being pulled; an image
-whose registry has no entry is pulled anonymously. The password/token is read
-from a file and never inlined in the YAML. On a [spoke](hub-and-spoke.md),
-configure this where the box image is actually pulled.
-
-```yaml
-registries:
-  - registry: "ghcr.io"          # registry host; use "docker.io" for Docker Hub
-    username: "your-github-user"
-    password_file: "/etc/llmbox/ghcr-token"   # a GitHub PAT with read:packages
-```
+The hub runs **no box backend of its own** — every box runs on a
+[spoke](hub-and-spoke.md) — so the hub config holds no box-provisioning knobs.
+The box image, backend, per-box resource caps, and private-registry credentials
+are all set with `llmbox-spoke` flags on the host that actually launches the
+box (e.g. `--image`, `--box-memory-mb`, `--registry`). Run `llmbox-spoke --help`
+for the full list.

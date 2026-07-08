@@ -151,10 +151,11 @@ new `ClusterStore` methods.
 - config: **the spoke reads no config file** — every setting is a flag, so a host
   runs the single command the admin UI generates. The hub always exposes the
   `/spoke/connect` route. Because the hub runs no box backend, the per-box Docker
-  knobs live entirely on the spoke: `--box-memory-mb`, `--box-cpus`,
-  `--box-pids-limit`, `--box-socket-dir`, `--box-peer`, `--remote-args`,
-  `--registry[-username|-password-file]`, and `--allowed-image`. The hub only
-  resolves the per-box **image** it stamps onto an imageless create.
+  knobs live entirely on the spoke: `--image`, `--box-memory-mb`, `--box-cpus`,
+  `--box-pids-limit`, `--box-socket-dir`, `--box-peer`, `--remote-args`, and
+  `--registry[-username|-password-file]`. The **image** is the spoke's own: it
+  launches its configured `--image` (default `ghcr.io/clems4ever/llmbox-box`) for
+  every box, and nothing about the image crosses the hub/spoke boundary.
 
 ### Sharing one Docker daemon: namespaces
 

@@ -2,21 +2,21 @@
 	"functions": [
 		{
 			"function_name": "serve",
-			"documentation_hash": "33398662fae1210a5f6b7a508df8bd45031ec770a6b0379caa1b4f998292b13d",
-			"definition_hash": "60d1ccd33225933df664feb72daebceeb6c59944b79e9d3870f9e53b92fa37d4",
-			"reviewed_at": "2026-07-07T08:15:52.552813611Z"
+			"documentation_hash": "65459e29e87511f215999a2a53d2b0d7f4de9b5b8f5db636e8d36ba394242cf5",
+			"definition_hash": "47989d38e7fbc0450a84ad55a92951a7d7fd9a6ed90dbb9caf77e4487ca68486",
+			"reviewed_at": "2026-07-08T09:43:14.7038753Z"
 		},
 		{
 			"function_name": "handleRequest",
-			"documentation_hash": "daeacddf73a531c68c299a37846f238ef5f8c43c7eb9c69c9685c9a3f3cc3ce7",
-			"definition_hash": "74cf89fdf6750c7bda265e93d906b5092f504c1bcfa488e0cc035cc708f832fd",
-			"reviewed_at": "2026-06-19T20:33:53.191913518Z"
+			"documentation_hash": "ac4699fa295b7c965648958087f668be4d6486d860105beaee6483e6c4d7ea2d",
+			"definition_hash": "df8e6646b4b985d61ae19e6abe300f16788db035e8acce46c595fca094fa2949",
+			"reviewed_at": "2026-07-08T09:43:14.704178007Z"
 		},
 		{
 			"function_name": "dispatch",
-			"documentation_hash": "fd04f3f7250b3730103cb543d5e65b8b7d9b6849572fd2d0d2a7a8fe212a414e",
-			"definition_hash": "07dbea7a0d32f603296c5c4fffdce288bc76c688e2cfb0510d48a5178ade04c7",
-			"reviewed_at": "2026-07-07T08:15:52.554336044Z"
+			"documentation_hash": "7c9ef1c11827babff70e58182f37043bf8f07ff0117d0929dbcc268d341399a5",
+			"definition_hash": "8c053ad00b5a1d1080daff4f74c06ab9b6f83ad262509e10706ae28eef19bcfc",
+			"reviewed_at": "2026-07-08T09:43:14.704455711Z"
 		},
 		{
 			"function_name": "handleStreamOpen",

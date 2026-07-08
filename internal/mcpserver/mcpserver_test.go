@@ -212,7 +212,6 @@ func TestToolCreate(t *testing.T) {
 	h := &handlers{b: f}
 
 	_, out, err := h.toolCreate(context.Background(), nil, createInput{
-		Image:       "img",
 		BoxID:       "web-box",
 		Description: "front-end work",
 		Spoke:       "edge",
@@ -229,7 +228,7 @@ func TestToolCreate(t *testing.T) {
 	if out.Status != "pending" || out.Instructions == "" {
 		t.Errorf("status/instructions = %q/%q", out.Status, out.Instructions)
 	}
-	if f.gotCreate.Image != "img" || f.gotCreate.BoxID != "web-box" || f.gotCreate.Description != "front-end work" || f.gotCreate.SpokeName != "edge" {
+	if f.gotCreate.BoxID != "web-box" || f.gotCreate.Description != "front-end work" || f.gotCreate.SpokeName != "edge" {
 		t.Errorf("backend got opts %+v, want all inputs forwarded", f.gotCreate)
 	}
 }

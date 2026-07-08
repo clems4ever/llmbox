@@ -193,12 +193,6 @@ type Server struct {
 	// activation unauthenticated (no provider configured).
 	auth *auth.Authenticator
 
-	// boxImage is the hub's resolved per-box image (claude_image, or the built-in
-	// default when that is unset) stamped onto every creation request that names
-	// none. The box image is resolved here on the hub so remote spokes stay
-	// config-free and hold no default of their own.
-	boxImage string
-
 	// proxyBaseDomain is the parent domain per-box HTTP proxies hang off (e.g.
 	// "proxy.example.com"); a proxy is reached at <slug>.<proxyBaseDomain>. Empty
 	// disables the proxy feature entirely. Set once at startup via SetProxyBaseDomain.
@@ -315,16 +309,6 @@ func (s *Server) resolveStoredSpoke(name string) string {
 	}
 	return def
 }
-
-// SetBoxImage sets the hub's resolved per-box image (claude_image, or the
-// built-in default when unset) that the server stamps onto a creation request
-// naming none. Resolving the image on the hub keeps remote spokes config-free
-// and defaultless: the spoke launches exactly the image it is sent.
-//
-// @arg image The resolved per-box container image (e.g. ghcr.io/clems4ever/granular-llmbox-box:latest); never empty in practice.
-//
-// @testcase TestCreateBoxDefaultsImageToBoxImage stamps the configured image onto an imageless request.
-func (s *Server) SetBoxImage(image string) { s.boxImage = image }
 
 // SetProxyBaseDomain sets the parent domain per-box HTTP proxies are served
 // under (e.g. "proxy.example.com"), enabling the proxy feature. An empty domain
@@ -619,11 +603,12 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 // records their opaque state on the session; that state is replayed to the
 // box.destroy hooks if box creation later fails so nothing is left dangling. It
 // returns the session so callers can build the auth page URL. opts carries the
-// optional image, box ID, description, and the spoke to place the box on (empty
-// resolves to the admin-chosen default spoke).
+// box ID, description, and the spoke to place the box on (empty resolves to the
+// admin-chosen default spoke); the box image is not a hub input — each spoke
+// launches its own configured image.
 //
 // @arg ctx Context for the box creation.
-// @arg opts The optional image, box ID, description, and target spoke for the box.
+// @arg opts The box ID, description, and target spoke for the box.
 // @return *session The registered auth session for the new box.
 // @error error if no spoke is named and no default is set, the target spoke is not connected, a box.create hook fails, the box cannot be created, or a session token cannot be generated.
 //
@@ -635,16 +620,7 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 // @testcase TestCreateBoxUnknownSpoke errors when the named spoke is not connected.
 // @testcase TestCreateBoxDefaultsToDefaultSpoke creates on the default spoke when the request names none.
 // @testcase TestCreateBoxNoDefaultSpoke errors when the request names no spoke and no default is set.
-// @testcase TestCreateBoxDefaultsImageToBoxImage stamps the hub's box image when the request names none.
-// @testcase TestCreateBoxKeepsExplicitImage leaves a request's explicit image untouched.
 func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*session, error) {
-	// Resolve the box image on the hub so remote spokes stay config-free and
-	// defaultless: a request that names no image inherits the hub's resolved box
-	// image (claude_image, or the built-in default). Spokes reject an imageless
-	// create, so this is the only place a default is ever applied.
-	if opts.Image == "" {
-		opts.Image = s.boxImage
-	}
 	// Resolve an unqualified create to the admin-chosen default spoke, and pin the
 	// box to that concrete spoke name so its later verbs route there even if the
 	// default changes afterwards.
@@ -672,7 +648,7 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	}
 	defer s.releaseBoxID(opts.BoxID)
 
-	box := hooks.BoxInfo{Image: opts.Image, BoxID: opts.BoxID, Description: opts.Description}
+	box := hooks.BoxInfo{BoxID: opts.BoxID, Description: opts.Description}
 	var hookState map[string]string
 	if s.hooks != nil {
 		files, state, err := s.hooks.OnCreate(ctx, box)

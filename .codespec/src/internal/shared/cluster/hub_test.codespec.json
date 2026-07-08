@@ -9,14 +9,14 @@
 		{
 			"function_name": "TestHubEnrollAndRoute",
 			"documentation_hash": "558dabc7f7337c0fa491def90d3b5bdd90a75d8d403227877323f1be61723d48",
-			"definition_hash": "1eb414d1812ca63d86ef5e95f5a893ad487f9e447fe276589dfa114f708a4be5",
-			"reviewed_at": "2026-07-04T20:12:47.828619023Z"
+			"definition_hash": "272b127cfe9a8fc2de090b86c9e3cbbcf318f196c8b5c419a000d2dce91d6629",
+			"reviewed_at": "2026-07-08T09:43:14.704687564Z"
 		},
 		{
 			"function_name": "TestHubRejectsBadEnrollment",
 			"documentation_hash": "ee96521dabb585e17951ee62ce7a903df0ef997db4dc5863482c1eee9a4ce488",
-			"definition_hash": "68db92d6138c681a5e187602494b431e5e3c65dfa229bf7661f89f3feea6455f",
-			"reviewed_at": "2026-06-19T20:33:57.75767692Z"
+			"definition_hash": "0714e0674fa89c60c7f0595e3cdd167e6173bea85b6b8147e019aaa067fcba7d",
+			"reviewed_at": "2026-07-08T09:43:14.704933596Z"
 		},
 		{
 			"function_name": "TestHubReconnectSupersedes",

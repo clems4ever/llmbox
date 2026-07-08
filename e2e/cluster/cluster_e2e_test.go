@@ -62,10 +62,6 @@ func TestClusterEndToEnd(t *testing.T) {
 	clusterHub := cluster.NewHub(ctx, store, nil, nil)
 	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, nil)
 	srv.SetHub(clusterHub)
-	// The hub is the sole source of the box image: it stamps this onto every
-	// create so config-free spokes (which hold no default of their own) launch
-	// exactly what they are sent.
-	srv.SetBoxImage("box:e2e")
 
 	// A single listener carries everything: /spoke/connect, /healthz, and the
 	// box-control API under /api/v1/.
@@ -81,10 +77,10 @@ func TestClusterEndToEnd(t *testing.T) {
 
 	// The spoke: a real spoke process (goroutine) dialing the hub over WebSocket,
 	// backed by its own simulated Docker layer.
-	edgeMgr := newFakeSpokeMgr("edge")
+	edgeMgr := newFakeSpokeMgr("edge", "box:e2e")
 	wsURL := "ws://" + uiAddr + "/spoke/connect"
 	go func() {
-		_ = cluster.Run(ctx, cluster.WebSocketDialer(wsURL), edgeMgr, joinToken, nil, func(cluster.Credentials) error { return nil }, cluster.ValidationPolicy{})
+		_ = cluster.Run(ctx, cluster.WebSocketDialer(wsURL), edgeMgr, joinToken, nil, func(cluster.Credentials) error { return nil })
 	}()
 
 	// The chatbot side, over the box-control API on the single server.
@@ -113,9 +109,9 @@ func TestClusterEndToEnd(t *testing.T) {
 	if edgeMgr.creates() != 1 {
 		t.Errorf("edge spoke creates = %d, want 1", edgeMgr.creates())
 	}
-	// The spoke launched the image the hub resolved and sent, not one of its own.
+	// The spoke launched its OWN configured image; the hub named none.
 	if got := edgeMgr.image(); got != "box:e2e" {
-		t.Errorf("edge spoke create image = %q, want box:e2e (hub-resolved)", got)
+		t.Errorf("edge spoke create image = %q, want box:e2e (the spoke's own)", got)
 	}
 
 	// list_llmboxes shows the box tagged with its spoke.
@@ -150,7 +146,7 @@ func TestClusterEndToEnd(t *testing.T) {
 	// The join token is one-time: a second enrollment with it must be rejected.
 	enrollCtx, enrollCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer enrollCancel()
-	err = cluster.Run(enrollCtx, cluster.WebSocketDialer(wsURL), newFakeSpokeMgr("edge2"), joinToken, nil, nil, cluster.ValidationPolicy{})
+	err = cluster.Run(enrollCtx, cluster.WebSocketDialer(wsURL), newFakeSpokeMgr("edge2", "box:e2e"), joinToken, nil, nil)
 	if err == nil {
 		t.Fatal("second enrollment with the same join token should have been rejected")
 	}
@@ -161,18 +157,20 @@ func TestClusterEndToEnd(t *testing.T) {
 // test can assert which spoke handled each operation.
 type fakeSpokeMgr struct {
 	name string
+	img  string // the spoke's own configured image, launched for every box
 
 	mu          sync.Mutex
 	boxes       map[string]string // containerID -> boxID
 	createCount int
 	execCount   int
-	gotImage    string // image of the most recent create, as received from the hub
+	launched    string // image launched for the most recent create (the spoke's own)
 	dialTarget  string // address DialBox connects to (a real upstream "box" server)
 }
 
-// newFakeSpokeMgr builds an empty simulated spoke box manager.
-func newFakeSpokeMgr(name string) *fakeSpokeMgr {
-	return &fakeSpokeMgr{name: name, boxes: map[string]string{}}
+// newFakeSpokeMgr builds an empty simulated spoke box manager that launches img
+// for every box, mirroring a real spoke owning its box image.
+func newFakeSpokeMgr(name, img string) *fakeSpokeMgr {
+	return &fakeSpokeMgr{name: name, img: img, boxes: map[string]string{}}
 }
 
 // Create simulates launching a box, recording the call and returning a fake container ID.
@@ -182,15 +180,16 @@ func (m *fakeSpokeMgr) Create(_ context.Context, opts sandbox.CreateOptions) (st
 	id := randHex(20)
 	m.boxes[id] = opts.BoxID
 	m.createCount++
-	m.gotImage = opts.Image
+	// The spoke launches its own configured image; the create request names none.
+	m.launched = m.img
 	return id, "https://auth.example/", nil
 }
 
-// image returns the image of the most recent create call, under the lock.
+// image returns the image launched for the most recent create call, under the lock.
 func (m *fakeSpokeMgr) image() string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.gotImage
+	return m.launched
 }
 
 // SubmitCode simulates a completed activation, returning a session URL.

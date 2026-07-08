@@ -48,7 +48,7 @@ func TestHubEnrollAndRoute(t *testing.T) {
 		_ = Run(spokeCtx, WebSocketDialer(url), fake, tok, nil, func(c Credentials) error {
 			saved <- c
 			return nil
-		}, ValidationPolicy{})
+		})
 	}()
 
 	bm := waitForSpoke(t, hub, "edge")
@@ -79,7 +79,7 @@ func TestHubRejectsBadEnrollment(t *testing.T) {
 	defer srv.Close()
 	url := "ws" + srv.URL[len("http"):] + "/"
 
-	err := Run(context.Background(), WebSocketDialer(url), &fakeManager{}, "bad-token", nil, nil, ValidationPolicy{})
+	err := Run(context.Background(), WebSocketDialer(url), &fakeManager{}, "bad-token", nil, nil)
 	if !errors.Is(err, ErrEnrollRejected) {
 		t.Fatalf("Run err = %v, want ErrEnrollRejected", err)
 	}

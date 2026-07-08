@@ -117,8 +117,8 @@
 		{
 			"function_name": "TestToolCreate",
 			"documentation_hash": "d2401e32158cf44466b23e3adbecab4e5c0b7b3a3799ea4ea3c18f51a3a17786",
-			"definition_hash": "a242cf0dbba4ace730b03b63b37bde2d905e043f4015973baf08c1b57714b223",
-			"reviewed_at": "2026-07-04T20:12:47.845570582Z"
+			"definition_hash": "17b456e51467b6688574cdc26753103dedb011c9f3f6f13b9b410833472d073b",
+			"reviewed_at": "2026-07-08T09:43:14.703140642Z"
 		},
 		{
 			"function_name": "TestToolCreateRequiresBoxID",

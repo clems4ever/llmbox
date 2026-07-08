@@ -131,13 +131,6 @@
 			"reviewed_at": "2026-07-07T08:15:52.60719705Z"
 		},
 		{
-			"function_name": "SetBoxImage",
-			"receiver": "Server",
-			"documentation_hash": "b30e462b055679d6215d3e04c386f8db480ab9d11dd8b66750a08994d3c8b491",
-			"definition_hash": "6d8890eb264da682c3a12f0c7dc0ed52383dffc7b93cf67feacd4e38420fd531",
-			"reviewed_at": "2026-06-22T13:02:30.202038196Z"
-		},
-		{
 			"function_name": "boxMatchesSession",
 			"documentation_hash": "2300e910d38a72b36659f02bd324a500b7e95d37b62647c6f3c239ae1d5cee51",
 			"definition_hash": "136c20e29af27c8ef15b89f8f712f7fdda7ff1e2e2c984d87e3537b94483701e",
@@ -146,9 +139,9 @@
 		{
 			"function_name": "createBox",
 			"receiver": "Server",
-			"documentation_hash": "c06c78937a949adae55035f52675f96a198775a3074871223c53a4323b88ce34",
-			"definition_hash": "55ec05a3490a351cfc137ed2172bc2adaed33881d52adab8f947459aeca8f974",
-			"reviewed_at": "2026-07-07T18:59:22.42066997Z"
+			"documentation_hash": "7ec83815bb971e39fa83fb7ca1aed21a12941313cd362548079d2e5b069431c8",
+			"definition_hash": "ffdb6e609c64c317592e705f3de03b302db4eb4cb057f8b3e8f92434ea9df1ec",
+			"reviewed_at": "2026-07-08T09:43:14.700786329Z"
 		},
 		{
 			"function_name": "submitCode",

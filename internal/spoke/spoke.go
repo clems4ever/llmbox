@@ -72,10 +72,14 @@ type spokeOptions struct {
 	fcPoolSize      int
 	// box carries the per-box resource caps, socket dir, and namespace, reusing
 	// the config type so boxconfig.BoxLimits does the unit conversion.
-	box           boxconfig.BoxConfig
-	boxPeers      []string
-	allowedImages []string
-	registry      registryFlags
+	box      boxconfig.BoxConfig
+	boxPeers []string
+	// image is the container image every box on this spoke launches (Docker
+	// backend); empty uses the backend's built-in default. The spoke owns the
+	// image outright — the hub never names one — so nothing about the image
+	// crosses the hub/spoke boundary.
+	image    string
+	registry registryFlags
 }
 
 // registryFlags are the single optional registry credential a spoke may use to
@@ -220,7 +224,6 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.IntVar(&o.box.MaxBoxes, "max-boxes", 0, "max concurrent boxes on this spoke (0 = unlimited)")
 	f.StringVar(&o.box.SocketDir, "box-socket-dir", "", "host directory holding each box's control socket; empty uses the provisioner default")
 	f.StringArrayVar(&o.boxPeers, "box-peer", nil, "container name connected into every box's network so boxes can reach it (repeatable)")
-	f.StringArrayVar(&o.allowedImages, "allowed-image", nil, "restrict which box images this spoke will launch (repeatable; empty places no restriction)")
 	f.StringVar(&o.registry.host, "registry", "", `registry host to authenticate to when pulling box images, e.g. "ghcr.io" (empty pulls anonymously)`)
 	f.StringVar(&o.registry.username, "registry-username", "", "username for --registry")
 	f.StringVar(&o.registry.passwordFile, "registry-password-file", "", "file holding the password or token for --registry")
@@ -233,6 +236,7 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 //
 // @testcase TestNewRootCmd checks the docker subcommand exposes --box-gpus and no firecracker flags.
 func addDockerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
+	f.StringVar(&o.image, "image", "", "container image every box on this spoke launches; empty uses the built-in default")
 	f.StringVar(&o.boxGPUs, "box-gpus", "", `GPUs to attach to every box on this spoke, like docker run --gpus (e.g. "all", "2", or "device=0,1"); empty attaches none`)
 }
 
@@ -266,10 +270,9 @@ func addFirecrackerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 // @testcase TestRunSpokeRejectsBadGPUs errors when the GPU spec is malformed.
 func runSpoke(parent context.Context, o spokeOptions) error {
 	statePath, token, hubURL := o.statePath, o.token, o.hubURL
-	// A spoke holds no box image of its own: the hub resolves the image (its own
-	// default included) and sends it with every create, and validateCreate rejects
-	// any create that arrives without one. Pass no default here so nothing local
-	// can stand in for what the hub sends.
+	// The spoke owns the box image: every box it runs launches o.image (empty uses
+	// the backend's built-in default). The hub never names an image, so nothing
+	// about the image crosses the hub/spoke boundary.
 	regs, err := o.registries()
 	if err != nil {
 		return err
@@ -282,6 +285,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// destroying each other's boxes.
 	log.Printf("initializing %s box backend (first run may fetch guest images and set up networking)...", o.backend)
 	prov, err := backend.New(o.backend, backend.Options{
+		DefaultImage:     o.image,
 		SocketDir:        o.box.SocketDir,
 		Peers:            o.boxPeers,
 		Limits:           BoxLimits(o.box),
@@ -339,12 +343,11 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 		log.Printf("enrolled as spoke %q; credential saved to %s", c.Name, statePath)
 		return nil
 	}
-	policy := cluster.ValidationPolicy{AllowedImages: o.allowedImages}
 
 	log.Printf("connecting to hub %s ...", hubURL)
 	backoff := time.Second
 	for {
-		err := cluster.Run(ctx, dial, mgr, token, creds, save, policy)
+		err := cluster.Run(ctx, dial, mgr, token, creds, save)
 		if ctx.Err() != nil {
 			return nil
 		}

@@ -75,16 +75,17 @@ hub-and-spoke layout instead of one shared network:
 - Every box is created on its **own** dedicated Docker network (`llmboxnet-<id>`)
   and attached to nothing else, so no two boxes ever share a network — they
   cannot talk to each other.
-- llmbox connects each container named in the `box_peers` config list into that
-  per-box network, so the box reaches those peers by name while staying isolated.
+- llmbox connects each container named by a spoke's `--box-peer` flag (repeatable)
+  into that per-box network, so the box reaches those peers by name while staying
+  isolated.
 - The network is torn down (and the peers disconnected from it) when the box is
   destroyed or reaped.
 
-`box_peers` is a list of **container names**. When the peers run in a separate
-compose project, give them a fixed `container_name:` so the name is stable, e.g.:
+`--box-peer` takes a **container name**. When the peers run in a separate compose
+project, give them a fixed `container_name:` so the name is stable, e.g.:
 
 ```yaml
 services:
   granular-github:
-    container_name: granular-github   # must match an entry in box_peers
+    container_name: granular-github   # must match a --box-peer value
 ```

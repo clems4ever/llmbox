@@ -73,9 +73,6 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	clusterHub := cluster.NewHub(ctx, store, nil, nil)
 	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, a)
 	srv.SetHub(clusterHub)
-	// The hub is the sole source of the box image: it stamps this onto every
-	// create so config-free spokes launch exactly what they are sent.
-	srv.SetBoxImage("box:e2e")
 	// Enable HTTP proxying so the proxy-through-spoke path can be exercised. A
 	// request whose Host is a proxy sub-domain is reverse-proxied; every other
 	// request (the admin UI on the loopback host) falls through unchanged.
@@ -147,7 +144,7 @@ func (f *clusterFixture) connectSpoke(name string) *fakeRemote {
 	if err != nil {
 		f.t.Fatalf("create join token: %v", err)
 	}
-	r := &fakeRemote{t: f.t, fixture: f, name: name, mgr: newFakeSpokeMgr(name)}
+	r := &fakeRemote{t: f.t, fixture: f, name: name, mgr: newFakeSpokeMgr(name, "box:e2e")}
 	r.start(joinToken)
 	f.waitSpokeConnected(name, true)
 	return r
@@ -171,7 +168,7 @@ func (r *fakeRemote) start(joinToken string) {
 		return nil
 	}
 	go func() {
-		_ = cluster.Run(ctx, cluster.WebSocketDialer(r.fixture.wsURL), r.mgr, joinToken, creds, save, cluster.ValidationPolicy{})
+		_ = cluster.Run(ctx, cluster.WebSocketDialer(r.fixture.wsURL), r.mgr, joinToken, creds, save)
 	}()
 }
 

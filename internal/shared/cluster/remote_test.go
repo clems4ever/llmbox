@@ -19,7 +19,7 @@ func startSpoke(t *testing.T, mgr BoxManager) *remoteSpoke {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	hubEnd, spokeEnd := newPipe()
-	go func() { _ = serve(ctx, spokeEnd, mgr, ValidationPolicy{}) }()
+	go func() { _ = serve(ctx, spokeEnd, mgr) }()
 	rs := newRemoteSpoke("s", hubEnd)
 	t.Cleanup(func() { _ = rs.Close() })
 	return rs
@@ -39,7 +39,7 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 	rs := startSpoke(t, fake)
 	ctx := context.Background()
 
-	id, url, err := rs.Create(ctx, sandbox.CreateOptions{BoxID: "b1", Image: "img:1", SpokeName: "s"})
+	id, url, err := rs.Create(ctx, sandbox.CreateOptions{BoxID: "b1", SpokeName: "s"})
 	if err != nil || id != "cid" || url != "https://auth" {
 		t.Fatalf("Create = (%q,%q,%v)", id, url, err)
 	}
@@ -163,7 +163,7 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 	}
 
 	// Destroy returns a nil payload.
-	p, err := dispatch(ctx, fake, mustReq(methodDestroy, destroyReq{IDOrName: "b1"}), ValidationPolicy{})
+	p, err := dispatch(ctx, fake, mustReq(methodDestroy, destroyReq{IDOrName: "b1"}))
 	if err != nil || p != nil {
 		t.Fatalf("destroy dispatch = (%s,%v)", p, err)
 	}
@@ -172,7 +172,7 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 	}
 
 	// List returns boxes.
-	p, err = dispatch(ctx, fake, mustReq(methodList, struct{}{}), ValidationPolicy{})
+	p, err = dispatch(ctx, fake, mustReq(methodList, struct{}{}))
 	if err != nil {
 		t.Fatalf("list dispatch: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 
 // TestDispatchUnknownMethod is a package test.
 func TestDispatchUnknownMethod(t *testing.T) {
-	_, err := dispatch(context.Background(), &fakeManager{}, frame{Type: frameReq, Method: "bogus"}, ValidationPolicy{})
+	_, err := dispatch(context.Background(), &fakeManager{}, frame{Type: frameReq, Method: "bogus"})
 	if err == nil || !strings.Contains(err.Error(), "unknown method") {
 		t.Fatalf("err = %v, want unknown method", err)
 	}
@@ -193,7 +193,24 @@ func TestDispatchUnknownMethod(t *testing.T) {
 // TestDispatchBadPayload is a package test.
 func TestDispatchBadPayload(t *testing.T) {
 	req := frame{Type: frameReq, Method: methodCreate, Payload: []byte("{not json")}
-	if _, err := dispatch(context.Background(), &fakeManager{}, req, ValidationPolicy{}); err == nil {
+	if _, err := dispatch(context.Background(), &fakeManager{}, req); err == nil {
 		t.Fatal("expected error for malformed payload")
+	}
+}
+
+// TestDispatchRejectsInvalidCreate is a package test: a create whose box id is
+// malformed is rejected at the wire boundary before it reaches the manager.
+func TestDispatchRejectsInvalidCreate(t *testing.T) {
+	p, err := encodePayload(createReq{Opts: sandbox.CreateOptions{BoxID: "Bad_ID"}})
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	fake := &fakeManager{}
+	req := frame{Type: frameReq, Method: methodCreate, Payload: p}
+	if _, err := dispatch(context.Background(), fake, req); err == nil || !strings.Contains(err.Error(), "invalid box id") {
+		t.Fatalf("err = %v, want invalid box id", err)
+	}
+	if fake.lastCreate.BoxID != "" {
+		t.Error("manager.Create was called despite the malformed box id")
 	}
 }

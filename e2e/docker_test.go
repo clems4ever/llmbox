@@ -65,7 +65,7 @@ func newFakeBoxManager(platform *fakeAnthropic) *fakeBoxManager {
 // authorize URL the user must open — exactly the contract the real manager has.
 //
 // @arg ctx Context (unused by the simulation).
-// @arg opts The caller-controlled image, box ID, and description.
+// @arg opts The caller-controlled box ID and description (the image is the spoke's own).
 // @return id The simulated container ID of the new box.
 // @return authorizeURL The OAuth authorize URL for the box's login.
 // @error error if the requested box ID is already in use.
@@ -79,10 +79,9 @@ func (m *fakeBoxManager) Create(_ context.Context, opts sandbox.CreateOptions) (
 			}
 		}
 	}
-	image := opts.Image
-	if image == "" {
-		image = docker.DefaultImage
-	}
+	// The spoke owns the image: every box launches the spoke's configured default,
+	// not one named by the create request.
+	image := docker.DefaultImage
 	id = randHex(m.miscRand, 20)
 	state, authorizeURL := m.platform.beginLogin()
 	m.boxes[id] = &fakeBox{

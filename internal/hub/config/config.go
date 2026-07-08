@@ -1,8 +1,10 @@
 // Package config loads llmbox's YAML configuration file for the hub (the
 // llmbox-server). It replaces the older LLMBOX_* environment variables: every
 // setting now lives in one YAML document, and any field left unset falls back to
-// a built-in default. This config is hub-only — the spoke reads no config file;
-// the box-provisioning knobs both sides share live in internal/shared/boxconfig.
+// a built-in default. This config is hub-only and carries only hub concerns
+// (HTTP, auth, hooks, proxy, TLS, state): the spoke reads no config file and
+// owns every box-provisioning knob (image, resource caps, backend) via its own
+// llmbox-spoke flags.
 package config
 
 import (
@@ -15,13 +17,11 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
-
-	"github.com/clems4ever/llmbox/internal/shared/boxconfig"
 )
 
-// Default values applied to config fields left unset. The Docker manager applies
-// its own defaults for the image and remote args, so those are deliberately
-// absent here (an empty value flows through to the manager).
+// Default values applied to config fields left unset. Box-provisioning knobs
+// (image, resource caps, backend) are the spoke's concern and are configured
+// with llmbox-spoke flags, so they are deliberately absent from the hub config.
 const (
 	DefaultHTTPAddr  = ":8080"
 	DefaultPublicURL = "http://localhost:8080"
@@ -65,58 +65,14 @@ type Config struct {
 	// JSON API (under /api/v1/) plus the UI (auth pages, admin, spoke connect,
 	// health, favicon). The box-control API is unauthenticated by the server itself
 	// (see internal/server/http.go), so run behind an authenticating reverse proxy.
-	HTTPAddr  string `yaml:"http_addr"`
-	PublicURL string `yaml:"public_url"`
-	// Backend selects the box isolation backend by name ("docker" or
-	// "firecracker"); empty defaults to Docker, preserving prior behaviour.
-	Backend     string              `yaml:"backend"`
-	ClaudeImage string              `yaml:"claude_image"`
-	RemoteArgs  string              `yaml:"remote_args"`
-	AuthTTL     Duration            `yaml:"auth_ttl"`
-	StateFile   string              `yaml:"state_file"`
-	Hooks       []string            `yaml:"hooks"`
-	BoxPeers    []string            `yaml:"box_peers"`
-	Auth        AuthConfig          `yaml:"auth"`
-	Box         boxconfig.BoxConfig `yaml:"box"`
-	Firecracker FirecrackerConfig   `yaml:"firecracker"`
-	Proxy       ProxyConfig         `yaml:"proxy"`
-	TLS         TLSConfig           `yaml:"tls"`
-	// Registries holds credentials for pulling box images from authenticated
-	// container registries. The manager selects the entry whose host matches the
-	// image being pulled; an image whose registry has no entry is pulled
-	// anonymously, as before.
-	Registries []boxconfig.RegistryConfig `yaml:"registries"`
-}
-
-// FirecrackerConfig holds the microVM-backend settings, used only when backend is
-// "firecracker". A Docker deployment leaves it empty.
-type FirecrackerConfig struct {
-	// KernelImage is the host path to the guest kernel (vmlinux) every box boots.
-	KernelImage string `yaml:"kernel_image"`
-	// RootfsImage is the host path to the default guest root filesystem image
-	// booted when a create supplies no image of its own.
-	RootfsImage string `yaml:"rootfs_image"`
-	// PayloadImage is an optional host path to a small read-only ext4 carrying the
-	// guest agent (plus claude and its trust seed). When set, every box attaches it
-	// as a shared read-only second drive that the base rootfs mounts, so the agent
-	// can be updated by swapping this tiny image without rebuilding the multi-GiB
-	// base rootfs. Empty bakes the agent into the rootfs (the all-in-one layout).
-	PayloadImage string `yaml:"payload_image"`
-	// StateDir is where the backend persists per-box metadata (Firecracker has no
-	// daemon registry) so List/Find/reap survive a restart. Empty uses the
-	// backend default.
-	StateDir string `yaml:"state_dir"`
-	// DisableEgress boots control-only boxes (loopback + vsock, no TAP/NAT), which
-	// removes the CAP_NET_ADMIN requirement so the server can run unprivileged.
-	// The guest then has no outbound network, so a box cannot reach the Claude API
-	// — use it for air-gapped boxes or local plumbing tests, not real sessions.
-	// Default false (egress enabled).
-	DisableEgress bool `yaml:"disable_egress"`
-	// PoolSize is the number of egress TAP devices provisioned once at startup and
-	// reused across boxes; it caps concurrent networked boxes. Provisioning them at
-	// startup (not per box) keeps a same-host browser from aborting requests with
-	// ERR_NETWORK_CHANGED when a box is created. Empty uses the backend default.
-	PoolSize int `yaml:"pool_size"`
+	HTTPAddr  string      `yaml:"http_addr"`
+	PublicURL string      `yaml:"public_url"`
+	AuthTTL   Duration    `yaml:"auth_ttl"`
+	StateFile string      `yaml:"state_file"`
+	Hooks     []string    `yaml:"hooks"`
+	Auth      AuthConfig  `yaml:"auth"`
+	Proxy     ProxyConfig `yaml:"proxy"`
+	TLS       TLSConfig   `yaml:"tls"`
 }
 
 // ProxyConfig enables exposing box HTTP ports through the hub. When base_domain
@@ -220,9 +176,8 @@ func Default() *Config {
 // @testcase TestLoadGoogleAuth loads an enabled Google provider and resolves its secret file.
 // @testcase TestLoadGoogleRequiresAllowlist rejects an enabled Google provider with no allow rule.
 // @testcase TestLoadGoogleMissingSecretFile errors when the client secret file is absent.
-// @testcase TestLoadRegistry loads a registry entry and resolves its password file.
-// @testcase TestLoadRegistryMissingPasswordFile errors when the password file is absent.
-// @testcase TestLoadRegistryRequiresHost rejects a registry entry with no registry host.
+// @testcase TestLoadRejectsBoxRunningKey rejects box-running keys that moved to the spoke.
+// @testcase TestExampleConfigParses parses the shipped llmbox.example.yaml.
 // @testcase TestLoadTLS loads an enabled TLS block with a cert and key file.
 // @testcase TestLoadTLSRequiresCertAndKey rejects enabled TLS with no cert_file or key_file.
 func Load(path string) (*Config, error) {
@@ -286,8 +241,6 @@ func LoadConfig(path string, explicit bool) (*Config, error) {
 //
 // @testcase TestLoadGoogleAuth resolves the Google client secret from its file.
 // @testcase TestLoadGoogleMissingSecretFile errors when the secret file is absent.
-// @testcase TestLoadRegistry resolves a registry password from its file.
-// @testcase TestLoadRegistryMissingPasswordFile errors when the password file is absent.
 func (c *Config) resolveSecrets() error {
 	if c.Auth.Google.Enabled {
 		secret, err := secretFromFile(c.Auth.Google.ClientSecretFile)
@@ -295,13 +248,6 @@ func (c *Config) resolveSecrets() error {
 			return fmt.Errorf("auth.google.client_secret_file: %w", err)
 		}
 		c.Auth.Google.ClientSecret = secret
-	}
-	for i := range c.Registries {
-		secret, err := secretFromFile(c.Registries[i].PasswordFile)
-		if err != nil {
-			return fmt.Errorf("registries[%d].password_file: %w", i, err)
-		}
-		c.Registries[i].Password = secret
 	}
 	return nil
 }
@@ -332,7 +278,6 @@ func secretFromFile(path string) (string, error) {
 // @error error if an enabled provider is missing credentials or an allow rule.
 //
 // @testcase TestLoadGoogleRequiresAllowlist rejects an enabled provider with no allow rule.
-// @testcase TestLoadRegistryRequiresHost rejects a registry entry with no registry host.
 // @testcase TestLoadTLSRequiresCertAndKey rejects enabled TLS with no cert_file or key_file.
 func (c *Config) validate() error {
 	if c.TLS.Enabled && (c.TLS.CertFile == "" || c.TLS.KeyFile == "") {
@@ -347,11 +292,6 @@ func (c *Config) validate() error {
 		}
 		if len(g.AllowedDomains) == 0 && len(g.AllowedEmails) == 0 {
 			return errors.New("auth.google.enabled requires allowed_domains or allowed_emails (refusing to authorize every Google account)")
-		}
-	}
-	for i, r := range c.Registries {
-		if r.Registry == "" {
-			return fmt.Errorf("registries[%d] requires a registry host", i)
 		}
 	}
 	return nil
@@ -381,16 +321,5 @@ func (c *Config) applyDefaults() {
 	// Default each enabled provider's redirect URL from the public URL.
 	if c.Auth.Google.Enabled && c.Auth.Google.RedirectURL == "" {
 		c.Auth.Google.RedirectURL = strings.TrimRight(c.PublicURL, "/") + "/auth/google/callback"
-	}
-	// Apply finite per-box resource caps when unset so boxes are bounded out of
-	// the box (max_boxes stays unlimited unless explicitly set).
-	if c.Box.MemoryMB == 0 {
-		c.Box.MemoryMB = boxconfig.DefaultBoxMemoryMB
-	}
-	if c.Box.CPUs == 0 {
-		c.Box.CPUs = boxconfig.DefaultBoxCPUs
-	}
-	if c.Box.PidsLimit == 0 {
-		c.Box.PidsLimit = boxconfig.DefaultBoxPidsLimit
 	}
 }

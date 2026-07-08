@@ -208,7 +208,6 @@ func newClusterBrowserEnv(t *testing.T) *clusterBrowserEnv {
 	clusterHub := cluster.NewHub(ctx, st, nil, nil)
 	srv := hub.New(nil, "https://boxes.example.com", time.Minute, st, a)
 	srv.SetHub(clusterHub)
-	srv.SetBoxImage("box:e2e")
 
 	httpSrv := httptest.NewServer(srv.APIHandler())
 	t.Cleanup(httpSrv.Close)
@@ -271,7 +270,7 @@ func (r *browserRemote) start(joinToken string) {
 		return nil
 	}
 	go func() {
-		_ = cluster.Run(ctx, cluster.WebSocketDialer(r.env.wsURL), r.mgr, joinToken, creds, save, cluster.ValidationPolicy{})
+		_ = cluster.Run(ctx, cluster.WebSocketDialer(r.env.wsURL), r.mgr, joinToken, creds, save)
 	}()
 }
 

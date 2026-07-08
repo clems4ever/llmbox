@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestNewRootCmd",
 			"documentation_hash": "dae2d6a178b7f74f3bd694fc4fcc5bb15e7dba852b753cd1436c30bd8d85ef0d",
-			"definition_hash": "c532a6bade1122798de1c8171a01fd6bfb6cd94be3a81714afc99a98949112eb",
-			"reviewed_at": "2026-07-07T19:31:48.495234345Z"
+			"definition_hash": "46536521dd2deea159b26d5df423273277e86f60976529e5f42a0c69938ec968",
+			"reviewed_at": "2026-07-08T09:43:14.717381153Z"
 		},
 		{
 			"function_name": "TestSpokeCredsRoundTrip",

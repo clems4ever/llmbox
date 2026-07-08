@@ -354,11 +354,27 @@ func TestProvisionAppliesGPUs(t *testing.T) {
 	}
 }
 
+// TestProvisionLaunchesDefaultImage checks a create launches the spoke's own
+// configured image — the request carries none, so the box always runs the
+// provisioner's default.
+func TestProvisionLaunchesDefaultImage(t *testing.T) {
+	f := &fakeDocker{}
+	p := newTestProvisioner(t, f)
+	p.defaultImage = "ghcr.io/clems4ever/llmbox-box:pinned"
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{BoxID: "b1"}); err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+	if f.createCfg == nil || f.createCfg.Image != "ghcr.io/clems4ever/llmbox-box:pinned" {
+		t.Fatalf("container created with image %v, want the spoke's configured default", f.createCfg)
+	}
+}
+
 // TestProvisionPullsMissingImage pulls the image then retries when it is absent.
 func TestProvisionPullsMissingImage(t *testing.T) {
 	f := &fakeDocker{notFoundOnce: true}
 	p := newTestProvisioner(t, f)
-	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{Image: "ghcr.io/x/y:latest"}); err != nil {
+	p.defaultImage = "ghcr.io/x/y:latest"
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{}); err != nil {
 		t.Fatalf("Provision: %v", err)
 	}
 	if len(f.pulled) != 1 || f.pulled[0] != "ghcr.io/x/y:latest" {
@@ -374,8 +390,9 @@ func TestProvisionPullsMissingImage(t *testing.T) {
 func TestProvisionPullsWithRegistryAuth(t *testing.T) {
 	f := &fakeDocker{notFoundOnce: true}
 	p := newTestProvisioner(t, f)
+	p.defaultImage = "ghcr.io/x/y:latest"
 	p.SetRegistryAuths(map[string]registry.AuthConfig{"ghcr.io": {Username: "u", Password: "p"}})
-	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{Image: "ghcr.io/x/y:latest"}); err != nil {
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{}); err != nil {
 		t.Fatalf("Provision: %v", err)
 	}
 	if f.pullAuthSeen == "" {
@@ -604,7 +621,8 @@ func TestProvisionSocketTimeout(t *testing.T) {
 func TestProvisionPullFailure(t *testing.T) {
 	f := &fakeDocker{notFoundOnce: true, pullErr: errors.New("pull boom")}
 	p := newTestProvisioner(t, f)
-	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{Image: "ghcr.io/x/y:latest"}); err == nil {
+	p.defaultImage = "ghcr.io/x/y:latest"
+	if _, err := p.Provision(context.Background(), sandbox.CreateOptions{}); err == nil {
 		t.Fatal("Provision should fail when the image pull fails")
 	}
 	if entries, _ := os.ReadDir(p.socketDir); len(entries) != 0 {

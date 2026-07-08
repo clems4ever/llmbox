@@ -64,9 +64,9 @@
 		{
 			"function_name": "handleAdminCreateBox",
 			"receiver": "Server",
-			"documentation_hash": "410774d8208112ca01a93cbd0543402253e03bef9c1efeecebbbb3e23c3779f8",
-			"definition_hash": "e146b1887d181339a6ec6a40448f596204e94b64692a5390fc46d72d193bbd9f",
-			"reviewed_at": "2026-06-29T15:39:25.156797066Z"
+			"documentation_hash": "97dc9b83d19e794ea0455a540d18e92be2e94f0fdae21d7c37f225ad104a3588",
+			"definition_hash": "6450b991c2692548cc8743facab97937be8648e297f9726804e30d9553d2de75",
+			"reviewed_at": "2026-07-08T09:43:14.691689724Z"
 		},
 		{
 			"function_name": "handleAdminDeleteBox",
