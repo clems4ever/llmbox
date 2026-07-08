@@ -81,6 +81,10 @@ state_file: "llmbox-sessions.db"
 # a remote spoke is forwarded over the cluster transport with buffered
 # request/response (ordinary HTTP and SPAs work; WebSocket/SSE streaming to a
 # remote box does not).
+# base_domain must be a BARE host: no scheme, path, wildcard, or port. The listen
+# port is taken from public_url and appended to the advertised URL, so a hub on a
+# non-standard port (e.g. :8443) still hands out a reachable URL — do NOT put the
+# port here (a port silently breaks proxy routing, and is rejected at load).
 # proxy:
 #   base_domain: "proxy.example.com"
 
@@ -92,10 +96,12 @@ state_file: "llmbox-sessions.db"
 # auth:
 #   session_ttl: "1h"          # how long a sign-in stays valid
 #   # Share one sign-in across sub-domains, so the login that gates box activation
-#   # also covers the per-proxy <slug>.proxy.example.com hosts. Set it to the
-#   # parent domain both hosts share (note the leading dot). Leave unset unless you
-#   # use the proxy feature above with sub-domain hosts.
-#   cookie_domain: ".example.com"
+#   # also covers the per-proxy <slug>.proxy.example.com hosts. Set it to the bare
+#   # parent domain both hosts share — NO leading dot and NO port (e.g. "example.com",
+#   # not ".example.com" or "example.com:8443"); either is rejected at load. It must
+#   # cover both public_url and proxy.base_domain. Leave unset unless you use the
+#   # proxy feature above with sub-domain hosts.
+#   cookie_domain: "example.com"
 #   google:
 #     enabled: true
 #     client_id: "xxxxxxxx.apps.googleusercontent.com"

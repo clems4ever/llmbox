@@ -55,12 +55,17 @@ func newProxySlug() (string, error) {
 }
 
 // proxyURL is the externally reachable URL of a proxy slug:
-// <scheme>://<slug>.<base-domain>/, with the scheme taken from the public URL.
+// <scheme>://<slug>.<base-domain>[:<port>]/, with the scheme and port taken from
+// the public URL. The base domain is deliberately port-free (see config
+// validation); the port is carried from public_url onto the advertised URL so a
+// hub on a non-standard port (e.g. :8443) hands out a reachable URL. Incoming
+// proxy Host matching strips the port, so this does not affect routing.
 //
 // @arg slug The proxy slug.
 // @return string The absolute proxy URL, or "" when proxying is disabled.
 //
 // @testcase TestCreateProxyRegistersAndBuildsURL checks the built proxy URL.
+// @testcase TestProxyURLCarriesPublicURLPort appends the public URL's port to the proxy URL.
 func (s *Server) proxyURL(slug string) string {
 	if s.proxyBaseDomain == "" {
 		return ""
@@ -69,7 +74,15 @@ func (s *Server) proxyURL(slug string) string {
 	if strings.HasPrefix(s.publicURL, "http://") {
 		scheme = "http"
 	}
-	return scheme + "://" + slug + "." + s.proxyBaseDomain + "/"
+	host := slug + "." + s.proxyBaseDomain
+	// Carry the public URL's port onto the proxy host so the advertised URL is
+	// reachable when the hub runs on a non-standard port.
+	if u, err := url.Parse(s.publicURL); err == nil {
+		if port := u.Port(); port != "" {
+			host = net.JoinHostPort(host, port)
+		}
+	}
+	return scheme + "://" + host + "/"
 }
 
 // isBrowserNavigation reports whether r is a top-level browser navigation — a GET

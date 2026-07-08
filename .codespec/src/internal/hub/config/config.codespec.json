@@ -41,9 +41,9 @@
 		{
 			"function_name": "validate",
 			"receiver": "Config",
-			"documentation_hash": "6b48de1e49397770699cf22f91c358c4bc4e2fb40e69cd94ef7b87cc1a100078",
-			"definition_hash": "e6bb5e66c35928b5eaffc86cd650e1683409b21d7a2b37b736bd85eb9557ff1d",
-			"reviewed_at": "2026-07-08T09:43:14.694309174Z"
+			"documentation_hash": "90ad146d6d67b769792614f806da6a2849f7256840685066ecacf989ace39b9b",
+			"definition_hash": "e420eeeb675e21069800d4c11e89aa75e3e6da19792da923b3a4580960db7393",
+			"reviewed_at": "2026-07-08T21:06:08.454764172Z"
 		},
 		{
 			"function_name": "applyDefaults",
@@ -51,6 +51,18 @@
 			"documentation_hash": "8b2b783cab0251051380f21c9a225addb076330e17f56b4879faf34098a23f9c",
 			"definition_hash": "b1a8eda1179b83986a6be01d0cfb944e5fd79dff99ce629f99f7fe54d383f67b",
 			"reviewed_at": "2026-07-08T09:43:14.695241843Z"
+		},
+		{
+			"function_name": "validateBareDomain",
+			"documentation_hash": "159942d67aba5d430789497db77fc599eb05e814f6b97dbd5828b7dc0b22b241",
+			"definition_hash": "e0115f1b956b62da305a30efad471390692722535af77313ca19d6dd77914243",
+			"reviewed_at": "2026-07-08T21:06:08.464945771Z"
+		},
+		{
+			"function_name": "domainCovers",
+			"documentation_hash": "c6c80367eeee13ca730255b936e04911519edd23078cb98b82370f4ac17bc2dc",
+			"definition_hash": "4eea22df481df9336b45665103ef683b87cbd7ba48734e296944fefa8882bb29",
+			"reviewed_at": "2026-07-08T21:06:08.465485184Z"
 		}
 	]
 }

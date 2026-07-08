@@ -78,6 +78,22 @@ func TestCreateProxyRegistersAndBuildsURL(t *testing.T) {
 	}
 }
 
+// TestProxyURLCarriesPublicURLPort checks proxyURL appends the public URL's port
+// so the advertised URL is reachable when the hub runs on a non-standard port,
+// while the base domain itself stays port-free.
+func TestProxyURLCarriesPublicURLPort(t *testing.T) {
+	st, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("OpenStore: %v", err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	s := New(nil, "https://boxes.example.com:8443", 5*time.Minute, st, nil)
+	s.SetProxyBaseDomain("proxy.example.com")
+	if got, want := s.proxyURL("abc123"), "https://abc123.proxy.example.com:8443/"; got != want {
+		t.Errorf("proxyURL = %q, want %q", got, want)
+	}
+}
+
 // TestCreateProxyDisabled checks createProxy and ProxyEnabled report disabled
 // when no base domain is configured.
 func TestCreateProxyDisabled(t *testing.T) {

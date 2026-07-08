@@ -16,9 +16,9 @@
 		{
 			"function_name": "proxyURL",
 			"receiver": "Server",
-			"documentation_hash": "03b3deacbc922be369356e926f99f4827d96575b43feead29cb9a90e06613dc8",
-			"definition_hash": "a11018780e4f9293b12895bde3118db1f2f0b6692a8c441c4171edf7113c747d",
-			"reviewed_at": "2026-06-27T17:15:37.295823309Z"
+			"documentation_hash": "a043d6921ad962e8b2d1e375a1fc07a837b80e6a4a1eed72a954fee429286d8d",
+			"definition_hash": "c8c1856e6c631cc2082ae355dbf33f16a3d014f0c514477169705c026057adda",
+			"reviewed_at": "2026-07-08T21:06:08.465969122Z"
 		},
 		{
 			"function_name": "createProxy",
