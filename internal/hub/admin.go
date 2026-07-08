@@ -1,7 +1,6 @@
 package hub
 
 import (
-	"crypto/subtle"
 	_ "embed"
 	"encoding/json"
 	"html/template"
@@ -32,17 +31,22 @@ const defaultAdminTokenTTL = time.Hour
 //
 // @testcase TestAdminDashboardGate drives the registered routes through the handler.
 func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
+	// The dashboard (GET /admin) and its script (GET /admin.js) gate themselves —
+	// the dashboard renders the sign-in / not-admin states, the script is a public
+	// secret-free asset — so they are not wrapped. Every mutating action is wrapped
+	// in requireAdmin, so the set of authenticated endpoints is visible here rather
+	// than buried in each handler.
 	mux.HandleFunc("GET /admin", s.handleAdmin)
 	mux.HandleFunc("GET /admin.js", s.handleAdminJS)
-	mux.HandleFunc("POST /admin/spokes", s.handleAdminCreateSpoke)
-	mux.HandleFunc("POST /admin/spokes/delete", s.handleAdminDropSpoke)
-	mux.HandleFunc("POST /admin/default-spoke", s.handleAdminSetDefaultSpoke)
-	mux.HandleFunc("POST /admin/tokens/delete", s.handleAdminRevokeToken)
-	mux.HandleFunc("POST /admin/boxes", s.handleAdminCreateBox)
-	mux.HandleFunc("POST /admin/boxes/delete", s.handleAdminDeleteBox)
+	mux.HandleFunc("POST /admin/spokes", s.requireAdmin(s.handleAdminCreateSpoke))
+	mux.HandleFunc("POST /admin/spokes/delete", s.requireAdmin(s.handleAdminDropSpoke))
+	mux.HandleFunc("POST /admin/default-spoke", s.requireAdmin(s.handleAdminSetDefaultSpoke))
+	mux.HandleFunc("POST /admin/tokens/delete", s.requireAdmin(s.handleAdminRevokeToken))
+	mux.HandleFunc("POST /admin/boxes", s.requireAdmin(s.handleAdminCreateBox))
+	mux.HandleFunc("POST /admin/boxes/delete", s.requireAdmin(s.handleAdminDeleteBox))
 	if s.ProxyEnabled() {
-		mux.HandleFunc("POST /admin/proxies", s.handleAdminCreateProxy)
-		mux.HandleFunc("POST /admin/proxies/delete", s.handleAdminDeleteProxy)
+		mux.HandleFunc("POST /admin/proxies", s.requireAdmin(s.handleAdminCreateProxy))
+		mux.HandleFunc("POST /admin/proxies/delete", s.requireAdmin(s.handleAdminDeleteProxy))
 	}
 }
 
@@ -317,38 +321,6 @@ func toAdminBoxes(boxes []sandbox.Box) []adminBox {
 	return out
 }
 
-// requireAdminPost authorizes a mutating admin request: it requires a signed-in
-// admin session and a matching CSRF token, and parses the form. On failure it
-// writes the response and returns ok=false.
-//
-// @arg w The response writer (an error is written on failure).
-// @arg r The request to authorize and parse.
-// @return LoginSession The admin's session when authorized.
-// @return bool True when the request may proceed.
-//
-// @testcase TestAdminActionsRequireAdminAndCSRF rejects non-admins and bad CSRF tokens.
-// @testcase TestAdminDeleteBox accepts the admin page's urlencoded fetch submit.
-func (s *Server) requireAdminPost(w http.ResponseWriter, r *http.Request) (LoginSession, bool) {
-	ls, ok := s.auth.CurrentLogin(r)
-	if !ok {
-		http.Error(w, "Please sign in.", http.StatusUnauthorized)
-		return LoginSession{}, false
-	}
-	if !ls.Admin {
-		http.Error(w, "Not authorized.", http.StatusForbidden)
-		return LoginSession{}, false
-	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad form.", http.StatusBadRequest)
-		return LoginSession{}, false
-	}
-	if subtle.ConstantTimeCompare([]byte(r.PostFormValue("csrf")), []byte(ls.CSRF)) != 1 {
-		http.Error(w, "Invalid or missing form token; reload the page and try again.", http.StatusForbidden)
-		return LoginSession{}, false
-	}
-	return ls, true
-}
-
 // handleAdminCreateSpoke mints a one-time join token for a named spoke and
 // returns the token and ready-to-run spoke command as JSON. Because the token is
 // minted through the running hub, it lands in the very store the hub reads.
@@ -358,9 +330,6 @@ func (s *Server) requireAdminPost(w http.ResponseWriter, r *http.Request) (Login
 //
 // @testcase TestAdminCreateSpokeMintsToken mints a token in the server's own store.
 func (s *Server) handleAdminCreateSpoke(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.requireAdminPost(w, r); !ok {
-		return
-	}
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	ttl := defaultAdminTokenTTL
 	if v := strings.TrimSpace(r.PostFormValue("ttl")); v != "" {
@@ -428,10 +397,6 @@ func (s *Server) spokeRunCommand(token, backend string) string {
 // @testcase TestAdminDropSpokeRemovesAndKicks deletes the record and disconnects the live link.
 // @testcase TestAdminDropDefaultSpokeClearsDefault clears the default when the dropped spoke was it.
 func (s *Server) handleAdminDropSpoke(w http.ResponseWriter, r *http.Request) {
-	_, ok := s.requireAdminPost(w, r)
-	if !ok {
-		return
-	}
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	if err := s.dropSpoke(name); err != nil {
 		writeResult(w, "", "dropping spoke: "+err.Error())
@@ -449,9 +414,6 @@ func (s *Server) handleAdminDropSpoke(w http.ResponseWriter, r *http.Request) {
 // @testcase TestAdminSetDefaultSpoke persists the chosen default spoke.
 // @testcase TestAdminSetDefaultSpokeUnknown rejects a spoke that is not enrolled.
 func (s *Server) handleAdminSetDefaultSpoke(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.requireAdminPost(w, r); !ok {
-		return
-	}
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	if err := s.chooseDefaultSpoke(name); err != nil {
 		writeResult(w, "", err.Error())
@@ -467,10 +429,6 @@ func (s *Server) handleAdminSetDefaultSpoke(w http.ResponseWriter, r *http.Reque
 //
 // @testcase TestAdminRevokeToken deletes the token by ID.
 func (s *Server) handleAdminRevokeToken(w http.ResponseWriter, r *http.Request) {
-	_, ok := s.requireAdminPost(w, r)
-	if !ok {
-		return
-	}
 	id := strings.TrimSpace(r.PostFormValue("id"))
 	if err := s.revokeJoinToken(id); err != nil {
 		writeResult(w, "", "revoking token: "+err.Error())
@@ -487,9 +445,6 @@ func (s *Server) handleAdminRevokeToken(w http.ResponseWriter, r *http.Request) 
 //
 // @testcase TestAdminCreateBox creates a box on the requested spoke.
 func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.requireAdminPost(w, r); !ok {
-		return
-	}
 	boxID := strings.TrimSpace(r.PostFormValue("box_id"))
 	if boxID == "" {
 		writeResult(w, "", "box id is required")
@@ -518,10 +473,6 @@ func (s *Server) handleAdminCreateBox(w http.ResponseWriter, r *http.Request) {
 //
 // @testcase TestAdminDeleteBox destroys the box by ID.
 func (s *Server) handleAdminDeleteBox(w http.ResponseWriter, r *http.Request) {
-	_, ok := s.requireAdminPost(w, r)
-	if !ok {
-		return
-	}
 	boxID := strings.TrimSpace(r.PostFormValue("box_id"))
 	if boxID == "" {
 		writeResult(w, "", "box id is required")
@@ -543,10 +494,6 @@ func (s *Server) handleAdminDeleteBox(w http.ResponseWriter, r *http.Request) {
 // @testcase TestAdminCreateProxy enables a proxy, records the description, and returns its URL.
 // @testcase TestAdminCreateProxyValidates rejects a missing box ID or bad port.
 func (s *Server) handleAdminCreateProxy(w http.ResponseWriter, r *http.Request) {
-	ls, ok := s.requireAdminPost(w, r)
-	if !ok {
-		return
-	}
 	boxID := strings.TrimSpace(r.PostFormValue("box_id"))
 	if boxID == "" {
 		writeResult(w, "", "box id is required")
@@ -558,7 +505,7 @@ func (s *Server) handleAdminCreateProxy(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	description := strings.TrimSpace(r.PostFormValue("description"))
-	rec, err := s.createProxy(boxID, port, ls.Email, description)
+	rec, err := s.createProxy(boxID, port, adminLogin(r).Email, description)
 	if err != nil {
 		writeResult(w, "", "creating proxy: "+err.Error())
 		return
@@ -578,9 +525,6 @@ func (s *Server) handleAdminCreateProxy(w http.ResponseWriter, r *http.Request) 
 //
 // @testcase TestAdminDeleteProxy disables a proxy by its slug.
 func (s *Server) handleAdminDeleteProxy(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.requireAdminPost(w, r); !ok {
-		return
-	}
 	slug := strings.TrimSpace(r.PostFormValue("slug"))
 	if slug == "" {
 		writeResult(w, "", "proxy slug is required")

@@ -4,8 +4,8 @@
 			"function_name": "registerAdminRoutes",
 			"receiver": "Server",
 			"documentation_hash": "5d0fd1d0e760908f9f9d90e8fbd996f0f1bc7ad8d6b7425099b1fac98dbab1bf",
-			"definition_hash": "9a1d4898f6c3dd527515b15e058bace20da0ea749e6220b2aa25687a79e47066",
-			"reviewed_at": "2026-07-07T08:15:52.565198272Z"
+			"definition_hash": "99d4c31b259eaebe883e625739115907824893070146a28fd1e31afa63c502cd",
+			"reviewed_at": "2026-07-08T10:34:06.228406626Z"
 		},
 		{
 			"function_name": "handleAdmin",
@@ -34,46 +34,39 @@
 			"reviewed_at": "2026-06-29T15:39:25.156027604Z"
 		},
 		{
-			"function_name": "requireAdminPost",
-			"receiver": "Server",
-			"documentation_hash": "9cfd909c4e9afb0f87cbb637c23a29e51ca94173199bc2aee36a1eda72974246",
-			"definition_hash": "0d2ebb0e86c18536c41ad601316ec41113c68100628adeb6b79064176b269f1c",
-			"reviewed_at": "2026-06-27T11:22:58.775871323Z"
-		},
-		{
 			"function_name": "handleAdminCreateSpoke",
 			"receiver": "Server",
 			"documentation_hash": "8766fedb9244d4878461d76b76d8b9615778faa722837d62cda79e0897d23dab",
-			"definition_hash": "9334a9a8e74c77865b7a1153d3aeaa3f6c1f8bf47d2dfdbfe53de571fdf88d46",
-			"reviewed_at": "2026-07-08T10:21:46.904738929Z"
+			"definition_hash": "236ca61438235e2e2c9079cffb56fa09ceb22095e41006c1ffaf2513d0eb6488",
+			"reviewed_at": "2026-07-08T10:34:06.229460644Z"
 		},
 		{
 			"function_name": "handleAdminDropSpoke",
 			"receiver": "Server",
 			"documentation_hash": "86aa3d38731279848fff6dcb6bb24f8ca6ec0b93a79d2718c612086666a2f217",
-			"definition_hash": "bc3594512174276efe7aa2a3d38950ef6c0ce8f14b6ad6f483be9a8598c96612",
-			"reviewed_at": "2026-07-08T10:21:46.905705162Z"
+			"definition_hash": "62dda614cc51b3636a15111303f8cac03de242a4e786f5d6e000678aa2bab83a",
+			"reviewed_at": "2026-07-08T10:34:06.240809002Z"
 		},
 		{
 			"function_name": "handleAdminRevokeToken",
 			"receiver": "Server",
 			"documentation_hash": "10a1083c8e09b43a2cd23393f854e000455a99838e1c59ec4fa9407800fcbcef",
-			"definition_hash": "f808522bf1ed53a02a852782bea0f358c2d8ff32f67fdaf5404b9aba35e1720d",
-			"reviewed_at": "2026-07-08T10:21:46.916609854Z"
+			"definition_hash": "24ccfee9f87129685fedc5b7e5aa97979c935a420ab1b49b132f30569675ef60",
+			"reviewed_at": "2026-07-08T10:34:06.243966226Z"
 		},
 		{
 			"function_name": "handleAdminCreateBox",
 			"receiver": "Server",
 			"documentation_hash": "97dc9b83d19e794ea0455a540d18e92be2e94f0fdae21d7c37f225ad104a3588",
-			"definition_hash": "6450b991c2692548cc8743facab97937be8648e297f9726804e30d9553d2de75",
-			"reviewed_at": "2026-07-08T09:43:14.691689724Z"
+			"definition_hash": "e6e5aec401419d7f4726981cd5d983395d1f5d15e2abf580f7f755b9bcc07b68",
+			"reviewed_at": "2026-07-08T10:34:06.244912875Z"
 		},
 		{
 			"function_name": "handleAdminDeleteBox",
 			"receiver": "Server",
 			"documentation_hash": "31c291217827d2c8e8d920fa102a15c7cfc9fc784536f92383977279f45f7517",
-			"definition_hash": "6b97116553b5a4c2f108da1d848c3dd9f095b8a7f0edccbf1695f710ca24d71c",
-			"reviewed_at": "2026-06-25T10:50:51.61245611Z"
+			"definition_hash": "d04f8010a2b0584f7d85af8bca7cd0c6dffd81a724830740099dd19f8f75588e",
+			"reviewed_at": "2026-07-08T10:34:06.245983009Z"
 		},
 		{
 			"function_name": "spokeConnectURL",
@@ -125,22 +118,22 @@
 			"function_name": "handleAdminCreateProxy",
 			"receiver": "Server",
 			"documentation_hash": "8150de201195c01fe18ac01ef5f8d26e98b339620686140dedfb2b2ba0180a26",
-			"definition_hash": "584984dec942aac0c7f2aadf3554bab39d88e1b246a49bd5aac98f6ebd363a25",
-			"reviewed_at": "2026-06-28T14:33:00.025653Z"
+			"definition_hash": "82a6529a0e467b5f4cdd8a6a9b45e0bf56ebe18d084d342da02b9139e4bb4239",
+			"reviewed_at": "2026-07-08T10:34:06.246672831Z"
 		},
 		{
 			"function_name": "handleAdminDeleteProxy",
 			"receiver": "Server",
 			"documentation_hash": "e199e3679d288596286ae423f3ba0695687414c4d96dc47b711f6a6f2c3d70df",
-			"definition_hash": "d42acfa57102cef37bb3b9bf2025ae5e7cb87634fe8716dead6190fcbace5120",
-			"reviewed_at": "2026-06-27T17:02:38.534213994Z"
+			"definition_hash": "1b1f05d50678a8c4dab3b1af2bd5942648f534440f09912c7c59683a5e3f2c25",
+			"reviewed_at": "2026-07-08T10:34:06.247535932Z"
 		},
 		{
 			"function_name": "handleAdminSetDefaultSpoke",
 			"receiver": "Server",
 			"documentation_hash": "93c83557dbab3bb3c394bb9fb26d09a5a1adbe44fbcf37bd8ba82a8d06a56882",
-			"definition_hash": "3cbbb97608b8e7b9613e2d1a393c11868d68f45b8000d9b3da87715d3438863d",
-			"reviewed_at": "2026-07-08T10:21:46.915489323Z"
+			"definition_hash": "6886566e56a2f333523fc54175ff3abe4c1eb88375d252665ea8f89d973b1325",
+			"reviewed_at": "2026-07-08T10:34:06.243083376Z"
 		}
 	]
 }
