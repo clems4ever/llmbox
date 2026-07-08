@@ -19,8 +19,8 @@ func startSpoke(t *testing.T, mgr BoxManager) *remoteSpoke {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	hubEnd, spokeEnd := newPipe()
-	go func() { _ = serve(ctx, spokeEnd, mgr) }()
-	rs := newRemoteSpoke("s", hubEnd)
+	go func() { _ = serve(ctx, spokeEnd, mgr, nil) }()
+	rs := newRemoteSpoke("s", hubEnd, nil)
 	t.Cleanup(func() { _ = rs.Close() })
 	return rs
 }
@@ -100,7 +100,7 @@ func TestRemoteSpokeVerbError(t *testing.T) {
 // TestRemoteSpokeDisconnect is a package test.
 func TestRemoteSpokeDisconnect(t *testing.T) {
 	hubEnd, spokeEnd := newPipe()
-	rs := newRemoteSpoke("s", hubEnd)
+	rs := newRemoteSpoke("s", hubEnd, nil)
 
 	// A call in flight (no serve loop answers) fails once the connection drops.
 	errc := make(chan error, 1)
@@ -131,7 +131,7 @@ func TestRemoteSpokeDisconnect(t *testing.T) {
 // TestRemoteSpokeContextCancel is a package test.
 func TestRemoteSpokeContextCancel(t *testing.T) {
 	hubEnd, _ := newPipe()
-	rs := newRemoteSpoke("s", hubEnd)
+	rs := newRemoteSpoke("s", hubEnd, nil)
 	t.Cleanup(func() { _ = rs.Close() })
 
 	ctx, cancel := context.WithCancel(context.Background())

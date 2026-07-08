@@ -1,0 +1,52 @@
+{
+	"functions": [
+		{
+			"function_name": "TestOpenBoxPortCreatesProxy",
+			"documentation_hash": "86e5f7c140f2b4b18739f8635cb006e141fb3f5d67fc1f0be582880aae4acce1",
+			"definition_hash": "78e3f00c54ad25d5b5b3b585352aebe2d3025d9097073e2116b0287de1601e86",
+			"reviewed_at": "2026-07-08T15:03:38.807675956Z"
+		},
+		{
+			"function_name": "TestOpenBoxPortWrongSpoke",
+			"documentation_hash": "9c592994327580dd5d8b33a9cea43bd0e650d64e21f47460e3a12dc96af341c7",
+			"definition_hash": "3ac3314ac72751a27a8eb763730a6bda044d3731fc8fc4ddedb714a0d7f5c346",
+			"reviewed_at": "2026-07-08T15:03:38.807984378Z"
+		},
+		{
+			"function_name": "TestOpenBoxPortUnknownBox",
+			"documentation_hash": "a51b0eb2bbca78939f0eb891cb6584e2dd8d11b46f7de67ce32b834d0c19a049",
+			"definition_hash": "824dce2b662a1a8ceb091d57ee1e2f2437dab61337c4fb83866ab653b6695ed9",
+			"reviewed_at": "2026-07-08T15:03:38.817650821Z"
+		},
+		{
+			"function_name": "TestOpenBoxPortEmptyBoxID",
+			"documentation_hash": "a4705cbb7927a7fc30401314523db43aac29fd62d2120907f82adb05b6ee1ebe",
+			"definition_hash": "bd6b3e8eb7b656fe0032b28eba0952c71e10e3f93b48787708adc6ec3d83b096",
+			"reviewed_at": "2026-07-08T15:03:38.817962939Z"
+		},
+		{
+			"function_name": "TestOpenBoxPortProxyDisabled",
+			"documentation_hash": "20856e751f8becd07b21c3464cc820477d94690389e1e562877c0ec5c1e84789",
+			"definition_hash": "fa9d6e93c324b383b3c7836899cb24a6b481515043df41f5356ce0cb6e3083bc",
+			"reviewed_at": "2026-07-08T15:03:38.818393887Z"
+		},
+		{
+			"function_name": "TestCloseBoxPortDeletesProxy",
+			"documentation_hash": "210fcb3462c1206db6a1999377b63de161c7ec91a618efb1a70bb6b09018b346",
+			"definition_hash": "15fe4cebfa46004ab419509b73f0e144040d894f880b2df7412134a40badc3d7",
+			"reviewed_at": "2026-07-08T15:03:38.818836808Z"
+		},
+		{
+			"function_name": "TestCloseBoxPortWrongSpoke",
+			"documentation_hash": "b2317aef541b37f08ac8e24793ab1848f3790d352b97c5b7da85ed40cc9ec4c0",
+			"definition_hash": "83e50f8864fa02e0e22323a3a88170c0bf2c208dd20874c1b48f985223a9f58e",
+			"reviewed_at": "2026-07-08T15:03:38.819285167Z"
+		},
+		{
+			"function_name": "TestListBoxPortsScopedToBox",
+			"documentation_hash": "435e9140b2fc9ca5073f21796182ec903be92377141ea0493f7dd5c141c3559f",
+			"definition_hash": "68542cc59e7f64fd9a3da13bff3a26cf21e659281db6b5af1419cbb02456a332",
+			"reviewed_at": "2026-07-08T15:03:38.819726406Z"
+		}
+	]
+}

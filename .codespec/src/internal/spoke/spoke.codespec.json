@@ -9,8 +9,8 @@
 		{
 			"function_name": "runSpoke",
 			"documentation_hash": "e1e2528558d9197deb578e6ff9c3eec368d1d2e19cf2b5a25677b8b58d127f19",
-			"definition_hash": "3d64181925d5b31c32e22da4fc7c46435fa61af6fd1ddf2c1f1ed0543d9287fb",
-			"reviewed_at": "2026-07-08T09:43:14.717042323Z"
+			"definition_hash": "757205c78a1daf46acef9b95d9d0f355549fa5bbd8833d271b14ef18a44a5cb1",
+			"reviewed_at": "2026-07-08T14:50:26.499513178Z"
 		},
 		{
 			"function_name": "checkStateWritable",

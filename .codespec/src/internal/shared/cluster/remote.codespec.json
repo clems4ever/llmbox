@@ -2,16 +2,16 @@
 	"functions": [
 		{
 			"function_name": "newRemoteSpoke",
-			"documentation_hash": "872af5a0f2a4c9fbe5afa70273202e7179078a6142f310fe9741417933263321",
-			"definition_hash": "500ca4e4d1387c6cfadbd8fbb03bdce6f2cca7e084a97d55e92ff519a45c8ee0",
-			"reviewed_at": "2026-07-07T08:15:52.560353097Z"
+			"documentation_hash": "813730657aa26911405353b4e77544d80011046db328cfbb8c9fb79949402cf8",
+			"definition_hash": "5978a7acb870eba74b118cd670e5ae126621396e0b2990f8e11f352be4e2d463",
+			"reviewed_at": "2026-07-08T14:50:26.477825833Z"
 		},
 		{
 			"function_name": "readLoop",
 			"receiver": "remoteSpoke",
 			"documentation_hash": "6daaee3a89534e438c145c72b5e525c1e1f33cfd09a7d99600af554c433685b9",
-			"definition_hash": "e2fdd3389831505edda9c85387eff04e8878dbf381ef36966b0ee020279cd78d",
-			"reviewed_at": "2026-07-07T08:15:52.561004821Z"
+			"definition_hash": "10bf9a0320c548b9d0a756cf9ecfc0b8ea3558e1cbf4da2bf38a1c9a11949fe9",
+			"reviewed_at": "2026-07-08T14:50:26.478328386Z"
 		},
 		{
 			"function_name": "shutdown",
@@ -103,6 +103,20 @@
 			"documentation_hash": "906d5c45d43ba6a3e3ac71962a1b764bfe7b7a97ff267e26ae88dd052d6b1d18",
 			"definition_hash": "05c3260387ce1438b5a3babedd81de9cb39ac47680dca15701e7fd504274eaec",
 			"reviewed_at": "2026-07-07T08:15:52.562733755Z"
+		},
+		{
+			"function_name": "serveSpokeRequest",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "80c84fe04d4b78bd5606794f9bf7947b833f902dc5293b671da6a51339f9470a",
+			"definition_hash": "7973d830481783fbd5043e8d52c298cc9c50a8ecccf549e1d2a249ca83767cb0",
+			"reviewed_at": "2026-07-08T14:50:26.479200601Z"
+		},
+		{
+			"function_name": "dispatchSpokeRequest",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "6441805516b6df2dc0d7f40f079e543ab67b7c84e4d9bd02a76045f41b53c8d3",
+			"definition_hash": "2de7569c2db4c59c2b5d34cdb97fe53a1f448acbdf6a1487f510ea3abade1429",
+			"reviewed_at": "2026-07-08T14:50:26.479797232Z"
 		}
 	]
 }

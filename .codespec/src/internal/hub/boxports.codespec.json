@@ -1,0 +1,39 @@
+{
+	"functions": [
+		{
+			"function_name": "boxPortSession",
+			"receiver": "Server",
+			"documentation_hash": "f0ef1d747aaea40c0a5371100cfe4b10e077ce4725262caef7c40bd2a6e6acff",
+			"definition_hash": "c23774e84abfb5cff256f038215ff3d5f16590438b5595d076f5dff94e4dd8a8",
+			"reviewed_at": "2026-07-08T15:01:58.92438932Z"
+		},
+		{
+			"function_name": "boxPortInfo",
+			"receiver": "Server",
+			"documentation_hash": "ddb0b22ed325f25fa97733eb8337b51d861bbe5769968e368888d2fd17da7b58",
+			"definition_hash": "559b7cbcc9ac40204df30a6f852bbf3134be4fdd762a243a215f25d2232eb367",
+			"reviewed_at": "2026-07-08T15:01:58.924679493Z"
+		},
+		{
+			"function_name": "OpenBoxPort",
+			"receiver": "Server",
+			"documentation_hash": "a0f1380354321d3087894a1c2b600fa8bd50b7cd86092d5c6611f8a00e9a1faf",
+			"definition_hash": "9d6a4d40497b6ca0398104fdbae5ffa88ecd101e65cf05dccd6a3783ef08061b",
+			"reviewed_at": "2026-07-08T15:01:58.924911509Z"
+		},
+		{
+			"function_name": "CloseBoxPort",
+			"receiver": "Server",
+			"documentation_hash": "ba07feb03a3125d5d2d091e414ef5edb0fb5026bdda1a902a33771826573297c",
+			"definition_hash": "f5e397dcc9c4edb91d6ba594069dd4c9eda80bc6780018ca581873263b8c7640",
+			"reviewed_at": "2026-07-08T15:01:58.925144707Z"
+		},
+		{
+			"function_name": "ListBoxPorts",
+			"receiver": "Server",
+			"documentation_hash": "3328ad9a4a47af44d2d639d2c5e664f53de7afd0d258035f86a49ab5bc8a6282",
+			"definition_hash": "e932a52178365d2d3f4bf86473124f746690c8fbb0652572729b93541bbc739b",
+			"reviewed_at": "2026-07-08T15:01:58.925381259Z"
+		}
+	]
+}

@@ -34,6 +34,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
+	"github.com/clems4ever/llmbox/internal/spoke/boxapi"
 )
 
 const (
@@ -122,6 +123,10 @@ type Provisioner struct {
 	procCtx    context.Context
 	procCancel context.CancelFunc
 
+	// ports serves box-originated port-publishing requests toward the hub; nil
+	// disables the per-box box-port API listener entirely.
+	ports boxapi.PortService
+
 	mu    sync.Mutex
 	boxes map[string]*fcInstance
 	used  map[int]bool
@@ -130,16 +135,20 @@ type Provisioner struct {
 // NewProvisioner builds a Firecracker provisioner. kernelImage and defaultRootfs
 // are host paths to the guest kernel and the default rootfs image; an empty
 // stateDir falls back to defaultStateDir. The returned provisioner uses the real
-// host egress and the real Firecracker machine factory.
+// host egress and the real Firecracker machine factory. Boxes persisted under
+// stateDir by a previous run are rehydrated so List/Find/Destroy (and their
+// box-port API listeners) survive a spoke restart.
 //
 // @arg kernelImage Host path to the guest kernel (vmlinux) every box boots.
 // @arg defaultRootfs Host path to the rootfs image booted when a create supplies none.
 // @arg stateDir Directory for per-box runtime files and metadata; empty uses defaultStateDir.
+// @arg ports The service serving box-originated port requests; nil disables the per-box box-port API.
 // @return *Provisioner A provisioner wired to the real egress and machine factory.
-// @error error is always nil today; the signature carries one for symmetry with other backends and future validation.
+// @error error if persisted box metadata exists but cannot be read.
 //
 // @testcase TestProvisionerBookkeeping builds a provisioner and exercises its lifecycle with fakes.
-func NewProvisioner(kernelImage, defaultRootfs, stateDir string) (*Provisioner, error) {
+// @testcase TestRehydrateListsPriorBoxes rehydrates persisted boxes on construction.
+func NewProvisioner(kernelImage, defaultRootfs, stateDir string, ports boxapi.PortService) (*Provisioner, error) {
 	if stateDir == "" {
 		stateDir = defaultStateDir
 	}
@@ -152,11 +161,15 @@ func NewProvisioner(kernelImage, defaultRootfs, stateDir string) (*Provisioner, 
 		log:            slog.Default(),
 		netEnabled:     true,
 		poolSize:       defaultPoolSize,
+		ports:          ports,
 		boxes:          map[string]*fcInstance{},
 		used:           map[int]bool{},
 	}
 	p.procCtx, p.procCancel = context.WithCancel(context.Background())
 	p.newMachine = p.realMachineFactory
+	if err := p.rehydrate(); err != nil {
+		return nil, err
+	}
 	return p, nil
 }
 
@@ -302,9 +315,13 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 
 	// cleanup undoes partial provisioning in reverse order. The TAP is pooled (not
 	// per box), so it is freed via the slot index, not torn down here.
+	var api *boxapi.Server
 	cleanup := func(m machine) {
 		if m != nil {
 			_ = m.StopVMM()
+		}
+		if api != nil {
+			_ = api.Close()
 		}
 		_ = os.RemoveAll(dir)
 		p.mu.Lock()
@@ -319,6 +336,19 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	if err := copyFile(rootfsSrc, perBoxRootfs); err != nil {
 		cleanup(nil)
 		return nil, fmt.Errorf("copying rootfs: %w", err)
+	}
+
+	// Pre-listen for the guest's box-port API connections BEFORE the VM boots:
+	// Firecracker dials this host socket the moment the guest connects to CID 2
+	// on boxAPIVsockPort, so it must already exist. The listener is bound to
+	// this one VM's identity — the spoke-side enforcement that a box can only
+	// publish its own ports.
+	if p.ports != nil {
+		var err error
+		if api, err = boxapi.ServeUnix(boxAPISocketPath(vsockUDS), opts.BoxID, p.ports, p.log); err != nil {
+			cleanup(nil)
+			return nil, fmt.Errorf("serving box-port API: %w", err)
+		}
 	}
 
 	// Kernel args: the guest gets a static eth0 (via the ip= arg, on its pooled TAP)
@@ -399,7 +429,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		cleanup(m)
 		return nil, fmt.Errorf("saving box meta: %w", err)
 	}
-	inst := &fcInstance{prov: p, meta: meta, vsockUDS: vsockUDS, net: n, machine: m}
+	inst := &fcInstance{prov: p, meta: meta, vsockUDS: vsockUDS, net: n, machine: m, api: api}
 
 	p.mu.Lock()
 	p.boxes[token] = inst
@@ -628,17 +658,25 @@ type fcInstance struct {
 	vsockUDS string
 	net      boxNet
 	machine  machine
+	// api is the box's box-port API listener; nil when the provisioner has no
+	// port service (or its recovery failed).
+	api *boxapi.Server
+	// alive records that a rehydrated box's VMM (whose machine handle is gone)
+	// still answered on its API socket when the box was reloaded.
+	alive bool
 }
 
 // Meta returns the box's neutral view. A box with a live machine handle is
-// running; one reloaded from disk without a handle is reported stopped.
+// running, as is a rehydrated box whose orphaned VMM answered the aliveness
+// probe; anything else is reported stopped.
 //
 // @return sandbox.Box The box's ID, name, phase, and other fields.
 //
 // @testcase TestProvisionerBookkeeping reads box metadata via Meta.
+// @testcase TestRehydrateListsPriorBoxes reports a rehydrated dead box as stopped.
 func (i *fcInstance) Meta() sandbox.Box {
 	state := "stopped"
-	if i.machine != nil {
+	if i.machine != nil || i.alive {
 		state = "running"
 	}
 	return i.meta.toBox(state)
@@ -677,15 +715,19 @@ func (i *fcInstance) MarkReady(ctx context.Context) error {
 	return nil
 }
 
-// Destroy stops the box's VM, removes its state directory, and frees its pool slot
-// (the pooled TAP stays up for reuse). Destroying an already-gone box returns a
-// wrapped sandbox.ErrBoxNotFound.
+// Destroy stops the box's VM, stops its box-port API listener, removes its
+// state directory, and frees its pool slot (the pooled TAP stays up for
+// reuse). A rehydrated box whose VMM survived as an orphan (no machine handle)
+// is halted best-effort over its API socket, so the rootfs is not deleted
+// under a running VM. Destroying an already-gone box returns a wrapped
+// sandbox.ErrBoxNotFound.
 //
 // @arg ctx Unused; present to satisfy the interface.
 // @error error wrapping sandbox.ErrBoxNotFound if the box is already gone.
 //
 // @testcase TestProvisionerBookkeeping destroys a box and no longer finds it.
 // @testcase TestDestroyAlreadyGone reports ErrBoxNotFound for an unknown box.
+// @testcase TestRehydrateDestroysDeadBox destroys a rehydrated box, cleaning its dir and slot.
 func (i *fcInstance) Destroy(ctx context.Context) error {
 	p := i.prov
 	p.mu.Lock()
@@ -694,8 +736,18 @@ func (i *fcInstance) Destroy(ctx context.Context) error {
 	delete(p.used, i.meta.NetIndex)
 	p.mu.Unlock()
 
-	if i.machine != nil {
+	if i.api != nil {
+		_ = i.api.Close()
+	}
+	switch {
+	case i.machine != nil:
 		_ = i.machine.StopVMM()
+	case i.alive:
+		// A rehydrated orphan VMM: no SDK handle to stop it with, so ask it to
+		// shut down over its API socket before its rootfs is removed.
+		if err := haltVMM(filepath.Join(boxDir(p.stateDir, i.meta.Token), "fc.sock")); err != nil {
+			p.log.Warn("failed to halt orphaned box VMM", "box", i.meta.Token, "err", err)
+		}
 	}
 	_ = os.RemoveAll(boxDir(p.stateDir, i.meta.Token))
 

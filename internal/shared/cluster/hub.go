@@ -19,6 +19,7 @@ type Hub struct {
 	ctx   context.Context // base context; cancellation force-closes spoke connections
 	now   func() time.Time
 	log   *slog.Logger
+	ports BoxPortService // handles spoke-originated box-port requests; nil rejects them
 
 	mu     sync.Mutex
 	spokes map[string]*remoteSpoke
@@ -32,17 +33,19 @@ type Hub struct {
 // @arg store The cluster store holding join tokens and enrolled spokes.
 // @arg now Clock for token-expiry checks; nil uses time.Now.
 // @arg log Logger for connection lifecycle; nil uses slog.Default.
+// @arg ports The service handling spoke-originated box-port requests; nil rejects them.
 // @return *Hub A ready hub with an empty connected-spoke registry.
 //
 // @testcase TestHubEnrollAndRoute enrolls a spoke and routes a verb to it.
-func NewHub(ctx context.Context, store Store, now func() time.Time, log *slog.Logger) *Hub {
+// @testcase TestHubWithoutBoxPortServiceRejects rejects box-port requests when ports is nil.
+func NewHub(ctx context.Context, store Store, now func() time.Time, log *slog.Logger, ports BoxPortService) *Hub {
 	if now == nil {
 		now = time.Now
 	}
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Hub{store: store, ctx: ctx, now: now, log: log, spokes: map[string]*remoteSpoke{}}
+	return &Hub{store: store, ctx: ctx, now: now, log: log, ports: ports, spokes: map[string]*remoteSpoke{}}
 }
 
 // Spoke returns the connected spoke with the given name as a BoxManager.
@@ -115,7 +118,7 @@ func (h *Hub) ConnectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rs := newRemoteSpoke(name, tr)
+	rs := newRemoteSpoke(name, tr, h.ports)
 	h.register(name, rs)
 	h.log.Info("spoke connected", "name", name)
 	defer func() {

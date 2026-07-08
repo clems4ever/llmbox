@@ -63,8 +63,10 @@ FROM debian:bookworm-slim
 # out of a throwaway stage. Pin pm2 for reproducible builds; override with
 # --build-arg PM2_VERSION=<x.y.z|latest>.
 ARG PM2_VERSION=7.0.1
+# curl is a runtime tool: the box-ports skill drives the box-port API with
+# `curl --unix-socket /run/llmbox/boxapi.sock`, and Claude uses it generally.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates util-linux tini nodejs npm \
+    && apt-get install -y --no-install-recommends ca-certificates curl util-linux tini nodejs npm \
     && npm install -g pm2@${PM2_VERSION} \
     && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/*
@@ -77,6 +79,10 @@ COPY --from=agent /opt/llmbox/llmbox-agent /usr/local/bin/llmbox-agent
 # clobbering these keys.
 RUN mkdir -p /workspace
 ADD docker/claude.json /root/.claude.json
+# Claude Code skills baked into every box (discovered under ~/.claude/skills;
+# HOME=/root is forced by the provisioner). box-ports teaches the in-box Claude
+# to publish its own ports through /run/llmbox/boxapi.sock.
+COPY docker/skills/ /root/.claude/skills/
 
 WORKDIR /workspace
 # Default entrypoint for standalone runs; the llmbox provisioner overrides this

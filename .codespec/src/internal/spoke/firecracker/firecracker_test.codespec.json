@@ -15,8 +15,8 @@
 		{
 			"function_name": "newFakeProvisioner",
 			"documentation_hash": "aa478865a5ab00e9f10eef5f3b81593434a833d06a1a439f5956a42b3fece712",
-			"definition_hash": "f4a9c909091f1bf8bfe737f4ad2eecc861fd44da5428005181fd78a0c3519e90",
-			"reviewed_at": "2026-07-04T20:20:41.287097304Z"
+			"definition_hash": "774fefdaed300bd1ad63d072494356a31cb179fe57fcea5e8728090d982af829",
+			"reviewed_at": "2026-07-08T14:50:26.494401957Z"
 		},
 		{
 			"function_name": "TestProvisionerBookkeeping",

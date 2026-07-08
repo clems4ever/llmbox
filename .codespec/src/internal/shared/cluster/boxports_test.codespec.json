@@ -1,0 +1,67 @@
+{
+	"functions": [
+		{
+			"function_name": "OpenBoxPort",
+			"receiver": "fakePortService",
+			"documentation_hash": "f475e960b08b41c308e65389f20fe63736e3831b92d191e75e70c678fb271d4d",
+			"definition_hash": "0366d121194b85b76f163b73d2f027dc16a285635d7546473df9160afaaf1c3c",
+			"reviewed_at": "2026-07-08T15:04:32.84114327Z"
+		},
+		{
+			"function_name": "CloseBoxPort",
+			"receiver": "fakePortService",
+			"documentation_hash": "1760fd4d03ad68ba36a6c6cbf45a2dcbedcdf45a3bfbde4247ed98e55ff163ce",
+			"definition_hash": "96481d3d09689d576274a1d15f85bed55d706cc19f748f4509be7a1bf8e053c2",
+			"reviewed_at": "2026-07-08T15:04:32.846677085Z"
+		},
+		{
+			"function_name": "ListBoxPorts",
+			"receiver": "fakePortService",
+			"documentation_hash": "70e9dbf6d47a12b4be7f698c8e06fb2d84d6a4a102f0cb55ad6902e4136ee94d",
+			"definition_hash": "802a958af5638df6ef2c76dfef4a638aa86e3cd1b9fd40e7180ed7850f76be22",
+			"reviewed_at": "2026-07-08T15:04:32.85557618Z"
+		},
+		{
+			"function_name": "startCallerSpoke",
+			"documentation_hash": "9e246829d1a4ec0e5058b0688e9d5dff559fa3c943b29c26e72075e58f2c0bec",
+			"definition_hash": "55001b05954fc8963a302b245dc0f2374cbac9494cbb090e716431844c43ca9e",
+			"reviewed_at": "2026-07-08T15:04:32.860534926Z"
+		},
+		{
+			"function_name": "TestSpokeCallerRoundTrip",
+			"documentation_hash": "2c2d887fdadab23c77118a2a0599458c3ac3a76297965a9c19479cc568882da2",
+			"definition_hash": "4c740769fd967e7dba106229744e56aef008c780f109689023906c2685ea7a25",
+			"reviewed_at": "2026-07-08T15:04:32.865703952Z"
+		},
+		{
+			"function_name": "TestSpokeCallerServiceError",
+			"documentation_hash": "a320d61572536bab3dc46471f2465fe3683fe19afdf37269339c225395ee985c",
+			"definition_hash": "87f7d2d6f8b0f99083c8ad8b9b699f72fd75ab0c8ef3d1808df621203e43348c",
+			"reviewed_at": "2026-07-08T15:04:32.870598823Z"
+		},
+		{
+			"function_name": "TestSpokeCallerDisconnected",
+			"documentation_hash": "c4f7528dd14da7ed92e145a072a2ff085cf107f1bc61ec7506f338ceac48d6c7",
+			"definition_hash": "fbe1e960843254b03fb7dd21c372aa721e65f167984605f1265b1e0c857ff862",
+			"reviewed_at": "2026-07-08T15:04:32.875514518Z"
+		},
+		{
+			"function_name": "TestSpokeCallerReconnects",
+			"documentation_hash": "bc936720cd57ebea8d5d45a45085ea25bb3691d4b1262878f49760f5583062d6",
+			"definition_hash": "3e834a41f89e75ad596eaf85d73e6bd62dfaed5778f9c2ad5315bb7e5368ff65",
+			"reviewed_at": "2026-07-08T15:04:32.880447862Z"
+		},
+		{
+			"function_name": "TestHubWithoutBoxPortServiceRejects",
+			"documentation_hash": "b5350666afbd9b3adee0984b33cbe59b51b06a16c7d51115f5ff11324bc7b260",
+			"definition_hash": "62ed5ec842f30fd8a2aa59d5e66c3a13941f4386183aabe50778bbfa1e31dd2a",
+			"reviewed_at": "2026-07-08T15:04:32.88562181Z"
+		},
+		{
+			"function_name": "TestSpokeCallerUnknownMethod",
+			"documentation_hash": "6cb7f0314f860b2c94c8955880a9e8d2a9914f316b02b9f9750b4d041afdc005",
+			"definition_hash": "e2dbee55821ecffcb864d21db99ac1ccd8518c00a09445b19d1b3ef3ea5d95fd",
+			"reviewed_at": "2026-07-08T15:04:32.890585992Z"
+		}
+	]
+}

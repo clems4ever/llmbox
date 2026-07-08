@@ -1,0 +1,59 @@
+{
+	"functions": [
+		{
+			"function_name": "NewHubCaller",
+			"documentation_hash": "4353127310c88c3a621ca7d2203c3396f00bee2e346348d14c84d66a0ddf335e",
+			"definition_hash": "5690ddd2f11dfa596bdbe1bd338e0c1cf83ce868d527159c54abd6c9559f7b07",
+			"reviewed_at": "2026-07-08T15:04:12.366691096Z"
+		},
+		{
+			"function_name": "attach",
+			"receiver": "HubCaller",
+			"documentation_hash": "5cf89b3ff88b8ae8a10b640d076e6d92b992823d2d17defc43dd9812cdd15269",
+			"definition_hash": "d2efd871f0a47427d8df9051fb4ba4c0082f9e242f60dba5fde0f42f2eae5d56",
+			"reviewed_at": "2026-07-08T15:04:31.113171366Z"
+		},
+		{
+			"function_name": "detach",
+			"receiver": "HubCaller",
+			"documentation_hash": "3d581d88ba8a776ff169fb4759168bdc8624ada96e93cdbf3bbf51ab926aab9d",
+			"definition_hash": "39ef8553e6ffb5afefb2e649c18e98c7bb33e2c51e4164e353e36fc8c17d0e48",
+			"reviewed_at": "2026-07-08T15:04:31.119323771Z"
+		},
+		{
+			"function_name": "deliver",
+			"receiver": "HubCaller",
+			"documentation_hash": "9217188b9b7275bfcbdcd825e735f56e5828ceca05ae3d98fe4c4adff7bf0c13",
+			"definition_hash": "3708397bd633d761f56dde4e87c4da05c5ab4844fd35b20549d946af455382a5",
+			"reviewed_at": "2026-07-08T15:04:31.129301909Z"
+		},
+		{
+			"function_name": "call",
+			"receiver": "HubCaller",
+			"documentation_hash": "8745dda73e2ac9395cfadac799580679dcf7923d7f839ec897968442b74c8d9b",
+			"definition_hash": "2b84933dd7426913b2b26bad506564e48a5a72615b28457e46b6e74d3252132e",
+			"reviewed_at": "2026-07-08T15:04:31.134381569Z"
+		},
+		{
+			"function_name": "OpenBoxPort",
+			"receiver": "HubCaller",
+			"documentation_hash": "746d88f4d356050963150fafba7adfa2884dfd36ba495687793539a76a2de058",
+			"definition_hash": "f283a20951b31986111b798b942b86c0a85759b2d46e7079e45b6c1b4585f7ff",
+			"reviewed_at": "2026-07-08T15:04:31.139603175Z"
+		},
+		{
+			"function_name": "CloseBoxPort",
+			"receiver": "HubCaller",
+			"documentation_hash": "d75acb8fcd4b25b52572da39e7dd25e328091c994ccddc0c854fee60a69cd4a8",
+			"definition_hash": "6639ce29d6219c01e3ae5646abf5c379b68ebbccfcffa57ca57e99cbcb8e18a8",
+			"reviewed_at": "2026-07-08T15:04:31.14435434Z"
+		},
+		{
+			"function_name": "ListBoxPorts",
+			"receiver": "HubCaller",
+			"documentation_hash": "75adcbd11bdeb855bef3f8a2906e5d48af6ae63cd71d2ba431e61ac1fbb8e34b",
+			"definition_hash": "fd805be52d762ea7697d74b4c3d29ed5b0de0f7a6f1d77dd2c9a433a71e55263",
+			"reviewed_at": "2026-07-08T15:04:31.14910046Z"
+		}
+	]
+}

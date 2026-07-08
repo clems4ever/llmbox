@@ -190,8 +190,8 @@
 		{
 			"function_name": "TestNewProvisionerDefaults",
 			"documentation_hash": "f1bc981be8f347ea1a53118e23e8cb245bbc0ad68f74087c015146e28984ba03",
-			"definition_hash": "4ecd3fb3597a86e06860fb1838189951fd37fcb9f9cf17325a59a44b3ad4334a",
-			"reviewed_at": "2026-06-30T16:36:14.034480014Z"
+			"definition_hash": "c049311b5bbb2765a6949b460a6f31a69273fdf359681d4010cefa8d8937644b",
+			"reviewed_at": "2026-07-08T14:50:26.493420477Z"
 		},
 		{
 			"function_name": "TestProvisionNetworkSetupFailure",

@@ -81,7 +81,9 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 	// started spoke (llmbox-spoke) that joins over the cluster transport. Always
 	// accept spoke connections, and route an unqualified box create to the default
 	// spoke an admin picks in the UI.
-	srv.SetHub(cluster.NewHub(ctx, store, nil, nil))
+	// srv implements cluster.BoxPortService, so boxes can publish their own
+	// ports through their spoke's connection (identity enforced hub-side).
+	srv.SetHub(cluster.NewHub(ctx, store, nil, nil, srv))
 	log.Printf("spokes may join at %s/spoke/connect", cfg.PublicURL)
 
 	// One HTTP server for everything: the box-control JSON API (under /api/v1/) and

@@ -97,6 +97,27 @@ func WebSocketDialerTLS(url string, tlsConf *tls.Config) Dialer {
 // @testcase TestSpokeRunReconnectsWithCreds reconnects using saved credentials.
 // @testcase TestSpokeRunEnrollRejected returns the hub's rejection error.
 func Run(ctx context.Context, dial Dialer, mgr BoxManager, joinToken string, creds *Credentials, save func(Credentials) error) error {
+	return RunWithCaller(ctx, dial, mgr, joinToken, creds, save, nil)
+}
+
+// RunWithCaller is Run plus an optional HubCaller: once enrollment succeeds the
+// caller is attached to this connection so spoke-side components (the per-box
+// port API) can issue spoke→hub requests over it, and it is detached — failing
+// its in-flight calls — when the connection ends. A nil caller disables the
+// spoke→hub direction, making this exactly Run.
+//
+// @arg ctx Context whose cancellation stops the spoke.
+// @arg dial The dialer establishing the transport to the hub.
+// @arg mgr The local box manager verbs are executed against.
+// @arg joinToken The one-time join token for first enrollment; ignored when creds is set.
+// @arg creds Saved credentials for reconnect; nil for first enrollment.
+// @arg save Callback invoked with freshly minted credentials on first enrollment; may be nil.
+// @arg caller The long-lived caller to attach to this connection; nil disables spoke→hub requests.
+// @error error if dialing, enrollment, or the serve loop fails.
+//
+// @testcase TestSpokeCallerRoundTrip attaches a caller and round-trips box-port verbs.
+// @testcase TestSpokeCallerReconnects re-attaches the same caller across connections.
+func RunWithCaller(ctx context.Context, dial Dialer, mgr BoxManager, joinToken string, creds *Credentials, save func(Credentials) error, caller *HubCaller) error {
 	tr, err := dial(ctx)
 	if err != nil {
 		return fmt.Errorf("dialing hub: %w", err)
@@ -113,7 +134,11 @@ func Run(ctx context.Context, dial Dialer, mgr BoxManager, joinToken string, cre
 		}
 	}
 
-	return serve(ctx, tr, mgr)
+	if caller != nil {
+		caller.attach(tr)
+		defer caller.detach()
+	}
+	return serve(ctx, tr, mgr, caller)
 }
 
 // enrollSpoke performs the spoke's side of the enrollment handshake and returns

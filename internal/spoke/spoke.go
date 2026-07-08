@@ -284,12 +284,17 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// spoke's boxes so two spokes can share one host without listing, reaping, or
 	// destroying each other's boxes.
 	log.Printf("initializing %s box backend (first run may fetch guest images and set up networking)...", o.backend)
+	// One HubCaller for the spoke's lifetime: the backend serves each box's
+	// port-publishing API against it, and every (re)connection to the hub
+	// attaches to it below, so box-port requests always ride the live link.
+	portCaller := cluster.NewHubCaller()
 	prov, err := backend.New(o.backend, backend.Options{
 		DefaultImage:     o.image,
 		SocketDir:        o.box.SocketDir,
 		Peers:            o.boxPeers,
 		Limits:           BoxLimits(o.box),
 		Namespace:        o.box.Namespace,
+		BoxPorts:         portCaller,
 		GPUs:             o.boxGPUs,
 		RegistryAuths:    boxconfig.RegistryAuths(regs),
 		KernelImagePath:  o.fcKernelImage,
@@ -347,7 +352,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	log.Printf("connecting to hub %s ...", hubURL)
 	backoff := time.Second
 	for {
-		err := cluster.Run(ctx, dial, mgr, token, creds, save)
+		err := cluster.RunWithCaller(ctx, dial, mgr, token, creds, save, portCaller)
 		if ctx.Err() != nil {
 			return nil
 		}

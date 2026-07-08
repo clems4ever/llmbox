@@ -16,6 +16,28 @@ import (
 // port need not be unique across boxes.
 const agentVsockPort = 5000
 
+// boxAPIVsockPort is the HOST-side vsock port the guest agent bridges the
+// in-guest /run/llmbox/boxapi.sock to (--boxapi-port). This is the
+// guest-initiated direction of Firecracker's vsock: when a guest process
+// connects to CID 2 on this port, Firecracker dials the host Unix socket at
+// "<vsock_uds_path>_<port>" — so the provisioner pre-listens there (see
+// boxAPISocketPath), serving the box-port API bound to that one VM's identity.
+// Unlike the host→guest direction there is no CONNECT/OK handshake: the
+// accepted connection is immediately a raw byte pipe carrying the box's HTTP.
+const boxAPIVsockPort = 5001
+
+// boxAPISocketPath is the host Unix-socket path Firecracker dials when the
+// guest connects to CID 2 on boxAPIVsockPort, following Firecracker's
+// "<vsock_uds_path>_<port>" convention for guest-initiated connections.
+//
+// @arg vsockUDS The box's Firecracker vsock Unix-socket path.
+// @return string The host listener path for the box's guest-initiated box-port API connections.
+//
+// @testcase TestProvisionStartsBoxAPIListener serves the box-port API at this path.
+func boxAPISocketPath(vsockUDS string) string {
+	return fmt.Sprintf("%s_%d", vsockUDS, boxAPIVsockPort)
+}
+
 // dialVsock opens a connection to a guest process listening on AF_VSOCK port
 // through Firecracker's host-side vsock Unix socket, performing Firecracker's
 // text CONNECT handshake. Firecracker listens on udsPath for host→guest

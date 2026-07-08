@@ -18,7 +18,7 @@ func TestRunServesAndStops(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	errc := make(chan error, 1)
-	go func() { errc <- run(ctx, sock, 0, "/bin/true", log) }()
+	go func() { errc <- run(ctx, sock, 0, "", 0, "/bin/true", log) }()
 
 	deadline := time.Now().Add(3 * time.Second)
 	for {
@@ -40,5 +40,28 @@ func TestRunServesAndStops(t *testing.T) {
 		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("run did not return after cancel")
+	}
+}
+
+// TestRunStartsBoxAPIBridge checks vsock mode with a box API port serves the
+// in-guest bridge socket. The control channel itself may fail (AF_VSOCK is not
+// available on every test host) — the bridge must come up regardless.
+func TestRunStartsBoxAPIBridge(t *testing.T) {
+	boxapiSock := filepath.Join(t.TempDir(), "boxapi.sock")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	go func() { _ = run(ctx, "", 1, boxapiSock, 5001, "/bin/true", log) }()
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if _, err := os.Stat(boxapiSock); err == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("box API bridge socket did not appear")
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }

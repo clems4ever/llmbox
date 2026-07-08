@@ -1,0 +1,17 @@
+{
+	"functions": [
+		{
+			"function_name": "ServeUnix",
+			"documentation_hash": "f4f367f248459c9b916f1b0ca2fd6af25284fe6d86af6e53f0c24142d8a9a31c",
+			"definition_hash": "037e93935ce59ac393bbd1ffb27e95f1b867c1ecd359803f6eed25bea7a90111",
+			"reviewed_at": "2026-07-08T15:04:51.349952883Z"
+		},
+		{
+			"function_name": "Close",
+			"receiver": "Server",
+			"documentation_hash": "8e312a4c398724c24cf28b4c4b2122bd9474d61eef3e8bd32787dc2af8063bb0",
+			"definition_hash": "892c591e14a1206e07cb8ec85d686c215d327e603496e91fe1a623c1571bed69",
+			"reviewed_at": "2026-07-08T15:05:38.272752792Z"
+		}
+	]
+}

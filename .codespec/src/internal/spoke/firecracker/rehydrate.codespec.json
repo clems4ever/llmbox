@@ -1,0 +1,23 @@
+{
+	"functions": [
+		{
+			"function_name": "rehydrate",
+			"receiver": "Provisioner",
+			"documentation_hash": "f155440e59c6746b3ae89fceef798ed5d8577cc2e5539279ce3a7055a03f04a8",
+			"definition_hash": "2682e5086ed9683bee89e726d6119324c79ec41bf9dc08f265a347639da3f879",
+			"reviewed_at": "2026-07-08T15:06:49.971200845Z"
+		},
+		{
+			"function_name": "vmmAlive",
+			"documentation_hash": "62af8721343298fc23efa7b6d823737e0d3129b395e7deca67e0fde739bfe10b",
+			"definition_hash": "8f7a5dc0834204b6fbc3c9c7673ab0f624132ce91a60f60b718afef27b4d5e7a",
+			"reviewed_at": "2026-07-08T15:06:49.98151924Z"
+		},
+		{
+			"function_name": "haltVMM",
+			"documentation_hash": "95605a366acb5979fad33e502ec7344f2d37699936f7d71d86be160f18b46e61",
+			"definition_hash": "20e057bd0ca69f0f99381a77594c5decb9e1f609f3479dfc5b62ad98889cffba",
+			"reviewed_at": "2026-07-08T15:06:49.995349802Z"
+		}
+	]
+}

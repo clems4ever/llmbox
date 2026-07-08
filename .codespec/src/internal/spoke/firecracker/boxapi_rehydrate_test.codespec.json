@@ -1,0 +1,79 @@
+{
+	"functions": [
+		{
+			"function_name": "OpenBoxPort",
+			"receiver": "fakePortSvc",
+			"documentation_hash": "f475e960b08b41c308e65389f20fe63736e3831b92d191e75e70c678fb271d4d",
+			"definition_hash": "c223f9e0e94d03ccac7bd6f124af0502afec01b9be0280e2f75a142f45f18631",
+			"reviewed_at": "2026-07-08T15:05:59.527395867Z"
+		},
+		{
+			"function_name": "CloseBoxPort",
+			"receiver": "fakePortSvc",
+			"documentation_hash": "1760fd4d03ad68ba36a6c6cbf45a2dcbedcdf45a3bfbde4247ed98e55ff163ce",
+			"definition_hash": "cddbd808875fa20216af7c549254c3d4e4982e70622f884d40469111fb819b68",
+			"reviewed_at": "2026-07-08T15:05:59.533337189Z"
+		},
+		{
+			"function_name": "ListBoxPorts",
+			"receiver": "fakePortSvc",
+			"documentation_hash": "70e9dbf6d47a12b4be7f698c8e06fb2d84d6a4a102f0cb55ad6902e4136ee94d",
+			"definition_hash": "2d930e20d0245d39c68c105036585a0bfa5f7b8b430a952c11964c93bc0e7746",
+			"reviewed_at": "2026-07-08T15:05:59.544973628Z"
+		},
+		{
+			"function_name": "newPortsProvisioner",
+			"documentation_hash": "7a22b99a59c5c9298e79f2ffa349a23fdb7984334190783e827091fafc4546ab",
+			"definition_hash": "f1f9056b2a8294cafe833b86ab5bf350754eacf6b26a67001cc0307e6d0d69e2",
+			"reviewed_at": "2026-07-08T15:05:59.553182313Z"
+		},
+		{
+			"function_name": "postOverSocket",
+			"documentation_hash": "ab8c1163511d0a1bcf335e0125eaba159cf4cd87af966adf62ae146b648bc3a2",
+			"definition_hash": "b42b9b79284ac51e38bffe4351d7a1fb43db24a0e2ae343795d40460a088d445",
+			"reviewed_at": "2026-07-08T15:05:59.560587325Z"
+		},
+		{
+			"function_name": "TestProvisionStartsBoxAPIListener",
+			"documentation_hash": "d803c04bd48a79f9a8e403e108da1ae50bbf826d8b085ffea7c7af181a199514",
+			"definition_hash": "23a6a7275e6ff050e2e85b49af77992c9701d1061418a9c12cd5160c83125883",
+			"reviewed_at": "2026-07-08T15:05:59.568705277Z"
+		},
+		{
+			"function_name": "TestDestroyClosesBoxAPIListener",
+			"documentation_hash": "397fbcca6e25ceccae25843e2d696682a27840cce4176718047d104225a875c7",
+			"definition_hash": "7f457871a5ba13c631ad50ef7d955b9d06af70479c965daac17eeb32d11cb5c9",
+			"reviewed_at": "2026-07-08T15:05:59.576576851Z"
+		},
+		{
+			"function_name": "TestRehydrateListsPriorBoxes",
+			"documentation_hash": "45a521f8ebf46dfb71b348cfc042b7eac04a8689b98acf0df9969eb90236b42a",
+			"definition_hash": "b354b7b10ac5ac38e4566bd5dabeba95dc5918b12a10b0fe916b17cdd7e9740b",
+			"reviewed_at": "2026-07-08T15:05:59.583053726Z"
+		},
+		{
+			"function_name": "TestRehydrateDestroysDeadBox",
+			"documentation_hash": "cf6f520fc035e933b2030b1f2dfb24b9857759f0d43036cefcf2e6c7b8ab2b08",
+			"definition_hash": "45b2063ad441f20d0dea5908ddf13d2a2d4964e52b3baf9e9c1cf5f920641610",
+			"reviewed_at": "2026-07-08T15:05:59.590742456Z"
+		},
+		{
+			"function_name": "TestRehydrateRestartsBoxAPIListeners",
+			"documentation_hash": "7d5d0483a52a33b44ca9f1b54bb697387876d49fdebe322681de01de4886cbb2",
+			"definition_hash": "78896ddc8c602792c9fd9d91ff76a4570a216392abe2e7502c32b929b1f34e44",
+			"reviewed_at": "2026-07-08T15:05:59.599058865Z"
+		},
+		{
+			"function_name": "TestVMMAlive",
+			"documentation_hash": "dc5d5e9ca40362da45196337f3572b025f1e05bf977437c71233d363898d0edd",
+			"definition_hash": "0bb4df57da5522b3da6c23f069b344ecef77ad4291123cf5ae01d0c72fe4f2d1",
+			"reviewed_at": "2026-07-08T15:06:08.458511628Z"
+		},
+		{
+			"function_name": "TestHaltVMM",
+			"documentation_hash": "6a4fa2801232af7b9b3b68e5a74b261fd173176d27393fef1d45fd7fc913a19f",
+			"definition_hash": "4058f09f9ec1d50d3eeb1b6ef3693f55c4ea34ade9dd3992a6edb941148f0037",
+			"reviewed_at": "2026-07-08T15:06:08.467757067Z"
+		}
+	]
+}

@@ -86,7 +86,7 @@ cat > "$ROOTDIR/init" <<'INIT'
 /bin/busybox ip link set lo up 2>/dev/null || /bin/busybox ifconfig lo up 2>/dev/null
 export HOME=/root PATH=/usr/bin:/bin:/sbin
 echo "llmbox-init: starting agent on vsock 5000"
-exec /usr/bin/llmbox-agent --vsock-port 5000 --claude /usr/bin/claude
+exec /usr/bin/llmbox-agent --vsock-port 5000 --boxapi-port 5001 --claude /usr/bin/claude
 INIT
 chmod 0755 "$ROOTDIR/init"
 

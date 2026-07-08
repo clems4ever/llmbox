@@ -1,0 +1,91 @@
+{
+	"functions": [
+		{
+			"function_name": "OpenBoxPort",
+			"receiver": "fakeService",
+			"documentation_hash": "f475e960b08b41c308e65389f20fe63736e3831b92d191e75e70c678fb271d4d",
+			"definition_hash": "e9aeff3a4cb81883b3d7cb53904401155d2cc61b31e6b70123d3e0f95062b434",
+			"reviewed_at": "2026-07-08T15:04:40.960865095Z"
+		},
+		{
+			"function_name": "CloseBoxPort",
+			"receiver": "fakeService",
+			"documentation_hash": "1760fd4d03ad68ba36a6c6cbf45a2dcbedcdf45a3bfbde4247ed98e55ff163ce",
+			"definition_hash": "0bb06739bb29565d7c8d3ee6dfa96c2c400f92052c88a4f298fae14156820084",
+			"reviewed_at": "2026-07-08T15:04:40.965777395Z"
+		},
+		{
+			"function_name": "ListBoxPorts",
+			"receiver": "fakeService",
+			"documentation_hash": "70e9dbf6d47a12b4be7f698c8e06fb2d84d6a4a102f0cb55ad6902e4136ee94d",
+			"definition_hash": "a8595a173eea03cc996db4b086dae85622b6c0bbac4f334c7ba1047f255a5c31",
+			"reviewed_at": "2026-07-08T15:04:40.97508214Z"
+		},
+		{
+			"function_name": "unixClient",
+			"documentation_hash": "1aeb8c6a1a24b3d57a319c15be0ee12f47d9912cf399eb49d089304cb1f56596",
+			"definition_hash": "50e9535cbd8683b0e5376f36015311414434994a9fb91a18c5955111da4052b1",
+			"reviewed_at": "2026-07-08T15:04:40.980186721Z"
+		},
+		{
+			"function_name": "serveTestAPI",
+			"documentation_hash": "5dea3129d08a58238bab7a90be23cdafacd837f738269b00b9bdb2f3f1d72628",
+			"definition_hash": "eaee1a5c440f1d7a94c9e6063433307b172d7927bb172923d7da8a6e90fc9487",
+			"reviewed_at": "2026-07-08T15:04:40.984995375Z"
+		},
+		{
+			"function_name": "post",
+			"documentation_hash": "e211bd176fba1e2cb66f82106d8ea5abc34c16f5fd8719d923dde46cd9f7ad55",
+			"definition_hash": "9da385cd7104bab19db66e222d16164e8fb2beb41e96aaec1efdcf61d70701b6",
+			"reviewed_at": "2026-07-08T15:04:40.989872996Z"
+		},
+		{
+			"function_name": "TestBoxAPIOpenPort",
+			"documentation_hash": "50acf63da50f0249b8c1882c082dae57bba66ec281b4b55ae4f9012322b238e2",
+			"definition_hash": "c835254415123266e69c60da5958b578f55b40fab721854dd535ea7108aae944",
+			"reviewed_at": "2026-07-08T15:04:40.994723285Z"
+		},
+		{
+			"function_name": "TestBoxAPIClosePort",
+			"documentation_hash": "bed2124e8cc0d43a5365af75a9c9d3730ba0e0ba0e7b72647226016e89248d1c",
+			"definition_hash": "0115960871105acaad4e73d5e1b0cbde39afb1f26aec48608ccd52f0f9d7bc2f",
+			"reviewed_at": "2026-07-08T15:04:40.999552129Z"
+		},
+		{
+			"function_name": "TestBoxAPIListPorts",
+			"documentation_hash": "df237e8b1a0f9e99abd9d64036cbd800938d6d7863924cc05f7324003bd81f83",
+			"definition_hash": "e8218cb9660521abfeae087f24b8dd207775dfb1f5f7ad463b4056c74fc41135",
+			"reviewed_at": "2026-07-08T15:04:41.004517739Z"
+		},
+		{
+			"function_name": "TestBoxAPIRejectsBadRequest",
+			"documentation_hash": "af85ea4d4ddc68c2400be8af743971f1b66422f7451d871d05f5d9852887835b",
+			"definition_hash": "20092c30fd0f9c6b3e884f84b505c696744518e9763121cc36d36f597cf3ae1a",
+			"reviewed_at": "2026-07-08T15:04:41.009732332Z"
+		},
+		{
+			"function_name": "TestBoxAPIServiceError",
+			"documentation_hash": "0b5832a5fad74bc55ce95a7504d2fd3dc03d036952116a409f8147f36a28f8b0",
+			"definition_hash": "26e332beaa1d8dd9bf90416ac4f7f7152ca6795f3f1478ef6f108728ea787e7c",
+			"reviewed_at": "2026-07-08T15:04:44.90695394Z"
+		},
+		{
+			"function_name": "TestBoxAPINoBoxID",
+			"documentation_hash": "7915e7d20941b4989a8dfe631c6468f4c8ae647e8f193e9643628e0dc94cab34",
+			"definition_hash": "91a2a30f3dc67fc89e69925883512f3858a0b5cf5a6079e8f037fa7f59c42d2d",
+			"reviewed_at": "2026-07-08T15:04:44.91276464Z"
+		},
+		{
+			"function_name": "TestServeUnixReplacesStaleSocket",
+			"documentation_hash": "5a9e2c09eeebb14e6cc86bb849826a87aec7b57c9e8fa51713774a42e072606f",
+			"definition_hash": "3799db177272d647a4a151b235089fd3bca278d876780a70c5fcdd36bf3a42e2",
+			"reviewed_at": "2026-07-08T15:04:44.921843263Z"
+		},
+		{
+			"function_name": "TestServeUnixCloseStopsServing",
+			"documentation_hash": "7b7a598e8c4b106be6e682ef5552619cd9b63ad7ee94f16efb63e84c2b51c886",
+			"definition_hash": "d01bde9f5a4d6c1223fadc29da287f5a6f19a9b7d3b087f396789ea264431d3a",
+			"reviewed_at": "2026-07-08T15:04:44.927209132Z"
+		}
+	]
+}

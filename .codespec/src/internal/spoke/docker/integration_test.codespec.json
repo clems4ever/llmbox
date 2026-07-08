@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestDockerConformance",
 			"documentation_hash": "2a38171a7ba508b126b9dbe6547c00b4fe3626f2db2f1f1a89151fbafa832cc2",
-			"definition_hash": "7766c0ab08e649abd6e8d404ad9f21d3e1888b1055bf53564f24d7dff3d1c509",
-			"reviewed_at": "2026-06-30T16:11:46.278380041Z"
+			"definition_hash": "e884f39b94dbf4d3246d2053a276a43772ece5b3e08b827fdf0babe22c252291",
+			"reviewed_at": "2026-07-08T14:50:26.481574099Z"
 		},
 		{
 			"function_name": "requireDocker",

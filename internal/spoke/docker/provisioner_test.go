@@ -560,7 +560,7 @@ func TestIsNotFound(t *testing.T) {
 // TestNewProvisionerDefaults applies the default image and socket dir, and Close
 // releases the client.
 func TestNewProvisionerDefaults(t *testing.T) {
-	p, err := NewProvisioner("", "", nil)
+	p, err := NewProvisioner("", "", nil, nil)
 	if err != nil {
 		t.Fatalf("NewProvisioner: %v", err)
 	}

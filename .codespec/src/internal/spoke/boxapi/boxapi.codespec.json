@@ -1,0 +1,34 @@
+{
+	"functions": [
+		{
+			"function_name": "NewHandler",
+			"documentation_hash": "89b7e5173fba11c1c43463a05ad70cc82b1d37807fc6057de33f4ccf7246ced9",
+			"definition_hash": "db0a6b827fcc2695112c42ce290661fca78da3fc367a60251a69d5983a37d72c",
+			"reviewed_at": "2026-07-08T15:04:36.402298752Z"
+		},
+		{
+			"function_name": "checkBox",
+			"documentation_hash": "e83e0f9468327d2d38def9c886337b9e0c9a8f8232ee249d5b56097d21b87ebb",
+			"definition_hash": "f1283d23fbdd31b716ea2153c33f1167f09bde3381c449ed71bb02496fe759ad",
+			"reviewed_at": "2026-07-08T15:04:36.407322481Z"
+		},
+		{
+			"function_name": "checkPort",
+			"documentation_hash": "fce7502fb4ee4a91a452953bcf152d610e2233848c30ea72f606457773219835",
+			"definition_hash": "57217d7da4b9e366e5dfdc566824d9292e543d411f19dda25acebb291790b843",
+			"reviewed_at": "2026-07-08T15:04:36.417241631Z"
+		},
+		{
+			"function_name": "jsonEndpoint",
+			"documentation_hash": "cdfa66754ea4e88ce62f9575e4c9a652222cffe95b40ed68d57f2a061f4e35a6",
+			"definition_hash": "2244ecb74addd35c5cd1de3d62052dfed63f3f3866911fb8da8e44fb65ff669c",
+			"reviewed_at": "2026-07-08T15:04:36.424177649Z"
+		},
+		{
+			"function_name": "writeJSON",
+			"documentation_hash": "b225fb6d3c9fcdc13fbb1ca83af2a722a802793ef160d7d0e6d3909374214bda",
+			"definition_hash": "7d55273efed15d1d8b9f8a9c413cfc0519a5196f46a1fecc8b851ed7beec385f",
+			"reviewed_at": "2026-07-08T15:04:36.428907271Z"
+		}
+	]
+}

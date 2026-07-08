@@ -83,6 +83,32 @@ and large transfers all work, to a box on any spoke. The same managed-only
 resolution applies, so a tunnel can only reach a port inside one of the spoke's
 own boxes — never an arbitrary host address.
 
+## Box-initiated port publishing
+
+The Claude running **inside** a box can publish, list, and unpublish its own
+box's ports without any credential: every box gets a local control socket at
+`/run/llmbox/boxapi.sock` (served from **outside** the sandbox — by the spoke
+through the Docker bind mount, or via a per-VM vsock listener on Firecracker),
+and a `box-ports` Claude Code skill baked into the box image teaches Claude to
+`curl` it (`/v1/open_port`, `/v1/close_port`, `/v1/list_ports`).
+
+The request body carries only a port and description — never a box or spoke
+identity. Scoping is enforced twice, both outside the sandbox:
+
+1. the **spoke** stamps the box ID from its own record of which per-box channel
+   the request arrived on, so nothing inside a box can address another box;
+2. the **hub** takes the spoke name from the authenticated cluster connection
+   and verifies that box actually lives on that spoke before touching proxy
+   state (the same `create-proxy` path the admin API uses, recorded as
+   `box:<box id>`).
+
+The control socket is deliberately a unix socket, not a TCP port: the proxy
+data path only dials TCP ports inside the box, so the box can never publish its
+own control API. A box created **without a box ID** cannot publish ports
+(proxies are keyed by box ID); its calls fail with a clear explanation. When
+proxying is disabled hub-wide, opening a port fails with the disabled message,
+but closing still works so a box can always clean up after itself.
+
 ## Other notes
 
 - The hub never touches a box's network directly: the spoke reaches its own boxes

@@ -121,7 +121,7 @@ func newFakeProvisioner(t *testing.T, eg *fakeEgress) (*Provisioner, *[]*fakeMac
 	if err := os.WriteFile(rootfs, []byte("rootfs-bytes"), 0o600); err != nil {
 		t.Fatalf("write rootfs: %v", err)
 	}
-	p, err := NewProvisioner("/fake/vmlinux", rootfs, stateDir)
+	p, err := NewProvisioner("/fake/vmlinux", rootfs, stateDir, nil)
 	if err != nil {
 		t.Fatalf("NewProvisioner: %v", err)
 	}

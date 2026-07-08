@@ -1,0 +1,23 @@
+{
+	"functions": [
+		{
+			"function_name": "connectSpokeWithCaller",
+			"receiver": "clusterFixture",
+			"documentation_hash": "fecfa18393aa3f207e09d9e9a5fe64ca8fb2b7d9280beb0a857a518071ad52eb",
+			"definition_hash": "8592199f17b23b68d09cac055f093c4e11d0647dea39aebde86ed12035663534",
+			"reviewed_at": "2026-07-08T14:54:24.419953456Z"
+		},
+		{
+			"function_name": "callerOpenPort",
+			"documentation_hash": "f19df93fee47eac4c81f12cfe9199f597b0b840ec8eeb56546f16e7894f4aef3",
+			"definition_hash": "3edfacc1a73ed7074fa489a32e3729e10da019df2788df25337a09ae73ebd5ac",
+			"reviewed_at": "2026-07-08T14:54:24.420205686Z"
+		},
+		{
+			"function_name": "TestBoxPublishesOwnPort",
+			"documentation_hash": "ab1db43f78b560e62dfeed8441d8395693c2f8dcd3a523674f878886f3d87f78",
+			"definition_hash": "59a7331a917d322703bbea6a645887a6ceef2288c0386134291e0580640c7d5f",
+			"reviewed_at": "2026-07-08T14:54:24.429776245Z"
+		}
+	]
+}

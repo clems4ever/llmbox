@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "NewProvisioner",
-			"documentation_hash": "1ff8a64460e025a8ec2c8c7c05cb49e03b49dee958b990fdd8ace7009fb0b8dc",
-			"definition_hash": "feeac41b38d6799739d95368c5dd5bbd3e211560da95211afdc14c44d53e14e9",
-			"reviewed_at": "2026-06-30T16:10:22.2697007Z"
+			"documentation_hash": "ae375e2dc1042111c1b84e60e15b1b6caebe68c97ae5140cfbb4b2a768ba8921",
+			"definition_hash": "68f188d17ee7eb75c66fbe0e6a4efa7a42c6bf793237ee5348107228cd2dec36",
+			"reviewed_at": "2026-07-08T14:50:26.482337237Z"
 		},
 		{
 			"function_name": "logger",
@@ -37,9 +37,9 @@
 		{
 			"function_name": "Close",
 			"receiver": "Provisioner",
-			"documentation_hash": "72fa121ed3b008b01a3b0f433332c11640eb99cb8085c814a5135d0bc10f32a8",
-			"definition_hash": "71a4413c89b4977cd392774d588fd00fd46f3468acfeee816f7923b75c0133c4",
-			"reviewed_at": "2026-06-30T16:10:22.274728367Z"
+			"documentation_hash": "8d1a55e03c73997ed600531bdbe5b4b784de322b87fcf9133d486f70d2da9748",
+			"definition_hash": "5c43e0dab58aab1f240193f04dfd0587af417512a8e632de33e22287e7f01d9d",
+			"reviewed_at": "2026-07-08T14:50:26.483815202Z"
 		},
 		{
 			"function_name": "phaseOf",
@@ -71,8 +71,8 @@
 			"function_name": "Provision",
 			"receiver": "Provisioner",
 			"documentation_hash": "3775f57631b94cce02126192cb9444736314d100a2e0dee90c3e37da7dbb688e",
-			"definition_hash": "5050bcb2187b9c956844d1c4d8a7d5f69ff4399a8c44c1ce1ea51bc1ac158753",
-			"reviewed_at": "2026-07-08T09:43:14.708850353Z"
+			"definition_hash": "803dc59efe71c6fde2a93b37defb448402e5a3eef562b1ad3573df72376a5686",
+			"reviewed_at": "2026-07-08T14:50:26.485330857Z"
 		},
 		{
 			"function_name": "waitForSocket",
@@ -170,8 +170,8 @@
 			"function_name": "Destroy",
 			"receiver": "dockerInstance",
 			"documentation_hash": "be8d138ca940f21935dfc3d664ebea4b082071c1017ac5e32168f0f55c71d594",
-			"definition_hash": "5f2b47b5169925e5006a838ce27da3b7b4e3a6e216a506f3714477e8ef041776",
-			"reviewed_at": "2026-07-04T20:12:47.834678648Z"
+			"definition_hash": "129152b2222e747097eff157f55f972c8c862cf48f8e080ffc630d9d927dc053",
+			"reviewed_at": "2026-07-08T14:50:26.492140793Z"
 		},
 		{
 			"function_name": "SetNamespace",
@@ -186,6 +186,34 @@
 			"documentation_hash": "5a0f7676c64a589efa029fa6415092422ec46669ef028ad27121024ebe14ebaa",
 			"definition_hash": "d5e307d507d4a40fda8b36511581493c3a9530be995a0f910938f9a3487c1dfe",
 			"reviewed_at": "2026-07-01T09:19:43.152067024Z"
+		},
+		{
+			"function_name": "startBoxAPI",
+			"receiver": "Provisioner",
+			"documentation_hash": "71eed693466579ea710a2847dcd7e820d94ea601f3b4ce19b5822d1e243d2a0b",
+			"definition_hash": "e7d1c17dcab7c7489e6baaf9dd38f4915912cf31eef4fb9c1ad898a0f9e7e0d9",
+			"reviewed_at": "2026-07-08T14:50:26.486626671Z"
+		},
+		{
+			"function_name": "stopBoxAPI",
+			"receiver": "Provisioner",
+			"documentation_hash": "584c0c6afc1b7ec81b209bf36aebc682f6b927841b8ba05fc119bb9cc770dbbf",
+			"definition_hash": "667da5604717cd6df906ba4e249e997abf7a275ef64a358d352f6592dcfd9f68",
+			"reviewed_at": "2026-07-08T14:50:26.487899911Z"
+		},
+		{
+			"function_name": "stopAllBoxAPIs",
+			"receiver": "Provisioner",
+			"documentation_hash": "e0d8189a627818c3b188f1ad5940df8b04261fc0dcfbbeeed369f6bd82d9da71",
+			"definition_hash": "5de294c712b4996ce64f8616b6597791974ebc5e7660d2aa3bf3fe95aab00d5b",
+			"reviewed_at": "2026-07-08T14:50:26.489303507Z"
+		},
+		{
+			"function_name": "RecoverBoxAPIs",
+			"receiver": "Provisioner",
+			"documentation_hash": "a77a9c192d169796fee08373caf2812b4c90402a04c2b9992dd3e539c28c1ba0",
+			"definition_hash": "5f805107b891a5c3903ab5d62ef57a7dbf099fe43761a6138848855e8a8f1aea",
+			"reviewed_at": "2026-07-08T14:50:26.490749533Z"
 		}
 	]
 }

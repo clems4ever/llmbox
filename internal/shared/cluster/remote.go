@@ -2,7 +2,9 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -19,9 +21,10 @@ var errSpokeDisconnected = errors.New("spoke disconnected")
 // correlated by an incrementing ID. A single read loop demultiplexes responses
 // to waiting callers, so many verb calls can be in flight over one connection.
 type remoteSpoke struct {
-	name string
-	tr   transport
-	done chan struct{} // closed when the read loop exits (connection gone)
+	name  string
+	tr    transport
+	done  chan struct{}  // closed when the read loop exits (connection gone)
+	ports BoxPortService // handles spoke-originated box-port requests; nil rejects them
 
 	mu       sync.Mutex
 	nextID   uint64
@@ -37,15 +40,17 @@ type remoteSpoke struct {
 //
 // @arg name The spoke's name (for diagnostics and registry keying).
 // @arg tr The established transport to the spoke.
+// @arg ports The service handling this spoke's box-port requests; nil rejects them.
 // @return *remoteSpoke A BoxManager that round-trips verbs to the spoke.
 //
 // @testcase TestRemoteSpokeRoundTrip routes every verb through a remoteSpoke to a fake dispatcher.
 // @testcase TestRemoteSpokeDisconnect fails pending and later calls once the transport drops.
-func newRemoteSpoke(name string, tr transport) *remoteSpoke {
+func newRemoteSpoke(name string, tr transport, ports BoxPortService) *remoteSpoke {
 	r := &remoteSpoke{
 		name:    name,
 		tr:      tr,
 		done:    make(chan struct{}),
+		ports:   ports,
 		pending: make(map[uint64]chan frame),
 		streams: make(map[uint64]*clientStream),
 	}
@@ -93,9 +98,85 @@ func (r *remoteSpoke) readLoop() {
 				}
 				cs.closeRemote(cause)
 			}
+		case frameSpokeReq:
+			// A spoke-originated request: served in its own goroutine so a slow
+			// store operation never blocks response routing for in-flight verbs.
+			go r.serveSpokeRequest(f)
 		default:
 			// Enroll/welcome/req are never received on the hub side; ignore.
 		}
+	}
+}
+
+// serveSpokeRequest dispatches one spoke-originated box-port request to the
+// hub's BoxPortService and replies with a frameSpokeResp (Error set on
+// failure). The service receives the spoke's authenticated name — bound to
+// this connection at enrollment — never a caller-supplied identity.
+//
+// @arg f The frameSpokeReq to serve.
+//
+// @testcase TestSpokeCallerRoundTrip serves each box-port verb against a fake service.
+// @testcase TestSpokeCallerServiceError returns the service's error to the spoke.
+// @testcase TestHubWithoutBoxPortServiceRejects rejects requests when no service is configured.
+func (r *remoteSpoke) serveSpokeRequest(f frame) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	payload, err := r.dispatchSpokeRequest(ctx, f)
+	resp := frame{Type: frameSpokeResp, ID: f.ID}
+	if err != nil {
+		resp.Error = err.Error()
+	} else {
+		resp.Payload = payload
+	}
+	// A failed send means the connection is gone; the read loop observes it too.
+	_ = r.tr.Send(ctx, resp)
+}
+
+// dispatchSpokeRequest decodes a spoke-originated request, calls the matching
+// BoxPortService method with this connection's authenticated spoke name, and
+// returns the encoded response payload.
+//
+// @arg ctx Context bounding the service call.
+// @arg f The request frame to dispatch.
+// @return json.RawMessage The encoded response payload (nil for void verbs).
+// @error error if no service is configured, the method is unknown, the payload is malformed, or the service fails.
+//
+// @testcase TestSpokeCallerRoundTrip decodes and runs each box-port verb.
+// @testcase TestSpokeCallerUnknownMethod errors on an unrecognized method.
+func (r *remoteSpoke) dispatchSpokeRequest(ctx context.Context, f frame) (json.RawMessage, error) {
+	if r.ports == nil {
+		return nil, errors.New("this hub does not support box-port requests")
+	}
+	switch f.Method {
+	case methodOpenBoxPort:
+		var in openBoxPortReq
+		if err := decodePayload(f.Payload, &in); err != nil {
+			return nil, err
+		}
+		info, err := r.ports.OpenBoxPort(ctx, r.name, in.BoxID, in.Port, in.Description)
+		if err != nil {
+			return nil, err
+		}
+		return encodePayload(openBoxPortResp{Port: info})
+	case methodCloseBoxPort:
+		var in closeBoxPortReq
+		if err := decodePayload(f.Payload, &in); err != nil {
+			return nil, err
+		}
+		return nil, r.ports.CloseBoxPort(ctx, r.name, in.BoxID, in.Port)
+	case methodListBoxPorts:
+		var in listBoxPortsReq
+		if err := decodePayload(f.Payload, &in); err != nil {
+			return nil, err
+		}
+		ports, err := r.ports.ListBoxPorts(ctx, r.name, in.BoxID)
+		if err != nil {
+			return nil, err
+		}
+		return encodePayload(listBoxPortsResp{Ports: ports})
+	default:
+		return nil, fmt.Errorf("unknown method %q", f.Method)
 	}
 }
 

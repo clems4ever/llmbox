@@ -68,9 +68,10 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	t.Cleanup(func() { _ = store.Close() })
 
 	a := auth.NewTestAuthenticator("admin@corp.com")
-	clusterHub := cluster.NewHub(ctx, store, nil, nil)
 	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, a)
-	srv.SetHub(clusterHub)
+	// srv implements cluster.BoxPortService, mirroring the production wiring in
+	// internal/hub/serve.go, so spoke-originated box-port requests are served.
+	srv.SetHub(cluster.NewHub(ctx, store, nil, nil, srv))
 	// Enable HTTP proxying so the proxy-through-spoke path can be exercised. A
 	// request whose Host is a proxy sub-domain is reverse-proxied; every other
 	// request (the admin UI on the loopback host) falls through unchanged.
