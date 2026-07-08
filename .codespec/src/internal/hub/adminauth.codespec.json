@@ -1,0 +1,17 @@
+{
+	"functions": [
+		{
+			"function_name": "requireAdmin",
+			"receiver": "Server",
+			"documentation_hash": "e3e2d0fac4e18d569d1ca4e7e2ebf9beae38c3cb31169e2303f7ca39c3f57209",
+			"definition_hash": "577b3279e668307f5bc22ebe798ec43f977866deac26ce4cb1216a181aadcd94",
+			"reviewed_at": "2026-07-08T10:34:26.643745374Z"
+		},
+		{
+			"function_name": "adminLogin",
+			"documentation_hash": "9e7bc642b473e0d1256837cee49b336bea2f175518c35107b0751c29d866cc7e",
+			"definition_hash": "fb321ed63b60104be471ae431362f2fdc7695e50eb053e2907057680d8b8da45",
+			"reviewed_at": "2026-07-08T10:34:26.643919379Z"
+		}
+	]
+}
