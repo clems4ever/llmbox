@@ -11,7 +11,7 @@ import (
 // equal value through the frame payload helpers.
 func TestFrameRoundTrip(t *testing.T) {
 	cases := []any{
-		&createReq{Opts: sandbox.CreateOptions{BoxID: "b1", Image: "img", SpokeName: "edge", Files: []sandbox.InjectFile{{Path: "/x", Content: []byte("hi"), Mode: 0o600}}}},
+		&createReq{Opts: sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge", Files: []sandbox.InjectFile{{Path: "/x", Content: []byte("hi"), Mode: 0o600}}}},
 		&createResp{ID: "abc123", AuthorizeURL: "https://auth"},
 		&submitCodeReq{ID: "abc123", Code: "code-xyz"},
 		&submitCodeResp{SessionURL: "https://session"},

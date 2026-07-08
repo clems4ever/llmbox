@@ -348,7 +348,7 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 // the provisioner is namespaced, the box (and its network) carry NamespaceLabel.
 //
 // @arg ctx Context for the Docker calls and the socket wait.
-// @arg opts The caller-controlled image, box ID, and description for the box.
+// @arg opts The caller-controlled box ID, description, and files (the image is the spoke's configured default).
 // @return box.Instance A handle to the started box, in the pending phase.
 // @error error if the box id is invalid, the image cannot be pulled, or the box cannot be created, networked, started, or its agent socket does not appear.
 //
@@ -362,10 +362,9 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	if opts.BoxID != "" && !sandbox.ValidBoxID(opts.BoxID) {
 		return nil, fmt.Errorf("invalid box id %q", opts.BoxID)
 	}
-	image := opts.Image
-	if image == "" {
-		image = p.defaultImage
-	}
+	// Every box on this spoke launches the spoke's configured image; the request
+	// carries none (the image is a property of the spoke, not the create).
+	image := p.defaultImage
 
 	// Create the per-box socket directory (0700, owned by this process) before the
 	// container so it can be bind-mounted in. The directory is the access gate:

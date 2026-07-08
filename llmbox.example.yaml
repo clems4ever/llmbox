@@ -12,22 +12,6 @@ http_addr: ":8080"
 # correctly in production — it is used to build the auth-page links.
 public_url: "http://localhost:8080"
 
-# Box isolation backend: "docker" (default) runs each box as a Docker container;
-# "firecracker" runs each box as a Firecracker microVM (see the firecracker block
-# below and docs/firecracker.md). Empty defaults to docker, so existing
-# deployments are unaffected.
-backend: "docker"
-
-# Base image launched per box (docker backend). It must bake in the standalone
-# Claude binary (on PATH), tini (used as PID 1), /bin/sh, util-linux (for
-# `script`), and a CA bundle. Defaults to ghcr.io/clems4ever/llmbox-box, built by
-# Dockerfile.box; build your own FROM it to add more tooling. (The firecracker
-# backend uses firecracker.rootfs_image instead.)
-claude_image: "ghcr.io/clems4ever/llmbox-box:latest"
-
-# Args passed to `claude remote-control`.
-remote_args: "--spawn same-dir"
-
 # How long a box may stay un-authenticated before it is reaped (Go duration).
 auth_ttl: "5m"
 
@@ -57,12 +41,15 @@ state_file: "llmbox-sessions.db"
 # ready-to-run `llmbox-spoke <backend> --hub … --token …` command per enrolled
 # spoke; there is no cluster config block.
 
-# NOTE: the `llmbox-spoke` command reads NO config file — it is entirely
-# flag-driven so a spoke host runs the single command the admin UI generates.
-# Every per-box knob has a spoke flag counterpart, e.g. box.memory_mb ->
-# --box-memory-mb, registries -> --registry/--registry-username/--registry-password-file,
-# and the spoke's own image allow-list is set with --allowed-image. Run
-# `llmbox-spoke --help` for the full list.
+# NOTE: the hub runs NO box backend of its own, so it holds NO box-provisioning
+# config — the box image, backend, per-box resource caps, box peers, and private-
+# registry credentials are all the spoke's concern. The `llmbox-spoke` command
+# reads NO config file: it is entirely flag-driven, so a spoke host runs the
+# single command the admin UI generates. Every per-box knob is a spoke flag, e.g.
+# the box image is `--image`, resource caps are `--box-memory-mb`/`--box-cpus`,
+# and registry auth is `--registry`/`--registry-username`/`--registry-password-file`.
+# The backend is chosen by the subcommand (`llmbox-spoke docker …` or
+# `llmbox-spoke firecracker …`). Run `llmbox-spoke --help` for the full list.
 
 # Optional box lifecycle hooks: external executables run at box.create/destroy
 # (JSON over stdin/stdout, per the hookproto contract). A hook may inject files
@@ -71,68 +58,16 @@ state_file: "llmbox-sessions.db"
 # hooks:
 #   - /opt/granular-llmbox/hook
 
-# Container names connected into every box's OWN Docker network (boxes stay
-# isolated from one another) so boxes can reach them — e.g. a hook's resource
-# servers. Each must equal that container's name (set via `container_name:`).
-# box_peers:
-#   - granular-github
-#   - granular-as
-
-# Per-box resource caps and a ceiling on concurrent boxes. These bound resource
-# exhaustion (CPU/memory/PID fork-bombs, unbounded box counts) by a caller that
-# can reach the create/exec API — the box-control API is unauthenticated by
-# design and meant to sit behind an authenticating proxy, so these are the host's
-# last line of defence. memory_mb/cpus/pids_limit default to the finite values
-# below when unset; set one high to effectively lift it. max_boxes is unlimited
-# unless set.
-# box:
-#   memory_mb: 4096     # hard memory limit per box (MiB)
-#   cpus: 2             # CPU quota per box (fractional CPUs allowed)
-#   pids_limit: 4096    # max processes/threads per box (blunts fork bombs)
-#   max_boxes: 0        # max concurrent boxes (0 = unlimited)
-#   # Namespace scoping. Only needed when running two spokes (or a hub plus a
-#   # spoke) against the SAME Docker daemon: give each a distinct namespace so
-#   # they never list, reap, or destroy each other's boxes. Empty (default) means
-#   # unscoped — correct when one process owns the daemon. On a spoke the
-#   # --namespace flag overrides this.
-#   namespace: ""
-
-# Firecracker microVM backend settings (used only when backend: firecracker; a
-# Docker deployment ignores this block). Each box boots a shared guest kernel and
-# a per-box copy of the rootfs image, whose init is the llmbox agent listening on
-# vsock. Build the kernel + rootfs with scripts/firecracker/ — see
-# docs/firecracker.md. Host needs /dev/kvm and the firecracker binary on PATH.
-# firecracker:
-#   # All three image paths are optional: leave one empty and the spoke pulls the
-#   # published image from the registry (ghcr.io/clems4ever/llmbox-fc-{kernel,base,
-#   # payload}:latest) on startup and caches it, so a spoke needs no prebuilt images.
-#   # Override the source with LLMBOX_FC_REGISTRY / LLMBOX_FC_TAG. Set a path to use
-#   # a local file instead.
-#   kernel_image:  "/var/lib/llmbox/vmlinux"     # host path to the guest kernel (vmlinux)
-#   rootfs_image:  "/var/lib/llmbox/rootfs.ext4" # default guest rootfs booted per box
-#   # A small read-only ext4 carrying the guest agent (+claude), attached to every
-#   # box as a shared second drive so the agent updates without rebuilding the
-#   # multi-GiB rootfs. Empty pulls the published payload (unless rootfs_image is a
-#   # custom all-in-one image with the agent baked in).
-#   payload_image: "/var/lib/llmbox/payload.ext4"
-#   state_dir:     "/run/llmbox/firecracker"     # per-box runtime state (empty = backend default)
-#   # Egress TAP devices are provisioned once at startup (not per box), so creating
-#   # a box never changes the host's network — important when a browser runs on the
-#   # same host (a new interface mid-request makes Chrome abort with
-#   # ERR_NETWORK_CHANGED). pool_size caps concurrent networked boxes.
-#   pool_size:      16                           # 0 = backend default (16)
-#   # disable_egress: true                       # control-only boxes (no TAP/NAT); runs unprivileged but no outbound network
-
-# Credentials for pulling box images from authenticated container registries.
-# Each entry is matched against the image's registry host: an image whose host
-# has an entry is pulled with these credentials, any other image is pulled
-# anonymously (as before). Use "docker.io" for Docker Hub images (which carry no
-# host prefix). As with other secrets, the password/token is read from a file and
-# never inlined here. On a spoke, configure this where the box image is pulled.
-# registries:
-#   - registry: "ghcr.io"
-#     username: "your-github-user"
-#     password_file: "/etc/llmbox/ghcr-token"   # a GitHub PAT with read:packages
+# Per-box provisioning (the box image, backend, resource caps, box peers, and
+# registry credentials) is NOT configured here — the hub runs no box backend. It
+# lives entirely on the spoke as `llmbox-spoke` flags. For example:
+#   llmbox-spoke docker --hub wss://<hub>/spoke/connect --token <token> \
+#     --image ghcr.io/clems4ever/llmbox-box:latest \
+#     --box-memory-mb 4096 --box-cpus 2 \
+#     --box-peer granular-github --box-peer granular-as \
+#     --registry ghcr.io --registry-username you --registry-password-file /etc/llmbox/ghcr-token
+# For the Firecracker backend use `llmbox-spoke firecracker …` with
+# --kernel/--rootfs/--payload (see docs/firecracker.md). Run `llmbox-spoke --help`.
 
 # Expose box HTTP ports to the user's browser. When base_domain is set, the hub
 # serves a reverse proxy at https://<slug>.<base_domain>/ for every proxy enabled

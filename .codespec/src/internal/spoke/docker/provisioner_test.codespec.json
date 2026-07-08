@@ -124,14 +124,14 @@
 		{
 			"function_name": "TestProvisionPullsMissingImage",
 			"documentation_hash": "6b0c489f34ccf15dac608b5c013c1b52297d1cbaec2586b8e2ad987b01f67456",
-			"definition_hash": "49dbca9e5c360fc2e88f7d91c166279535b6514d987b225adc055d56ba2b9b5d",
-			"reviewed_at": "2026-06-30T16:11:46.369174299Z"
+			"definition_hash": "6d97b25dc0df34b32422abfde2692e7ad9a4284da801b49d16ff12bba174812c",
+			"reviewed_at": "2026-07-08T09:43:14.711489303Z"
 		},
 		{
 			"function_name": "TestProvisionPullsWithRegistryAuth",
 			"documentation_hash": "b9c7005caae20dfe8b1769dcc011ee8a3f241ecf5cc5c0bc3ac19f9e63181d58",
-			"definition_hash": "e3e781f232f050010b69e6b3adcd14010291db65c8db11c6be3ed976b058f223",
-			"reviewed_at": "2026-06-30T16:11:46.369885467Z"
+			"definition_hash": "49589749d22527a90b3dade52e81747c05e30528b133a0c68e5abbbe91f5b8dd",
+			"reviewed_at": "2026-07-08T09:43:14.712741711Z"
 		},
 		{
 			"function_name": "TestProvisionConnectsPeers",
@@ -214,8 +214,8 @@
 		{
 			"function_name": "TestProvisionPullFailure",
 			"documentation_hash": "4e1ad03fb35f55b8018df3c085c514dba575f1c6e6c08a16371cc6ebced4b9ae",
-			"definition_hash": "b180b6fd769dabbefec5d5349884eee1c212ce33d67af4ba08b93352c1425dcf",
-			"reviewed_at": "2026-06-30T16:36:14.108017534Z"
+			"definition_hash": "3bc4379592c8295276509ff3368dfae7302223ad038e19c051ac30e04a0cdb9d",
+			"reviewed_at": "2026-07-08T09:43:14.714490518Z"
 		},
 		{
 			"function_name": "TestDestroyRemoveError",
@@ -270,6 +270,12 @@
 			"documentation_hash": "59131047d66618f939de359236c0a9651f4f3e53ff0c7d9d70ce38f1187a6665",
 			"definition_hash": "6a0fdc4d06da6884aaca2677e001c180044c1f374962d1fe2a6c0b2e43eabe96",
 			"reviewed_at": "2026-07-01T09:20:13.819927563Z"
+		},
+		{
+			"function_name": "TestProvisionLaunchesDefaultImage",
+			"documentation_hash": "7ff00661665fc92906d2886f17a3f8296f47269a80d8a65a4a0090ed42bfb8e7",
+			"definition_hash": "00dbad10f4f5f95852af9b89cd8361b903e69cfd004e028a6d7ec64159c8558c",
+			"reviewed_at": "2026-07-08T09:43:14.710193699Z"
 		}
 	]
 }

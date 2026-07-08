@@ -9,8 +9,8 @@
 		{
 			"function_name": "runSpoke",
 			"documentation_hash": "e1e2528558d9197deb578e6ff9c3eec368d1d2e19cf2b5a25677b8b58d127f19",
-			"definition_hash": "555d20decf293fc33efd196bd1d993833d7312cc5ffb14d6b701e31e96451933",
-			"reviewed_at": "2026-07-08T08:50:14.893991284Z"
+			"definition_hash": "3d64181925d5b31c32e22da4fc7c46435fa61af6fd1ddf2c1f1ed0543d9287fb",
+			"reviewed_at": "2026-07-08T09:43:14.717042323Z"
 		},
 		{
 			"function_name": "checkStateWritable",
@@ -46,14 +46,14 @@
 		{
 			"function_name": "addCommonSpokeFlags",
 			"documentation_hash": "2e243a42d00c9155a08f0c89d9a369dbb8cfeb0415ef8a096a56869da63cf601",
-			"definition_hash": "0967d9d08bc729b31fb0ea3061d12bac853fdc62da6a9da1ee94643967fa43b6",
-			"reviewed_at": "2026-07-07T19:45:36.276878263Z"
+			"definition_hash": "e9e3a3b13853e8a89a477fffed1320dbc28948a5f6c7c5cc29ec24e5d69691a1",
+			"reviewed_at": "2026-07-08T09:43:14.716087019Z"
 		},
 		{
 			"function_name": "addDockerSpokeFlags",
 			"documentation_hash": "8a1b49ea694407c156b7e7f81993130d51703320911b6acd75dcbc263cda5f4f",
-			"definition_hash": "dbfa25c12f2de8ebf83d8a9d33921ab9f789d3730d6d29c8086aaa06c51d943f",
-			"reviewed_at": "2026-07-07T11:34:31.876883542Z"
+			"definition_hash": "380eae972452b70655289e4f0bb4b67c12d9fd2bd2a591730a7272a27fbf5836",
+			"reviewed_at": "2026-07-08T09:43:14.716578996Z"
 		},
 		{
 			"function_name": "addFirecrackerSpokeFlags",

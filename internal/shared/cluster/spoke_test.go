@@ -35,7 +35,7 @@ func TestSpokeRunEnrollsAndServes(t *testing.T) {
 		done <- Run(ctx, dial, fake, "tok", nil, func(c Credentials) error {
 			saved <- c
 			return nil
-		}, ValidationPolicy{})
+		})
 	}()
 
 	// Hub side: receive the enroll request carrying the join token.
@@ -90,7 +90,7 @@ func TestSpokeRunReconnectsWithCreds(t *testing.T) {
 		_ = Run(ctx, dial, &fakeManager{}, "", creds, func(Credentials) error {
 			savedCount++
 			return nil
-		}, ValidationPolicy{})
+		})
 	}()
 
 	enroll := recvWithin(t, hubEnd)
@@ -123,7 +123,7 @@ func TestSpokeRunEnrollRejected(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- Run(context.Background(), dial, &fakeManager{}, "tok", nil, nil, ValidationPolicy{})
+		done <- Run(context.Background(), dial, &fakeManager{}, "tok", nil, nil)
 	}()
 
 	_ = recvWithin(t, hubEnd) // consume enroll

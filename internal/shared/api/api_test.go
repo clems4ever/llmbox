@@ -38,14 +38,14 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	c := api.NewClient(ts.URL, ts.Client())
 	ctx := context.Background()
 
-	sess, err := c.CreateBox(ctx, sandbox.CreateOptions{BoxID: "web", Image: "img", Description: "d", SpokeName: "local"})
+	sess, err := c.CreateBox(ctx, sandbox.CreateOptions{BoxID: "web", Description: "d", SpokeName: "local"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 	if sess.ContainerID != "cid123" || sess.Token != "tok" || sess.BoxID != "web" {
 		t.Fatalf("CreateBox session = %+v", sess)
 	}
-	if fb.GotCreate.Image != "img" || fb.GotCreate.SpokeName != "local" {
+	if fb.GotCreate.BoxID != "web" || fb.GotCreate.Description != "d" || fb.GotCreate.SpokeName != "local" {
 		t.Fatalf("CreateBox opts not forwarded: %+v", fb.GotCreate)
 	}
 

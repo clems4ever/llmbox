@@ -104,10 +104,10 @@ func TestNewRootCmd(t *testing.T) {
 	}
 
 	// Flags every backend subcommand shares, plus the config-free invariant.
-	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "remote-args", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "allowed-image", "registry", "registry-username", "registry-password-file"}
+	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "remote-args", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "registry", "registry-username", "registry-password-file"}
 
 	docker := subcmd(t, cmd, "docker")
-	for _, f := range append([]string{"box-gpus"}, common...) {
+	for _, f := range append([]string{"box-gpus", "image"}, common...) {
 		if docker.Flags().Lookup(f) == nil {
 			t.Errorf("docker subcommand missing --%s flag", f)
 		}
@@ -126,7 +126,7 @@ func TestNewRootCmd(t *testing.T) {
 		}
 	}
 	// No docker-only flag and no --config/--backend leak onto the firecracker command.
-	for _, f := range []string{"box-gpus", "config", "backend"} {
+	for _, f := range []string{"box-gpus", "image", "config", "backend"} {
 		if fc.Flags().Lookup(f) != nil {
 			t.Errorf("firecracker subcommand should not have --%s", f)
 		}

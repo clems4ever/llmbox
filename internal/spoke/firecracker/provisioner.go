@@ -257,7 +257,7 @@ func (p *Provisioner) realMachineFactory(_ context.Context, cfg fcsdk.Config) (m
 // agent to answer on vsock. The box is created in the pending phase.
 //
 // @arg ctx Context for the boot and the agent wait.
-// @arg opts The caller-controlled image (rootfs), box ID, and description.
+// @arg opts The caller-controlled box ID, description, and files (the rootfs is the spoke's configured default).
 // @return box.Instance A handle to the booted box, in the pending phase.
 // @error error if the box id is invalid, the kernel/rootfs is missing, the egress pool cannot be provisioned, or the VM cannot be prepared, booted, or its agent does not answer.
 //
@@ -267,10 +267,9 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	if opts.BoxID != "" && !sandbox.ValidBoxID(opts.BoxID) {
 		return nil, fmt.Errorf("invalid box id %q", opts.BoxID)
 	}
-	rootfsSrc := opts.Image
-	if rootfsSrc == "" {
-		rootfsSrc = p.defaultRootfs
-	}
+	// Every box boots the spoke's configured rootfs; the request carries no image
+	// (the rootfs is a property of the spoke, not the create).
+	rootfsSrc := p.defaultRootfs
 	if p.kernelImage == "" || rootfsSrc == "" {
 		return nil, fmt.Errorf("firecracker backend requires a kernel image and a rootfs image")
 	}

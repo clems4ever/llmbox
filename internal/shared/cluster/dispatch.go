@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // serve runs the spoke-side request loop: it reads verb requests off the
@@ -18,12 +20,11 @@ import (
 // @arg ctx Context whose cancellation stops the loop.
 // @arg tr The transport to the hub.
 // @arg mgr The local box manager verbs are dispatched to.
-// @arg policy The admission policy applied to creation requests.
 // @error error The transport error that ended the loop (nil on a clean context cancel).
 //
 // @testcase TestDispatchHandlesVerbs dispatches each verb to a fake manager and replies.
 // @testcase TestDispatchUnknownMethod replies with an error for an unknown method.
-func serve(ctx context.Context, tr transport, mgr BoxManager, policy ValidationPolicy) error {
+func serve(ctx context.Context, tr transport, mgr BoxManager) error {
 	streams := newSpokeStreams()
 	defer streams.closeAll()
 	for {
@@ -35,7 +36,7 @@ func serve(ctx context.Context, tr transport, mgr BoxManager, policy ValidationP
 		case frameReq:
 			// Verb requests run in their own goroutine so a slow one doesn't block
 			// others; the transport serializes the concurrent responses.
-			go handleRequest(ctx, tr, mgr, f, policy)
+			go handleRequest(ctx, tr, mgr, f)
 		case frameStreamOpen:
 			// Open handling (including the box dial) runs inline so the stream is
 			// registered before any following data frame for it is processed.
@@ -98,11 +99,10 @@ func handleStreamOpen(ctx context.Context, tr transport, mgr BoxManager, req fra
 // @arg tr The transport to reply on.
 // @arg mgr The local box manager.
 // @arg req The request frame.
-// @arg policy The admission policy applied to creation requests.
 //
 // @testcase TestDispatchHandlesVerbs covers each verb path through handleRequest.
-func handleRequest(ctx context.Context, tr transport, mgr BoxManager, req frame, policy ValidationPolicy) {
-	payload, err := dispatch(ctx, mgr, req, policy)
+func handleRequest(ctx context.Context, tr transport, mgr BoxManager, req frame) {
+	payload, err := dispatch(ctx, mgr, req)
 	resp := frame{Type: frameResp, ID: req.ID}
 	if err != nil {
 		resp.Error = err.Error()
@@ -114,29 +114,29 @@ func handleRequest(ctx context.Context, tr transport, mgr BoxManager, req frame,
 }
 
 // dispatch decodes a verb request, calls the matching BoxManager method, and
-// returns the encoded response payload. A creation request is admission-checked
-// against policy before it reaches the manager.
+// returns the encoded response payload. A creation request's box id is validated
+// at the wire boundary — defense-in-depth so a spoke never provisions from a
+// malformed (and potentially shell-injecting) id, rather than trusting the hub.
 //
 // @arg ctx Context for the verb call.
 // @arg mgr The local box manager.
 // @arg req The request frame to dispatch.
-// @arg policy The admission policy applied to creation requests.
 // @return json.RawMessage The encoded response payload (nil for void verbs).
-// @error error if the method is unknown, the payload is malformed, the request is rejected by policy, or the verb fails.
+// @error error if the method is unknown, the payload is malformed, a create names a malformed box id, or the verb fails.
 //
 // @testcase TestDispatchHandlesVerbs decodes and runs each verb.
 // @testcase TestDispatchUnknownMethod errors on an unrecognized method.
 // @testcase TestDispatchBadPayload errors on a malformed request payload.
-// @testcase TestDispatchRejectsInvalidCreate rejects a creation that fails the policy.
-func dispatch(ctx context.Context, mgr BoxManager, req frame, policy ValidationPolicy) (json.RawMessage, error) {
+// @testcase TestDispatchRejectsInvalidCreate rejects a create whose box id is malformed.
+func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, error) {
 	switch req.Method {
 	case methodCreate:
 		var in createReq
 		if err := decodePayload(req.Payload, &in); err != nil {
 			return nil, err
 		}
-		if err := policy.validateCreate(in.Opts); err != nil {
-			return nil, err
+		if in.Opts.BoxID != "" && !sandbox.ValidBoxID(in.Opts.BoxID) {
+			return nil, fmt.Errorf("invalid box id %q: must be 1-63 chars of lowercase letters, digits, or hyphens (not starting or ending with a hyphen)", in.Opts.BoxID)
 		}
 		id, url, err := mgr.Create(ctx, in.Opts)
 		if err != nil {

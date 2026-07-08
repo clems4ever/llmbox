@@ -124,37 +124,6 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	}
 }
 
-// TestCreateBoxDefaultsImageToBoxImage checks that a creation request naming no
-// image inherits the hub's configured box image, so the box image is resolved on
-// the hub and remote spokes stay config-free.
-func TestCreateBoxDefaultsImageToBoxImage(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
-	s := newTestServer(f)
-	s.SetBoxImage("ghcr.io/clems4ever/granular-llmbox-box:latest")
-
-	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "my-box"}); err != nil {
-		t.Fatalf("CreateBox: %v", err)
-	}
-	if f.GotOpts.Image != "ghcr.io/clems4ever/granular-llmbox-box:latest" {
-		t.Errorf("manager got image %q, want the hub's configured box image", f.GotOpts.Image)
-	}
-}
-
-// TestCreateBoxKeepsExplicitImage checks that a request naming its own image is
-// left untouched and not overridden by the hub's configured box image.
-func TestCreateBoxKeepsExplicitImage(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
-	s := newTestServer(f)
-	s.SetBoxImage("ghcr.io/clems4ever/granular-llmbox-box:latest")
-
-	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "my-box", Image: "custom:tag"}); err != nil {
-		t.Fatalf("CreateBox: %v", err)
-	}
-	if f.GotOpts.Image != "custom:tag" {
-		t.Errorf("manager got image %q, want the request's explicit image", f.GotOpts.Image)
-	}
-}
-
 // TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
 func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 	// Hard to force token failure; instead verify create error propagates.

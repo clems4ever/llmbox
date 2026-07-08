@@ -40,11 +40,11 @@ type ExecResult struct {
 	ExitCode int    `json:"exit_code" jsonschema:"the command's exit code (0 means success)"`
 }
 
-// CreateOptions holds the caller-controlled inputs for a new box.
+// CreateOptions holds the caller-controlled inputs for a new box. It carries no
+// image: the box image is not a per-request input but a property of the spoke
+// that runs the box (each spoke launches its own configured default), so nothing
+// about the image crosses the hub/spoke boundary.
 type CreateOptions struct {
-	// Image is the image or rootfs reference to launch; empty means the Manager
-	// default. Backends without an image concept may ignore it.
-	Image string
 	// BoxID is the caller-assigned identifier for the box. When set, it is also
 	// applied as the box's hostname (what `hostname` reports inside it, and the
 	// name shown in claude.ai/code), so it must be a valid hostname label. It must

@@ -15,9 +15,9 @@
 		{
 			"function_name": "toolCreate",
 			"receiver": "handlers",
-			"documentation_hash": "f2d44b16621d74db9b0ac35ffc43615016541272a14997afef9fac153909d7dd",
-			"definition_hash": "afd013f9d244fd3376e4cb4789c89b8a71f9f42f79559f474085153af8e2b62d",
-			"reviewed_at": "2026-07-04T20:12:47.844797326Z"
+			"documentation_hash": "db652525a225e774e37c424f2470e92e20218573c11406ce4362a313c18336be",
+			"definition_hash": "a54b39adea37cf1cb807310c39590e0da9518d066ab3c775ab664bce1340799c",
+			"reviewed_at": "2026-07-08T09:43:14.701983352Z"
 		},
 		{
 			"function_name": "toolGet",

@@ -15,8 +15,8 @@
 		{
 			"function_name": "TestLoad",
 			"documentation_hash": "a99b8ef269ef1371f85d255c1bddc9aede16586adc848343e03823d7dacce5d9",
-			"definition_hash": "814e08830acd6cfcd613d90624c96de549a819ea1a713a0aa2fbf6bee0039e04",
-			"reviewed_at": "2026-07-07T19:47:49.67897356Z"
+			"definition_hash": "ee364b5d01757eaed572ed58f742f3c51c6527b32c66db94ce7ef058bc50d91e",
+			"reviewed_at": "2026-07-08T09:43:14.696138284Z"
 		},
 		{
 			"function_name": "TestLoadAdminEmails",
@@ -85,18 +85,6 @@
 			"reviewed_at": "2026-07-07T19:47:49.716169801Z"
 		},
 		{
-			"function_name": "TestLoadRegistry",
-			"documentation_hash": "06b75d87956fa517fbcc6db70d3259650dbde452c64b3586a089d16e90c3948f",
-			"definition_hash": "0604c5a95940b190f6487366372165a712120c0f2625324c0a87f3329879d2da",
-			"reviewed_at": "2026-07-07T19:47:49.719782576Z"
-		},
-		{
-			"function_name": "TestLoadRegistryMissingPasswordFile",
-			"documentation_hash": "8c42f1afc0bf3ed5a97d73eee966a2ece0d059ebaa8269f9293ca39092917d98",
-			"definition_hash": "3ce4a72e8fe22f88fa12192d70b5e7b8ffa9760fb3c48a972f1c8f13090c4512",
-			"reviewed_at": "2026-07-07T19:47:49.724052099Z"
-		},
-		{
 			"function_name": "TestLoadTLS",
 			"documentation_hash": "432d5cfbcd30a9a08038e49fb1f820748f9c072478dfb809a74f5c858eeb051b",
 			"definition_hash": "f7a64001bf354b147c3181495bff0ee11cf3fee764c63f29f57079ee655adf76",
@@ -107,12 +95,6 @@
 			"documentation_hash": "42097f0b60b71afb40c62df54894b538a07c1fcf72246fc31ffe852a25af1cc7",
 			"definition_hash": "19571e12c6d5077395848d6e4f81520e2d17be939407a6bee39639df2d378f27",
 			"reviewed_at": "2026-07-07T19:47:49.730423965Z"
-		},
-		{
-			"function_name": "TestLoadRegistryRequiresHost",
-			"documentation_hash": "09228fb3163359d063f5c076ec398e093d165de9a5a85307d992c1d466ea96fb",
-			"definition_hash": "b0b24f2f769386226161f229373c55281bc10cab5610e2d132d2d8ecd78809fc",
-			"reviewed_at": "2026-07-07T19:47:49.733561526Z"
 		},
 		{
 			"function_name": "TestLoadConfigDefaultsWhenAbsent",
@@ -131,6 +113,18 @@
 			"documentation_hash": "84267592107d8effaecef24abae0f643ee68f7dc090ce7ab925ad8976a1069bd",
 			"definition_hash": "921554f3d5b395dcf0a4587c505bf6ebfce8986d5e4074556005fea2d4d05a59",
 			"reviewed_at": "2026-07-07T19:47:49.743977918Z"
+		},
+		{
+			"function_name": "TestLoadRejectsBoxRunningKey",
+			"documentation_hash": "7522c12aa4494a85e29fd28920c2ed55950f4920f1826f60600e5a0e5376062e",
+			"definition_hash": "3361333b8f27f9df562491d35e41ab8cc951ef1767ddad64f21540df323a2389",
+			"reviewed_at": "2026-07-08T09:43:14.697193889Z"
+		},
+		{
+			"function_name": "TestExampleConfigParses",
+			"documentation_hash": "352ac2efa75508b9aad76cc52964acee61fce223647781ae05b0436fd61468d4",
+			"definition_hash": "69ae62f73d979e43b2d5052289e4e8c67a074998eec5cb184c04aeb8bb512573",
+			"reviewed_at": "2026-07-08T09:43:14.698250328Z"
 		}
 	]
 }

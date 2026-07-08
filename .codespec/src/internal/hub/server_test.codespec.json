@@ -153,18 +153,6 @@
 			"reviewed_at": "2026-07-07T08:15:52.628490599Z"
 		},
 		{
-			"function_name": "TestCreateBoxDefaultsImageToBoxImage",
-			"documentation_hash": "ed9217dc454cd641cc225c4dc255fa2b985d6902d9f407c083e685d0b4219cff",
-			"definition_hash": "f53867cea3d22b9ca8ca39cec6d71e8cf65a0ddc2d4501b2138533957caa0e41",
-			"reviewed_at": "2026-06-29T15:39:25.437647559Z"
-		},
-		{
-			"function_name": "TestCreateBoxKeepsExplicitImage",
-			"documentation_hash": "5ec9a3956176aa482267ecee6c5d90921ec53bd5835fa3051f77920714779f21",
-			"definition_hash": "3792444062dbc8c494f6b9ff23ed81d34dc30ac0240647eab5174f5d4849ee2c",
-			"reviewed_at": "2026-06-29T15:39:25.439017314Z"
-		},
-		{
 			"function_name": "TestAPIHandlerServesUIAndAPI",
 			"documentation_hash": "0b7b80ded5a65aebb00421fee15efc67c6f350e2de4f5486ad5ec1b409849b17",
 			"definition_hash": "0a70487e51d9b0c9d432c92dfe7866a42e07f35710f1e35255c5c0173306ad31",

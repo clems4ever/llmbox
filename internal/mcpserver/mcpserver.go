@@ -106,7 +106,6 @@ func NewServer(b Backend, name, version string) *mcp.Server {
 }
 
 type createInput struct {
-	Image       string `json:"image,omitempty" jsonschema:"optional image to launch; defaults to the configured Claude image"`
 	BoxID       string `json:"box_id" jsonschema:"required box ID to assign; used to reference the box later (get/destroy/logs/exec) and used as the box's hostname, which is the name the user sees in claude.ai/code. Pick a unique, human-readable string that conveys what the box is for (e.g. 'refactor-auth-service'), since it is what identifies the box to the user. Must be a valid hostname (lowercase letters, digits and hyphens) and unique across boxes (creation fails if another box already uses it)"`
 	Description string `json:"description,omitempty" jsonschema:"optional human-readable description shown in list and get to tell boxes apart"`
 	Spoke       string `json:"spoke,omitempty" jsonschema:"optional cluster spoke to create the box on; omit (or 'local') to use the server's own host. Use a spoke name returned by list_llmboxes when boxes should run on a remote Docker host"`
@@ -122,12 +121,13 @@ type createOutput struct {
 }
 
 // toolCreate handles the create_llmbox tool: it launches a box with the given
-// image, box ID, description, and optional target spoke, and returns the auth
-// page URL and token.
+// box ID, description, and optional target spoke, and returns the auth page URL
+// and token. The box image is not a create input — each spoke launches its own
+// configured image.
 //
 // @arg ctx Context for the box creation.
 // @arg _ The MCP call request (unused).
-// @arg in The create input carrying the required box ID and an optional image, description, and spoke.
+// @arg in The create input carrying the required box ID and an optional description and spoke.
 // @return *mcp.CallToolResult Always nil; structured output is returned instead.
 // @return createOutput The box ID, instance ID, auth URL, token, status, and instructions.
 // @error error if box_id is empty, or the box cannot be created.
@@ -139,7 +139,6 @@ func (h *handlers) toolCreate(ctx context.Context, _ *mcp.CallToolRequest, in cr
 		return nil, createOutput{}, fmt.Errorf("box_id is required")
 	}
 	sess, err := h.b.CreateBox(ctx, sandbox.CreateOptions{
-		Image:       in.Image,
 		BoxID:       in.BoxID,
 		Description: in.Description,
 		SpokeName:   in.Spoke,

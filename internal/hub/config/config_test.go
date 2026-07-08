@@ -39,15 +39,10 @@ func TestLoad(t *testing.T) {
 	path := write(t, `
 http_addr: ":9090"
 public_url: "https://boxes.example.com"
-claude_image: "ubuntu:24.04"
-remote_args: "--spawn new-dir"
 auth_ttl: "10m"
 state_file: "/var/lib/llmbox/sessions.db"
 hooks:
   - /opt/granular-llmbox/hook
-box_peers:
-  - granular-github
-  - granular-as
 `)
 	c, err := Load(path)
 	if err != nil {
@@ -56,17 +51,25 @@ box_peers:
 	if c.HTTPAddr != ":9090" || c.PublicURL != "https://boxes.example.com" {
 		t.Errorf("addr/url = %q / %q", c.HTTPAddr, c.PublicURL)
 	}
-	if c.ClaudeImage != "ubuntu:24.04" || c.RemoteArgs != "--spawn new-dir" {
-		t.Errorf("docker fields = %q / %q", c.ClaudeImage, c.RemoteArgs)
-	}
 	if time.Duration(c.AuthTTL) != 10*time.Minute {
 		t.Errorf("AuthTTL = %v, want 10m", time.Duration(c.AuthTTL))
+	}
+	if c.StateFile != "/var/lib/llmbox/sessions.db" {
+		t.Errorf("StateFile = %q", c.StateFile)
 	}
 	if len(c.Hooks) != 1 || c.Hooks[0] != "/opt/granular-llmbox/hook" {
 		t.Errorf("Hooks = %v", c.Hooks)
 	}
-	if len(c.BoxPeers) != 2 || c.BoxPeers[0] != "granular-github" || c.BoxPeers[1] != "granular-as" {
-		t.Errorf("BoxPeers = %v", c.BoxPeers)
+}
+
+// TestLoadRejectsBoxRunningKey checks that box-running knobs moved to the spoke
+// (image, backend, resource caps, registries) are rejected as unknown keys, so a
+// stale hub config surfaces the move rather than being silently ignored.
+func TestLoadRejectsBoxRunningKey(t *testing.T) {
+	for _, key := range []string{"claude_image", "backend", "remote_args", "box_peers", "box", "firecracker", "registries"} {
+		if _, err := Load(write(t, key+": x\n")); err == nil {
+			t.Errorf("Load with %q = nil, want unknown-key error", key)
+		}
 	}
 }
 
@@ -102,6 +105,15 @@ func TestLoadAppliesDefaults(t *testing.T) {
 	}
 	if c.StateFile != DefaultStateFile {
 		t.Errorf("StateFile = %q, want default", c.StateFile)
+	}
+}
+
+// TestExampleConfigParses checks the shipped llmbox.example.yaml parses under the
+// hub's strict decoder, so the example never drifts to a key the hub rejects
+// (e.g. a box-provisioning knob that has since moved to the spoke).
+func TestExampleConfigParses(t *testing.T) {
+	if _, err := Load(filepath.Join("..", "..", "..", "llmbox.example.yaml")); err != nil {
+		t.Fatalf("llmbox.example.yaml does not parse: %v", err)
 	}
 }
 
@@ -225,47 +237,6 @@ auth:
 	}
 }
 
-// TestLoadRegistry checks a registry entry parses and resolves its password from
-// the referenced file, leaving the password out of the YAML.
-func TestLoadRegistry(t *testing.T) {
-	dir := t.TempDir()
-	pw := writeFile(t, dir, "ghcr-token", "ghp_secrettoken\n")
-	cfgPath := writeFile(t, dir, "llmbox.yaml", `
-registries:
-  - registry: "ghcr.io"
-    username: "bob"
-    password_file: "`+pw+`"
-`)
-	c, err := Load(cfgPath)
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	if len(c.Registries) != 1 {
-		t.Fatalf("Registries = %v, want one entry", c.Registries)
-	}
-	r := c.Registries[0]
-	if r.Registry != "ghcr.io" || r.Username != "bob" {
-		t.Errorf("registry/username = %q / %q", r.Registry, r.Username)
-	}
-	if r.Password != "ghp_secrettoken" {
-		t.Errorf("Password = %q, want token trimmed from file", r.Password)
-	}
-}
-
-// TestLoadRegistryMissingPasswordFile checks an unreadable password file errors.
-func TestLoadRegistryMissingPasswordFile(t *testing.T) {
-	dir := t.TempDir()
-	cfgPath := writeFile(t, dir, "llmbox.yaml", `
-registries:
-  - registry: "ghcr.io"
-    username: "bob"
-    password_file: "`+filepath.Join(dir, "nope")+`"
-`)
-	if _, err := Load(cfgPath); err == nil {
-		t.Error("Load with missing password file = nil, want error")
-	}
-}
-
 // TestLoadTLS checks an enabled TLS block parses its cert and key file paths.
 func TestLoadTLS(t *testing.T) {
 	c, err := Load(write(t, `
@@ -293,20 +264,6 @@ func TestLoadTLSRequiresCertAndKey(t *testing.T) {
 	}
 	if _, err := Load(write(t, "tls:\n  enabled: true\n  key_file: \"/etc/llmbox/tls-key.pem\"\n")); err == nil {
 		t.Error("Load TLS with no cert_file = nil, want error")
-	}
-}
-
-// TestLoadRegistryRequiresHost checks a registry entry with no host is rejected.
-func TestLoadRegistryRequiresHost(t *testing.T) {
-	dir := t.TempDir()
-	pw := writeFile(t, dir, "token", "t")
-	cfgPath := writeFile(t, dir, "llmbox.yaml", `
-registries:
-  - username: "bob"
-    password_file: "`+pw+`"
-`)
-	if _, err := Load(cfgPath); err == nil {
-		t.Error("Load with no registry host = nil, want error")
 	}
 }
 

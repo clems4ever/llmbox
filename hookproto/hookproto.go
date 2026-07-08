@@ -44,9 +44,10 @@ type Request struct {
 }
 
 // Box describes the box an event concerns. Fields are best-effort: box.destroy
-// may carry only what llmbox still knows about a box.
+// may carry only what llmbox still knows about a box. The box image is not
+// included: it is a property of the spoke that runs the box, not the hub that
+// runs hooks, so the hub never knows it.
 type Box struct {
-	Image       string `json:"image,omitempty"`
 	BoxID       string `json:"box_id,omitempty"`
 	Description string `json:"description,omitempty"`
 }

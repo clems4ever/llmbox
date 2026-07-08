@@ -19,10 +19,12 @@
 //
 //	http_addr:    ":8080"                  # HTTP listen address (UI + box-control API)
 //	public_url:   "http://localhost:8080"  # external base URL for auth links
-//	claude_image: "ghcr.io/clems4ever/llmbox-box:latest"  # base image per box; must bake in Claude, tini, util-linux, and a CA bundle (see Dockerfile.box)
-//	remote_args:  "--spawn same-dir"       # args passed to `claude remote-control`
 //	auth_ttl:     "5m"                      # how long a box may stay un-authenticated (Go duration)
 //	state_file:   "llmbox-sessions.db"     # SQLite file persisting the session registry
+//
+// The hub runs no box backend of its own, so it holds no box-provisioning
+// config: the box image, resource caps, and backend are the spoke's concern and
+// are set with llmbox-spoke flags (e.g. --image).
 //
 // By default the single HTTP server is served in the clear and a loud startup
 // warning is logged, since it is meant to sit behind a TLS-terminating reverse
@@ -36,15 +38,10 @@
 // Box lifecycle hooks (optional). hooks is a list of external executables llmbox
 // runs at box.create and box.destroy, exchanging JSON per the hookproto
 // contract. A hook may inject files into each box and persist opaque state; this
-// is how integrations like granular plug in without llmbox depending on them.
-// box_peers is a list of container names connected into every box's network so
-// boxes can reach them (e.g. a hook's resource servers):
+// is how integrations like granular plug in without llmbox depending on them:
 //
 //	hooks:
 //	  - /opt/granular-llmbox/hook
-//	box_peers:
-//	  - granular-github
-//	  - granular-as
 package main
 
 import (
@@ -67,7 +64,6 @@ import (
 	"github.com/clems4ever/llmbox/internal/hub/hooks"
 	"github.com/clems4ever/llmbox/internal/hub/token"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	"github.com/clems4ever/llmbox/internal/spoke/docker"
 )
 
 const (
@@ -146,22 +142,6 @@ func newRootCmd() *cobra.Command {
 func run(parent context.Context, cfg *config.Config) error {
 	authTTL := time.Duration(cfg.AuthTTL)
 
-	// Resolve the per-box image once, here on the hub, so every box-creation
-	// request carries an explicit image and spokes (config-free) supply none of
-	// their own. What "image" means depends on the backend: for Docker it is the
-	// container image (claude_image, or the built-in default); for Firecracker it
-	// is the guest rootfs path, so the hub sends the configured rootfs rather than
-	// a Docker ref (which the microVM backend cannot boot).
-	var boxImage string
-	if cfg.Backend == "firecracker" {
-		boxImage = cfg.Firecracker.RootfsImage
-	} else {
-		boxImage = cfg.ClaudeImage
-		if boxImage == "" {
-			boxImage = docker.DefaultImage
-		}
-	}
-
 	// Optional box lifecycle hooks: external programs run at box.create/destroy.
 	// New returns nil (no hooks) when the list is empty.
 	hookRunner := hooks.New(cfg.Hooks)
@@ -197,7 +177,6 @@ func run(parent context.Context, cfg *config.Config) error {
 	defer stop()
 
 	srv := hub.New(hookRunner, cfg.PublicURL, authTTL, store, authr)
-	srv.SetBoxImage(boxImage)
 	srv.SetProxyBaseDomain(cfg.Proxy.BaseDomain)
 	if cfg.Proxy.BaseDomain != "" {
 		log.Printf("box HTTP proxying enabled at *.%s", cfg.Proxy.BaseDomain)

@@ -3,21 +3,21 @@
 		{
 			"function_name": "TestClusterEndToEnd",
 			"documentation_hash": "20fd993dd07458965df0f0a461d34dcec2d40e48807ef5a6e70b579c92f6aae5",
-			"definition_hash": "5caf3fb0294d887ed88f1a3fde2dd50345fb1eb938b276a460ae618ce502df02",
-			"reviewed_at": "2026-07-07T18:00:29.715634793Z"
+			"definition_hash": "63a9e5f6d065e1a5925bd4b4e0dc739ebfc9717ddadee818618f5d280f9c14ed",
+			"reviewed_at": "2026-07-08T09:42:50.8589383Z"
 		},
 		{
 			"function_name": "newFakeSpokeMgr",
-			"documentation_hash": "78d7a36fbb73726928408c254350ddcb5058cb0475f43edeb92574c9e44883c3",
-			"definition_hash": "0e0bc3954ffa9eaf6565dfc6d8c9fb684ed759fb016fa838ce4752dca4d5d496",
-			"reviewed_at": "2026-06-19T20:31:48.714984766Z"
+			"documentation_hash": "0a9479706435a4a03dba36c9aa9e4fef731159fd2fed843417e4e2c101e6f473",
+			"definition_hash": "398b184677bd164cf75e1fb6aac8b1f5f4bbc93cd918c74b110124ab97646d1b",
+			"reviewed_at": "2026-07-08T09:42:50.86600626Z"
 		},
 		{
 			"function_name": "Create",
 			"receiver": "fakeSpokeMgr",
 			"documentation_hash": "e91be58eb99529e3bc7566f716b14c7abd79e4d26d54846d176d6fea38d69022",
-			"definition_hash": "f7215d8a4e6705f8fe393b5cc524aed41c892a1134e22ebcd2bce6f4d1c667d8",
-			"reviewed_at": "2026-06-29T15:39:24.95787255Z"
+			"definition_hash": "0dbef580258ac7dc3f4d3926e228a65ad6d250ccdc5a58b5d95cf95d365e99c6",
+			"reviewed_at": "2026-07-08T09:42:50.873987991Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -140,9 +140,9 @@
 		{
 			"function_name": "image",
 			"receiver": "fakeSpokeMgr",
-			"documentation_hash": "7c480ed542ed7713af7fc1e6c289ae24f513e7bb9a408ec8625cde8ab99da3d9",
-			"definition_hash": "663c8e94fca0bff2b694fe8f35279434a94baf79d6cb840921f771a67aaf2357",
-			"reviewed_at": "2026-06-22T14:06:42.743198429Z"
+			"documentation_hash": "4a534a54152b6a74e5004801cdad15789c95c4af290619a323a92b04ca2b9f7c",
+			"definition_hash": "d713b102aa21d8035ecf700db191b53ce15ea12199fa6c01c071e19c6a97ca64",
+			"reviewed_at": "2026-07-08T09:42:50.880401866Z"
 		},
 		{
 			"function_name": "hasBox",

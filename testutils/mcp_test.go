@@ -20,10 +20,10 @@ func TestFakeBackend(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	if _, err := f.CreateBox(ctx, sandbox.CreateOptions{BoxID: "web", Image: "img"}); err != nil {
+	if _, err := f.CreateBox(ctx, sandbox.CreateOptions{BoxID: "web", Description: "d"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if f.GotCreate.Image != "img" {
+	if f.GotCreate.BoxID != "web" || f.GotCreate.Description != "d" {
 		t.Errorf("GotCreate = %+v", f.GotCreate)
 	}
 
