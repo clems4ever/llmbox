@@ -35,7 +35,7 @@ func TestHubEnrollAndRoute(t *testing.T) {
 
 	hubCtx, hubCancel := context.WithCancel(context.Background())
 	defer hubCancel()
-	hub := NewHub(hubCtx, store, func() time.Time { return now }, nil)
+	hub := NewHub(hubCtx, store, func() time.Time { return now }, nil, nil)
 	srv := httptest.NewServer(http.HandlerFunc(hub.ConnectHandler))
 	defer srv.Close()
 	url := "ws" + srv.URL[len("http"):] + "/"
@@ -74,7 +74,7 @@ func TestHubEnrollAndRoute(t *testing.T) {
 func TestHubRejectsBadEnrollment(t *testing.T) {
 	hubCtx, hubCancel := context.WithCancel(context.Background())
 	defer hubCancel()
-	hub := NewHub(hubCtx, newMemStore(), nil, nil)
+	hub := NewHub(hubCtx, newMemStore(), nil, nil, nil)
 	srv := httptest.NewServer(http.HandlerFunc(hub.ConnectHandler))
 	defer srv.Close()
 	url := "ws" + srv.URL[len("http"):] + "/"
@@ -91,10 +91,10 @@ func TestHubRejectsBadEnrollment(t *testing.T) {
 // TestHubDisconnectClosesConnection checks Disconnect force-closes a connected
 // spoke's link, and is a no-op for an unknown spoke.
 func TestHubDisconnectClosesConnection(t *testing.T) {
-	hub := NewHub(context.Background(), newMemStore(), nil, nil)
+	hub := NewHub(context.Background(), newMemStore(), nil, nil, nil)
 
 	hubEnd, _ := newPipe()
-	rs := newRemoteSpoke("edge", hubEnd)
+	rs := newRemoteSpoke("edge", hubEnd, nil)
 	hub.register("edge", rs)
 
 	hub.Disconnect("ghost") // unknown: must not panic or affect edge
@@ -112,14 +112,14 @@ func TestHubDisconnectClosesConnection(t *testing.T) {
 
 // TestHubReconnectSupersedes is a package test.
 func TestHubReconnectSupersedes(t *testing.T) {
-	hub := NewHub(context.Background(), newMemStore(), nil, nil)
+	hub := NewHub(context.Background(), newMemStore(), nil, nil, nil)
 
 	hubEnd1, _ := newPipe()
-	rs1 := newRemoteSpoke("x", hubEnd1)
+	rs1 := newRemoteSpoke("x", hubEnd1, nil)
 	hub.register("x", rs1)
 
 	hubEnd2, _ := newPipe()
-	rs2 := newRemoteSpoke("x", hubEnd2)
+	rs2 := newRemoteSpoke("x", hubEnd2, nil)
 	hub.register("x", rs2) // supersedes rs1
 
 	// rs1's connection is closed by the supersede.

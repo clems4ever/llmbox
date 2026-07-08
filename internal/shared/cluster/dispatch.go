@@ -20,11 +20,13 @@ import (
 // @arg ctx Context whose cancellation stops the loop.
 // @arg tr The transport to the hub.
 // @arg mgr The local box manager verbs are dispatched to.
+// @arg caller The attached HubCaller awaiting spoke→hub responses; nil when the direction is disabled.
 // @error error The transport error that ended the loop (nil on a clean context cancel).
 //
 // @testcase TestDispatchHandlesVerbs dispatches each verb to a fake manager and replies.
 // @testcase TestDispatchUnknownMethod replies with an error for an unknown method.
-func serve(ctx context.Context, tr transport, mgr BoxManager) error {
+// @testcase TestSpokeCallerRoundTrip routes spoke→hub responses to the attached caller.
+func serve(ctx context.Context, tr transport, mgr BoxManager, caller *HubCaller) error {
 	streams := newSpokeStreams()
 	defer streams.closeAll()
 	for {
@@ -49,6 +51,11 @@ func serve(ctx context.Context, tr transport, mgr BoxManager) error {
 			if ss := streams.get(f.ID); ss != nil {
 				streams.del(f.ID)
 				ss.teardown(false)
+			}
+		case frameSpokeResp:
+			// A response to a spoke-originated request: hand it to the caller.
+			if caller != nil {
+				caller.deliver(f)
 			}
 		default:
 			// enroll/welcome/resp/err are not expected on the spoke's serve loop.

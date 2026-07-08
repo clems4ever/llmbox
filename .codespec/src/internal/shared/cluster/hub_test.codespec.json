@@ -9,26 +9,26 @@
 		{
 			"function_name": "TestHubEnrollAndRoute",
 			"documentation_hash": "558dabc7f7337c0fa491def90d3b5bdd90a75d8d403227877323f1be61723d48",
-			"definition_hash": "272b127cfe9a8fc2de090b86c9e3cbbcf318f196c8b5c419a000d2dce91d6629",
-			"reviewed_at": "2026-07-08T09:43:14.704687564Z"
+			"definition_hash": "bbbc38116bd2fd69ff0eb94f8c79775694ade5790e962a678007aadac6f1b1ca",
+			"reviewed_at": "2026-07-08T14:50:26.47683578Z"
 		},
 		{
 			"function_name": "TestHubRejectsBadEnrollment",
 			"documentation_hash": "ee96521dabb585e17951ee62ce7a903df0ef997db4dc5863482c1eee9a4ce488",
-			"definition_hash": "0714e0674fa89c60c7f0595e3cdd167e6173bea85b6b8147e019aaa067fcba7d",
-			"reviewed_at": "2026-07-08T09:43:14.704933596Z"
+			"definition_hash": "e6ec90e2622cddfe1018fea6865ca1190be365e6b49084642853f495305cb8f4",
+			"reviewed_at": "2026-07-08T14:50:26.477045117Z"
 		},
 		{
 			"function_name": "TestHubReconnectSupersedes",
 			"documentation_hash": "9b263f78c489cb2e7d79811daf3de6ba93d3150fee0bd398d5e64ef846fdf66d",
-			"definition_hash": "8a1d6adfd3c5f6078c47652365dd4ab050a05d4155a5a576d451582666e07a58",
-			"reviewed_at": "2026-06-19T20:33:57.757845484Z"
+			"definition_hash": "58c7fcefcf6705c0c3c9626f6382d56d776d39b1f0bf08feaa28cf024213a141",
+			"reviewed_at": "2026-07-08T14:50:26.477447189Z"
 		},
 		{
 			"function_name": "TestHubDisconnectClosesConnection",
 			"documentation_hash": "62e9b84ad7876fcc7c95b1b9ab8240ed816c212a1785c35119f79176d79484af",
-			"definition_hash": "cb53f4e4e87ebedb703127aa1f5798ccd8b36cd06528ac8081a9b7b0ad1387b9",
-			"reviewed_at": "2026-06-21T13:23:33.257518753Z"
+			"definition_hash": "c69844fb19b685cef372fb9ceaaad3f34c00d859cd1b446fb9b9cf65417ecdd9",
+			"reviewed_at": "2026-07-08T14:50:26.477252099Z"
 		}
 	]
 }

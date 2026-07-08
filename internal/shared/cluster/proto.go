@@ -32,6 +32,14 @@ const (
 	frameStreamOpen  frameType = "stream_open"
 	frameStreamData  frameType = "stream_data"
 	frameStreamClose frameType = "stream_close"
+	// frameSpokeReq is a spoke→hub verb request; frameSpokeResp is the hub's
+	// reply, correlated by ID. It is the only spoke-originated RPC direction and
+	// uses an ID space independent from the hub→spoke frameReq/frameResp pair, so
+	// the two directions never confuse each other's correlation IDs. Today it
+	// carries the box-port verbs a box invokes against its own spoke-stamped
+	// identity (see BoxPortService).
+	frameSpokeReq  frameType = "spoke_req"
+	frameSpokeResp frameType = "spoke_resp"
 )
 
 // Verb method names carried in a frameReq.
@@ -43,6 +51,13 @@ const (
 	methodLogs       = "logs"
 	methodExec       = "exec"
 	methodReap       = "reap"
+)
+
+// Verb method names carried in a frameSpokeReq (spoke→hub).
+const (
+	methodOpenBoxPort  = "open_box_port"
+	methodCloseBoxPort = "close_box_port"
+	methodListBoxPorts = "list_box_ports"
 )
 
 // frame is the single envelope exchanged over a cluster connection. Payload is
@@ -117,6 +132,41 @@ type reapReq struct {
 }
 type reapResp struct {
 	Reaped []string `json:"reaped"`
+}
+
+// Box-port payloads (spoke→hub, carried in a frameSpokeReq). The BoxID is
+// stamped by the SPOKE from its own persisted record of which box the request
+// arrived from — it is never taken from anything the box sent, which is what
+// scopes a box's port requests to itself.
+
+// BoxPortInfo is the box-facing view of one published port: just the port, its
+// public URL, and the caller's description. It deliberately omits hub-side
+// details (slug, spoke, creator) that a box has no business seeing.
+type BoxPortInfo struct {
+	Port        int    `json:"port"`
+	URL         string `json:"url"`
+	Description string `json:"description,omitempty"`
+}
+
+type openBoxPortReq struct {
+	BoxID       string `json:"box_id"`
+	Port        int    `json:"port"`
+	Description string `json:"description,omitempty"`
+}
+type openBoxPortResp struct {
+	Port BoxPortInfo `json:"port"`
+}
+
+type closeBoxPortReq struct {
+	BoxID string `json:"box_id"`
+	Port  int    `json:"port"`
+}
+
+type listBoxPortsReq struct {
+	BoxID string `json:"box_id"`
+}
+type listBoxPortsResp struct {
+	Ports []BoxPortInfo `json:"ports"`
 }
 
 // streamOpenReq opens a raw byte tunnel to a box's port on the spoke, carried in

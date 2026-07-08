@@ -35,10 +35,14 @@ echo ">> building static llmbox-agent (linux/amd64)"
 ( cd "$REPO_ROOT" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags="-s -w" -o "$PDIR/llmbox-agent" ./cmd/llmbox-agent )
 
-echo ">> lifting the standalone claude binary and trust seed from $BOX_IMAGE"
+echo ">> lifting the standalone claude binary, trust seed, and skills from $BOX_IMAGE"
 cid="$(docker create "$BOX_IMAGE")"
 docker cp "$cid":/usr/local/bin/claude "$PDIR/claude"
 docker cp "$cid":/root/.claude.json "$PDIR/claude.json" 2>/dev/null || echo '{}' > "$PDIR/claude.json"
+# The image's baked-in Claude Code skills (e.g. box-ports). The payload flow
+# boots the agent-agnostic base rootfs, so nothing from the image's /root
+# arrives unless this entrypoint seeds it.
+docker cp "$cid":/root/.claude/skills "$PDIR/skills" 2>/dev/null || mkdir -p "$PDIR/skills"
 docker rm "$cid" >/dev/null
 
 # The entrypoint the base's generic loader runs after mounting this payload at
@@ -53,8 +57,11 @@ export HOME=/root
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 mkdir -p /workspace
 cp -n /payload/claude.json /root/.claude.json 2>/dev/null || true
+# Seed the image's Claude Code skills (box-ports etc.); -n keeps box-local edits.
+mkdir -p /root/.claude/skills
+cp -rn /payload/skills/. /root/.claude/skills/ 2>/dev/null || true
 cd /workspace
-exec /payload/llmbox-agent --vsock-port 5000 --claude /payload/claude
+exec /payload/llmbox-agent --vsock-port 5000 --boxapi-port 5001 --claude /payload/claude
 ENTRY
 
 chmod 0755 "$PDIR/llmbox-agent" "$PDIR/claude" "$PDIR/entrypoint"

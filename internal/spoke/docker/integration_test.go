@@ -38,7 +38,7 @@ func TestDockerConformance(t *testing.T) {
 
 	socketDir := t.TempDir()
 	conformance.Run(t, func(t testing.TB) box.Provisioner {
-		prov, err := docker.NewProvisioner(image, socketDir, nil)
+		prov, err := docker.NewProvisioner(image, socketDir, nil, nil)
 		if err != nil {
 			t.Fatalf("NewProvisioner: %v", err)
 		}

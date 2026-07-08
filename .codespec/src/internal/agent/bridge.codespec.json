@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "RunBoxAPIBridge",
+			"documentation_hash": "d277e523dfacb12d47fe965e92fa16e50e85d8741e1cdc16c1abfc8b007fb7bf",
+			"definition_hash": "e83cefea928f6320cc0257dec8397b19aadbdae20f4970660c0c7d37bb8dac66",
+			"reviewed_at": "2026-07-08T14:54:58.730315197Z"
+		},
+		{
+			"function_name": "DialHostVsock",
+			"documentation_hash": "2b2f686223556932bfa341807cfa5d466748cb3fc24081181793f287b248d9ae",
+			"definition_hash": "c87df567a199a0bfeb6a6dbcc9f5e5c994da2e9043f8cb3a6d709ec4be32e729",
+			"reviewed_at": "2026-07-08T15:01:14.750297587Z"
+		}
+	]
+}

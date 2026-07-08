@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -52,7 +53,7 @@ func TestVMSurvivesRequestContextCancel(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(stateDir) })
 
-	p, err := NewProvisioner(kernel, rootfs, stateDir)
+	p, err := NewProvisioner(kernel, rootfs, stateDir, nil)
 	if err != nil {
 		t.Fatalf("NewProvisioner: %v", err)
 	}
@@ -106,7 +107,7 @@ func TestConformanceFirecracker(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = os.RemoveAll(stateDir) })
 		}
-		p, err := NewProvisioner(kernel, rootfs, stateDir)
+		p, err := NewProvisioner(kernel, rootfs, stateDir, nil)
 		if err != nil {
 			t.Fatalf("NewProvisioner: %v", err)
 		}
@@ -116,6 +117,60 @@ func TestConformanceFirecracker(t *testing.T) {
 		t.Cleanup(func() { _ = p.Close() })
 		return p
 	})
+}
+
+// TestBoxAPIOverVsock proves Firecracker's guest-initiated vsock convention end
+// to end on a real microVM: the provisioner pre-listens on <vsock_uds>_5001,
+// the in-guest agent bridges /run/llmbox/boxapi.sock to host port 5001, and a
+// curl inside the guest reaches the host-side box-port API — with the box's
+// identity stamped by the host listener, not by anything the guest sent. It
+// needs a rootfs whose agent runs with --boxapi-port 5001 and which ships curl
+// (the production box rootfs; the busybox conformance rootfs skips).
+//
+// @testcase TestBoxAPIOverVsock curls the in-guest box API socket on a live microVM.
+func TestBoxAPIOverVsock(t *testing.T) {
+	kernel, rootfs := fcArtifacts(t)
+	stateDir, err := os.MkdirTemp("/tmp", "fc-boxapi-")
+	if err != nil {
+		t.Fatalf("state dir: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(stateDir) })
+
+	svc := &fakePortSvc{}
+	p, err := NewProvisioner(kernel, rootfs, stateDir, svc)
+	if err != nil {
+		t.Fatalf("NewProvisioner: %v", err)
+	}
+	p.SetNetworking(false) // control-only: vsock needs no egress
+	t.Cleanup(func() { _ = p.Close() })
+
+	inst, err := p.Provision(context.Background(), sandbox.CreateOptions{BoxID: "vsock-box"})
+	if err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+
+	// Drive the in-guest side over the agent's Exec verb, exactly as Claude
+	// would from a shell inside the box.
+	mgr := box.NewManager(p, box.Config{})
+	res, err := mgr.Exec(context.Background(), inst.Meta().InstanceID, []string{
+		"sh", "-c", "command -v curl >/dev/null 2>&1 || { echo NO-CURL; exit 0; }; " +
+			"curl -s --unix-socket /run/llmbox/boxapi.sock -X POST http://localhost/v1/open_port -d '{\"port\":3000,\"description\":\"it\"}'",
+	})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+	out := res.Stdout + res.Stderr
+	if strings.Contains(out, "NO-CURL") {
+		t.Skip("guest rootfs has no curl; run against the production box rootfs to exercise the box API")
+	}
+	if !strings.Contains(out, `"url":"https://x.example.com/"`) {
+		t.Fatalf("in-guest curl output = %q, want the fake service's URL", out)
+	}
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+	if svc.lastBoxID != "vsock-box" {
+		t.Fatalf("stamped box ID = %q, want vsock-box (identity must come from the host listener)", svc.lastBoxID)
+	}
 }
 
 // compile-time check that *Provisioner satisfies the provisioner contract.

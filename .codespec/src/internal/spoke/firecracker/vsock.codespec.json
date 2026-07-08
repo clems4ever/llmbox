@@ -12,6 +12,12 @@
 			"documentation_hash": "5178551c1b09246ea0f7e608fada69e1cbe0c458f5cbf940f7f51f00b4f36214",
 			"definition_hash": "ee6b49adfd0ebad705925ecd6cdc1243a9ce06ada4cd50dc677ab8535a8ad78b",
 			"reviewed_at": "2026-07-04T20:25:13.279784846Z"
+		},
+		{
+			"function_name": "boxAPISocketPath",
+			"documentation_hash": "03dd5e7337241c45222a3ede22cc31106fedde06cd07c1c11f8f3433a3d08e7e",
+			"definition_hash": "75ba0515347e4ce3f1e3ec4b2dc50b396c8888b3821af7cde1a5fb302b3e471e",
+			"reviewed_at": "2026-07-08T14:50:26.499088975Z"
 		}
 	]
 }

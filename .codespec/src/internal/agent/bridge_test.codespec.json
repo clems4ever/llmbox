@@ -1,0 +1,28 @@
+{
+	"functions": [
+		{
+			"function_name": "startBridge",
+			"documentation_hash": "083edcdaab5ec46c61ea9346da853aedb23d941789bb547cf44197fd86b99b0d",
+			"definition_hash": "442ccd04ed678b02700b9eb5c25e8761480b15421d2b8dd8919ec3d06a9ab33d",
+			"reviewed_at": "2026-07-08T15:01:29.763056553Z"
+		},
+		{
+			"function_name": "TestBoxAPIBridgeSplices",
+			"documentation_hash": "4fb81d9c27e77ead73d63a53f137910620d9dcfcd4fdc5e4c9a936fda2f571cb",
+			"definition_hash": "67eb98dd6c868f71a201037e644bafc001f31dfd129889ba0b267072f3edd1b6",
+			"reviewed_at": "2026-07-08T15:01:29.763331363Z"
+		},
+		{
+			"function_name": "TestDialHostVsockDialer",
+			"documentation_hash": "c928c201da6d352672d655881b348f55c5fa6488866e6f2eeb7f282b50ad6bc1",
+			"definition_hash": "bb7bdf4c6288b036b927fc75f69dd6393af636edd13ce6b55a32997e7f7c3cce",
+			"reviewed_at": "2026-07-08T15:01:29.772964515Z"
+		},
+		{
+			"function_name": "TestBoxAPIBridgeDialError",
+			"documentation_hash": "ad68f307783163c2f63257988ba2d2f68780ec0382100cfaeaa3e7c0c691fc4e",
+			"definition_hash": "571b760b93ee46c409c77f028a12da547fc415a3b40bd39c71fd16af8c1701fe",
+			"reviewed_at": "2026-07-08T15:01:29.773221876Z"
+		}
+	]
+}

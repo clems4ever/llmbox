@@ -20,6 +20,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
+	"github.com/clems4ever/llmbox/internal/spoke/boxapi"
 )
 
 // DefaultName is the backend selected when none is configured, preserving the
@@ -44,6 +45,10 @@ type Options struct {
 	// Namespace scopes a backend to the boxes it created so two processes sharing a
 	// host never list, reap, or destroy each other's boxes.
 	Namespace string
+	// BoxPorts serves box-originated port-publishing requests toward the hub. When
+	// set, each box gets a per-box boxapi socket bound to its identity; nil
+	// disables the box-port API entirely.
+	BoxPorts boxapi.PortService
 
 	// GPUs is a `docker run --gpus`-style spec attached to every box (Docker only).
 	GPUs string

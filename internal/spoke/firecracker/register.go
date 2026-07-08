@@ -36,7 +36,7 @@ func newBackend(opts backend.Options) (backend.Provisioner, error) {
 			return nil, fmt.Errorf("resolving firecracker guest images from %s (set --kernel/--rootfs/--payload to use local files): %w", r.registry, err)
 		}
 	}
-	p, err := NewProvisioner(kernel, rootfs, opts.StateDir)
+	p, err := NewProvisioner(kernel, rootfs, opts.StateDir, opts.BoxPorts)
 	if err != nil {
 		return nil, err
 	}

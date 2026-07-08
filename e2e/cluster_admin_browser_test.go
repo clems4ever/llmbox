@@ -206,7 +206,7 @@ func newClusterBrowserEnv(t *testing.T) *clusterBrowserEnv {
 	t.Cleanup(func() { _ = st.Close() })
 
 	a := auth.NewTestAuthenticator("admin@corp.com")
-	clusterHub := cluster.NewHub(ctx, st, nil, nil)
+	clusterHub := cluster.NewHub(ctx, st, nil, nil, nil)
 	srv := hub.New(nil, "https://boxes.example.com", time.Minute, st, a)
 	srv.SetHub(clusterHub)
 

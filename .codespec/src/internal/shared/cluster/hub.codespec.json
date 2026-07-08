@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "NewHub",
-			"documentation_hash": "a80ce97bfc448c979396379ed1090f82795e81407ce12467e1d7e82e0edc89f6",
-			"definition_hash": "be85533b017d42f8e757309577d17ea58dea60d580799c5e50c1f406bd12b97c",
-			"reviewed_at": "2026-06-21T13:23:33.250378996Z"
+			"documentation_hash": "45fcc8dea9740685a6fca2fb65534d4287bf35eee8e56afeed66e1375fff745c",
+			"definition_hash": "8ac4aa931ac3075d42a5383d9a068156ae607592236a0428ad9f165c87e1e328",
+			"reviewed_at": "2026-07-08T14:50:26.476327612Z"
 		},
 		{
 			"function_name": "Spoke",
@@ -24,8 +24,8 @@
 			"function_name": "ConnectHandler",
 			"receiver": "Hub",
 			"documentation_hash": "f1f7cfa7321e0442752110a324670346481e515c46a2e267bb9f5730079184a9",
-			"definition_hash": "69f41d39603b3b174e5ca7fc3aad6d5c252ac98f6e9cb344ef467bbebbee999b",
-			"reviewed_at": "2026-06-21T14:39:24.336051404Z"
+			"definition_hash": "6e218c62c3b0187c59feb7c29eaaa20fa7e84a64e0046cdeffc86aa751a5b9fc",
+			"reviewed_at": "2026-07-08T14:50:26.476611169Z"
 		},
 		{
 			"function_name": "enroll",

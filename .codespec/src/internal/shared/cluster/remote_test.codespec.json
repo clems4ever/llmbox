@@ -3,8 +3,8 @@
 		{
 			"function_name": "startSpoke",
 			"documentation_hash": "0efb49a2c0f1a706e4fbe1f6ebe773b668eb9d046843c2d35c2849c96f10d1ad",
-			"definition_hash": "3b4e793627b0bb4d8f4e7741c67c7c191a80329be6f7eda5893dad1832d768f3",
-			"reviewed_at": "2026-07-08T09:43:14.70531279Z"
+			"definition_hash": "76d48dc3b14ab8c7506106ec0371eb5f3a197d4b952f0845d481266ac6c180fd",
+			"reviewed_at": "2026-07-08T14:50:26.480193526Z"
 		},
 		{
 			"function_name": "TestRemoteSpokeRoundTrip",
@@ -21,14 +21,14 @@
 		{
 			"function_name": "TestRemoteSpokeDisconnect",
 			"documentation_hash": "7a0c0d704fbfe85ba96d469607d34ae87fe5e981d6bb875997c4110711c88391",
-			"definition_hash": "d36125015ae60ab49c8f5e9210cc66bfc64bb4b4b244bc1629b47ad0bee89cd5",
-			"reviewed_at": "2026-06-29T15:39:25.034689634Z"
+			"definition_hash": "3e7973c6e4a42ca0e2a3606d0b2c33500753138acd8bf60096f0a090126298eb",
+			"reviewed_at": "2026-07-08T14:50:26.480586023Z"
 		},
 		{
 			"function_name": "TestRemoteSpokeContextCancel",
 			"documentation_hash": "e0cb5576457e86d81705d11ceb5c40a98973c9211a2a017d0c6ec2276a3a1e3f",
-			"definition_hash": "78f0edb16455a49cbad566694bfeb3827e2615fc0479f44dd8998ac646658493",
-			"reviewed_at": "2026-06-19T20:33:58.630853169Z"
+			"definition_hash": "0c66ffd25d1b7b10970601b63900925aa63f6f3f0e9c41dcc3dad47bd16a3433",
+			"reviewed_at": "2026-07-08T14:50:26.480966385Z"
 		},
 		{
 			"function_name": "TestDispatchHandlesVerbs",

@@ -32,6 +32,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="${OUT:-$HOME/fc-assets}"
 BOX_IMAGE="${BOX_IMAGE:-ghcr.io/clems4ever/llmbox-box:latest}"
 AGENT_VSOCK_PORT="${AGENT_VSOCK_PORT:-5000}"
+# Host vsock port the agent bridges /run/llmbox/boxapi.sock to (the box-port
+# API); must match the spoke's boxAPIVsockPort. 0 disables the bridge.
+AGENT_BOXAPI_PORT="${AGENT_BOXAPI_PORT:-5001}"
 
 mkdir -p "$OUT"
 ROOTDIR="$OUT/box-rootfs"
@@ -81,9 +84,9 @@ export HOME=/root PATH=/usr/local/bin:/usr/bin:/bin:/sbin
 cd /workspace 2>/dev/null || true
 AGENT=/usr/local/bin/llmbox-agent
 if command -v tini >/dev/null 2>&1; then
-  exec tini -g -- "\$AGENT" --vsock-port ${AGENT_VSOCK_PORT} --claude claude
+  exec tini -g -- "\$AGENT" --vsock-port ${AGENT_VSOCK_PORT} --boxapi-port ${AGENT_BOXAPI_PORT} --claude claude
 else
-  exec "\$AGENT" --vsock-port ${AGENT_VSOCK_PORT} --claude claude
+  exec "\$AGENT" --vsock-port ${AGENT_VSOCK_PORT} --boxapi-port ${AGENT_BOXAPI_PORT} --claude claude
 fi
 INIT
 chmod 0755 "$ROOTDIR/init"

@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/containerd/errdefs"
@@ -41,6 +42,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
+	"github.com/clems4ever/llmbox/internal/spoke/boxapi"
 )
 
 const (
@@ -145,6 +147,17 @@ type Provisioner struct {
 	// authenticated pulls.
 	registryAuths map[string]registry.AuthConfig
 	log           *slog.Logger
+
+	// ports serves box-originated port-publishing requests toward the hub; nil
+	// disables the per-box box-port API socket entirely.
+	ports boxapi.PortService
+	// apiMu guards apiSrvs.
+	apiMu sync.Mutex
+	// apiSrvs are the live per-box box-port API servers, keyed by the 12-char
+	// instance ID. Each serves boxapi.SocketName inside that box's private host
+	// socket dir, so the listener — not anything the box sends — decides which
+	// box a request acts on.
+	apiSrvs map[string]*boxapi.Server
 }
 
 // NewProvisioner builds a Provisioner using Docker configuration from the
@@ -154,11 +167,12 @@ type Provisioner struct {
 // @arg defaultImage The image launched when a caller does not specify one; empty uses DefaultImage.
 // @arg socketDir The host directory holding per-box control sockets; empty uses DefaultSocketDir.
 // @arg peers Resource-server container names connected into every box's network.
+// @arg ports The service serving box-originated port requests; nil disables the per-box box-port API.
 // @return *Provisioner A provisioner wired to a Docker client built from the environment.
 // @error error if the Docker client cannot be created.
 //
 // @testcase TestProvisionCreatesAgentBox covers a provisioner built by NewProvisioner.
-func NewProvisioner(defaultImage, socketDir string, peers []string) (*Provisioner, error) {
+func NewProvisioner(defaultImage, socketDir string, peers []string, ports boxapi.PortService) (*Provisioner, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, fmt.Errorf("creating docker client: %w", err)
@@ -169,7 +183,15 @@ func NewProvisioner(defaultImage, socketDir string, peers []string) (*Provisione
 	if socketDir == "" {
 		socketDir = DefaultSocketDir
 	}
-	return &Provisioner{cli: cli, defaultImage: defaultImage, socketDir: socketDir, peers: peers, log: slog.Default()}, nil
+	return &Provisioner{
+		cli:          cli,
+		defaultImage: defaultImage,
+		socketDir:    socketDir,
+		peers:        peers,
+		ports:        ports,
+		apiSrvs:      map[string]*boxapi.Server{},
+		log:          slog.Default(),
+	}, nil
 }
 
 // logger returns the provisioner's logger, or slog.Default() when none was set.
@@ -231,12 +253,18 @@ func (p *Provisioner) SetBoxGPUs(spec string) error {
 // @testcase TestManagedFilterScopesByNamespace scopes list/find to the namespace.
 func (p *Provisioner) SetNamespace(ns string) { p.namespace = ns }
 
-// Close releases the Docker client.
+// Close stops every live box-port API listener and releases the Docker client.
+// The boxes themselves keep running (they are recovered on the next start via
+// RecoverBoxAPIs).
 //
 // @error error if the Docker client cannot be closed.
 //
 // @testcase TestProvisionCreatesAgentBox builds a provisioner whose client is closed in cleanup.
-func (p *Provisioner) Close() error { return p.cli.Close() }
+// @testcase TestCloseStopsBoxAPIListeners stops the box-port listeners on Close.
+func (p *Provisioner) Close() error {
+	p.stopAllBoxAPIs()
+	return p.cli.Close()
+}
 
 // managedFilter restricts Docker listings to containers this provisioner created.
 // When the provisioner is namespaced, it further restricts them to that
@@ -438,11 +466,19 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	id := resp.ID
 
 	cleanup := func() {
+		p.stopBoxAPI(id[:12])
 		if rerr := p.cli.ContainerRemove(context.Background(), id, container.RemoveOptions{Force: true}); rerr != nil {
 			p.logger().Warn("failed to remove box during cleanup", "container", id, "err", rerr)
 		}
 		p.removeBoxNetwork(context.Background(), id)
 		_ = os.RemoveAll(hostBoxDir)
+	}
+
+	// Serve the box-port API in the box's socket dir before the container
+	// starts, so /run/llmbox/boxapi.sock exists from the box's first instant.
+	if err := p.startBoxAPI(id[:12], opts.BoxID, hostBoxDir); err != nil {
+		cleanup()
+		return nil, err
 	}
 
 	if err := p.setupBoxNetwork(ctx, id); err != nil {
@@ -522,6 +558,98 @@ func newSocketToken() (string, error) {
 		return "", fmt.Errorf("generating socket token: %w", err)
 	}
 	return hex.EncodeToString(b[:]), nil
+}
+
+// startBoxAPI serves the box-port API socket inside a box's private host
+// socket dir, bound to that box's identity. Through the existing bind mount the
+// socket appears in-box at /run/llmbox/boxapi.sock. The per-box listener is the
+// spoke-side enforcement: whichever socket a request arrives on decides which
+// box it acts on, so nothing inside a box can address another box. A no-op
+// when the provisioner has no port service.
+//
+// @arg instanceID The box's 12-char instance ID (the apiSrvs key).
+// @arg boxID The box's caller-assigned box ID stamped onto every request ("" serves only an explanatory error).
+// @arg hostBoxDir The box's private host socket directory.
+// @error error if the socket cannot be created.
+//
+// @testcase TestProvisionStartsBoxAPIListener serves the box API for a provisioned box.
+// @testcase TestRecoverBoxAPIsRestartsListeners restarts listeners for recovered boxes.
+func (p *Provisioner) startBoxAPI(instanceID, boxID, hostBoxDir string) error {
+	if p.ports == nil {
+		return nil
+	}
+	srv, err := boxapi.ServeUnix(filepath.Join(hostBoxDir, boxapi.SocketName), boxID, p.ports, p.logger())
+	if err != nil {
+		return fmt.Errorf("serving box-port API: %w", err)
+	}
+	p.apiMu.Lock()
+	if old := p.apiSrvs[instanceID]; old != nil {
+		_ = old.Close()
+	}
+	p.apiSrvs[instanceID] = srv
+	p.apiMu.Unlock()
+	return nil
+}
+
+// stopBoxAPI closes and forgets a box's box-port API server; unknown instance
+// IDs are a no-op.
+//
+// @arg instanceID The box's 12-char instance ID.
+//
+// @testcase TestDestroyStopsBoxAPIListener stops the listener when a box is destroyed.
+func (p *Provisioner) stopBoxAPI(instanceID string) {
+	p.apiMu.Lock()
+	srv := p.apiSrvs[instanceID]
+	delete(p.apiSrvs, instanceID)
+	p.apiMu.Unlock()
+	if srv != nil {
+		_ = srv.Close()
+	}
+}
+
+// stopAllBoxAPIs closes every live box-port API server (used on provisioner
+// Close).
+//
+// @testcase TestCloseStopsBoxAPIListeners stops all listeners on Close.
+func (p *Provisioner) stopAllBoxAPIs() {
+	p.apiMu.Lock()
+	srvs := p.apiSrvs
+	p.apiSrvs = map[string]*boxapi.Server{}
+	p.apiMu.Unlock()
+	for _, srv := range srvs {
+		_ = srv.Close()
+	}
+}
+
+// RecoverBoxAPIs restarts the box-port API listener of every managed box after
+// a spoke restart: the containers persist (restart policy unless-stopped) but
+// the host-side listeners die with the spoke process. Each box's identity and
+// socket dir are recovered from its container labels. Best-effort per box —
+// one failure is logged and does not block the others.
+//
+// @arg ctx Context for the container listing.
+// @error error if the managed containers cannot be listed.
+//
+// @testcase TestRecoverBoxAPIsRestartsListeners restarts listeners from container labels.
+func (p *Provisioner) RecoverBoxAPIs(ctx context.Context) error {
+	if p.ports == nil {
+		return nil
+	}
+	insts, err := p.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, inst := range insts {
+		di, ok := inst.(*dockerInstance)
+		if !ok || di.socketToken == "" {
+			continue
+		}
+		b := di.Meta()
+		if err := p.startBoxAPI(b.InstanceID, b.BoxID, filepath.Join(p.socketDir, di.socketToken)); err != nil {
+			p.logger().Warn("failed to recover box-port API", "box", b.InstanceID, "err", err)
+		}
+	}
+	return nil
 }
 
 // boxNetworkName is the deterministic name of a box's dedicated network.
@@ -775,6 +903,7 @@ func (i *dockerInstance) Destroy(ctx context.Context) error {
 		return fmt.Errorf("removing box %s: %w", id, err)
 	}
 	i.prov.removeBoxNetwork(ctx, id)
+	i.prov.stopBoxAPI(id)
 	if i.socketToken != "" {
 		_ = os.RemoveAll(filepath.Join(i.prov.socketDir, i.socketToken))
 	}

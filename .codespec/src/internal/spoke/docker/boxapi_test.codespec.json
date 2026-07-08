@@ -1,0 +1,67 @@
+{
+	"functions": [
+		{
+			"function_name": "OpenBoxPort",
+			"receiver": "fakePortSvc",
+			"documentation_hash": "f475e960b08b41c308e65389f20fe63736e3831b92d191e75e70c678fb271d4d",
+			"definition_hash": "c223f9e0e94d03ccac7bd6f124af0502afec01b9be0280e2f75a142f45f18631",
+			"reviewed_at": "2026-07-08T15:05:46.698053648Z"
+		},
+		{
+			"function_name": "CloseBoxPort",
+			"receiver": "fakePortSvc",
+			"documentation_hash": "1760fd4d03ad68ba36a6c6cbf45a2dcbedcdf45a3bfbde4247ed98e55ff163ce",
+			"definition_hash": "cddbd808875fa20216af7c549254c3d4e4982e70622f884d40469111fb819b68",
+			"reviewed_at": "2026-07-08T15:05:46.70295201Z"
+		},
+		{
+			"function_name": "ListBoxPorts",
+			"receiver": "fakePortSvc",
+			"documentation_hash": "70e9dbf6d47a12b4be7f698c8e06fb2d84d6a4a102f0cb55ad6902e4136ee94d",
+			"definition_hash": "2d930e20d0245d39c68c105036585a0bfa5f7b8b430a952c11964c93bc0e7746",
+			"reviewed_at": "2026-07-08T15:05:46.712970523Z"
+		},
+		{
+			"function_name": "newPortTestProvisioner",
+			"documentation_hash": "cf27ca7b436c1411a841b26bc9ed0bcbf4d80f5bb59a51e9e81e71c75d22db8d",
+			"definition_hash": "212788c78adecec5dd1df284c0b8f5289169892417b846dfb26791959612c800",
+			"reviewed_at": "2026-07-08T15:05:46.718277714Z"
+		},
+		{
+			"function_name": "openPortViaSocket",
+			"documentation_hash": "e7e83425f06214ad023d0c13804ea1ef4a9b84260118f1b0da9f55b300178149",
+			"definition_hash": "4400b6d1f510645715778c0cad043409442b7e4589aa0524aa4b1a5126731d76",
+			"reviewed_at": "2026-07-08T15:05:46.723259908Z"
+		},
+		{
+			"function_name": "TestProvisionStartsBoxAPIListener",
+			"documentation_hash": "d31e8b7f86552ed533c6844091b028f4137468e63be727575482cbc8ecec969f",
+			"definition_hash": "fcb94754fbbfaf2b0e848142ef8b0f42ad72e2d3740037f731dd8c7b88aa8170",
+			"reviewed_at": "2026-07-08T15:05:46.7287031Z"
+		},
+		{
+			"function_name": "TestDestroyStopsBoxAPIListener",
+			"documentation_hash": "1ca90cada32451b4ef712dbe3159fdca3e7f32621be0d1075ac0c6758f2f57fa",
+			"definition_hash": "4b287a364f3e55ddc597bb1120d6a100388c319d1e5fad400e7df23aa8d8740b",
+			"reviewed_at": "2026-07-08T15:05:46.734002319Z"
+		},
+		{
+			"function_name": "TestCloseStopsBoxAPIListeners",
+			"documentation_hash": "8d4a162b1b84ec4058c9cef0526b85162cd54eddba3e63b9e634bc48c68586a4",
+			"definition_hash": "7e7f9db15cefa8d345d1bedb3fb9ae6c3fc0029e099cf0539b664bd80e88b631",
+			"reviewed_at": "2026-07-08T15:05:46.738772952Z"
+		},
+		{
+			"function_name": "TestProvisionCleansUpBoxAPIOnStartFailure",
+			"documentation_hash": "abcb0ca6e43927bd53d71f8aba6d1bb9c1fc1611c785dee2d5299dd8d783126a",
+			"definition_hash": "6d896ed27e0fa329a7b3cc7620f947d07bd50f691b08f9c75f9a466d89b721b0",
+			"reviewed_at": "2026-07-08T15:05:46.743825503Z"
+		},
+		{
+			"function_name": "TestRecoverBoxAPIsRestartsListeners",
+			"documentation_hash": "21c57b997c99ad521a62d9c3a0530e009e33f4710404271bbf1a71f98ea3a16a",
+			"definition_hash": "28759fa772f84752279c139d6a086b18c35ade5d5efbc5c0fbb8ebaf094010f8",
+			"reviewed_at": "2026-07-08T15:05:46.749046227Z"
+		}
+	]
+}

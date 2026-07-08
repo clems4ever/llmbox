@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "serve",
-			"documentation_hash": "65459e29e87511f215999a2a53d2b0d7f4de9b5b8f5db636e8d36ba394242cf5",
-			"definition_hash": "47989d38e7fbc0450a84ad55a92951a7d7fd9a6ed90dbb9caf77e4487ca68486",
-			"reviewed_at": "2026-07-08T09:43:14.7038753Z"
+			"documentation_hash": "8deafbaf02ed6691e667df30c8501678bbe9a0d28e4c4a404ad10db60a2bd63e",
+			"definition_hash": "984382c1eeffe1772f2f94db0beb9c225914da4b24e3c319db70be047fa75f5e",
+			"reviewed_at": "2026-07-08T14:50:26.475970021Z"
 		},
 		{
 			"function_name": "handleRequest",

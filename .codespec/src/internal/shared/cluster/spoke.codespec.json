@@ -9,8 +9,8 @@
 		{
 			"function_name": "Run",
 			"documentation_hash": "67b06e0f02ed9db893f9c7d3c8404e62fa3df51eb2d915c889625d0c922cd62b",
-			"definition_hash": "dc3d2ee535153db47b93579ceae6a87e741be888552277d3b0d417176d3c04d5",
-			"reviewed_at": "2026-07-08T09:43:14.707518041Z"
+			"definition_hash": "2849c6bc61ca0161cdf3a99d8537ed72ca9622f7eb7c46162cdce97ae12784cc",
+			"reviewed_at": "2026-07-08T14:50:26.481211955Z"
 		},
 		{
 			"function_name": "enrollSpoke",
@@ -23,6 +23,12 @@
 			"documentation_hash": "8f55c790ced73161fe5f4262475578b70abad1444f8f2100efcf3d266d6e3ee3",
 			"definition_hash": "dbcb7c9a2faaf86bc99edcf3c24ce1e63489fa58524395dda1fece07a1fc1a0d",
 			"reviewed_at": "2026-07-07T12:21:36.647130861Z"
+		},
+		{
+			"function_name": "RunWithCaller",
+			"documentation_hash": "a48119e036af851f88917e0401b4ebda75a81e0d03a13ed9943ec46d53a207cc",
+			"definition_hash": "34f322058f2d26cc139821ffa774f029b8a629605f72154277edd5566cb91851",
+			"reviewed_at": "2026-07-08T14:50:26.48143504Z"
 		}
 	]
 }
