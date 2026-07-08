@@ -49,6 +49,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	var (
 		upstream string
+		apiKey   string
 		addr     string
 		stdio    bool
 	)
@@ -60,10 +61,16 @@ func newRootCmd() *cobra.Command {
 		SilenceErrors: false,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return run(cmd.Context(), upstream, addr, stdio)
+			// The key is a secret, so the environment variable is the primary channel
+			// (a flag value leaks into process listings); the flag wins when both are set.
+			if apiKey == "" {
+				apiKey = os.Getenv("LLMBOX_API_KEY")
+			}
+			return run(cmd.Context(), upstream, apiKey, addr, stdio)
 		},
 	}
 	rootCmd.Flags().StringVar(&upstream, "upstream", "", "upstream llmbox server box-control URL, e.g. http://llmbox:8081")
+	rootCmd.Flags().StringVar(&apiKey, "api-key", "", "API key authenticating against the upstream server (defaults to $LLMBOX_API_KEY; mint one with `llmbox-server apikey add`)")
 	rootCmd.Flags().StringVar(&addr, "addr", ":8081", "listen address for the streamable-HTTP MCP endpoint (ignored with --stdio)")
 	rootCmd.Flags().BoolVar(&stdio, "stdio", false, "serve MCP over stdio instead of HTTP (for a chatbot that launches this as a child process)")
 	return rootCmd
@@ -77,13 +84,14 @@ func newRootCmd() *cobra.Command {
 //
 // @arg parent Base context; serving stops when it (or SIGINT/SIGTERM) fires.
 // @arg upstream The upstream llmbox server's box-control URL the client forwards to.
+// @arg apiKey The API key sent as a bearer token on upstream calls; "" sends none.
 // @arg addr The listen address for the HTTP transport (ignored when stdio is true).
 // @arg stdio Whether to serve over stdio instead of HTTP.
 // @error error if upstream is empty, the HTTP listener fails for a reason other than a clean shutdown, or the stdio session ends in error.
 //
 // @testcase TestRunRequiresUpstream errors when no upstream URL is given.
 // @testcase TestRunHTTPServesAndStops serves the HTTP endpoint and returns cleanly on cancel.
-func run(parent context.Context, upstream, addr string, stdio bool) error {
+func run(parent context.Context, upstream, apiKey, addr string, stdio bool) error {
 	if upstream == "" {
 		return errors.New("--upstream is required (the llmbox server's box-control URL, e.g. http://llmbox:8081)")
 	}
@@ -91,7 +99,9 @@ func run(parent context.Context, upstream, addr string, stdio bool) error {
 	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := mcpserver.NewServer(api.NewClient(upstream, nil), name, version)
+	client := api.NewClient(upstream, nil)
+	client.SetAPIKey(apiKey)
+	srv := mcpserver.NewServer(client, name, version)
 
 	if stdio {
 		// stdio: the chatbot owns the process lifecycle; Run blocks until the client

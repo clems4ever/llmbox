@@ -31,9 +31,9 @@
 		{
 			"function_name": "ListBoxes",
 			"receiver": "apiBackend",
-			"documentation_hash": "6d1ac978d30421a98246e75d3bef6dac96114c487e4a902b325259203e5b071d",
-			"definition_hash": "511bfc0324d85673953dba82b00e1c22a76bae8c9659efede64dfb9c78c6bb03",
-			"reviewed_at": "2026-07-01T13:12:00.985627274Z"
+			"documentation_hash": "7c5003744a17fadfd3a52a7ea4413e24354299dfc08fa1a24f0e7d9172edbd1e",
+			"definition_hash": "3aa3b0d5905c2b24d51ade77c0dbb4f05e6bbdb50ea87b5f5d7a932eeb514152",
+			"reviewed_at": "2026-07-08T12:57:12.230400105Z"
 		},
 		{
 			"function_name": "SpokeStatuses",
@@ -73,9 +73,9 @@
 		{
 			"function_name": "CreateProxy",
 			"receiver": "apiBackend",
-			"documentation_hash": "42af0c6e2086a7c89067a7c4bb74fd4da339b3d9c117f2b1481d412bffe2fbdc",
-			"definition_hash": "6870890232a0d9b86196e76d298e276312efbde385c27c2bd0e24e25ff29d9ba",
-			"reviewed_at": "2026-07-01T13:12:03.93043508Z"
+			"documentation_hash": "b3fd4210e7f3aceb1c69a59daf4b2a29f121ba747ab21753534091a69484a19f",
+			"definition_hash": "ebb62e711f942656b8e6cb66841654deb7dc8a3d980ffa7cfa89c56ca1e7f2d4",
+			"reviewed_at": "2026-07-08T12:57:12.233313988Z"
 		},
 		{
 			"function_name": "DeleteProxy",
@@ -97,6 +97,41 @@
 			"documentation_hash": "4a0f1fada63eccb9bdbae53b5de348ef2eb300d0916b2cca6f123310940b60c0",
 			"definition_hash": "43e3ef0967b99efecb814001711d2f05e0f5ec1e89f8d381506b6639e88b71d4",
 			"reviewed_at": "2026-07-01T13:12:03.932363773Z"
+		},
+		{
+			"function_name": "CreateSpoke",
+			"receiver": "apiBackend",
+			"documentation_hash": "9471fb2c5a0f9b3fb0fb0895b1b41e3fa914b002c6c5a480923c0d7e72f3ad04",
+			"definition_hash": "2ca8f5188a24a1badbc47ddf33c1e655a964b31dc44332b802a9edbc44b27057",
+			"reviewed_at": "2026-07-08T12:57:12.23080609Z"
+		},
+		{
+			"function_name": "DropSpoke",
+			"receiver": "apiBackend",
+			"documentation_hash": "d4d3971e8a782b974c0c9ee903fd347495da72eaf9fb73e5785432a1c69749f3",
+			"definition_hash": "162b26da3f139fe1a0c300e421cec1884c56767f8b51f1e5ea92c4e001b1b41d",
+			"reviewed_at": "2026-07-08T12:57:12.231206692Z"
+		},
+		{
+			"function_name": "SetDefaultSpoke",
+			"receiver": "apiBackend",
+			"documentation_hash": "042a50b2ca0313dddc4daa82c430ce8966e6ce7773e66f427dc385b330c5953e",
+			"definition_hash": "015c57f59f9800764e305940de3320b880509489a5a4dc3d1a88f1f8f2034656",
+			"reviewed_at": "2026-07-08T12:57:12.231598411Z"
+		},
+		{
+			"function_name": "ListJoinTokens",
+			"receiver": "apiBackend",
+			"documentation_hash": "11f8e364c60b689393c3a754980242096c2b311b932af6d71194b7f4054c6abe",
+			"definition_hash": "2918797cf4ef8287bb96bedb46ea86f9b324fc643bc74e4f5e57466840e081e5",
+			"reviewed_at": "2026-07-08T12:57:12.232052386Z"
+		},
+		{
+			"function_name": "RevokeJoinToken",
+			"receiver": "apiBackend",
+			"documentation_hash": "d9f5c96b5ac3f7093995a2da4f465173a0d04246d3f4874a1dc609469cb6a87f",
+			"definition_hash": "bebad02eb659ece8fc0a5c6740947c928cca57efad38b23ff7c5d41ef8791611",
+			"reviewed_at": "2026-07-08T12:57:12.232739712Z"
 		}
 	]
 }

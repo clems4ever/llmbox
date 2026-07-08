@@ -34,8 +34,8 @@ func TestAdminAPIStartThenDestroyBoxOnRemote(t *testing.T) {
 	}
 
 	// Remove the box via the admin endpoint.
-	if res := f.deleteBoxViaAPI("b1"); !res.OK {
-		t.Fatalf("removing box b1 failed: %s", res.Err)
+	if err := f.deleteBoxViaAPI("b1"); err != nil {
+		t.Fatalf("removing box b1 failed: %v", err)
 	}
 	if edge.mgr.live() != 0 {
 		t.Errorf("edge spoke still has %d live box(es) after removal", edge.mgr.live())
@@ -72,8 +72,8 @@ func TestAdminAPIDisconnectReconnectThenDestroy(t *testing.T) {
 	}
 
 	// The box still lives on the spoke across the reconnect; remove it.
-	if res := f.deleteBoxViaAPI("b1"); !res.OK {
-		t.Fatalf("removing box b1 after reconnect failed: %s", res.Err)
+	if err := f.deleteBoxViaAPI("b1"); err != nil {
+		t.Fatalf("removing box b1 after reconnect failed: %v", err)
 	}
 	if edge.mgr.live() != 0 {
 		t.Errorf("edge spoke still has %d live box(es) after removal", edge.mgr.live())
@@ -103,8 +103,8 @@ func TestAdminAPIRemoveBoxAfterHumanDestroyedIt(t *testing.T) {
 
 	// Removing it via the admin endpoint must succeed despite the container already
 	// being gone (removal is idempotent).
-	if res := f.deleteBoxViaAPI("b1"); !res.OK {
-		t.Fatalf("removing an already-gone box should succeed, got error: %s", res.Err)
+	if err := f.deleteBoxViaAPI("b1"); err != nil {
+		t.Fatalf("removing an already-gone box should succeed, got error: %v", err)
 	}
 	if _, present := f.boxOnSpokeViaAPI("b1"); present {
 		t.Error("dashboard still lists box b1 after removal")

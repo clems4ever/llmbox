@@ -1,0 +1,58 @@
+{
+	"functions": [
+		{
+			"function_name": "apiPost",
+			"documentation_hash": "3f94b1d61fe744826c85f1301cf09437572d1eda513edbb9bc7679c305c97b01",
+			"definition_hash": "89c78c0ba814c4d7948b4f085257a6b3409c5f2ace21246f71486ad265d16886",
+			"reviewed_at": "2026-07-08T13:00:08.07905809Z"
+		},
+		{
+			"function_name": "TestAPIAuthAcceptsAPIKey",
+			"documentation_hash": "3eb66e5f90e7ae5ff038cb83b59891fbba5879aa35a99fd99066476ae533311a",
+			"definition_hash": "d38232cd81577150c64eaabf50cde9a5f95d16fc363777f6a91829890137fd80",
+			"reviewed_at": "2026-07-08T13:00:08.079452137Z"
+		},
+		{
+			"function_name": "TestAPIAuthRejectsBadAPIKey",
+			"documentation_hash": "bc7d0e43993f58cf0c67b7d0c40890b4ada13d20b334434d9b09e8a75e147951",
+			"definition_hash": "3b9073731ec3031f582d56fd07e0ad52c66712d966f778368d13047e7d465d2a",
+			"reviewed_at": "2026-07-08T13:00:08.089316537Z"
+		},
+		{
+			"function_name": "TestAPIAuthAcceptsAdminCookie",
+			"documentation_hash": "38a0411129b9afd98d600ca70a9159074bbb0c2bbd9f2bcc9d49469da63d0108",
+			"definition_hash": "59e732caa0cee79f38b2d975a02a24e835507030b6d7e8e46c45c2deeaba293d",
+			"reviewed_at": "2026-07-08T13:00:08.089665164Z"
+		},
+		{
+			"function_name": "TestAPIAuthRejectsBadCSRF",
+			"documentation_hash": "872865674b40bb4ac74857c4efe0fa37f1304f3da7fc75277fa0ee2e0cdd7d0c",
+			"definition_hash": "56c2ea036898c2cb98890f3d09df7d1f66c4c9b5a99de1f7bf4abd649ba0cfd5",
+			"reviewed_at": "2026-07-08T13:00:08.090081337Z"
+		},
+		{
+			"function_name": "TestAPIAuthRejectsNonAdmin",
+			"documentation_hash": "c733a47cb479e217e02f8362dfb60f84ac64cb84c11b34f261d0828569cd3c89",
+			"definition_hash": "7d730ae5a1a003dc89d046441bb8b7871765654e7b036689f3df422e7a81db06",
+			"reviewed_at": "2026-07-08T13:00:08.090436829Z"
+		},
+		{
+			"function_name": "TestAPIAuthRejectsAnonymous",
+			"documentation_hash": "fcbba299064864dcfb53b93d2d6bc45c708716673c5b79a5699a8825f50a2284",
+			"definition_hash": "6aed8a0378884510d3541039ad5f99b1caecaa82020f845bfd0c19e1b9862133",
+			"reviewed_at": "2026-07-08T13:00:08.090823992Z"
+		},
+		{
+			"function_name": "TestMeReturnsSession",
+			"documentation_hash": "3700c43b7e4dfde1a37b27eb48c0081c50841a33f3d04ddbe4a96b3df00afd71",
+			"definition_hash": "72b07acc05847f2ef87ee9b1f9036a15813877c964b1fdcc3bb8d3293b6286a4",
+			"reviewed_at": "2026-07-08T13:00:08.091249101Z"
+		},
+		{
+			"function_name": "TestMeRejectsAnonymous",
+			"documentation_hash": "b76aced4bff7d7d2c0aa8ed402d4015dc445c04145f274726583dcdf74444619",
+			"definition_hash": "53ea1aed26aff2b8a2ed950c60214dc7a439a2c2b1fb481bfef290e061c26b4c",
+			"reviewed_at": "2026-07-08T13:00:08.091706812Z"
+		}
+	]
+}

@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "NewHandler",
-			"documentation_hash": "caa9eb45f5ed1320cdfe2b3c485eb5d2247c8a3fab4daae6d47ff770f21e9bc3",
-			"definition_hash": "b386bb357a3252089dcb0e3e99669a79a10aefa856572525eb6b9f9dd764275d",
-			"reviewed_at": "2026-07-01T13:11:52.198073074Z"
+			"documentation_hash": "3acc7dc809eccbcfd2cffbf8ba33063aaa1064182b147d67f3ba797adaa77a46",
+			"definition_hash": "b606a6ee125f60801386883d8a198bd8bcd3cd96ccd6a62cf8f8c65076cd57a0",
+			"reviewed_at": "2026-07-08T12:57:12.263771799Z"
 		},
 		{
 			"function_name": "jsonHandler",

@@ -57,7 +57,7 @@ func TestEndToEndProxy(t *testing.T) {
 	waitHealthy(t, base)
 
 	// --- chatbot side: create the box, then enable a proxy for its port ---
-	cs := connectMCP(t, base)
+	cs := connectMCP(t, base, store)
 	callTool(t, cs, "create_llmbox", map[string]any{"box_id": "proxy-box"})
 
 	proxyOut := callTool(t, cs, "create_llmbox_proxy", map[string]any{

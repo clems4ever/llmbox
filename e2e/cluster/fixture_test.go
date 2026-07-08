@@ -3,15 +3,13 @@
 package clustere2e
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"io"
+	"errors"
 	"net"
 	"net/http"
-	"net/url"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -195,30 +193,29 @@ func (r *fakeRemote) reconnect() {
 	r.fixture.waitSpokeConnected(r.name, true)
 }
 
-// --- Admin UI drivers -------------------------------------------------------
+// --- Unified-API drivers ------------------------------------------------------
 
-// adminResult is the {ok,msg,err} (plus optional one-time results) JSON every
-// admin action returns.
-type uiResult struct {
-	OK  bool   `json:"ok"`
-	Msg string `json:"msg"`
-	Err string `json:"err"`
-}
-
-// post submits an authorized admin form action and decodes its JSON result,
-// failing the test on a transport error or a non-200 status.
+// apiCall posts a JSON body to a box-control API path as the signed-in admin
+// (login cookie + X-CSRF-Token header — exactly what the web app sends) and
+// decodes the JSON response into out (which may be nil). A non-200 response is
+// returned as an error carrying the server's message.
 //
-// @arg path The admin action path (e.g. /admin/boxes/delete).
-// @arg form The form fields (the CSRF token is added automatically).
-// @return uiResult The decoded {ok,msg,err} result.
-func (f *clusterFixture) post(path string, form url.Values) uiResult {
+// @arg path The API path (e.g. /api/v1/create-box).
+// @arg body The request value encoded as the JSON body.
+// @arg out The response target, or nil to discard the body.
+// @error error if the request fails or the server answers non-200.
+func (f *clusterFixture) apiCall(path string, body, out any) error {
 	f.t.Helper()
-	form.Set("csrf", f.csrf)
-	req, err := http.NewRequest(http.MethodPost, f.baseURL+path, strings.NewReader(form.Encode()))
+	payload, err := json.Marshal(body)
+	if err != nil {
+		f.t.Fatalf("encode %s request: %v", path, err)
+	}
+	req, err := http.NewRequest(http.MethodPost, f.baseURL+path, bytes.NewReader(payload))
 	if err != nil {
 		f.t.Fatalf("build request: %v", err)
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-CSRF-Token", f.csrf)
 	req.AddCookie(f.cookie)
 	resp, err := f.client.Do(req)
 	if err != nil {
@@ -226,135 +223,118 @@ func (f *clusterFixture) post(path string, form url.Values) uiResult {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		f.t.Fatalf("POST %s: status %d", path, resp.StatusCode)
+		var e struct {
+			Error string `json:"error"`
+		}
+		_ = json.NewDecoder(resp.Body).Decode(&e)
+		if e.Error == "" {
+			e.Error = resp.Status
+		}
+		return errors.New(e.Error)
 	}
-	var r uiResult
-	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		f.t.Fatalf("decode result for %s: %v", path, err)
+	if out != nil {
+		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+			f.t.Fatalf("decode response for %s: %v", path, err)
+		}
 	}
-	return r
+	return nil
 }
 
-// createBoxViaAPI creates a box on the given spoke by POSTing to the admin
-// /admin/boxes endpoint, asserting the action succeeds.
+// createBoxViaAPI creates a box on the given spoke over the box-control API,
+// asserting the action succeeds.
 //
 // @arg boxID The box ID to assign.
 // @arg spoke The spoke to create the box on.
 func (f *clusterFixture) createBoxViaAPI(boxID, spoke string) {
 	f.t.Helper()
-	// The create action embeds its one-time newBox payload alongside ok; only the
-	// ok flag matters here.
-	res := f.post("/admin/boxes", url.Values{"box_id": {boxID}, "spoke": {spoke}})
-	if !res.OK {
-		f.t.Fatalf("create box %q on spoke %q failed: %s", boxID, spoke, res.Err)
+	body := map[string]any{"opts": map[string]any{"BoxID": boxID, "SpokeName": spoke}}
+	if err := f.apiCall("/api/v1/create-box", body, nil); err != nil {
+		f.t.Fatalf("create box %q on spoke %q failed: %v", boxID, spoke, err)
 	}
 }
 
-// createProxyViaAPI enables an HTTP proxy for a box's port via the admin
-// /admin/proxies endpoint and returns the proxy URL it reports.
+// createProxyViaAPI enables an HTTP proxy for a box's port over the box-control
+// API and returns the proxy URL it reports.
 //
 // @arg boxID The box to expose.
 // @arg port The port inside the box.
 // @return string The proxy URL (https://<slug>.proxy.example.com/).
 func (f *clusterFixture) createProxyViaAPI(boxID string, port int) string {
 	f.t.Helper()
-	form := url.Values{"box_id": {boxID}, "port": {strconv.Itoa(port)}, "csrf": {f.csrf}}
-	req, err := http.NewRequest(http.MethodPost, f.baseURL+"/admin/proxies", strings.NewReader(form.Encode()))
-	if err != nil {
-		f.t.Fatalf("build proxy request: %v", err)
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.AddCookie(f.cookie)
-	resp, err := f.client.Do(req)
-	if err != nil {
-		f.t.Fatalf("POST /admin/proxies: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
 	var out struct {
-		OK       bool `json:"ok"`
-		Err      string
-		NewProxy struct {
+		Proxy struct {
 			URL string `json:"url"`
-		} `json:"newProxy"`
+		} `json:"proxy"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		f.t.Fatalf("decode proxy result: %v", err)
+	if err := f.apiCall("/api/v1/create-proxy", map[string]any{"box_id": boxID, "port": port}, &out); err != nil {
+		f.t.Fatalf("create proxy for %s:%d failed: %v", boxID, port, err)
 	}
-	if !out.OK || out.NewProxy.URL == "" {
-		f.t.Fatalf("create proxy failed: ok=%v err=%q url=%q", out.OK, out.Err, out.NewProxy.URL)
+	if out.Proxy.URL == "" {
+		f.t.Fatalf("create proxy for %s:%d returned no URL", boxID, port)
 	}
-	return out.NewProxy.URL
+	return out.Proxy.URL
 }
 
-// deleteBoxViaAPI removes a box by POSTing to the admin /admin/boxes/delete
-// endpoint and returns the action result so a test can assert success (or inspect
-// the error).
+// deleteBoxViaAPI removes a box over the box-control API, returning the server's
+// error (nil on success) so a test can assert either outcome.
 //
 // @arg boxID The box ID to remove.
-// @return uiResult The decoded {ok,msg,err} result.
-func (f *clusterFixture) deleteBoxViaAPI(boxID string) uiResult {
+// @error error The server's error, or nil when the box was removed.
+func (f *clusterFixture) deleteBoxViaAPI(boxID string) error {
 	f.t.Helper()
-	return f.post("/admin/boxes/delete", url.Values{"box_id": {boxID}})
+	return f.apiCall("/api/v1/destroy-box", map[string]any{"container_id": boxID}, nil)
 }
 
-// dashboard fetches the rendered admin dashboard HTML as the signed-in admin.
-//
-// @return string The dashboard page body.
-func (f *clusterFixture) dashboard() string {
-	f.t.Helper()
-	req, err := http.NewRequest(http.MethodGet, f.baseURL+"/admin", nil)
-	if err != nil {
-		f.t.Fatalf("build dashboard request: %v", err)
-	}
-	req.AddCookie(f.cookie)
-	resp, err := f.client.Do(req)
-	if err != nil {
-		f.t.Fatalf("GET /admin: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		f.t.Fatalf("GET /admin: status %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		f.t.Fatalf("read dashboard: %v", err)
-	}
-	return string(body)
-}
-
-// spokeConnectedViaAPI reads the spoke's connection status from the admin
-// dashboard HTML (fetched over HTTP).
+// spokeConnectedViaAPI reads the spoke's connection status from the box-control
+// API — the same source the web app renders.
 //
 // @arg name The spoke name to look up.
-// @return connected Whether the dashboard marks the spoke connected.
-// @return present Whether a row for the spoke is shown at all.
+// @return connected Whether the API reports the spoke connected.
+// @return present Whether the spoke is enrolled at all.
 func (f *clusterFixture) spokeConnectedViaAPI(name string) (connected, present bool) {
 	f.t.Helper()
-	row, ok := rowInSection(f.dashboard(), "spokes-card", "boxes-card", name)
-	if !ok {
-		return false, false
+	var out struct {
+		Spokes []struct {
+			Name      string `json:"name"`
+			Connected bool   `json:"connected"`
+		} `json:"spokes"`
 	}
-	return strings.Contains(row, `pill on">connected`), true
+	if err := f.apiCall("/api/v1/spoke-statuses", struct{}{}, &out); err != nil {
+		f.t.Fatalf("spoke-statuses: %v", err)
+	}
+	for _, sp := range out.Spokes {
+		if sp.Name == name {
+			return sp.Connected, true
+		}
+	}
+	return false, false
 }
 
-// boxOnSpokeViaAPI reads which spoke a box is shown on in the admin dashboard
-// HTML (fetched over HTTP).
+// boxOnSpokeViaAPI reads which spoke a box runs on from the box-control API.
 //
 // @arg boxID The box ID to look up.
-// @return spoke The spoke the box is listed under.
-// @return present Whether a row for the box is shown at all.
+// @return spoke The spoke the box is listed on.
+// @return present Whether the box is listed at all.
 func (f *clusterFixture) boxOnSpokeViaAPI(boxID string) (spoke string, present bool) {
 	f.t.Helper()
-	row, ok := rowInSection(f.dashboard(), "boxes-card", "", boxID)
-	if !ok {
-		return "", false
+	var out struct {
+		Boxes []struct {
+			BoxID string `json:"box_id"`
+			Spoke string `json:"spoke"`
+		} `json:"boxes"`
 	}
-	// The box row renders the box ID cell first, then the spoke cell; the spoke is
-	// the value of the next mono cell after the one holding the box ID.
-	return nextMonoCell(row), true
+	if err := f.apiCall("/api/v1/list-boxes", struct{}{}, &out); err != nil {
+		f.t.Fatalf("list-boxes: %v", err)
+	}
+	for _, b := range out.Boxes {
+		if b.BoxID == boxID {
+			return b.Spoke, true
+		}
+	}
+	return "", false
 }
 
-// waitSpokeConnected polls the admin dashboard until the spoke's connection
+// waitSpokeConnected polls the box-control API until the spoke's connection
 // status matches want, failing the test if it does not converge in time.
 //
 // @arg name The spoke name to watch.
@@ -367,69 +347,8 @@ func (f *clusterFixture) waitSpokeConnected(name string, want bool) {
 			return
 		}
 		if time.Now().After(deadline) {
-			f.t.Fatalf("spoke %q never reached connected=%v in the admin UI", name, want)
+			f.t.Fatalf("spoke %q never reached connected=%v over the API", name, want)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-}
-
-// --- HTML scraping helpers --------------------------------------------------
-
-// rowInSection returns the substring of html that holds the table row for the
-// mono-cell value name, scoped to the card between startMarker and endMarker
-// (endMarker "" means to the end of the page). It returns the row text from the
-// matching <td class="mono">name</td> to the next </tr>, and ok=false when no
-// such row is present in the section.
-//
-// @arg html The full dashboard HTML.
-// @arg startMarker The id= marker that begins the section to search.
-// @arg endMarker The id= marker that ends the section, or "" for end-of-page.
-// @arg name The mono-cell value identifying the row.
-// @return string The row's HTML.
-// @return bool Whether the row was found.
-func rowInSection(html, startMarker, endMarker, name string) (string, bool) {
-	section := html
-	if i := strings.Index(section, `id="`+startMarker+`"`); i >= 0 {
-		section = section[i:]
-	}
-	if endMarker != "" {
-		if j := strings.Index(section, `id="`+endMarker+`"`); j >= 0 {
-			section = section[:j]
-		}
-	}
-	cell := `<td class="mono">` + name + `</td>`
-	i := strings.Index(section, cell)
-	if i < 0 {
-		return "", false
-	}
-	row := section[i:]
-	if end := strings.Index(row, "</tr>"); end >= 0 {
-		row = row[:end]
-	}
-	return row, true
-}
-
-// nextMonoCell returns the text of the first <td class="mono">…</td> cell in row
-// after the cell the row begins on, or "" when there is none. It is used to read
-// the spoke cell that follows a box-ID cell.
-//
-// @arg row The row HTML, beginning at a mono cell.
-// @return string The next mono cell's text content.
-func nextMonoCell(row string) string {
-	const open = `<td class="mono">`
-	// Skip the first cell (the row begins on it), then find the next.
-	rest := row
-	if i := strings.Index(rest, open); i >= 0 {
-		rest = rest[i+len(open):]
-	}
-	i := strings.Index(rest, open)
-	if i < 0 {
-		return ""
-	}
-	rest = rest[i+len(open):]
-	end := strings.Index(rest, "</td>")
-	if end < 0 {
-		return ""
-	}
-	return rest[:end]
 }

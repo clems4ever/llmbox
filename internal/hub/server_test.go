@@ -13,7 +13,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/clems4ever/llmbox/internal/hub/apikey"
 	"github.com/clems4ever/llmbox/internal/hub/hooks"
+	"github.com/clems4ever/llmbox/internal/hub/store"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
@@ -23,16 +25,36 @@ import (
 // spoke a box created with no explicit spoke routes to.
 const testSpoke = "spoke-1"
 
-// testStore is a NoopStore that additionally keeps settings in memory, so a server
-// under test can persist and read back its default spoke.
+// testStore is a NoopStore that additionally keeps settings and API keys in
+// memory, so a server under test can persist its default spoke and authenticate
+// API-key requests.
 type testStore struct {
 	testutils.NoopStore
 	mu       sync.Mutex
 	settings map[string]string
+	apiKeys  map[string]store.APIKeyRecord
 }
 
-// newTestStore builds an empty settings-capable test store.
-func newTestStore() *testStore { return &testStore{settings: map[string]string{}} }
+// newTestStore builds an empty settings- and API-key-capable test store.
+func newTestStore() *testStore {
+	return &testStore{settings: map[string]string{}, apiKeys: map[string]store.APIKeyRecord{}}
+}
+
+// PutAPIKey records an API key in memory.
+func (s *testStore) PutAPIKey(hash string, rec store.APIKeyRecord) error {
+	s.mu.Lock()
+	s.apiKeys[hash] = rec
+	s.mu.Unlock()
+	return nil
+}
+
+// GetAPIKey reads an API key from memory.
+func (s *testStore) GetAPIKey(hash string) (store.APIKeyRecord, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	rec, ok := s.apiKeys[hash]
+	return rec, ok, nil
+}
 
 // PutSetting records a setting in memory.
 func (s *testStore) PutSetting(key, value string) error {
@@ -388,11 +410,23 @@ func TestAPIHandlerServesUIAndAPI(t *testing.T) {
 		t.Errorf("healthz on handler: %d %q", rec.Code, rec.Body.String())
 	}
 
-	// The box-control API is mounted under /api/v1/ on the same handler.
+	// The box-control API is mounted under /api/v1/ on the same handler, behind
+	// the API auth gate: anonymous is rejected, a minted API key is admitted.
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/list-boxes", nil))
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("anonymous list-boxes on handler: status %d, want 401", rec.Code)
+	}
+	key, err := apikey.Create(s.store, "test", time.Hour, time.Now())
+	if err != nil {
+		t.Fatalf("mint api key: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/list-boxes", nil)
+	req.Header.Set("Authorization", "Bearer "+key)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
-		t.Errorf("list-boxes on handler: status %d, want 200", rec.Code)
+		t.Errorf("keyed list-boxes on handler: status %d, want 200", rec.Code)
 	}
 
 	// An unrouted root 404s.

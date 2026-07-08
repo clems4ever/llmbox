@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "Create",
+			"documentation_hash": "b0a701ac3bfb070b32bfface26ce5c52e9fb5939dd65f4d064087068e6e5ddcc",
+			"definition_hash": "c831b991a1472cdd4c22c62207ea3eb7ca9ca525d5130d3d2bc9dd262abdb6c8",
+			"reviewed_at": "2026-07-08T13:05:15.107451401Z"
+		},
+		{
+			"function_name": "Authenticate",
+			"documentation_hash": "3c7802e3eadd5eafa69f96ad2b09e7afa8101849f289ac914d2884099a334fa2",
+			"definition_hash": "1cff390c7960394485006b70e81d8bbe11d61485ab4a60915d18b889b24521fd",
+			"reviewed_at": "2026-07-08T13:05:15.110966622Z"
+		},
+		{
+			"function_name": "HashSecret",
+			"documentation_hash": "6911bd585c34667b49593009dbceef55a66b94dab3f17ea2b3d5341c38251445",
+			"definition_hash": "6ec6a9c81769b10173591ed014bc9abb0142e95c746a67f3596a6d42bba37224",
+			"reviewed_at": "2026-07-08T13:05:15.113253066Z"
+		}
+	]
+}

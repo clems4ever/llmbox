@@ -228,3 +228,40 @@ func (NoopStore) PutSetting(_, _ string) error { return nil }
 //
 // @testcase TestNoopStore checks every no-op method is inert.
 func (NoopStore) GetSetting(_ string) (string, bool, error) { return "", false, nil }
+
+// PutAPIKey discards the API key.
+//
+// @arg _ The key's secret hash.
+// @arg _ The record to (not) persist.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) PutAPIKey(_ string, _ store.APIKeyRecord) error { return nil }
+
+// GetAPIKey finds nothing.
+//
+// @arg _ The key's secret hash.
+// @return store.APIKeyRecord The zero record.
+// @return bool Always false.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) GetAPIKey(_ string) (store.APIKeyRecord, bool, error) {
+	return store.APIKeyRecord{}, false, nil
+}
+
+// ListAPIKeys returns no keys.
+//
+// @return []store.APIKeyInfo Always nil.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) ListAPIKeys() ([]store.APIKeyInfo, error) { return nil, nil }
+
+// DeleteAPIKey does nothing.
+//
+// @arg _ The key's hash ID.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) DeleteAPIKey(_ string) error { return nil }

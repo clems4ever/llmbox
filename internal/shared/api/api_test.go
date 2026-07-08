@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -25,8 +26,10 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	fb := &testutils.FakeBackend{
 		CreateSess:        api.BoxSession{BoxID: "web", ContainerID: "cid123", Token: "tok"},
 		Sessions:          map[string]api.BoxSession{"web": {BoxID: "web", ContainerID: "cid123", Status: "ready"}},
-		Boxes:             []sandbox.Box{{BoxID: "b1"}, {BoxID: "b2"}},
+		Boxes:             []api.BoxView{{Box: sandbox.Box{BoxID: "b1"}}, {Box: sandbox.Box{BoxID: "b2"}}},
 		Spokes:            []api.SpokeStatus{{Name: "edge", Connected: true, Default: true}},
+		CreateSpokeResult: api.SpokeEnrollment{Name: "edge", Token: "tok-1", Command: "llmbox-spoke firecracker --hub wss://x --token tok-1"},
+		JoinTokens:        []api.JoinTokenInfo{{ID: "tid", Name: "edge", ExpiresAt: time.Now().Add(time.Hour)}},
 		LogsResult:        "log output",
 		ExecResult:        sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 7},
 		ProxyOn:           true,
@@ -68,6 +71,31 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	spokes, err := c.SpokeStatuses(ctx)
 	if err != nil || len(spokes) != 1 || !spokes[0].Default {
 		t.Fatalf("SpokeStatuses = %v, %v", spokes, err)
+	}
+
+	sp, err := c.CreateSpoke(ctx, "edge", "firecracker", time.Hour)
+	if err != nil || sp.Token != "tok-1" {
+		t.Fatalf("CreateSpoke = %+v err=%v", sp, err)
+	}
+	if fb.GotCreateSpoke != "edge" || fb.GotCreateSpokeBk != "firecracker" || fb.GotCreateSpokeTTL != time.Hour {
+		t.Fatalf("CreateSpoke inputs = %q/%q/%v", fb.GotCreateSpoke, fb.GotCreateSpokeBk, fb.GotCreateSpokeTTL)
+	}
+
+	if err := c.DropSpoke(ctx, "edge"); err != nil || fb.GotDropSpoke != "edge" {
+		t.Fatalf("DropSpoke err=%v name=%q", err, fb.GotDropSpoke)
+	}
+
+	if err := c.SetDefaultSpoke(ctx, "edge"); err != nil || fb.GotDefaultSpoke != "edge" {
+		t.Fatalf("SetDefaultSpoke err=%v name=%q", err, fb.GotDefaultSpoke)
+	}
+
+	tokens, err := c.ListJoinTokens(ctx)
+	if err != nil || len(tokens) != 1 || tokens[0].ID != "tid" {
+		t.Fatalf("ListJoinTokens = %v err=%v", tokens, err)
+	}
+
+	if err := c.RevokeJoinToken(ctx, "tid"); err != nil || fb.GotRevokeToken != "tid" {
+		t.Fatalf("RevokeJoinToken err=%v id=%q", err, fb.GotRevokeToken)
 	}
 
 	if err := c.DestroyBox(ctx, "cid123"); err != nil || fb.GotDestroyID != "cid123" {
@@ -131,6 +159,35 @@ func TestMCPToolsOverHTTP(t *testing.T) {
 	}
 	if fb.GotCreate.BoxID != "web" {
 		t.Errorf("create not forwarded to backend: %+v", fb.GotCreate)
+	}
+}
+
+// TestClientSendsAPIKey checks a client configured with SetAPIKey sends the key
+// as a bearer token on every request, and sends no Authorization header without
+// one.
+func TestClientSendsAPIKey(t *testing.T) {
+	var gotAuth string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"boxes":[]}`))
+	}))
+	defer ts.Close()
+
+	c := api.NewClient(ts.URL, ts.Client())
+	if _, err := c.ListBoxes(context.Background()); err != nil {
+		t.Fatalf("ListBoxes: %v", err)
+	}
+	if gotAuth != "" {
+		t.Errorf("keyless request sent Authorization %q, want none", gotAuth)
+	}
+
+	c.SetAPIKey("lbx_secret")
+	if _, err := c.ListBoxes(context.Background()); err != nil {
+		t.Fatalf("ListBoxes with key: %v", err)
+	}
+	if gotAuth != "Bearer lbx_secret" {
+		t.Errorf("Authorization = %q, want the bearer key", gotAuth)
 	}
 }
 

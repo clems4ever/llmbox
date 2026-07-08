@@ -5,9 +5,11 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
@@ -22,7 +24,7 @@ type fakeBackend struct {
 
 	sessions map[string]BoxSession // keyed by lowercased box ID
 
-	boxes   []sandbox.Box
+	boxes   []api.BoxView
 	listErr error
 
 	spokes    []SpokeStatus
@@ -76,7 +78,7 @@ func (f *fakeBackend) LookupByBoxID(boxID string) (BoxSession, bool) {
 }
 
 // ListBoxes returns the canned boxes and list error.
-func (f *fakeBackend) ListBoxes(context.Context) ([]sandbox.Box, error) {
+func (f *fakeBackend) ListBoxes(context.Context) ([]api.BoxView, error) {
 	return f.boxes, f.listErr
 }
 
@@ -84,6 +86,25 @@ func (f *fakeBackend) ListBoxes(context.Context) ([]sandbox.Box, error) {
 func (f *fakeBackend) SpokeStatuses(context.Context) ([]SpokeStatus, error) {
 	return f.spokes, f.spokesErr
 }
+
+// CreateSpoke returns a canned spoke enrollment.
+func (f *fakeBackend) CreateSpoke(_ context.Context, name, backend string, _ time.Duration) (api.SpokeEnrollment, error) {
+	return api.SpokeEnrollment{Name: name, Token: "tok", Command: "llmbox-spoke " + backend}, nil
+}
+
+// DropSpoke is a no-op for the tool tests.
+func (f *fakeBackend) DropSpoke(context.Context, string) error { return nil }
+
+// SetDefaultSpoke is a no-op for the tool tests.
+func (f *fakeBackend) SetDefaultSpoke(context.Context, string) error { return nil }
+
+// ListJoinTokens returns no tokens for the tool tests.
+func (f *fakeBackend) ListJoinTokens(context.Context) ([]api.JoinTokenInfo, error) {
+	return nil, nil
+}
+
+// RevokeJoinToken is a no-op for the tool tests.
+func (f *fakeBackend) RevokeJoinToken(context.Context, string) error { return nil }
 
 // DestroyBox records the destroyed container ID and returns the canned error.
 func (f *fakeBackend) DestroyBox(_ context.Context, containerID string) error {
@@ -283,9 +304,9 @@ func TestToolGet(t *testing.T) {
 // TestToolList checks list_llmboxes returns the backend's boxes and propagates a
 // listing error.
 func TestToolList(t *testing.T) {
-	f := &fakeBackend{boxes: []sandbox.Box{
-		{InstanceID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
-		{InstanceID: "0123456789abcdef"},
+	f := &fakeBackend{boxes: []api.BoxView{
+		{Box: sandbox.Box{InstanceID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"}},
+		{Box: sandbox.Box{InstanceID: "0123456789abcdef"}},
 	}}
 	h := &handlers{b: f}
 

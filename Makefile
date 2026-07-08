@@ -48,6 +48,10 @@ build-spoke: ## Build the stand-alone llmbox-spoke binary into ./$(SPOKE_BINARY)
 build-agent: ## Build the stand-alone llmbox-agent (guest) binary into ./$(AGENT_BINARY).
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(AGENT_BINARY) $(AGENT_PKG)
 
+.PHONY: web
+web: ## Rebuild the admin web app into internal/hub/webdist (commit the result; embedded at go build).
+	cd web && npm install && npm run build
+
 .PHONY: install
 install: ## Install the hub, mcp, spoke, and agent binaries into $GOPATH/bin.
 	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG) $(SPOKE_PKG) $(AGENT_PKG)

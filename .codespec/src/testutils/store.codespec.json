@@ -167,6 +167,34 @@
 			"documentation_hash": "95d0097080bac34322d5a6c0a13ce3ffbcf6c6a12f1c989b686267434c40ad7c",
 			"definition_hash": "22c88abec24642aadec678e1901b3c48d03974b3206ddc8088b1efd68ff83479",
 			"reviewed_at": "2026-07-07T08:15:52.632367303Z"
+		},
+		{
+			"function_name": "PutAPIKey",
+			"receiver": "NoopStore",
+			"documentation_hash": "48947651cee1b5d7a7a9a992ea1f9fce52a44c2962a90aec2b2f084aa306d257",
+			"definition_hash": "c77483ea2212852893b9958b67a2e21911bdbd0b388b64d23244d8b184bba90e",
+			"reviewed_at": "2026-07-08T12:57:12.267036635Z"
+		},
+		{
+			"function_name": "GetAPIKey",
+			"receiver": "NoopStore",
+			"documentation_hash": "2c686740f90108206ee02d9b6dc5bd8148d346ddce87f3559e13a4b62bb595fb",
+			"definition_hash": "85d99afec5735731dae7db8a8b60ae92bf4677c643ad3bd4fb3a4ce7f10ba50d",
+			"reviewed_at": "2026-07-08T12:57:12.267457161Z"
+		},
+		{
+			"function_name": "ListAPIKeys",
+			"receiver": "NoopStore",
+			"documentation_hash": "24e3857820c83e183cb33456b46799ca307b03811c04115668ba3933cda9c790",
+			"definition_hash": "300ddd1050fd017f24ab383ee4882102180648fd7c33c08f5e7904f7580c0a5e",
+			"reviewed_at": "2026-07-08T12:57:12.267862867Z"
+		},
+		{
+			"function_name": "DeleteAPIKey",
+			"receiver": "NoopStore",
+			"documentation_hash": "acbe5807b42da02ddba24e28ae5ff611825a00cadf210bb7885c91b9ab4ad6c9",
+			"definition_hash": "0efedfdd2773bf2f20e160a74f82a7cc95c784fcd52e315eb8d536a08627e8de",
+			"reviewed_at": "2026-07-08T12:57:12.268320267Z"
 		}
 	]
 }

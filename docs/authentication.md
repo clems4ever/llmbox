@@ -38,3 +38,19 @@ Setup notes:
 
 When `auth` is omitted, activation is unauthenticated (the server logs a warning
 at startup) and behaves as before.
+
+## API authentication
+
+Every box-control API call (`/api/v1/*`) is authenticated — the same single API
+serves `llmbox-mcp`, scripts, and the admin web app:
+
+- **API keys** (headless callers): mint one on the hub host with
+  `llmbox-server apikey add --name <label> [--ttl 8760h]`; list and delete with
+  `apikey list` / `apikey delete --id <prefix>|--name <label>`. The key is shown
+  once and passed as a bearer token (`Authorization: Bearer lbx_...`); only its
+  SHA-256 is stored, and every key expires.
+- **Admin sessions** (the web app): a signed-in administrator's login cookie
+  plus the session's CSRF token echoed in the `X-CSRF-Token` header. The app
+  bootstraps this from `GET /api/v1/me`.
+
+With no sign-in provider configured, only API keys can authenticate API calls.

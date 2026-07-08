@@ -101,8 +101,8 @@
 			"function_name": "createBox",
 			"receiver": "clusterBrowserEnv",
 			"documentation_hash": "8dae606d54911ef9c5018068cd525608507d83bec0254d32f77ebc5280f13955",
-			"definition_hash": "cc5618837ced1b2efebaca88082a1d46d4abeab1e7e71cccc5d449c964a914de",
-			"reviewed_at": "2026-06-27T10:01:08.716162995Z"
+			"definition_hash": "5bba388e03b3ae349162a73452a3bdefe4e2ffbef03c4103212b6fdda75a045d",
+			"reviewed_at": "2026-07-08T12:57:12.223207404Z"
 		},
 		{
 			"function_name": "openAdmin",
@@ -122,8 +122,8 @@
 			"function_name": "removeBox",
 			"receiver": "clusterBrowserEnv",
 			"documentation_hash": "62e278c40c0abc120954e0f8c327b72a5d05137ee6548c98c3bb111007a52fff",
-			"definition_hash": "62a864ba8ac406a0b39d8506001836f97e2c40738b00e18648c4b626571496f8",
-			"reviewed_at": "2026-06-27T10:01:08.724307528Z"
+			"definition_hash": "18f94c94cff5f8993961b89501955e56ac8f3971eb49a67710884bd62595b4b6",
+			"reviewed_at": "2026-07-08T12:57:12.224505152Z"
 		},
 		{
 			"function_name": "waitSpokeStatus",

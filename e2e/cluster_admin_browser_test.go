@@ -3,11 +3,12 @@
 package e2e
 
 // These end-to-end tests drive the hub-and-spoke box lifecycle through the admin
-// page in a REAL headless Chrome, the way a human operates it: they load /admin,
-// type into the create form, pick the spoke, and click the Create / Remove
-// buttons, letting the page's admin.js intercept each submit and POST it over
-// fetch(). They are the slow, full-stack counterpart to the fast endpoint-level
-// tests in package clustere2e (e2e/cluster/spoke_lifecycle_e2e_test.go): same
+// single-page app in a REAL headless Chrome, the way a human operates it: they
+// load /admin, let the SPA bootstrap its session from /api/v1/me, type into the
+// create form, pick the spoke, and click the Create / Remove buttons — each
+// action travelling over the authenticated box-control API with the CSRF
+// header. They are the slow, full-stack counterpart to the fast API-level tests
+// in package clustere2e (e2e/cluster/spoke_lifecycle_e2e_test.go): same
 // scenarios, but exercised through the rendered DOM and JavaScript.
 //
 // Like the rest of the e2e suite they are opt-in via `-tags e2e` and need Chrome
@@ -361,7 +362,7 @@ func (e *clusterBrowserEnv) waitSpokeStatus(b *browser, name string, connected b
 // @arg spoke The spoke to create the box on (must be a connected option).
 func (e *clusterBrowserEnv) createBox(b *browser, boxID, spoke string) {
 	e.t.Helper()
-	idInput := b.waitFor(e.t, selenium.ByXPATH, `//form[@action='/admin/boxes']//input[@name='box_id']`)
+	idInput := b.waitFor(e.t, selenium.ByXPATH, `//form[@id='create-box-form']//input[@name='box_id']`)
 	if err := idInput.Clear(); err != nil {
 		e.t.Fatalf("clearing box id field: %v", err)
 	}
@@ -369,15 +370,15 @@ func (e *clusterBrowserEnv) createBox(b *browser, boxID, spoke string) {
 		e.t.Fatalf("typing box id: %v", err)
 	}
 	opt := b.waitFor(e.t, selenium.ByXPATH,
-		fmt.Sprintf(`//form[@action='/admin/boxes']//select[@name='spoke']/option[@value=%q]`, spoke))
+		fmt.Sprintf(`//form[@id='create-box-form']//select[@name='spoke']/option[@value=%q]`, spoke))
 	if err := opt.Click(); err != nil {
 		e.t.Fatalf("selecting spoke %q: %v", spoke, err)
 	}
-	btn := b.waitFor(e.t, selenium.ByXPATH, `//form[@action='/admin/boxes']//button[@type='submit']`)
+	btn := b.waitFor(e.t, selenium.ByXPATH, `//form[@id='create-box-form']//button[@type='submit']`)
 	if err := btn.Click(); err != nil {
 		e.t.Fatalf("clicking Create: %v", err)
 	}
-	// admin.js submits over fetch() and refreshes the cards; the new row appears.
+	// The SPA submits over fetch() and refreshes the cards; the new row appears.
 	b.waitFor(e.t, selenium.ByXPATH, boxCellXPath(boxID))
 }
 
@@ -388,9 +389,7 @@ func (e *clusterBrowserEnv) createBox(b *browser, boxID, spoke string) {
 // @arg boxID The box ID to remove.
 func (e *clusterBrowserEnv) removeBox(b *browser, boxID string) {
 	e.t.Helper()
-	btn := b.waitFor(e.t, selenium.ByXPATH, fmt.Sprintf(
-		`//div[@id='boxes-card']//form[@action='/admin/boxes/delete'][.//input[@name='box_id' and @value=%q]]//button`,
-		boxID))
+	btn := b.waitFor(e.t, selenium.ByXPATH, fmt.Sprintf(`//button[@data-box=%q]`, boxID))
 	if err := btn.Click(); err != nil {
 		e.t.Fatalf("clicking Remove for %q: %v", boxID, err)
 	}

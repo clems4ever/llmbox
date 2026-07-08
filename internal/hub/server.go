@@ -300,7 +300,7 @@ func (s *Server) SetDefaultSpoke(name string) error {
 // @return string The one-time join token.
 // @error error if the name is empty or the token cannot be minted.
 //
-// @testcase TestAdminCreateSpokeMintsToken mints a token for a named spoke.
+// @testcase TestBackendCreateSpoke mints a token for a named spoke.
 func (s *Server) createSpoke(name string, ttl time.Duration) (string, error) {
 	if name == "" {
 		return "", errors.New("spoke name is required")
@@ -318,8 +318,8 @@ func (s *Server) createSpoke(name string, ttl time.Duration) (string, error) {
 // @arg name The spoke name to drop; must be non-empty.
 // @error error if the name is empty or the enrollment record cannot be deleted.
 //
-// @testcase TestAdminDropSpokeRemovesAndKicks deletes the record and disconnects the live link.
-// @testcase TestAdminDropDefaultSpokeClearsDefault clears the default when the dropped spoke was it.
+// @testcase TestDropSpokeRemovesAndKicks deletes the record, revokes its tokens, and disconnects the live link.
+// @testcase TestDropDefaultSpokeClearsDefault clears the default when the dropped spoke was it.
 func (s *Server) dropSpoke(name string) error {
 	if name == "" {
 		return errors.New("spoke name is required")
@@ -357,8 +357,7 @@ func (s *Server) dropSpoke(name string) error {
 // @arg name The spoke to make the default; must be non-empty and enrolled.
 // @error error if the name is empty, the enrolled spokes cannot be read, the spoke is not enrolled, or the setting cannot be written.
 //
-// @testcase TestAdminSetDefaultSpoke persists the chosen default spoke.
-// @testcase TestAdminSetDefaultSpokeUnknown rejects a spoke that is not enrolled.
+// @testcase TestBackendSetDefaultSpoke persists the chosen default spoke and rejects an unenrolled one.
 func (s *Server) chooseDefaultSpoke(name string) error {
 	if name == "" {
 		return errors.New("spoke name is required")
@@ -381,7 +380,7 @@ func (s *Server) chooseDefaultSpoke(name string) error {
 // @arg id The token ID (its hash handle); must be non-empty.
 // @error error if the id is empty or the token cannot be deleted.
 //
-// @testcase TestAdminRevokeToken deletes the token by ID.
+// @testcase TestBackendJoinTokens deletes the token by ID.
 func (s *Server) revokeJoinToken(id string) error {
 	if id == "" {
 		return errors.New("token id is required")

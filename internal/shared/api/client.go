@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
@@ -19,6 +20,9 @@ import (
 type Client struct {
 	base string
 	hc   *http.Client
+	// apiKey, when set, is sent as a bearer token on every request — the
+	// credential the server's API auth middleware expects from a headless caller.
+	apiKey string
 }
 
 // Compile-time check that Client satisfies the Backend contract.
@@ -38,6 +42,14 @@ func NewClient(baseURL string, hc *http.Client) *Client {
 	}
 	return &Client{base: strings.TrimRight(baseURL, "/"), hc: hc}
 }
+
+// SetAPIKey makes the client authenticate every request with key as a bearer
+// token (Authorization: Bearer <key>). An empty key sends no credential.
+//
+// @arg key The API key minted with `llmbox-server apikey add`, or "" for none.
+//
+// @testcase TestClientSendsAPIKey sends the key as a bearer token on requests.
+func (c *Client) SetAPIKey(key string) { c.apiKey = key }
 
 // post sends req as JSON to the client's path and decodes the JSON response into
 // Resp. A non-2xx reply is turned into an error carrying the server's message.
@@ -62,6 +74,9 @@ func post[Req any, Resp any](ctx context.Context, c *Client, path string, req Re
 		return resp, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	if c.apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
 	res, err := c.hc.Do(httpReq)
 	if err != nil {
 		return resp, fmt.Errorf("calling %s: %w", path, err)
@@ -128,11 +143,11 @@ func (c *Client) LookupByBoxID(boxID string) (BoxSession, bool) {
 // ListBoxes returns all boxes managed by the upstream server.
 //
 // @arg ctx Context for the request.
-// @return []sandbox.Box The managed boxes.
+// @return []BoxView The managed boxes with their activation/session URLs.
 // @error error if listing boxes fails.
 //
 // @testcase TestBackendAPIRoundTrip lists boxes through the client.
-func (c *Client) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
+func (c *Client) ListBoxes(ctx context.Context) ([]BoxView, error) {
 	r, err := post[struct{}, listBoxesResponse](ctx, c, PathListBoxes, struct{}{})
 	return r.Boxes, err
 }
@@ -148,6 +163,76 @@ func (c *Client) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
 func (c *Client) SpokeStatuses(ctx context.Context) ([]SpokeStatus, error) {
 	r, err := post[struct{}, spokeStatusesResponse](ctx, c, PathSpokeStatuses, struct{}{})
 	return r.Spokes, err
+}
+
+// CreateSpoke mints a one-time join token for a new spoke on the upstream server
+// and returns it with the ready-to-run start command.
+//
+// @arg ctx Context for the request.
+// @arg name The spoke name to enroll.
+// @arg backend The box backend in the returned command ("docker" or "firecracker"; empty means docker).
+// @arg ttl How long the token stays valid; <=0 uses the server default.
+// @return SpokeEnrollment The token and start command.
+// @error error if the token cannot be minted.
+//
+// @testcase TestBackendAPIRoundTrip creates a spoke enrollment through the client.
+func (c *Client) CreateSpoke(ctx context.Context, name, backend string, ttl time.Duration) (SpokeEnrollment, error) {
+	req := createSpokeRequest{Name: name, Backend: backend}
+	if ttl > 0 {
+		req.TTL = ttl.String()
+	}
+	r, err := post[createSpokeRequest, createSpokeResponse](ctx, c, PathCreateSpoke, req)
+	return r.Spoke, err
+}
+
+// DropSpoke removes a spoke's enrollment on the upstream server.
+//
+// @arg ctx Context for the request.
+// @arg name The spoke name to drop.
+// @error error if the spoke cannot be dropped.
+//
+// @testcase TestBackendAPIRoundTrip drops a spoke through the client.
+func (c *Client) DropSpoke(ctx context.Context, name string) error {
+	_, err := post[dropSpokeRequest, emptyResponse](ctx, c, PathDropSpoke, dropSpokeRequest{Name: name})
+	return err
+}
+
+// SetDefaultSpoke makes an enrolled spoke the default on the upstream server.
+//
+// @arg ctx Context for the request.
+// @arg name The spoke name to make the default.
+// @error error if the default cannot be set.
+//
+// @testcase TestBackendAPIRoundTrip sets the default spoke through the client.
+func (c *Client) SetDefaultSpoke(ctx context.Context, name string) error {
+	_, err := post[setDefaultSpokeRequest, emptyResponse](ctx, c, PathSetDefaultSpoke, setDefaultSpokeRequest{Name: name})
+	return err
+}
+
+// ListJoinTokens returns every outstanding spoke join token from the upstream
+// server.
+//
+// @arg ctx Context for the request.
+// @return []JoinTokenInfo The outstanding join tokens.
+// @error error if the tokens cannot be read.
+//
+// @testcase TestBackendAPIRoundTrip lists join tokens through the client.
+func (c *Client) ListJoinTokens(ctx context.Context) ([]JoinTokenInfo, error) {
+	r, err := post[struct{}, listJoinTokensResponse](ctx, c, PathListJoinTokens, struct{}{})
+	return r.Tokens, err
+}
+
+// RevokeJoinToken deletes one outstanding join token by ID on the upstream
+// server.
+//
+// @arg ctx Context for the request.
+// @arg id The token ID to revoke.
+// @error error if the token cannot be revoked.
+//
+// @testcase TestBackendAPIRoundTrip revokes a join token through the client.
+func (c *Client) RevokeJoinToken(ctx context.Context, id string) error {
+	_, err := post[revokeJoinTokenRequest, emptyResponse](ctx, c, PathRevokeJoinToken, revokeJoinTokenRequest{ID: id})
+	return err
 }
 
 // DestroyBox stops and removes the box with the given container ID on the upstream

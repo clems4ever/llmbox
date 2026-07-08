@@ -24,6 +24,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/hub/apikey"
 	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/testutils"
 )
@@ -69,7 +70,7 @@ func TestEndToEndWorkflow(t *testing.T) {
 	waitHealthy(t, base)
 
 	// --- chatbot side: create the box over the box-control API ---
-	cs := connectMCP(t, base)
+	cs := connectMCP(t, base, store)
 
 	createOut := callTool(t, cs, "create_llmbox", map[string]any{
 		"box_id":      "e2e-box",
@@ -223,14 +224,23 @@ func waitHealthy(t *testing.T, base string) {
 // connectMCP builds an MCP session standing in for the chatbot: it wraps an
 // api client pointed at the server's box-control API in an MCP server (exactly
 // what the llmbox-mcp binary does) and connects an in-memory MCP client to it, so
-// tool calls travel over the real box-control HTTP API to the server.
+// tool calls travel over the real box-control HTTP API to the server. The API is
+// authenticated, so a key is minted into st — exactly what a deployed llmbox-mcp
+// is given.
 //
 // @arg t The test, used for fatal errors and cleanup.
 // @arg base The server's box-control API base URL.
+// @arg st The hub's store an API key is minted into.
 // @return *mcp.ClientSession A connected MCP client session.
-func connectMCP(t *testing.T, base string) *mcp.ClientSession {
+func connectMCP(t *testing.T, base string, st hub.Store) *mcp.ClientSession {
 	t.Helper()
-	return testutils.ConnectMCP(t, api.NewClient(base, nil), "llmbox", "e2e")
+	key, err := apikey.Create(st, "e2e-mcp", time.Hour, time.Now())
+	if err != nil {
+		t.Fatalf("mint api key: %v", err)
+	}
+	c := api.NewClient(base, nil)
+	c.SetAPIKey(key)
+	return testutils.ConnectMCP(t, c, "llmbox", "e2e")
 }
 
 // callTool calls an MCP tool and returns its structured output, failing the test

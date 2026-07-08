@@ -8,9 +8,9 @@
 		},
 		{
 			"function_name": "insecureTransportWarning",
-			"documentation_hash": "a74cbf26fd0a2adb6212ff136a07e78314c49441426bb97a3c19626b8d570b09",
-			"definition_hash": "33b83e95815c606207eb8ba7e504c9247923dc3ab07ac4aaaee506085573bc35",
-			"reviewed_at": "2026-07-08T09:55:45.413240177Z"
+			"documentation_hash": "8ad34a61a91d778aeb13a1279b3c22571500a4aa9347a4ddf2f1e14a4ae9d6fd",
+			"definition_hash": "2b81ee9785cc38076107684581f5ff77285af60e9b5b2fe5934471d2e1b1fb8c",
+			"reviewed_at": "2026-07-08T12:57:12.234102921Z"
 		},
 		{
 			"function_name": "listenAndServe",

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -29,10 +30,17 @@ type FakeBackend struct {
 	CreateErr         error
 	AuthBase          string                    // AuthPageURL returns AuthBase+token; empty uses defaultAuthBase
 	Sessions          map[string]api.BoxSession // LookupByBoxID source, keyed by lowercased box ID
-	Boxes             []sandbox.Box
+	Boxes             []api.BoxView
 	ListErr           error
 	Spokes            []api.SpokeStatus
 	SpokesErr         error
+	CreateSpokeResult api.SpokeEnrollment
+	CreateSpokeErr    error
+	DropSpokeErr      error
+	SetDefaultErr     error
+	JoinTokens        []api.JoinTokenInfo
+	JoinTokensErr     error
+	RevokeTokenErr    error
 	DestroyErr        error
 	LogsResult        string
 	LogsErr           error
@@ -46,20 +54,26 @@ type FakeBackend struct {
 	DeleteProxyErr    error
 
 	// Recorded inputs.
-	GotCreate      sandbox.CreateOptions
-	GotAuthToken   string
-	GotLookup      string
-	GotDestroyID   string
-	GotLogsID      string
-	GotLogsTail    int
-	GotExecID      string
-	GotExecCmd     string
-	GotProxyBoxID  string
-	GotProxyPort   int
-	GotProxyDesc   string
-	GotDeleteBoxID string
-	GotDeletePort  int
-	GotListBoxID   string
+	GotCreate         sandbox.CreateOptions
+	GotAuthToken      string
+	GotLookup         string
+	GotCreateSpoke    string
+	GotCreateSpokeBk  string
+	GotCreateSpokeTTL time.Duration
+	GotDropSpoke      string
+	GotDefaultSpoke   string
+	GotRevokeToken    string
+	GotDestroyID      string
+	GotLogsID         string
+	GotLogsTail       int
+	GotExecID         string
+	GotExecCmd        string
+	GotProxyBoxID     string
+	GotProxyPort      int
+	GotProxyDesc      string
+	GotDeleteBoxID    string
+	GotDeletePort     int
+	GotListBoxID      string
 }
 
 // CreateBox records the options into GotCreate and returns the canned session/error.
@@ -114,11 +128,11 @@ func (f *FakeBackend) LookupByBoxID(boxID string) (api.BoxSession, bool) {
 // ListBoxes returns the canned boxes/error.
 //
 // @arg ctx Context (unused by the fake).
-// @return []sandbox.Box The canned Boxes slice.
+// @return []api.BoxView The canned Boxes slice.
 // @error error The canned ListErr, if any.
 //
 // @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
-func (f *FakeBackend) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
+func (f *FakeBackend) ListBoxes(ctx context.Context) ([]api.BoxView, error) {
 	return f.Boxes, f.ListErr
 }
 
@@ -131,6 +145,78 @@ func (f *FakeBackend) ListBoxes(ctx context.Context) ([]sandbox.Box, error) {
 // @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
 func (f *FakeBackend) SpokeStatuses(ctx context.Context) ([]api.SpokeStatus, error) {
 	return f.Spokes, f.SpokesErr
+}
+
+// CreateSpoke records the name/backend/ttl and returns the canned enrollment/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg name The spoke name, recorded into GotCreateSpoke.
+// @arg backend The backend, recorded into GotCreateSpokeBk.
+// @arg ttl The token TTL, recorded into GotCreateSpokeTTL.
+// @return api.SpokeEnrollment The canned CreateSpokeResult.
+// @error error The canned CreateSpokeErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) CreateSpoke(ctx context.Context, name, backend string, ttl time.Duration) (api.SpokeEnrollment, error) {
+	f.mu.Lock()
+	f.GotCreateSpoke = name
+	f.GotCreateSpokeBk = backend
+	f.GotCreateSpokeTTL = ttl
+	f.mu.Unlock()
+	return f.CreateSpokeResult, f.CreateSpokeErr
+}
+
+// DropSpoke records the name and returns the canned DropSpokeErr.
+//
+// @arg ctx Context (unused by the fake).
+// @arg name The spoke name, recorded into GotDropSpoke.
+// @error error The canned DropSpokeErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) DropSpoke(ctx context.Context, name string) error {
+	f.mu.Lock()
+	f.GotDropSpoke = name
+	f.mu.Unlock()
+	return f.DropSpokeErr
+}
+
+// SetDefaultSpoke records the name and returns the canned SetDefaultErr.
+//
+// @arg ctx Context (unused by the fake).
+// @arg name The spoke name, recorded into GotDefaultSpoke.
+// @error error The canned SetDefaultErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) SetDefaultSpoke(ctx context.Context, name string) error {
+	f.mu.Lock()
+	f.GotDefaultSpoke = name
+	f.mu.Unlock()
+	return f.SetDefaultErr
+}
+
+// ListJoinTokens returns the canned join tokens/error.
+//
+// @arg ctx Context (unused by the fake).
+// @return []api.JoinTokenInfo The canned JoinTokens slice.
+// @error error The canned JoinTokensErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) ListJoinTokens(ctx context.Context) ([]api.JoinTokenInfo, error) {
+	return f.JoinTokens, f.JoinTokensErr
+}
+
+// RevokeJoinToken records the id and returns the canned RevokeTokenErr.
+//
+// @arg ctx Context (unused by the fake).
+// @arg id The token ID, recorded into GotRevokeToken.
+// @error error The canned RevokeTokenErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) RevokeJoinToken(ctx context.Context, id string) error {
+	f.mu.Lock()
+	f.GotRevokeToken = id
+	f.mu.Unlock()
+	return f.RevokeTokenErr
 }
 
 // DestroyBox records the container ID and returns the canned DestroyErr.

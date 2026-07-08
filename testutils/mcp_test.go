@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/clems4ever/llmbox/internal/mcpserver"
+	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
@@ -14,7 +15,7 @@ func TestFakeBackend(t *testing.T) {
 	f := &FakeBackend{
 		CreateSess: mcpserver.BoxSession{BoxID: "web", ContainerID: "cid", Token: "tok"},
 		Sessions:   map[string]mcpserver.BoxSession{"web": {BoxID: "web", Status: "ready"}},
-		Boxes:      []sandbox.Box{{BoxID: "b1"}},
+		Boxes:      []api.BoxView{{Box: sandbox.Box{BoxID: "b1"}}},
 		ExecResult: sandbox.ExecResult{ExitCode: 3},
 		ProxyOn:    true,
 	}
