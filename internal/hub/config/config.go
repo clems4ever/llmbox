@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -84,8 +85,12 @@ type Config struct {
 // Empty base_domain disables the feature: no proxy is served and the MCP/admin
 // proxy tools report it as disabled.
 type ProxyConfig struct {
-	// BaseDomain is the parent domain proxy subdomains hang off, e.g.
-	// "proxy.example.com" (a proxy is then reached at <slug>.proxy.example.com).
+	// BaseDomain is the bare parent domain proxy subdomains hang off, e.g.
+	// "proxy.example.com" (a proxy is then reached at <slug>.proxy.example.com). It
+	// must be host-only — no scheme, path, wildcard, or port (the listen port is
+	// taken from public_url and appended to the advertised URL; incoming Host
+	// matching strips the port). A port here silently breaks proxy routing, so it is
+	// rejected at load time.
 	BaseDomain string `yaml:"base_domain"`
 }
 
@@ -117,10 +122,12 @@ type AuthConfig struct {
 	Google     GoogleConfig `yaml:"google"`
 	Admin      AdminConfig  `yaml:"admin"`
 	// CookieDomain, when set, is the Domain attribute placed on the login-session
-	// cookie so one sign-in is shared across sub-domains (e.g. ".example.com" lets
-	// the session reach both the main UI and the per-proxy <slug>.proxy.example.com
-	// hosts). Empty keeps the cookie host-only (the default), which is correct
-	// unless the proxy feature is used with sub-domain hosts.
+	// cookie so one sign-in is shared across sub-domains: a bare parent domain
+	// (e.g. "example.com", NOT ".example.com" and NOT "example.com:8443") that lets
+	// the session reach both the main UI and the per-proxy <slug>.example.com hosts.
+	// It must cover both the public_url host and proxy.base_domain, and is validated
+	// as such at load time. Empty keeps the cookie host-only (the default), which is
+	// correct unless the proxy feature is used with sub-domain hosts.
 	CookieDomain string `yaml:"cookie_domain"`
 }
 
@@ -271,14 +278,25 @@ func secretFromFile(path string) (string, error) {
 	return strings.TrimSpace(string(data)), nil
 }
 
-// validate rejects internally-inconsistent configuration. In particular an
-// enabled auth provider must carry credentials and a non-empty allow rule, so
-// enabling it can never authorize every account.
+// validate rejects internally-inconsistent configuration. An enabled auth
+// provider must carry credentials and a non-empty allow rule, so enabling it can
+// never authorize every account. The proxy base domain and the login cookie
+// domain must each be a bare host, and the cookie domain must span both the
+// public_url host and the proxy base domain — shapes that otherwise silently
+// break proxy routing or the shared login (a port or leading dot slips past at
+// load and only surfaces as a dead proxy or a rejected cookie later).
 //
 // @error error if an enabled provider is missing credentials or an allow rule.
+// @error error if proxy.base_domain or auth.cookie_domain is not a bare host.
+// @error error if auth.cookie_domain does not cover public_url or proxy.base_domain.
 //
 // @testcase TestLoadGoogleRequiresAllowlist rejects an enabled provider with no allow rule.
 // @testcase TestLoadTLSRequiresCertAndKey rejects enabled TLS with no cert_file or key_file.
+// @testcase TestLoadRejectsBaseDomainWithPort rejects a proxy.base_domain carrying a port.
+// @testcase TestLoadRejectsCookieDomainLeadingDot rejects an auth.cookie_domain with a leading dot.
+// @testcase TestLoadRejectsCookieDomainNotCoveringBase rejects a cookie domain that is not a parent of the base domain.
+// @testcase TestLoadRejectsCookieDomainNotCoveringPublicURL rejects a cookie domain the public_url host is outside of.
+// @testcase TestLoadAcceptsConsistentProxyAndCookieDomains accepts a bare cookie domain that spans the base domain and public_url.
 func (c *Config) validate() error {
 	if c.TLS.Enabled && (c.TLS.CertFile == "" || c.TLS.KeyFile == "") {
 		return errors.New("tls.enabled requires cert_file and key_file")
@@ -294,7 +312,75 @@ func (c *Config) validate() error {
 			return errors.New("auth.google.enabled requires allowed_domains or allowed_emails (refusing to authorize every Google account)")
 		}
 	}
+	if c.Proxy.BaseDomain != "" {
+		if err := validateBareDomain("proxy.base_domain", c.Proxy.BaseDomain); err != nil {
+			return err
+		}
+	}
+	if c.Auth.CookieDomain != "" {
+		if err := validateBareDomain("auth.cookie_domain", c.Auth.CookieDomain); err != nil {
+			return err
+		}
+		// The cookie is set by the public_url host, and a browser only accepts a
+		// Domain attribute that host belongs to. A cookie domain the public_url is
+		// outside of yields a silently-rejected login cookie.
+		if u, err := url.Parse(c.PublicURL); err == nil && u.Host != "" && !domainCovers(c.Auth.CookieDomain, u.Hostname()) {
+			return fmt.Errorf("auth.cookie_domain %q does not cover public_url host %q; the browser would reject the login cookie", c.Auth.CookieDomain, u.Hostname())
+		}
+		// The shared login must reach the per-proxy sub-domains, so the cookie domain
+		// has to be the proxy base domain or a parent of it.
+		if c.Proxy.BaseDomain != "" && !domainCovers(c.Auth.CookieDomain, c.Proxy.BaseDomain) {
+			return fmt.Errorf("auth.cookie_domain %q must equal or be a parent of proxy.base_domain %q so the login cookie covers proxy sub-domains", c.Auth.CookieDomain, c.Proxy.BaseDomain)
+		}
+	}
 	return nil
+}
+
+// validateBareDomain rejects a domain value that is not a plain DNS host. The
+// proxy base domain and the login cookie domain must each be a bare host (like
+// "example.com") because a scheme, path, wildcard, port, or leading/trailing dot
+// silently breaks either proxy Host matching (which strips the port before
+// comparing) or the cookie's Domain attribute (which is host-only and dotless).
+//
+// @arg field The config field name, used in the error message.
+// @arg v The configured domain value (assumed non-empty).
+// @error error if v carries a scheme, path, wildcard, port, whitespace, or a leading/trailing dot.
+//
+// @testcase TestLoadRejectsBaseDomainWithPort rejects a base domain with a port.
+// @testcase TestLoadRejectsCookieDomainLeadingDot rejects a cookie domain with a leading dot.
+func validateBareDomain(field, v string) error {
+	switch {
+	case strings.ContainsAny(v, " \t\r\n"):
+		return fmt.Errorf("%s %q must not contain whitespace", field, v)
+	case strings.Contains(v, "://"):
+		return fmt.Errorf("%s %q must be a bare domain, not a URL (drop the scheme)", field, v)
+	case strings.Contains(v, "/"):
+		return fmt.Errorf("%s %q must be a bare domain with no path", field, v)
+	case strings.Contains(v, "*"):
+		return fmt.Errorf("%s %q must not contain a wildcard; it is the parent domain sub-domains hang off", field, v)
+	case strings.Contains(v, ":"):
+		return fmt.Errorf("%s %q must not include a port (the listen port comes from public_url and the incoming request)", field, v)
+	case strings.HasPrefix(v, "."), strings.HasSuffix(v, "."):
+		return fmt.Errorf("%s %q must not begin or end with a dot", field, v)
+	}
+	return nil
+}
+
+// domainCovers reports whether cookie domain parent scopes host: true when host
+// equals parent or is a sub-domain of it. Both are lower-cased so the comparison
+// is case-insensitive, matching how browsers and the proxy Host matcher treat
+// domains. It assumes parent is already a bare host (see validateBareDomain).
+//
+// @arg parent The bare cookie/base domain being checked as an ancestor.
+// @arg host The host that must fall under parent.
+// @return bool True when host is parent or a sub-domain of it.
+//
+// @testcase TestLoadAcceptsConsistentProxyAndCookieDomains accepts a host under the cookie domain.
+// @testcase TestLoadRejectsCookieDomainNotCoveringBase rejects a base domain outside the cookie domain.
+func domainCovers(parent, host string) bool {
+	parent = strings.ToLower(parent)
+	host = strings.ToLower(host)
+	return host == parent || strings.HasSuffix(host, "."+parent)
 }
 
 // applyDefaults fills any field left at its zero value with its built-in

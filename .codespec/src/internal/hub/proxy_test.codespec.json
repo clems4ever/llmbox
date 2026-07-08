@@ -162,6 +162,12 @@
 			"documentation_hash": "c4461b454f3c17732d89dbe96e5e01ae3ca9c98c2dc27f06e97da1c0b5e52b31",
 			"definition_hash": "febcf1200d28706ce07a7981daf0320415eacedeb8024ff4027dfb2a2c0e36d2",
 			"reviewed_at": "2026-07-07T08:15:52.593702299Z"
+		},
+		{
+			"function_name": "TestProxyURLCarriesPublicURLPort",
+			"documentation_hash": "c1d2472842370babfcd7725f6fb073d79455cd6a355aae65a4fffff455f49615",
+			"definition_hash": "7eaaf10bfebef1579c057aa6ecdca5dcc735f1edb578a1d69da5253f07c13b38",
+			"reviewed_at": "2026-07-08T21:06:08.470296993Z"
 		}
 	]
 }

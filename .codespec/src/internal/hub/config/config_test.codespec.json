@@ -125,6 +125,36 @@
 			"documentation_hash": "352ac2efa75508b9aad76cc52964acee61fce223647781ae05b0436fd61468d4",
 			"definition_hash": "69ae62f73d979e43b2d5052289e4e8c67a074998eec5cb184c04aeb8bb512573",
 			"reviewed_at": "2026-07-08T09:43:14.698250328Z"
+		},
+		{
+			"function_name": "TestLoadRejectsBaseDomainWithPort",
+			"documentation_hash": "1fe83eb517ceb59d88d47b115504188b0bfd99d9b60a81b3454966d186692412",
+			"definition_hash": "e2408d6162583cad5efd5ee7c8579a5e437d08c36d4471f4890b4c244518671e",
+			"reviewed_at": "2026-07-08T21:06:08.466726372Z"
+		},
+		{
+			"function_name": "TestLoadRejectsCookieDomainLeadingDot",
+			"documentation_hash": "3542c5ff5eb59064b2963f753773b46c093971c116a81b5d3a2c34c38fa079c0",
+			"definition_hash": "5e2dd5673ce021ec9472e56704b95d5781e9737659ba92600ee3c8d8445488e9",
+			"reviewed_at": "2026-07-08T21:06:08.467844326Z"
+		},
+		{
+			"function_name": "TestLoadRejectsCookieDomainNotCoveringBase",
+			"documentation_hash": "ffc9b62eb5da9e661ade5e1313c0cf10d57dbc4bc8334dcb99b2607f2610a40a",
+			"definition_hash": "3a21c0cc9b534b7949ba457829c374223efcfd1dc6895df2a4cca80838d28a79",
+			"reviewed_at": "2026-07-08T21:06:08.468412558Z"
+		},
+		{
+			"function_name": "TestLoadRejectsCookieDomainNotCoveringPublicURL",
+			"documentation_hash": "46495bd7cdd6b97d657f5e90f041d2f8cafb5eefa60ea83ba90f3b93e63de2be",
+			"definition_hash": "d77c2795f0b5e407a81676f9e38c6db8ff5617084242b0f74f52937908d7a0e5",
+			"reviewed_at": "2026-07-08T21:06:08.468972918Z"
+		},
+		{
+			"function_name": "TestLoadAcceptsConsistentProxyAndCookieDomains",
+			"documentation_hash": "1a99f3b909313288426dceb0e35a715f95d4ffd291268bf52f5c48ef28a91ae2",
+			"definition_hash": "be6fea76462929a073c8fbc645435b7466514757a69cac1bba0c5fc761247cc0",
+			"reviewed_at": "2026-07-08T21:06:08.469503247Z"
 		}
 	]
 }

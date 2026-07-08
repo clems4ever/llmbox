@@ -267,6 +267,68 @@ func TestLoadTLSRequiresCertAndKey(t *testing.T) {
 	}
 }
 
+// TestLoadRejectsBaseDomainWithPort checks a proxy.base_domain carrying a port
+// is rejected: incoming proxy Host matching strips the port, so a port here
+// silently kills routing.
+func TestLoadRejectsBaseDomainWithPort(t *testing.T) {
+	if _, err := Load(write(t, "proxy:\n  base_domain: \"llmbox.dev:8443\"\n")); err == nil {
+		t.Error("Load base_domain with port = nil, want error")
+	}
+	// A scheme, path, and wildcard are equally rejected.
+	for _, bad := range []string{"https://llmbox.dev", "llmbox.dev/x", "*.llmbox.dev", ".llmbox.dev"} {
+		if _, err := Load(write(t, "proxy:\n  base_domain: \""+bad+"\"\n")); err == nil {
+			t.Errorf("Load base_domain %q = nil, want error", bad)
+		}
+	}
+}
+
+// TestLoadRejectsCookieDomainLeadingDot checks an auth.cookie_domain with a
+// leading dot is rejected: SafeReturnURL prefixes a dot when matching, so a
+// leading dot never matches any host.
+func TestLoadRejectsCookieDomainLeadingDot(t *testing.T) {
+	cfg := "public_url: \"https://llmbox.dev\"\nauth:\n  cookie_domain: \".llmbox.dev\"\n"
+	if _, err := Load(write(t, cfg)); err == nil {
+		t.Error("Load cookie_domain with leading dot = nil, want error")
+	}
+	withPort := "public_url: \"https://llmbox.dev:8443\"\nauth:\n  cookie_domain: \"llmbox.dev:8443\"\n"
+	if _, err := Load(write(t, withPort)); err == nil {
+		t.Error("Load cookie_domain with port = nil, want error")
+	}
+}
+
+// TestLoadRejectsCookieDomainNotCoveringBase checks a cookie domain that is not a
+// parent of the proxy base domain is rejected, since the shared login cookie
+// would not reach the proxy sub-domains.
+func TestLoadRejectsCookieDomainNotCoveringBase(t *testing.T) {
+	cfg := "public_url: \"https://other.com\"\nproxy:\n  base_domain: \"llmbox.dev\"\nauth:\n  cookie_domain: \"other.com\"\n"
+	if _, err := Load(write(t, cfg)); err == nil {
+		t.Error("Load cookie_domain not covering base_domain = nil, want error")
+	}
+}
+
+// TestLoadRejectsCookieDomainNotCoveringPublicURL checks a cookie domain the
+// public_url host is outside of is rejected: the browser would reject the
+// Set-Cookie the public_url host emits.
+func TestLoadRejectsCookieDomainNotCoveringPublicURL(t *testing.T) {
+	cfg := "public_url: \"https://llmbox.dev:8443\"\nauth:\n  cookie_domain: \"elsewhere.com\"\n"
+	if _, err := Load(write(t, cfg)); err == nil {
+		t.Error("Load cookie_domain not covering public_url = nil, want error")
+	}
+}
+
+// TestLoadAcceptsConsistentProxyAndCookieDomains checks a bare cookie domain that
+// spans both the public_url host and the proxy base domain loads cleanly.
+func TestLoadAcceptsConsistentProxyAndCookieDomains(t *testing.T) {
+	cfg := "public_url: \"https://llmbox.dev:8443\"\nproxy:\n  base_domain: \"llmbox.dev\"\nauth:\n  cookie_domain: \"llmbox.dev\"\n"
+	c, err := Load(write(t, cfg))
+	if err != nil {
+		t.Fatalf("Load consistent proxy/cookie domains = %v, want nil", err)
+	}
+	if c.Proxy.BaseDomain != "llmbox.dev" || c.Auth.CookieDomain != "llmbox.dev" {
+		t.Errorf("parsed domains = %q / %q", c.Proxy.BaseDomain, c.Auth.CookieDomain)
+	}
+}
+
 // TestLoadConfigDefaultsWhenAbsent checks an implicit (non-explicit) missing
 // config path yields the built-in defaults rather than an error.
 func TestLoadConfigDefaultsWhenAbsent(t *testing.T) {
