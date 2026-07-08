@@ -140,8 +140,10 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	}
 	signInBtn := b.waitFor(t, selenium.ByXPATH, "//a[contains(normalize-space(.),'Sign in with Google')]")
 	href, _ := signInBtn.GetAttribute("href")
-	if !strings.Contains(href, "/auth/google/login") || !strings.Contains(href, u.Host) {
-		t.Fatalf("sign-in button href = %q, want a login link returning to the proxy host %q", href, u.Host)
+	// The return URL carries the proxy host with its port percent-encoded (:%3A),
+	// so match on the bare hostname, which appears literally in the href.
+	if !strings.Contains(href, "/auth/google/login") || !strings.Contains(href, u.Hostname()) {
+		t.Fatalf("sign-in button href = %q, want a login link returning to the proxy host %q", href, u.Hostname())
 	}
 
 	// Capture the proxy sign-in page for the docs when a screenshot dir is set (CI

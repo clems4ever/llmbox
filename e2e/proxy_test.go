@@ -76,7 +76,7 @@ func TestEndToEndProxy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsing proxy url %q: %v", proxyURL, err)
 	}
-	if !strings.HasSuffix(u.Host, ".proxy.example.com") {
+	if !strings.HasSuffix(u.Hostname(), ".proxy.example.com") {
 		t.Fatalf("proxy host = %q, want a *.proxy.example.com sub-domain", u.Host)
 	}
 
