@@ -23,7 +23,6 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="${OUT:-$HOME/fc-assets}"
-BOX_IMAGE="${BOX_IMAGE:-ghcr.io/clems4ever/llmbox-box:latest}"
 PAYLOAD_MB="${PAYLOAD_MB:-512}"
 mkdir -p "$OUT"
 
@@ -35,21 +34,34 @@ echo ">> building static llmbox-agent (linux/amd64)"
 ( cd "$REPO_ROOT" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags="-s -w" -o "$PDIR/llmbox-agent" ./cmd/llmbox-agent )
 
-echo ">> lifting the standalone claude binary and trust seed from $BOX_IMAGE"
-cid="$(docker create "$BOX_IMAGE")"
-docker cp "$cid":/usr/local/bin/claude "$PDIR/claude"
-docker cp "$cid":/root/.claude.json "$PDIR/claude.json" 2>/dev/null || echo '{}' > "$PDIR/claude.json"
-docker rm "$cid" >/dev/null
+# Everything the payload carries besides the guest agent is sourced from the repo
+# checkout or fetched fresh here — NOT lifted out of ghcr.io/.../llmbox-box:latest.
+# That image is (re)published by a separate, slower workflow (ci.yml build-push,
+# gated on tests) that finishes AFTER this one, so lifting from it would ship the
+# *previous* commit's claude binary, trust seed, and skills. Sourcing everything
+# locally keeps the payload in lockstep with the commit being built (and drops the
+# docker dependency this script used to have).
 
-echo ">> copying Claude Code skills from the repo checkout ($REPO_ROOT/docker/skills)"
-# Skills (e.g. box-ports) ship straight from the source tree, NOT lifted out of
-# the box image. They are plain text tracked in git, so taking them from the
-# checkout keeps them in lockstep with the commit being built. Lifting them from
-# ghcr.io/.../llmbox-box:latest instead would lag by a commit: that image is
-# (re)published by a separate, slower workflow (ci.yml build-push, gated on
-# tests), while this payload workflow finishes first — so it would ship the
-# *previous* commit's skills. The base rootfs is agent-agnostic, so the payload
-# entrypoint seeds these into /root/.claude/skills at boot.
+# The standalone claude binary: fetched with the same installer the box image uses
+# (Dockerfile.box), pinned to the same version — the single source of truth is the
+# ARG CLAUDE_VERSION line there. This assumes an amd64 build host, matching the
+# amd64 llmbox-agent built above and the amd64 rootfs the payload rides.
+echo ">> fetching the standalone claude binary (version pinned in Dockerfile.box)"
+CLAUDE_VERSION="$(sed -n 's/^ARG CLAUDE_VERSION=//p' "$REPO_ROOT/Dockerfile.box" | head -n1)"
+CLAUDE_VERSION="${CLAUDE_VERSION:-stable}"
+claude_home="$(mktemp -d)"
+curl -fsSL https://claude.ai/install.sh | HOME="$claude_home" bash -s -- "$CLAUDE_VERSION"
+claude_link="$claude_home/.local/bin/claude"
+[ -e "$claude_link" ] || { echo "claude not found at $claude_link after install" >&2; exit 1; }
+install -m0755 "$(readlink -f "$claude_link")" "$PDIR/claude"
+"$PDIR/claude" --version
+rm -rf "$claude_home"
+
+# The ~/.claude.json trust seed and the Claude Code skills (box-ports etc.) are
+# plain files tracked in git, so copy them straight from the checkout. The base
+# rootfs is agent-agnostic, so the payload entrypoint seeds them into /root at boot.
+echo ">> copying the trust seed and skills from the repo checkout"
+cp "$REPO_ROOT/docker/claude.json" "$PDIR/claude.json" 2>/dev/null || echo '{}' > "$PDIR/claude.json"
 mkdir -p "$PDIR/skills"
 if [ -d "$REPO_ROOT/docker/skills" ]; then
   cp -a "$REPO_ROOT/docker/skills/." "$PDIR/skills/"
