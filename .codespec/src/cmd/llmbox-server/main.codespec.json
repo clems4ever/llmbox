@@ -7,28 +7,10 @@
 			"reviewed_at": "2026-06-18T16:33:14.657457994Z"
 		},
 		{
-			"function_name": "run",
-			"documentation_hash": "a0bae4dc94d0f6d64c25a93240657b6520447c7d6ce87571d0ac343b6b81c7fa",
-			"definition_hash": "c75d738790b26a246da3fb816140674a554002da9476513940ffe72baf3564a9",
-			"reviewed_at": "2026-07-08T09:41:45.015775209Z"
-		},
-		{
 			"function_name": "newRootCmd",
 			"documentation_hash": "024042d2f398378f4877ca2ba5aa820ca6b7f00335bc16a581978ab8f78764a2",
-			"definition_hash": "bdb5d5f0a0e8bed2b0c4a31485262382950c60158f9b2cee94ac3cc2d212c56e",
-			"reviewed_at": "2026-07-07T19:45:36.271489442Z"
-		},
-		{
-			"function_name": "listenAndServe",
-			"documentation_hash": "6991c034bcc37ab5bf070fa9487b69a3e620e2fb3a33330b9cd879ab288f6d98",
-			"definition_hash": "3a1f951a133b3fcee9b30cb25d0985c03e1685f31f6565db1381c082fc072e68",
-			"reviewed_at": "2026-07-01T14:22:25.928445571Z"
-		},
-		{
-			"function_name": "insecureTransportWarning",
-			"documentation_hash": "a74cbf26fd0a2adb6212ff136a07e78314c49441426bb97a3c19626b8d570b09",
-			"definition_hash": "33b83e95815c606207eb8ba7e504c9247923dc3ab07ac4aaaee506085573bc35",
-			"reviewed_at": "2026-07-01T14:22:43.80336876Z"
+			"definition_hash": "8583bddd48e184d35f33ad4c8e22056e497c75b9ae3f8b3fdb2193dd00317f01",
+			"reviewed_at": "2026-07-08T09:55:31.636185015Z"
 		}
 	]
 }
