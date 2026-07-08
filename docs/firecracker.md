@@ -164,29 +164,18 @@ and no missing-feature warnings — so `docker run` works (image pulls need egre
 
 ### Minimal rootfs (agent-as-init, no systemd)
 
-For a lightweight box or the conformance test, two simpler scripts build a
-busybox/container-fs rootfs with the agent as PID 1 (no systemd, no Docker):
+For the conformance test, a simpler script builds a busybox/container-fs rootfs
+with the agent as PID 1 (no systemd, no Docker):
 
-- **`scripts/firecracker/build-box-rootfs.sh`** — a **production** rootfs from the
-  `llmbox-box` container image (the same image the Docker backend runs), with the
-  real `claude` baked in. It rebuilds the agent from the current source and
-  overwrites the image's copy (the published image predates the vsock transport),
-  and runs the agent under `tini` so Claude's child processes are reaped. Use this
-  for real sessions.
 - **`scripts/firecracker/build-conformance-rootfs.sh`** — a minimal BusyBox rootfs
   with a **mock** `claude` (prints fake auth/session URLs). Used only by the
   conformance test; it proves the plumbing but is not a real Claude.
 
-The production rootfs's init must `cd /workspace` before exec'ing the agent: the
-image's `~/.claude.json` trust seed marks `/workspace` trusted (the Docker backend
-sets `WORKDIR=/workspace` for the same reason), so running Claude anywhere else
-fails with "Workspace not trusted". `build-box-rootfs.sh` does this.
-
-A real Claude session needs the production rootfs **and** egress enabled
-(`disable_egress: false`), because the box must reach the Anthropic API and OAuth —
-which means running the server/spoke with `CAP_NET_ADMIN` (root). With egress
-disabled (control-only) a box boots and its agent is reachable, but `claude` cannot
-authenticate.
+For real sessions use the full Debian server pair above. A real Claude session
+needs egress enabled (`disable_egress: false`), because the box must reach the
+Anthropic API and OAuth — which means running the server/spoke with
+`CAP_NET_ADMIN` (root). With egress disabled (control-only) a box boots and its
+agent is reachable, but `claude` cannot authenticate.
 
 ## Running the conformance suite
 
