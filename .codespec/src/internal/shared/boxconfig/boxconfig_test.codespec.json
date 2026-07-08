@@ -1,12 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "TestBoxLimitsConvertsUnits",
-			"documentation_hash": "69900a0d9891becae5aed1ff2ed9771a417d289a1b38088504c586c9d18e2c54",
-			"definition_hash": "6e89127f73e03604560135de4ef203fd51c504297789f79cb2b70fcf4ec8c8e3",
-			"reviewed_at": "2026-07-07T19:47:49.633703674Z"
-		},
-		{
 			"function_name": "TestRegistryAuthsKeyedByHost",
 			"documentation_hash": "34533ecbdf9f0749bd7ff227181c135ccadea9fc1cd4a764fbe6a2f365bf7ab6",
 			"definition_hash": "3320fceb8c60e9aae16d6be4a44de592bef92a10dcdc8523c93bef6255267bf4",

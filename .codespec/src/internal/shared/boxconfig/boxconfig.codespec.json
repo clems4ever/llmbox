@@ -1,12 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "BoxLimits",
-			"documentation_hash": "287854e4c504801af1ac0a81f22fef40a4ebccb08da102e3ce721d6c6b38a239",
-			"definition_hash": "55a24a17886bd704052bc9795c28e003ee5a0574050574d1a3d5b7a4744e493b",
-			"reviewed_at": "2026-07-07T19:47:49.619433657Z"
-		},
-		{
 			"function_name": "RegistryAuths",
 			"documentation_hash": "08c7c1326791ccd6cefd240dfd20895efcd87dfce3257fc9ef8bc4bff22bfcc9",
 			"definition_hash": "47f3ef2ddc1ebbc7626c66778e3d54d38cb089f0362bfd3eb39873a97a2a5aca",
