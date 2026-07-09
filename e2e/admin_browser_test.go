@@ -14,12 +14,13 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
-// TestAdminRemoveBoxInBrowser drives the cluster-admin "Remove" button through a
-// real headless Chrome, reproducing the exact path a user takes: the admin SPA
-// bootstraps its session from /api/v1/me and submits the destroy over the
-// authenticated box-control API with the CSRF header. This guards the whole
-// browser flow (cookie → /me → CSRF header → API action) end-to-end through the
-// page's JavaScript.
+// TestAdminRemoveBoxInBrowser drives the workspace "Remove" button through a real
+// headless Chrome, reproducing the exact path a user takes: the admin SPA
+// bootstraps its session from /api/v1/me, and removing a workspace clicks the
+// row's remove button, confirms in the Mantine confirmation modal, and submits
+// the destroy over the authenticated box-control API with the CSRF header. This
+// guards the whole browser flow (cookie → /me → confirm → CSRF header → API
+// action) end-to-end through the page's JavaScript.
 //
 // It is opt-in via `-tags e2e` (it needs Chrome + ChromeDriver), like the rest
 // of the e2e suite, so a missing browser is a fatal failure rather than a skip.
@@ -28,7 +29,8 @@ import (
 func TestAdminRemoveBoxInBrowser(t *testing.T) {
 	s, f, st := newAdminServer(t)
 	// Seed one box so the dashboard renders a Remove button; the fake manager's
-	// Destroy just records the id, so a successful click flashes "removed box foo".
+	// Destroy just records the id, so a confirmed removal shows a "removed box
+	// foo" success notification.
 	f.ListResult = []sandbox.Box{{
 		BoxID: "foo", Spoke: e2eDefaultSpoke, Image: "img", State: "running", Phase: "ready",
 	}}
@@ -59,21 +61,23 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 		t.Fatalf("loading /admin: %v", err)
 	}
 	removeBtn := b.waitFor(t, selenium.ByXPATH, `//button[@data-box='foo']`)
-
-	// The Remove button guards on confirm(); accept it unconditionally so the
-	// headless click proceeds to the real fetch() submit the SPA makes.
-	if _, err := b.wd.ExecuteScript("window.confirm = function () { return true; };", nil); err != nil {
-		t.Fatalf("stubbing confirm(): %v", err)
-	}
 	if err := removeBtn.Click(); err != nil {
 		t.Fatalf("clicking Remove: %v", err)
 	}
 
-	// On success the SPA flashes "removed box foo" and refreshes the cards in
-	// place; a broken CSRF path would flash the server's error instead, so
-	// waiting for the success banner is what distinguishes fixed from broken.
+	// Removal is guarded by a confirmation modal (not window.confirm); click its
+	// red confirm button, whose only visible text is "Remove", to proceed to the
+	// real fetch() submit the SPA makes.
+	confirmBtn := b.waitFor(t, selenium.ByXPATH, `//button[normalize-space()='Remove']`)
+	if err := confirmBtn.Click(); err != nil {
+		t.Fatalf("confirming Remove: %v", err)
+	}
+
+	// On success the SPA shows a "removed box foo" notification and refreshes the
+	// list in place; a broken CSRF path would show the server's error instead, so
+	// waiting for the success notification is what distinguishes fixed from broken.
 	b.waitFor(t, selenium.ByXPATH,
-		`//div[contains(@class,'banner')][contains(normalize-space(.),'removed box foo')]`)
+		`//*[contains(normalize-space(text()),'removed box foo')]`)
 
 	src, _ := b.wd.PageSource()
 	if strings.Contains(src, "invalid or missing X-CSRF-Token") {

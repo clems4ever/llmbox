@@ -25,6 +25,20 @@
 # standalone Claude binary (see Dockerfile.box), so this image only carries the
 # llmbox server binary.
 
+# ---- web build stage ----
+# The admin SPA dist (internal/hub/webdist) is generated, not committed, and the
+# hub embeds it at go build — so build it here first. Vite emits into
+# /src/internal/hub/webdist (outDir ../internal/hub/webdist relative to web/).
+FROM node:22-bookworm AS webbuild
+
+WORKDIR /src/web
+
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+
+COPY web/ ./
+RUN npm run build
+
 # ---- build stage ----
 FROM golang:1.26-bookworm AS build
 
@@ -35,8 +49,11 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Build a static binary so it runs on a distroless base.
+# Build a static binary so it runs on a distroless base. Layer the built admin
+# SPA over the placeholder-only webdist from the repo before compiling, so the
+# binary embeds the real UI.
 COPY . .
+COPY --from=webbuild /src/internal/hub/webdist ./internal/hub/webdist
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath -ldflags="-s -w" \
     -o /out/llmbox-server ./cmd/llmbox-server

@@ -1,0 +1,75 @@
+import { describe, expect, it, vi } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
+import { WorkspacesView } from "./WorkspacesView";
+import { render, mockApi, box, dashboardData, spoke } from "../test/utils";
+
+describe("WorkspacesView", () => {
+  it("shows the empty state and opens the create modal", async () => {
+    const { user } = render(
+      <WorkspacesView api={mockApi()} data={dashboardData()} refresh={vi.fn()} onSelect={vi.fn()} />,
+    );
+    expect(screen.getByText("No workspaces yet")).toBeInTheDocument();
+    // Both the header and the empty state offer "New workspace"; click the first.
+    await user.click(screen.getAllByRole("button", { name: "New workspace" })[0]);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("refactor-auth")).toBeInTheDocument();
+  });
+
+  it("renders a skeleton while data is null", () => {
+    const { container } = render(
+      <WorkspacesView api={mockApi()} data={null} refresh={vi.fn()} onSelect={vi.fn()} />,
+    );
+    expect(container.querySelector(".mantine-Skeleton-root")).toBeTruthy();
+  });
+
+  it("renders the table view and selects a workspace on row click", async () => {
+    const onSelect = vi.fn();
+    const data = dashboardData({
+      boxes: [box({ box_id: "alpha", description: "the alpha box", spoke: "edge-1" })],
+    });
+    const { user } = render(
+      <WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={onSelect} />,
+    );
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.getByText("the alpha box")).toBeInTheDocument();
+    await user.click(screen.getByText("alpha"));
+    expect(onSelect).toHaveBeenCalledWith("alpha");
+  });
+
+  it("switches to the grid view", async () => {
+    const data = dashboardData({ boxes: [box({ box_id: "alpha" })] });
+    const { user } = render(
+      <WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={vi.fn()} />,
+    );
+    await user.click(screen.getByRole("radio", { name: "Grid view" }));
+    // The grid container keeps the same id and still lists the box.
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+  });
+
+  it("shows an Activate link for a pending box and Open for a live one", () => {
+    const data = dashboardData({
+      boxes: [
+        box({ box_id: "pending", auth_url: "https://hub/auth", phase: "pending" }),
+        box({ box_id: "live", session_url: "https://hub/session" }),
+      ],
+    });
+    render(<WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={vi.fn()} />);
+    expect(screen.getByText("Activate").closest("a")).toHaveAttribute("href", "https://hub/auth");
+    expect(screen.getByText("Open").closest("a")).toHaveAttribute("href", "https://hub/session");
+  });
+
+  it("confirms and removes a workspace", async () => {
+    const api = mockApi();
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    const data = dashboardData({ boxes: [box({ box_id: "alpha" })], spokes: [spoke()] });
+    const { user } = render(
+      <WorkspacesView api={api} data={data} refresh={refresh} onSelect={vi.fn()} />,
+    );
+    await user.click(screen.getByRole("button", { name: "Remove alpha" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(api.destroyBox).toHaveBeenCalledWith("alpha"));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(await screen.findByText("removed box alpha")).toBeInTheDocument();
+  });
+});
