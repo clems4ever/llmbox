@@ -16,9 +16,9 @@
 		{
 			"function_name": "resolveImages",
 			"receiver": "assetResolver",
-			"documentation_hash": "8df825144e08b545191949b932d993a80502e133a9a8fa142728b3d1d1e7fb21",
+			"documentation_hash": "b206ac3702240306d96138dd8a104b7b9d963cbbfb9a0cab3d84321b4fb88d93",
 			"definition_hash": "b983e30cf150a03ff4439429044b78c348cab0f7a9c3177010b8fa360b77369b",
-			"reviewed_at": "2026-07-07T12:01:55.065039458Z"
+			"reviewed_at": "2026-07-09T18:49:59.010335554Z"
 		},
 		{
 			"function_name": "credentialFor",

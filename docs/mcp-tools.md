@@ -35,7 +35,7 @@ a box stops it gracefully (SIGTERM, then SIGKILL after a timeout) before removin
 ## Exposing a box's HTTP server
 
 `create_llmbox_proxy` lets the user reach an HTTP server running **inside** a box
-from their browser. The agent starts a server in the box (e.g. via `exec_llmbox`
+from their browser. The guest starts a server in the box (e.g. via `exec_llmbox`
 or `pm2`), calls `create_llmbox_proxy` with the box's `box_id` and the `port` the
 server listens on, and hands the returned `url` to the user. An optional
 `description` can be attached at creation to record what the proxy is for; it is

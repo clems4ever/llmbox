@@ -10,16 +10,16 @@ isolated.
 
 - **Compute**: each box is a microVM booting a shared guest kernel (`vmlinux`) and
   a per-box copy of a rootfs image. The rootfs `init` (PID 1) is the llmbox guest
-  agent.
-- **Control channel**: the host reaches the agent over the VM's **vsock** (guest
+  guest.
+- **Control channel**: the host reaches the guest over the VM's **vsock** (guest
   `AF_VSOCK` port 5000), performing Firecracker's `CONNECT` handshake over the
   hypervisor's Unix socket. This is the microVM analogue of the Docker backend's
   bind-mounted control socket. All box behaviour — login, exec, logs, port proxy —
-  runs through the agent over this channel, never through the provisioner.
+  runs through the guest over this channel, never through the provisioner.
 - **Egress**: guest outbound traffic goes through a **TAP device** the host NATs
   (`iptables MASQUERADE`), with the guest's `eth0` configured statically via the
   kernel `ip=` boot arg. Each box gets its own `/30` (and an inter-guest `DROP`
-  rule), so boxes cannot reach one another — only the host gateway. The agent is
+  rule), so boxes cannot reach one another — only the host gateway. The guest is
   never in the egress path. The TAPs are a **pool provisioned once at startup**
   (`pool_size`, default 16), not created per box: creating or destroying a box
   assigns/frees a slot without touching the host network. That matters when a
@@ -99,15 +99,15 @@ Pulls are anonymous for public packages; a registry credential configured for th
 host (see the registry section) is used automatically when present. Supplying any
 path flag uses that local file instead of pulling. Note the payload is pulled only
 when the rootfs is also auto-resolved — if you pass a custom all-in-one
-`--rootfs` (agent baked in) and no `--payload`, no payload is attached.
+`--rootfs` (guest baked in) and no `--payload`, no payload is attached.
 
 ## Building a rootfs
 
 If you would rather build the images yourself (e.g. to customise them), the
 scripts below produce exactly what the registry publishes. The rootfs must boot
-with the llmbox agent as its init, listening on vsock. Its `init` mounts `/proc`,
-`/sys`, `/dev` (devtmpfs) and `/dev/pts` (devpts, for the agent's PTY), brings up
-`lo`, then `exec`s `llmbox-agent --vsock-port 5000`.
+with the llmbox guest as its init, listening on vsock. Its `init` mounts `/proc`,
+`/sys`, `/dev` (devtmpfs) and `/dev/pts` (devpts, for the guest's PTY), brings up
+`lo`, then `exec`s `llmbox-guest --vsock-port 5000`.
 
 ### Full Debian server (recommended for real use)
 
@@ -119,28 +119,28 @@ Claude wants to run — use the full-server pair:
   kernel lacks: overlayfs, bridge/veth, netfilter (iptables + nftables + NAT +
   conntrack), `br_netfilter`, all cgroup controllers, autofs, tun, bpf. It compiles
   in an `ubuntu:22.04` container (~15 min).
-The Debian box is split into two images by how often they change, so an agent
+The Debian box is split into two images by how often they change, so a guest
 update never rebuilds the multi-GiB OS:
 
-- **`scripts/firecracker/build-base-rootfs.sh`** builds a generic, **agent-agnostic**
+- **`scripts/firecracker/build-base-rootfs.sh`** builds a generic, **guest-agnostic**
   Debian bookworm **base** (`base-rootfs.ext4`) with **systemd as PID 1**, Docker,
   Node, and net tooling. It contains **nothing** about llmbox, `claude`, or any
-  particular agent — only a generic *payload loader* that at boot mounts the payload
+  particular guest — only a generic *payload loader* that at boot mounts the payload
   drive (`/dev/vdb`) read-only at `/payload` and runs `/payload/entrypoint`. Because
-  it is agent-agnostic it is slow-changing and cacheable: in CI it is built once and
+  it is guest-agnostic it is slow-changing and cacheable: in CI it is built once and
   cached in GHCR keyed on its inputs (`.github/workflows/firecracker-assets.yml`);
   `make firecracker-debian-assets` pulls the cached base before building locally.
 - **`scripts/firecracker/build-payload-drive.sh`** builds the tiny read-only
   **payload** (`payload.ext4`) carrying **everything llmbox-specific**: the static
-  agent, the standalone `claude`, its trust seed, and an `entrypoint` that seeds a
-  writable copy of the trust file and execs the agent on vsock. This half is cheap
-  and rebuilt on every agent change, and is attached to every box as a shared
+  guest, the standalone `claude`, its trust seed, and an `entrypoint` that seeds a
+  writable copy of the trust file and execs the guest on vsock. This half is cheap
+  and rebuilt on every guest change, and is attached to every box as a shared
   read-only second drive.
 - **`scripts/firecracker/build-debian-rootfs.sh`** is a convenience wrapper that
   builds both.
 
 The base/payload contract is deliberately generic — *mount the payload drive, run
-its `entrypoint`* — so a different agent (not llmbox) is just a different payload;
+its `entrypoint`* — so a different guest (not llmbox) is just a different payload;
 the base never changes. Because the payload is identical for every llmbox box it is
 attached read-only and **shared** across all microVMs — one image, mounted
 everywhere — while each box still gets its own writable copy of the base rootfs.
@@ -149,23 +149,23 @@ The base's systemd does all the mounts and reaps the payload's children.
 ```yaml
 firecracker:
   kernel_image:  ~/fc-assets/vmlinux-full
-  rootfs_image:  ~/fc-assets/base-rootfs.ext4   # the Debian base (no agent)
-  payload_image: ~/fc-assets/payload.ext4       # agent + claude, shared read-only
+  rootfs_image:  ~/fc-assets/base-rootfs.ext4   # the Debian base (no guest)
+  payload_image: ~/fc-assets/payload.ext4       # guest + claude, shared read-only
   disable_egress: false          # egress on; run the server as root
 ```
 
 On a spoke, the equivalents are `--rootfs`, `--payload`, and `--kernel`.
-Leave `payload_image` empty to fall back to the all-in-one layout (agent baked into
+Leave `payload_image` empty to fall back to the all-in-one layout (guest baked into
 the rootfs).
 
-Verified on boot: systemd reaches its targets, the agent unit is reachable over
+Verified on boot: systemd reaches its targets, the guest unit is reachable over
 vsock, `/tmp` is `1777`, and the Docker daemon starts with `overlay2` + cgroup v2
 and no missing-feature warnings — so `docker run` works (image pulls need egress).
 
-### Minimal rootfs (agent-as-init, no systemd)
+### Minimal rootfs (guest-as-init, no systemd)
 
 For the conformance test, a simpler script builds a busybox/container-fs rootfs
-with the agent as PID 1 (no systemd, no Docker):
+with the guest as PID 1 (no systemd, no Docker):
 
 - **`scripts/firecracker/build-conformance-rootfs.sh`** — a minimal BusyBox rootfs
   with a **mock** `claude` (prints fake auth/session URLs). Used only by the
@@ -175,7 +175,7 @@ For real sessions use the full Debian server pair above. A real Claude session
 needs egress enabled (`disable_egress: false`), because the box must reach the
 Anthropic API and OAuth — which means running the server/spoke with
 `CAP_NET_ADMIN` (root). With egress disabled (control-only) a box boots and its
-agent is reachable, but `claude` cannot authenticate.
+guest is reachable, but `claude` cannot authenticate.
 
 ## Running the conformance suite
 

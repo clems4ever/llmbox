@@ -4,53 +4,53 @@
 			"function_name": "stripANSI",
 			"documentation_hash": "f42a398b32e9436b0608bebb5bf96491a9a0de3fd272c10b2dac9cbfdf973432",
 			"definition_hash": "1b1685277e533ad562417dc7817dc24e48ffd7907af7eb52c03eff948aef3feb",
-			"reviewed_at": "2026-06-30T15:04:22.545074784Z"
+			"reviewed_at": "2026-07-09T18:52:27.182440218Z"
 		},
 		{
 			"function_name": "lastLines",
 			"documentation_hash": "7d9915ac7894df91525b1739e2f9ff168eff774f6c1e4b022a6cab4f04f4f315",
 			"definition_hash": "e026ccbb1131a399165d2536fb329593c0452717ed2dfc72a9402287abb1c2ee",
-			"reviewed_at": "2026-06-30T15:04:22.545676007Z"
+			"reviewed_at": "2026-07-09T18:52:27.186898564Z"
 		},
 		{
 			"function_name": "newTranscript",
 			"documentation_hash": "f812c46efa17f66eb4b3694c63fd1a9f08c03a6adbbf48c59f55e6e5f46baa69",
 			"definition_hash": "9c271943b043ac70bdd37dd88ada2651e683dd28581dd1fbbbafcc8170f13804",
-			"reviewed_at": "2026-06-30T15:04:22.545946867Z"
+			"reviewed_at": "2026-07-09T18:52:27.19611387Z"
 		},
 		{
 			"function_name": "append",
 			"receiver": "transcript",
 			"documentation_hash": "ec36c56fe78d6a47d50e3e190007395fa40288eaf4741d66e0df87e06ff11580",
 			"definition_hash": "b0b17b9aafcae951905898a464ea394f18c9af908e9412d1bbe40eb8e1cc7a77",
-			"reviewed_at": "2026-06-30T15:04:22.546191778Z"
+			"reviewed_at": "2026-07-09T18:52:27.200298216Z"
 		},
 		{
 			"function_name": "close",
 			"receiver": "transcript",
 			"documentation_hash": "7597fb01f7e4c71bf1188c6ecca7b95dd1382b06b8a4e8933b633f66ffc203d6",
 			"definition_hash": "f1939a4b457e0ef78fbfb07583e0a8f4c1be6124d7cc8edda721ba8d92589582",
-			"reviewed_at": "2026-06-30T15:04:22.54642439Z"
+			"reviewed_at": "2026-07-09T18:52:27.20439351Z"
 		},
 		{
 			"function_name": "waitForAny",
 			"receiver": "transcript",
 			"documentation_hash": "b2007f0d8113eb9781d7ff82d42170e5a1f0b8d4a18ab1f76fc45b61f51d2882",
 			"definition_hash": "d473f6d130f3a6c894fbc5d3d98f10868ba70b3466a6ceddd6296a8032491b27",
-			"reviewed_at": "2026-06-30T15:04:22.546666021Z"
+			"reviewed_at": "2026-07-09T18:52:27.208689547Z"
 		},
 		{
 			"function_name": "logs",
 			"receiver": "transcript",
 			"documentation_hash": "922785ed64f15fbc124f72321811586c91b90d036fb127684151143848402e71",
 			"definition_hash": "0f46c134ccdc05883765c56e19055c1eb4a86b6286d4a4b0ad84f95c08215ec7",
-			"reviewed_at": "2026-06-30T15:04:22.546897973Z"
+			"reviewed_at": "2026-07-09T18:52:27.212934747Z"
 		},
 		{
 			"function_name": "capOutput",
 			"documentation_hash": "19a8c95f3bf864121973f81d69da9046804e3d35d28e6ee7fbeb6369c0c30151",
 			"definition_hash": "69918fe31e8d9f19d2f4f5414ed1e13b672cb4d8b2c2e8babe76a5b23b864798",
-			"reviewed_at": "2026-06-30T15:04:22.547402292Z"
+			"reviewed_at": "2026-07-09T18:52:27.217298997Z"
 		}
 	]
 }

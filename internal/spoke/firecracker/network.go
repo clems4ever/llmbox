@@ -12,7 +12,7 @@ import (
 // box gets its own /30 (network, host TAP, guest, broadcast) on its own TAP, so
 // boxes are on separate subnets and — with the inter-guest DROP rule the pool
 // installs — cannot reach one another, only the host gateway that NATs them out.
-// The agent handles control and proxy over vsock; this networking exists solely
+// The guest handles control and proxy over vsock; this networking exists solely
 // for the guest's outbound (egress) traffic.
 //
 // The TAP devices are NOT created per box: a pool of them is provisioned once at

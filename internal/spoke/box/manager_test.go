@@ -13,7 +13,7 @@ import (
 )
 
 // TestBoxManager runs the backend-neutral box contract against the in-process
-// Fake provisioner, validating the Manager and the agent-protocol path it drives
+// Fake provisioner, validating the Manager and the guest-protocol path it drives
 // without Docker. The Docker backend reuses the same conformance.Run.
 func TestBoxManager(t *testing.T) {
 	conformance.Run(t, func(t testing.TB) box.Provisioner {
@@ -22,10 +22,10 @@ func TestBoxManager(t *testing.T) {
 }
 
 // TestBoxManagerDialBox checks DialBox reaches a listener on the box's localhost
-// through the agent's Dial splice. It uses the in-process Fake, where the box's
+// through the guest's Dial splice. It uses the in-process Fake, where the box's
 // localhost is the host's, so a host listener stands in for an in-box service.
 // (Container localhost differs, so this is not part of the shared contract; the
-// Docker backend proves the host→socket→agent path via Exec/Logs instead.)
+// Docker backend proves the host→socket→guest path via Exec/Logs instead.)
 func TestBoxManagerDialBox(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *stubProv) List(context.Context) ([]box.Instance, error) { return s.list
 func (s *stubProv) Find(context.Context, string) (box.Instance, error) { return s.findInst, s.findErr }
 
 // stubInst is a box.Instance whose operations can be made to fail. A non-nil
-// controlErr makes every agent call (Init/Start/Exec/...) fail at connect.
+// controlErr makes every guest call (Init/Start/Exec/...) fail at connect.
 type stubInst struct {
 	meta         sandbox.Box
 	controlErr   error
@@ -141,13 +141,13 @@ func TestManagerCreateProvisionError(t *testing.T) {
 	}
 }
 
-// TestManagerCreateAgentError destroys the box and errors when the agent cannot
+// TestManagerCreateGuestError destroys the box and errors when the guest cannot
 // be reached for Init.
-func TestManagerCreateAgentError(t *testing.T) {
-	inst := &stubInst{controlErr: errors.New("no agent")}
+func TestManagerCreateGuestError(t *testing.T) {
+	inst := &stubInst{controlErr: errors.New("no guest")}
 	m := box.NewManager(&stubProv{provInst: inst}, box.Config{})
 	if _, _, err := m.Create(context.Background(), sandbox.CreateOptions{}); err == nil {
-		t.Fatal("Create should fail when the agent is unreachable")
+		t.Fatal("Create should fail when the guest is unreachable")
 	}
 }
 

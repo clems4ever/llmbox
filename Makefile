@@ -8,8 +8,8 @@ MCP_BINARY  := llmbox-mcp
 MCP_PKG     := ./cmd/llmbox-mcp
 SPOKE_BINARY := llmbox-spoke
 SPOKE_PKG    := ./cmd/llmbox-spoke
-AGENT_BINARY := llmbox-agent
-AGENT_PKG    := ./cmd/llmbox-agent
+GUEST_BINARY := llmbox-guest
+GUEST_PKG    := ./cmd/llmbox-guest
 IMAGE       := llmbox
 VERSION     := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVERPROFILE := coverage.out
@@ -34,7 +34,7 @@ help: ## Show this help.
 # --- build -------------------------------------------------------------------
 
 .PHONY: build
-build: build-hub build-spoke build-mcp build-agent ## Build all llmbox binaries (hub, spoke, mcp, agent).
+build: build-hub build-spoke build-mcp build-guest ## Build all llmbox binaries (hub, spoke, mcp, guest).
 
 .PHONY: build-hub
 build-hub: $(WEBDIST) ## Build the hub (llmbox-server) binary into ./$(BINARY).
@@ -48,9 +48,9 @@ build-mcp: ## Build the stand-alone llmbox-mcp binary into ./$(MCP_BINARY).
 build-spoke: ## Build the stand-alone llmbox-spoke binary into ./$(SPOKE_BINARY).
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(SPOKE_BINARY) $(SPOKE_PKG)
 
-.PHONY: build-agent
-build-agent: ## Build the stand-alone llmbox-agent (guest) binary into ./$(AGENT_BINARY).
-	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(AGENT_BINARY) $(AGENT_PKG)
+.PHONY: build-guest
+build-guest: ## Build the stand-alone llmbox-guest binary into ./$(GUEST_BINARY).
+	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(GUEST_BINARY) $(GUEST_PKG)
 
 .PHONY: web
 web: ## Rebuild the admin web app into internal/hub/webdist (generated, not committed; embedded at go build).
@@ -71,8 +71,8 @@ web-cover: ## Run the web app tests with coverage and print the line total.
 	cd web && npm install && npm run coverage
 
 .PHONY: install
-install: ## Install the hub, mcp, spoke, and agent binaries into $GOPATH/bin.
-	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG) $(SPOKE_PKG) $(AGENT_PKG)
+install: ## Install the hub, mcp, spoke, and guest binaries into $GOPATH/bin.
+	go install $(GO_BUILD_FLAGS) $(PKG) $(MCP_PKG) $(SPOKE_PKG) $(GUEST_PKG)
 
 .PHONY: run
 run: ## Run the server (use CONFIG=path to pick a config file).
@@ -128,7 +128,7 @@ FC_ROOTFS ?= $(FC_DIR)/rootfs.ext4
 FC_BIN    ?= $(HOME)/.local/bin/firecracker
 
 # The production Debian box is split into a slow-changing base rootfs (cached in
-# GHCR keyed on its inputs) and a cheap agent payload drive rebuilt on every agent
+# GHCR keyed on its inputs) and a cheap guest payload drive rebuilt on every guest
 # change. FC_BASE_REPO is the GHCR artifact the base is pulled from before falling
 # back to a local build. Boot a box with --rootfs $(FC_BASE) --payload $(FC_PAYLOAD).
 FC_BASE      ?= $(FC_DIR)/base-rootfs.ext4
@@ -149,7 +149,7 @@ $(FC_KERNEL) $(FC_ROOTFS) &:
 firecracker-assets: $(FC_BIN) $(FC_KERNEL) $(FC_ROOTFS) ## Build the firecracker binary + conformance kernel/rootfs if missing (cached in $(FC_DIR)).
 
 # Production Debian box assets. The base is pulled from GHCR (keyed on its input
-# hash) when available and only built locally on a cache miss — so an agent change,
+# hash) when available and only built locally on a cache miss — so a guest change,
 # which rebuilds only the cheap payload, never rebuilds the multi-GiB base.
 $(FC_BASE):
 	@key=$$(scripts/firecracker/asset-key.sh); \
@@ -165,7 +165,7 @@ $(FC_PAYLOAD):
 	OUT="$(FC_DIR)" scripts/firecracker/build-payload-drive.sh
 
 .PHONY: firecracker-debian-assets
-firecracker-debian-assets: $(FC_BASE) $(FC_PAYLOAD) ## Pull-or-build the Debian base rootfs + agent payload drive for a production Firecracker box.
+firecracker-debian-assets: $(FC_BASE) $(FC_PAYLOAD) ## Pull-or-build the Debian base rootfs + guest payload drive for a production Firecracker box.
 
 .PHONY: test-firecracker
 test-firecracker: firecracker-assets ## Build the firecracker artifacts if missing, then run the live conformance tests (needs KVM; see docs/firecracker.md).
@@ -219,4 +219,4 @@ check: lint test ## Run lint and the unit tests.
 
 .PHONY: clean
 clean: ## Remove build artifacts.
-	rm -f $(BINARY) $(MCP_BINARY) $(SPOKE_BINARY) $(AGENT_BINARY) $(COVERPROFILE)
+	rm -f $(BINARY) $(MCP_BINARY) $(SPOKE_BINARY) $(GUEST_BINARY) $(COVERPROFILE)

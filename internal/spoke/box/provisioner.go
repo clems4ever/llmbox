@@ -1,7 +1,7 @@
 // Package box holds the backend-neutral box manager. A Manager turns the box
 // verbs (cluster.BoxManager) into two collaborators: a Provisioner that creates
 // and tears down the compute (a Docker container or a Firecracker microVM) and
-// exposes a control channel to the in-box agent, and the agent client
+// exposes a control channel to the in-box guest, and the guest client
 // that runs the actual box behaviour (login, exec, logs, port dialing) over that
 // channel. All the lifecycle logic that is the same regardless of backend —
 // box-id validation and uniqueness, the create/login handshake, the box count
@@ -18,11 +18,11 @@ import (
 
 // Provisioner is the backend that owns box compute. It creates boxes, lists and
 // resolves them, and nothing more — box behaviour (login, exec, logs, dialing)
-// runs through the agent over an Instance's control channel, not through the
+// runs through the guest over an Instance's control channel, not through the
 // Provisioner.
 type Provisioner interface {
 	// Provision creates a new box (in the pending auth phase) from opts and
-	// returns a handle to it. The box's agent must be reachable via the returned
+	// returns a handle to it. The box's guest must be reachable via the returned
 	// Instance's Control once Provision returns.
 	Provision(ctx context.Context, opts sandbox.CreateOptions) (Instance, error)
 	// List returns a handle to every managed box.
@@ -39,7 +39,7 @@ type Provisioner interface {
 type Instance interface {
 	// Meta returns the box's current view (ID, name, phase, state, timestamps).
 	Meta() sandbox.Box
-	// Control opens a new control connection to the box's agent. The caller owns
+	// Control opens a new control connection to the box's guest. The caller owns
 	// the connection and must close it.
 	Control(ctx context.Context) (net.Conn, error)
 	// MarkReady moves the box from the pending auth phase to ready, once it has

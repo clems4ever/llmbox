@@ -58,8 +58,8 @@
 		{
 			"function_name": "addFirecrackerSpokeFlags",
 			"documentation_hash": "d244b287a684518f8b9e4348ea406b7eade48f50a7f7f6be314637dd2ddf9064",
-			"definition_hash": "610bee6e10cac1dd62638d837d91965929f709b0a8a288f84c907f6c17c43b55",
-			"reviewed_at": "2026-07-07T11:34:31.877653686Z"
+			"definition_hash": "5fcc2443110dff2100e3a211cb148c93a8934b18283a34b4aeda1822dbc0df7f",
+			"reviewed_at": "2026-07-09T18:49:59.019773465Z"
 		},
 		{
 			"function_name": "hubTLS",

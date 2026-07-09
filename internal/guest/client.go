@@ -1,4 +1,4 @@
-package agent
+package guest
 
 import (
 	"context"
@@ -11,22 +11,22 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
-// Client is the host-side handle to one box's agent. It opens a fresh control
+// Client is the host-side handle to one box's guest. It opens a fresh control
 // connection per call via Dial, so concurrent operations don't contend on a
 // single connection. The backend supplies Dial via its Instance.Control: an
 // AF_UNIX dial to the box's bind-mounted socket for the Docker backend, or a
 // vsock CONNECT handshake over the hypervisor UDS for the Firecracker backend.
 type Client struct {
-	// Dial opens a new control connection to the box's agent.
+	// Dial opens a new control connection to the box's guest.
 	Dial func(ctx context.Context) (net.Conn, error)
 }
 
-// NewUnixClient returns a Client that dials the agent's Unix socket at path.
+// NewUnixClient returns a Client that dials the guest's Unix socket at path.
 //
 // @arg path The filesystem path of the box's control socket.
 // @return *Client A client that opens a new connection per call.
 //
-// @testcase TestClientOverUnixSocket drives an agent through a unix-socket client.
+// @testcase TestClientOverUnixSocket drives a guest through a unix-socket client.
 func NewUnixClient(path string) *Client {
 	return &Client{Dial: func(ctx context.Context) (net.Conn, error) {
 		var d net.Dialer
@@ -37,7 +37,7 @@ func NewUnixClient(path string) *Client {
 // call opens a connection, sends one verb request, and decodes the response into
 // out (which may be nil for verbs that return no payload).
 //
-// @arg ctx Context for dialing the agent.
+// @arg ctx Context for dialing the guest.
 // @arg verb The verb to invoke.
 // @arg in The request payload to encode (nil for verbs that take none).
 // @arg out The value to decode the response payload into (nil to discard).
@@ -47,7 +47,7 @@ func NewUnixClient(path string) *Client {
 func (c *Client) call(ctx context.Context, verb string, in, out any) error {
 	conn, err := c.Dial(ctx)
 	if err != nil {
-		return fmt.Errorf("connecting to box agent: %w", err)
+		return fmt.Errorf("connecting to box guest: %w", err)
 	}
 	defer conn.Close()
 	if dl, ok := ctx.Deadline(); ok {
@@ -133,7 +133,7 @@ func (c *Client) Exec(ctx context.Context, cmd []string) (sandbox.ExecResult, er
 // Logs returns the trailing console transcript of the box.
 //
 // @arg ctx Context for the call.
-// @arg tail The maximum number of trailing lines (non-positive uses the agent default).
+// @arg tail The maximum number of trailing lines (non-positive uses the guest default).
 // @return string The trailing transcript.
 // @error error if the call fails.
 //
@@ -145,26 +145,26 @@ func (c *Client) Logs(ctx context.Context, tail int) (string, error) {
 }
 
 // DialPort opens a connection to a TCP port inside the box and returns it as a
-// raw byte pipe (the agent splices it to localhost:port). The caller owns the
+// raw byte pipe (the guest splices it to localhost:port). The caller owns the
 // returned connection and must close it.
 //
-// @arg ctx Context for dialing the agent.
+// @arg ctx Context for dialing the guest.
 // @arg port The TCP port inside the box to connect to.
 // @return net.Conn A connection spliced to the in-box port.
-// @error error if dialing the agent fails or the agent cannot reach the port.
+// @error error if dialing the guest fails or the guest cannot reach the port.
 //
-// @testcase TestClientDialPort reaches a listener inside the box through the agent.
+// @testcase TestClientDialPort reaches a listener inside the box through the guest.
 func (c *Client) DialPort(ctx context.Context, port int) (net.Conn, error) {
 	conn, err := c.Dial(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("connecting to box agent: %w", err)
+		return nil, fmt.Errorf("connecting to box guest: %w", err)
 	}
 	data, _ := json.Marshal(dialReq{Port: port})
 	if err := writeFrame(conn, req{Verb: verbDial, Data: data}); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("sending dial: %w", err)
 	}
-	// The agent sends one response frame (open or error) before the raw splice.
+	// The guest sends one response frame (open or error) before the raw splice.
 	if dl, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(dl)
 	}

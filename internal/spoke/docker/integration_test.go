@@ -16,16 +16,16 @@ import (
 	"github.com/clems4ever/llmbox/testutils"
 )
 
-// mockDockerfile builds a minimal box image: tini, the llmbox-agent entrypoint,
+// mockDockerfile builds a minimal box image: tini, the llmbox-guest entrypoint,
 // and a mock `claude` so the box's login flow is deterministic (real claude would
 // need a real OAuth code). It lets the full conformance contract run against real
 // Docker containers, exercising the provisioner, the socket bind-mount across
-// uids, agent reachability, exec, dial, rename, and destroy.
+// uids, guest reachability, exec, dial, rename, and destroy.
 const mockDockerfile = `FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends tini && rm -rf /var/lib/apt/lists/*
-COPY llmbox-agent /usr/local/bin/llmbox-agent
+COPY llmbox-guest /usr/local/bin/llmbox-guest
 COPY claude /usr/local/bin/claude
-ENTRYPOINT ["tini","-g","--","llmbox-agent"]
+ENTRYPOINT ["tini","-g","--","llmbox-guest"]
 `
 
 // TestDockerConformance runs the backend-neutral box contract against a real
@@ -70,18 +70,18 @@ func requireDocker(t *testing.T) {
 	}
 }
 
-// buildMockImage builds (the agent binary, the mock claude, then) the mock box
+// buildMockImage builds (the guest binary, the mock claude, then) the mock box
 // image and returns its tag, removing it on cleanup.
 func buildMockImage(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 
-	// Build the agent binary for the container (linux/amd64, static).
-	agentBin := filepath.Join(dir, "llmbox-agent")
-	build := exec.Command("go", "build", "-trimpath", "-o", agentBin, "github.com/clems4ever/llmbox/cmd/llmbox-agent")
+	// Build the guest binary for the container (linux/amd64, static).
+	guestBin := filepath.Join(dir, "llmbox-guest")
+	build := exec.Command("go", "build", "-trimpath", "-o", guestBin, "github.com/clems4ever/llmbox/cmd/llmbox-guest")
 	build.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64")
 	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("building agent: %v\n%s", err, out)
+		t.Fatalf("building guest: %v\n%s", err, out)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "claude"), []byte(testutils.MockClaudeScript), 0o755); err != nil {
 		t.Fatalf("writing mock claude: %v", err)

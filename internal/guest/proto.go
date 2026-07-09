@@ -1,5 +1,5 @@
-// Package agent implements the in-box guest agent and its host-side client. The
-// agent runs inside a box (as the entrypoint, under tini), owns the `claude`
+// Package guest implements the in-box guest and its host-side client. The
+// guest runs inside a box (as the entrypoint, under tini), owns the `claude`
 // process on a PTY, and serves the box-operation verbs over a Unix-domain
 // control socket: Init (write per-box files), Start (launch claude and capture
 // the OAuth authorize URL or, if already authenticated, the session URL),
@@ -8,7 +8,7 @@
 // the box). The host reaches the socket through a per-box bind mount, so the
 // same client drives any backend — container today, microVM or remote VM later —
 // without host→box bridge networking.
-package agent
+package guest
 
 import (
 	"encoding/binary"
@@ -42,7 +42,7 @@ type req struct {
 	Data json.RawMessage `json:"data,omitempty"`
 }
 
-// resp is the envelope the agent sends back. Err is non-empty when the verb
+// resp is the envelope the guest sends back. Err is non-empty when the verb
 // failed (and then Data is nil); otherwise Data carries the verb's JSON-encoded
 // response payload (nil for verbs that return none). For Dial, an empty-Err resp
 // signals that the localhost connection is open and the conn is now a raw pipe.
@@ -51,7 +51,7 @@ type resp struct {
 	Data json.RawMessage `json:"data,omitempty"`
 }
 
-// InitReq carries everything the agent needs to prepare the box before launching
+// InitReq carries everything the guest needs to prepare the box before launching
 // claude: the per-box files to write, the remote-control args, the box ID (used
 // to name the default session), and the environment for the claude process.
 type InitReq struct {
@@ -87,7 +87,7 @@ type execReq struct {
 }
 
 // logsReq requests the last Tail lines of the box's console transcript; a
-// non-positive Tail uses the agent default.
+// non-positive Tail uses the guest default.
 type logsReq struct {
 	Tail int `json:"tail"`
 }

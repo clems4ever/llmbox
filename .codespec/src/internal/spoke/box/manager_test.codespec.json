@@ -2,15 +2,15 @@
 	"functions": [
 		{
 			"function_name": "TestBoxManager",
-			"documentation_hash": "b75077fbe22635a01ff4ee7f1dc5b4ddef85d43e2866e2fc8b72d9bb785f4983",
+			"documentation_hash": "74d315035ad1240947a9422d07b49266b769a95b9c02b19a1bd65b17dc1ecf96",
 			"definition_hash": "6985c2c33195e0eb716570afa515c9cf5d44fc6e464ec7bd777885fbb5ec0b07",
-			"reviewed_at": "2026-06-30T15:30:40.863750331Z"
+			"reviewed_at": "2026-07-09T18:49:58.993361569Z"
 		},
 		{
 			"function_name": "TestBoxManagerDialBox",
-			"documentation_hash": "289ced864d6f1b12e34d0f3f1f9af91d315d5526f462a28295eba9f1b3a45037",
+			"documentation_hash": "3b6ec8d18f0c21ce3e89e9ee030d2b6bc38f8f729dce57dca82f5ff4d63e2c00",
 			"definition_hash": "6b1687a4593b7fa119791199d57a6501cd290268ccac088870478cad344066dc",
-			"reviewed_at": "2026-06-30T16:10:22.198198398Z"
+			"reviewed_at": "2026-07-09T18:49:58.99374212Z"
 		},
 		{
 			"function_name": "TestManagerCreateUniquenessListError",
@@ -23,12 +23,6 @@
 			"documentation_hash": "812ba066947b7b57162e0bfd5644be2402d9c56d77e92e32d762b29a46ccc60b",
 			"definition_hash": "32d9ba98f2efa40df9043d253a3a1951cc4edc54e7f0cbed262c073df9f6be0c",
 			"reviewed_at": "2026-06-30T16:36:13.717969294Z"
-		},
-		{
-			"function_name": "TestManagerCreateAgentError",
-			"documentation_hash": "f776f143276f809f274335283643d350f0a2dfc220ff0efa489305688d9a8bda",
-			"definition_hash": "7572a3dd16499a34c5f77802f7c8eb13bff837c6914ca302bfa42f393e1ed185",
-			"reviewed_at": "2026-06-30T16:36:13.766331627Z"
 		},
 		{
 			"function_name": "TestManagerSubmitCodeFindError",
@@ -108,6 +102,12 @@
 			"documentation_hash": "690f3c6ffbf79de6915632c149cbe26de3be4650cdf1a726b24d4a05a7be5346",
 			"definition_hash": "82674ef29e4a1f16b84925d92f010a68701fbc942aefe366d81d36a8ea70c176",
 			"reviewed_at": "2026-06-30T16:37:03.520412856Z"
+		},
+		{
+			"function_name": "TestManagerCreateGuestError",
+			"documentation_hash": "0e7510e7d4ccfd90df0b23180e8900091abc9e30e6f9f1e500e7c9f6863d4312",
+			"definition_hash": "dcd3ba676c349eec5d9ce01d6b64e80bc2095bba124b1d3293e9e9f12e76e26b",
+			"reviewed_at": "2026-07-09T18:49:58.994135759Z"
 		}
 	]
 }

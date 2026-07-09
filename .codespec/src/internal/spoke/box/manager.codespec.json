@@ -9,16 +9,16 @@
 		{
 			"function_name": "client",
 			"receiver": "Manager",
-			"documentation_hash": "b1a704a189e9ad0f2874f91a8429251692ce8608e201ea86523ec7553d757483",
-			"definition_hash": "9cbace623a6f3851b37b950993cc9756320821b9d25bb2872176a3ffa13cb6be",
-			"reviewed_at": "2026-06-30T15:30:40.785576412Z"
+			"documentation_hash": "332f1cfebe075a4f90979b4f80933a3a33fa7177476ef1cc1864634aad8dcf83",
+			"definition_hash": "2c739909de43be395a66052cfc13c1f1789d36c745f9a542ae2d28d59d05a7b8",
+			"reviewed_at": "2026-07-09T18:49:58.991342523Z"
 		},
 		{
 			"function_name": "Create",
 			"receiver": "Manager",
 			"documentation_hash": "f6a91785f90ec3425554562c9c276319afbbb15dab80cae4f620e79640540785",
-			"definition_hash": "49641c4dcf9132d928e17412265a23b19184d04ac80166a214a8a9ad576bc211",
-			"reviewed_at": "2026-07-04T20:12:47.827785415Z"
+			"definition_hash": "5d4cc8814279464069b203bc8f54f22c97c905f6ace85150aa86ba088ddb7afa",
+			"reviewed_at": "2026-07-09T18:49:58.991926639Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -44,23 +44,23 @@
 		{
 			"function_name": "Logs",
 			"receiver": "Manager",
-			"documentation_hash": "128d4e6ae5bbe6ebc56a72fc3da0da5ddf57f9ad5e3b787dfaa78a591c228368",
+			"documentation_hash": "9ea9df00d8764431c8d5a28a1e2de966d1d7af06297914b93760507b7771445e",
 			"definition_hash": "c36cf6f84f265063a958bb66fd1a076e6914599281c8c33aa7fa91b8e16ab6ca",
-			"reviewed_at": "2026-06-30T15:30:40.82793027Z"
+			"reviewed_at": "2026-07-09T18:49:58.992370712Z"
 		},
 		{
 			"function_name": "Exec",
 			"receiver": "Manager",
-			"documentation_hash": "482388d6e4c6ec69fb4d73b8e2bfa8bff4b262e54690988a950732d36d7f537e",
+			"documentation_hash": "c9090cd81412cba789af14c03f4d7a409ad176bec9355b93635d1c309e897fc7",
 			"definition_hash": "b5d255c59a46f1f26320c7939b73622c662bad76330f9ff7683ed191d6f8a190",
-			"reviewed_at": "2026-06-30T15:30:40.828264175Z"
+			"reviewed_at": "2026-07-09T18:49:58.992744485Z"
 		},
 		{
 			"function_name": "DialBox",
 			"receiver": "Manager",
-			"documentation_hash": "2dbbe253d9a0b8a61a0f369be14208dfbf5da5c52faeb5d275af814a4e2cebdd",
+			"documentation_hash": "fa7ecb2e50a0125187372e66dc243f5e5628f482db3bf0c645bb9c847cbdae11",
 			"definition_hash": "759887261a8925963510103e7e14344d754fd93ef973297bea8b483b044d86a6",
-			"reviewed_at": "2026-06-30T16:10:22.198060662Z"
+			"reviewed_at": "2026-07-09T18:49:58.993081338Z"
 		},
 		{
 			"function_name": "ReapOrphans",

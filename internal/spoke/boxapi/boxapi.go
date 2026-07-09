@@ -10,7 +10,7 @@
 // The spoke serves the socket host-side for Docker boxes (in the per-box
 // bind-mount dir, so it appears in-box at /run/llmbox/boxapi.sock); for
 // Firecracker the same handler listens on the per-VM host UDS that the guest
-// agent bridges the in-guest socket to. Either way the listener — and thus the
+// guest bridges the in-guest socket to. Either way the listener — and thus the
 // enforcement — lives outside the sandbox.
 package boxapi
 
@@ -25,7 +25,7 @@ import (
 )
 
 // SocketName is the file name of the box-port API socket: the in-box path is
-// /run/llmbox/boxapi.sock (next to the agent's control.sock), and the Docker
+// /run/llmbox/boxapi.sock (next to the guest's control.sock), and the Docker
 // host side is the same name inside the box's private socket dir.
 const SocketName = "boxapi.sock"
 

@@ -2,7 +2,7 @@
 # Build the guest kernel + rootfs the Firecracker conformance test boots.
 #
 # The rootfs is intentionally minimal: BusyBox, the statically-linked llmbox
-# guest agent as PID 1 (init), and a mock `claude` that mimics the auth-login /
+# guest as PID 1 (init), and a mock `claude` that mimics the auth-login /
 # remote-control output the conformance contract asserts on. This is the test
 # fixture — NOT a production box image (that bakes in the real claude; see
 # Dockerfile.box and docs/firecracker.md).
@@ -35,17 +35,17 @@ mkdir -p "$ROOTDIR"
 echo ">> fetching guest kernel"
 [ -f "$OUT/vmlinux" ] || curl -fsSL "$KERNEL_URL" -o "$OUT/vmlinux"
 
-echo ">> building static llmbox-agent (linux/amd64)"
+echo ">> building static llmbox-guest (linux/amd64)"
 ( cd "$REPO_ROOT" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -trimpath -ldflags="-s -w" -o "$OUT/llmbox-agent" ./cmd/llmbox-agent )
+    go build -trimpath -ldflags="-s -w" -o "$OUT/llmbox-guest" ./cmd/llmbox-guest )
 
 echo ">> exporting BusyBox rootfs"
 cid="$(docker create "$BUSYBOX_IMAGE")"
 docker export "$cid" | tar -C "$ROOTDIR" -xf -
 docker rm "$cid" >/dev/null
 
-echo ">> installing agent, mock claude, and init"
-install -m0755 "$OUT/llmbox-agent" "$ROOTDIR/usr/bin/llmbox-agent"
+echo ">> installing guest, mock claude, and init"
+install -m0755 "$OUT/llmbox-guest" "$ROOTDIR/usr/bin/llmbox-guest"
 
 cat > "$ROOTDIR/usr/bin/claude" <<'CLAUDE'
 #!/bin/sh
@@ -71,7 +71,7 @@ CLAUDE
 chmod 0755 "$ROOTDIR/usr/bin/claude"
 
 # PID 1: mount the essential filesystems, set up a PTY (creack/pty needs
-# /dev/ptmx + devpts), bring up loopback, then exec the agent on vsock. The guest
+# /dev/ptmx + devpts), bring up loopback, then exec the guest on vsock. The guest
 # eth0 (when the backend enables egress) is configured by the kernel ip= arg
 # before init runs, so init only touches loopback.
 cat > "$ROOTDIR/init" <<'INIT'
@@ -85,8 +85,8 @@ cat > "$ROOTDIR/init" <<'INIT'
 [ -e /dev/ptmx ] || /bin/busybox ln -s /dev/pts/ptmx /dev/ptmx
 /bin/busybox ip link set lo up 2>/dev/null || /bin/busybox ifconfig lo up 2>/dev/null
 export HOME=/root PATH=/usr/bin:/bin:/sbin
-echo "llmbox-init: starting agent on vsock 5000"
-exec /usr/bin/llmbox-agent --vsock-port 5000 --boxapi-port 5001 --claude /usr/bin/claude
+echo "llmbox-init: starting guest on vsock 5000"
+exec /usr/bin/llmbox-guest --vsock-port 5000 --boxapi-port 5001 --claude /usr/bin/claude
 INIT
 chmod 0755 "$ROOTDIR/init"
 

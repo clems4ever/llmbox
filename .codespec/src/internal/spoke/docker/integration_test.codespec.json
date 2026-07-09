@@ -14,9 +14,9 @@
 		},
 		{
 			"function_name": "buildMockImage",
-			"documentation_hash": "668fc6dcfe0ae5e91f88a990ee291130ac3508a6badea2b2de618cbb866466bd",
-			"definition_hash": "69c106a7127866624ae980cc2f9aa109398c45e4a274d3958d8a4ad084c1c761",
-			"reviewed_at": "2026-06-30T16:11:46.288164168Z"
+			"documentation_hash": "a945e76a0782e2640532accc08d94136ca95ed33f675c423cf7a536773cfce86",
+			"definition_hash": "6c86659041b90432f13d2ec5c87e59eb4a07fe65b82e75ac8b3ad49c5d706a89",
+			"reviewed_at": "2026-07-09T18:49:58.994459419Z"
 		}
 	]
 }

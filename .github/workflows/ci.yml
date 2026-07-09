@@ -281,7 +281,7 @@ jobs:
   # The Docker-backed conformance suite. It builds a mock-claude box image and
   # runs the same backend-neutral box contract (internal/spoke/box/conformance) against
   # real containers, validating the Docker provisioner, the per-box socket
-  # bind-mount, the in-container guest agent, and exec/logs/destroy/reaping.
+  # bind-mount, the in-container guest, and exec/logs/destroy/reaping.
   # ubuntu-latest has a Docker daemon, so this needs no special runner. The
   # Firecracker backend would reuse the same conformance.Run on a KVM-capable
   # self-hosted runner.

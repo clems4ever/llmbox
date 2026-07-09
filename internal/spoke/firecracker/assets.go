@@ -21,7 +21,7 @@ import (
 
 const (
 	// defaultAssetRegistry is the OCI namespace the published guest images live
-	// under. The base rootfs, agent payload, and guest kernel are stored there as
+	// under. The base rootfs, guest payload, and guest kernel are stored there as
 	// opaque OCI artifacts (pushed with oras, not runnable images — Firecracker
 	// boots the raw files). Override with LLMBOX_FC_REGISTRY, e.g. for a fork.
 	defaultAssetRegistry = "ghcr.io/clems4ever"
@@ -45,7 +45,7 @@ var (
 )
 
 // assetResolver downloads published Firecracker guest images (kernel, base rootfs,
-// agent payload) from an OCI registry into a local cache, so a spoke can run the
+// guest payload) from an OCI registry into a local cache, so a spoke can run the
 // backend with no image flags — the operator need not build or host any of them.
 // pull is injectable so the resolution logic is unit-testable without a registry.
 type assetResolver struct {
@@ -113,7 +113,7 @@ func (r *assetResolver) resolve(ctx context.Context, a fcAsset) (string, error) 
 // left empty by pulling the published image from the registry. The kernel and
 // rootfs always resolve when empty; the payload resolves only when the rootfs was
 // also auto-resolved — a caller that brought its own rootfs and no payload wants
-// the all-in-one layout (agent baked into that rootfs), not a surprise payload.
+// the all-in-one layout (guest baked into that rootfs), not a surprise payload.
 //
 // @arg ctx Context for the pulls.
 // @arg kernel Operator-supplied kernel path, or empty to auto-resolve.

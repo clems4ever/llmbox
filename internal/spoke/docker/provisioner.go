@@ -1,10 +1,10 @@
 // Package docker implements a box.Provisioner backed by the Docker Engine API.
-// Each box is a container whose entrypoint is the llmbox guest agent (run under
-// tini); the host reaches the agent over a per-box Unix socket bind-mounted from
+// Each box is a container whose entrypoint is the llmbox guest (run under
+// tini); the host reaches the guest over a per-box Unix socket bind-mounted from
 // the host into the container, so all box behaviour (login, exec, logs, port
-// dialing) runs through the agent rather than through Docker exec/attach. The
+// dialing) runs through the guest rather than through Docker exec/attach. The
 // provisioner only owns compute: it creates, lists, resolves, and destroys
-// containers, and hands back a control channel to the agent.
+// containers, and hands back a control channel to the guest.
 //
 // Safety: every container carries ManagedLabel; list/find/destroy are scoped to
 // that label so unrelated host containers are never touched. A provisioner may
@@ -66,7 +66,7 @@ const (
 	NamespaceLabel = "com.llmbox.namespace"
 
 	// DefaultImage is launched when the caller does not specify one. It bakes in
-	// the standalone Claude binary, the llmbox-agent binary (its entrypoint),
+	// the standalone Claude binary, the llmbox-guest binary (its entrypoint),
 	// tini, and a CA bundle (see Dockerfile.box).
 	DefaultImage = "ghcr.io/clems4ever/llmbox-box:latest"
 
@@ -75,7 +75,7 @@ const (
 	DefaultSocketDir = "/run/llmbox/boxsockets"
 
 	// socketMountTarget is where each box's socket directory is bind-mounted
-	// inside the container; the agent's default --socket lives directly under it.
+	// inside the container; the guest's default --socket lives directly under it.
 	socketMountTarget = "/run/llmbox"
 	socketFileName    = "control.sock"
 
@@ -98,7 +98,7 @@ const (
 	// stopping a box, giving Claude a chance to deregister its session.
 	stopTimeout = 10 * time.Second
 
-	// socketWait bounds how long Provision waits for the agent to create its
+	// socketWait bounds how long Provision waits for the guest to create its
 	// control socket after the container starts.
 	socketWait = 30 * time.Second
 )
@@ -121,7 +121,7 @@ type dockerAPI interface {
 }
 
 // Provisioner creates and tears down boxes on a Docker daemon and exposes each
-// box's agent over a bind-mounted Unix socket. It implements box.Provisioner.
+// box's guest over a bind-mounted Unix socket. It implements box.Provisioner.
 type Provisioner struct {
 	cli          dockerAPI
 	defaultImage string
@@ -171,7 +171,7 @@ type Provisioner struct {
 // @return *Provisioner A provisioner wired to a Docker client built from the environment.
 // @error error if the Docker client cannot be created.
 //
-// @testcase TestProvisionCreatesAgentBox covers a provisioner built by NewProvisioner.
+// @testcase TestProvisionCreatesGuestBox covers a provisioner built by NewProvisioner.
 func NewProvisioner(defaultImage, socketDir string, peers []string, ports boxapi.PortService) (*Provisioner, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -198,7 +198,7 @@ func NewProvisioner(defaultImage, socketDir string, peers []string, ports boxapi
 //
 // @return *slog.Logger The configured logger, or the slog default.
 //
-// @testcase TestProvisionCreatesAgentBox exercises a provisioner whose logger defaults.
+// @testcase TestProvisionCreatesGuestBox exercises a provisioner whose logger defaults.
 func (p *Provisioner) logger() *slog.Logger {
 	if p.log != nil {
 		return p.log
@@ -259,7 +259,7 @@ func (p *Provisioner) SetNamespace(ns string) { p.namespace = ns }
 //
 // @error error if the Docker client cannot be closed.
 //
-// @testcase TestProvisionCreatesAgentBox builds a provisioner whose client is closed in cleanup.
+// @testcase TestProvisionCreatesGuestBox builds a provisioner whose client is closed in cleanup.
 // @testcase TestCloseStopsBoxAPIListeners stops the box-port listeners on Close.
 func (p *Provisioner) Close() error {
 	p.stopAllBoxAPIs()
@@ -368,19 +368,19 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 }
 
 // Provision creates and starts a box: a container whose entrypoint is the guest
-// agent, with the box's host socket directory bind-mounted in so the host can
-// reach the agent. The box is created on its own network (peers wired in,
+// guest, with the box's host socket directory bind-mounted in so the host can
+// reach the guest. The box is created on its own network (peers wired in,
 // isolated from other boxes), named with the pending prefix, and run as root with
 // no-new-privileges, the configured resource caps and GPUs, and a restart policy
-// of "unless-stopped" so a crashed box (and its always-on agent) comes back. When
+// of "unless-stopped" so a crashed box (and its always-on guest) comes back. When
 // the provisioner is namespaced, the box (and its network) carry NamespaceLabel.
 //
 // @arg ctx Context for the Docker calls and the socket wait.
 // @arg opts The caller-controlled box ID, description, and files (the image is the spoke's configured default).
 // @return box.Instance A handle to the started box, in the pending phase.
-// @error error if the box id is invalid, the image cannot be pulled, or the box cannot be created, networked, started, or its agent socket does not appear.
+// @error error if the box id is invalid, the image cannot be pulled, or the box cannot be created, networked, started, or its guest socket does not appear.
 //
-// @testcase TestProvisionCreatesAgentBox creates an agent-entrypoint box with the socket mount and restart policy.
+// @testcase TestProvisionCreatesGuestBox creates a guest-entrypoint box with the socket mount and restart policy.
 // @testcase TestProvisionCleansUpOnStartFailure removes the container, network, and socket dir when start fails.
 // @testcase TestProvisionAppliesLimits applies the configured resource caps and no-new-privileges.
 // @testcase TestProvisionAppliesGPUs attaches the configured GPU device requests.
@@ -397,7 +397,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	// Create the per-box socket directory (0700, owned by this process) before the
 	// container so it can be bind-mounted in. The directory is the access gate:
 	// only this process (and root) can traverse into it, so no other local user
-	// can reach the agent socket the box creates inside it.
+	// can reach the guest socket the box creates inside it.
 	token, err := newSocketToken()
 	if err != nil {
 		return nil, err
@@ -421,14 +421,14 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	cfg := &container.Config{
 		Image:      image,
 		Hostname:   opts.BoxID,
-		Entrypoint: []string{"tini", "-g", "--", "llmbox-agent", "--socket", filepath.Join(socketMountTarget, socketFileName)},
+		Entrypoint: []string{"tini", "-g", "--", "llmbox-guest", "--socket", filepath.Join(socketMountTarget, socketFileName)},
 		Labels:     labels,
 		User:       "0:0",
 		WorkingDir: boxWorkdir,
 		Env:        []string{"HOME=" + boxHome},
 	}
 	hostCfg := &container.HostConfig{
-		// Keep the box (and its always-on agent) alive across crashes; the spoke
+		// Keep the box (and its always-on guest) alive across crashes; the spoke
 		// removes it explicitly on Destroy/reap, which "unless-stopped" honours.
 		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyUnlessStopped},
 		SecurityOpt:   []string{"no-new-privileges"},
@@ -494,12 +494,12 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		return nil, fmt.Errorf("starting box: %w", err)
 	}
 
-	// Wait for the agent to create its control socket so the caller's first
-	// agent call connects without racing the container's startup.
+	// Wait for the guest to create its control socket so the caller's first
+	// guest call connects without racing the container's startup.
 	sockPath := filepath.Join(hostBoxDir, socketFileName)
 	if err := waitForSocket(ctx, sockPath, socketWait); err != nil {
 		cleanup()
-		return nil, fmt.Errorf("waiting for box agent: %w", err)
+		return nil, fmt.Errorf("waiting for box guest: %w", err)
 	}
 
 	return &dockerInstance{
@@ -518,7 +518,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	}, nil
 }
 
-// waitForSocket polls until path exists or the timeout elapses; the agent creates
+// waitForSocket polls until path exists or the timeout elapses; the guest creates
 // the control socket once it is listening, so its appearance means the box is
 // reachable.
 //
@@ -527,7 +527,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 // @arg timeout How long to wait before giving up.
 // @error error if the socket does not appear before the timeout or ctx is cancelled.
 //
-// @testcase TestProvisionCreatesAgentBox waits for a socket the fake create makes appear.
+// @testcase TestProvisionCreatesGuestBox waits for a socket the fake create makes appear.
 func waitForSocket(ctx context.Context, path string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for {
@@ -551,7 +551,7 @@ func waitForSocket(ctx context.Context, path string, timeout time.Duration) erro
 // @return string A 16-char random hex token.
 // @error error if the system random source fails.
 //
-// @testcase TestProvisionCreatesAgentBox derives a box's socket dir from this token.
+// @testcase TestProvisionCreatesGuestBox derives a box's socket dir from this token.
 func newSocketToken() (string, error) {
 	var b [8]byte
 	if _, err := rand.Read(b[:]); err != nil {
@@ -657,7 +657,7 @@ func (p *Provisioner) RecoverBoxAPIs(ctx context.Context) error {
 // @arg id The box's container ID.
 // @return string The per-box network name.
 //
-// @testcase TestProvisionCreatesAgentBox names the box network after the box.
+// @testcase TestProvisionCreatesGuestBox names the box network after the box.
 func boxNetworkName(id string) string { return "llmboxnet-" + id[:12] }
 
 // setupBoxNetwork creates the box's own bridge network, connects the box and the
@@ -838,7 +838,7 @@ type dockerInstance struct {
 //
 // @return string The host filesystem path of the box's control socket.
 //
-// @testcase TestProvisionCreatesAgentBox dials the path socketPath returns.
+// @testcase TestProvisionCreatesGuestBox dials the path socketPath returns.
 func (i *dockerInstance) socketPath() string {
 	return filepath.Join(i.prov.socketDir, i.socketToken, socketFileName)
 }
@@ -850,14 +850,14 @@ func (i *dockerInstance) socketPath() string {
 // @testcase TestListMapsManagedContainers reads box metadata via Meta.
 func (i *dockerInstance) Meta() sandbox.Box { return i.box }
 
-// Control opens a new connection to the box's agent over its bind-mounted Unix
+// Control opens a new connection to the box's guest over its bind-mounted Unix
 // socket.
 //
 // @arg ctx Context for the dial.
-// @return net.Conn A control connection to the box's agent.
+// @return net.Conn A control connection to the box's guest.
 // @error error if the socket cannot be dialled.
 //
-// @testcase TestProvisionCreatesAgentBox connects to a box's agent via Control.
+// @testcase TestProvisionCreatesGuestBox connects to a box's guest via Control.
 func (i *dockerInstance) Control(ctx context.Context) (net.Conn, error) {
 	var d net.Dialer
 	return d.DialContext(ctx, "unix", i.socketPath())

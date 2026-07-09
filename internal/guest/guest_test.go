@@ -1,4 +1,4 @@
-package agent
+package guest
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func TestListenVsockReturns(t *testing.T) {
 }
 
 // mockClaude mimics the standalone `claude` binary closely enough to exercise the
-// agent's PTY handling and URL scanning: `auth login` prints an authorize URL and
+// guest's PTY handling and URL scanning: `auth login` prints an authorize URL and
 // blocks reading the OAuth code, then `remote-control` prints a session URL and
 // stays alive reading stdin until the PTY closes.
 const mockClaude = `#!/bin/sh
@@ -69,8 +69,8 @@ func writeMockClaude(t *testing.T) string {
 	return p
 }
 
-// startAgent starts an agent serving a unix socket and returns it with a client.
-func startAgent(t *testing.T, opts Options) (*Agent, *Client) {
+// startGuest starts a guest serving a unix socket and returns it with a client.
+func startGuest(t *testing.T, opts Options) (*Guest, *Client) {
 	t.Helper()
 	a := New(opts)
 	sock := filepath.Join(t.TempDir(), "control.sock")
@@ -84,7 +84,7 @@ func startAgent(t *testing.T, opts Options) (*Agent, *Client) {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatal("agent socket did not appear")
+			t.Fatal("guest socket did not appear")
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
@@ -114,10 +114,10 @@ func boxEnv(t *testing.T, seedCreds bool) []string {
 	return []string{"HOME=" + home, "PATH=" + os.Getenv("PATH")}
 }
 
-// TestAgentLifecycle drives a box through Init, Start (authorize URL), SubmitCode
+// TestGuestLifecycle drives a box through Init, Start (authorize URL), SubmitCode
 // (session URL), Exec, and Logs over the unix-socket client, then Shutdown.
-func TestAgentLifecycle(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+func TestGuestLifecycle(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -165,7 +165,7 @@ func TestAgentLifecycle(t *testing.T) {
 // owner-only (0700) directory — the access gate that stops a non-owner local
 // user from reaching it — while the socket itself is group/other-accessible
 // (0666) so the host process can connect to it across a container bind mount
-// where the in-box agent runs as a different uid.
+// where the in-box guest runs as a different uid.
 func TestListenAndServeSocketPerms(t *testing.T) {
 	a := New(Options{ClaudeCmd: writeMockClaude(t)})
 	sock := filepath.Join(t.TempDir(), "sockdir", "control.sock")
@@ -201,10 +201,10 @@ func TestListenAndServeSocketPerms(t *testing.T) {
 	}
 }
 
-// TestAgentStartAlreadyAuthenticated returns a session URL (not an authorize URL)
+// TestGuestStartAlreadyAuthenticated returns a session URL (not an authorize URL)
 // when the box already has credentials on disk.
-func TestAgentStartAlreadyAuthenticated(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+func TestGuestStartAlreadyAuthenticated(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -226,12 +226,12 @@ func TestAgentStartAlreadyAuthenticated(t *testing.T) {
 // TestClientOverUnixSocket is the lifecycle exercised end to end through the unix
 // client (an alias assertion that the public client path works).
 func TestClientOverUnixSocket(t *testing.T) {
-	TestAgentLifecycle(t)
+	TestGuestLifecycle(t)
 }
 
-// TestAgentInitWritesFiles writes a file with the requested mode and owner.
-func TestAgentInitWritesFiles(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+// TestGuestInitWritesFiles writes a file with the requested mode and owner.
+func TestGuestInitWritesFiles(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -255,9 +255,9 @@ func TestAgentInitWritesFiles(t *testing.T) {
 	}
 }
 
-// TestAgentExecNonZeroExit reports a non-zero exit code without erroring.
-func TestAgentExecNonZeroExit(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+// TestGuestExecNonZeroExit reports a non-zero exit code without erroring.
+func TestGuestExecNonZeroExit(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
@@ -275,9 +275,9 @@ func TestAgentExecNonZeroExit(t *testing.T) {
 	}
 }
 
-// TestAgentUnknownVerb returns an error for an unrecognised verb.
-func TestAgentUnknownVerb(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+// TestGuestUnknownVerb returns an error for an unrecognised verb.
+func TestGuestUnknownVerb(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	err := c.call(ctx, "bogus", nil, nil)
@@ -286,9 +286,9 @@ func TestAgentUnknownVerb(t *testing.T) {
 	}
 }
 
-// TestAgentSubmitCodeBeforeStart errors when called before Start.
-func TestAgentSubmitCodeBeforeStart(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+// TestGuestSubmitCodeBeforeStart errors when called before Start.
+func TestGuestSubmitCodeBeforeStart(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
@@ -299,9 +299,9 @@ func TestAgentSubmitCodeBeforeStart(t *testing.T) {
 	}
 }
 
-// TestAgentEntryEnvFillsHomeAndPath fills HOME (from Options.Home) and PATH when
+// TestGuestEntryEnvFillsHomeAndPath fills HOME (from Options.Home) and PATH when
 // the Init env omits them, without inheriting other ambient variables.
-func TestAgentEntryEnvFillsHomeAndPath(t *testing.T) {
+func TestGuestEntryEnvFillsHomeAndPath(t *testing.T) {
 	a := New(Options{Home: "/box/home"})
 	env := a.entryEnv()
 	if !hasEnvKey(env, "HOME") || !hasEnvKey(env, "PATH") {
@@ -318,9 +318,9 @@ func TestAgentEntryEnvFillsHomeAndPath(t *testing.T) {
 	}
 }
 
-// TestAgentEntryEnvKeepsInitValues keeps an Init-supplied HOME in preference to
+// TestGuestEntryEnvKeepsInitValues keeps an Init-supplied HOME in preference to
 // Options.Home.
-func TestAgentEntryEnvKeepsInitValues(t *testing.T) {
+func TestGuestEntryEnvKeepsInitValues(t *testing.T) {
 	a := New(Options{Home: "/box/home"})
 	a.initReq = InitReq{Env: []string{"HOME=/init/home", "PATH=/usr/bin"}}
 	env := a.entryEnv()
@@ -338,9 +338,9 @@ func TestAgentEntryEnvKeepsInitValues(t *testing.T) {
 	}
 }
 
-// TestAgentEntrypointNamesDefaultSession adds a --name for the box's default
+// TestGuestEntrypointNamesDefaultSession adds a --name for the box's default
 // session when a box ID is set, and omits it otherwise.
-func TestAgentEntrypointNamesDefaultSession(t *testing.T) {
+func TestGuestEntrypointNamesDefaultSession(t *testing.T) {
 	a := New(Options{ClaudeCmd: "claude"})
 	if got := a.entrypoint(InitReq{BoxID: "mybox"}); !strings.Contains(got, "--name mybox-default") {
 		t.Fatalf("entrypoint = %q, want a --name for the default session", got)
@@ -350,8 +350,8 @@ func TestAgentEntrypointNamesDefaultSession(t *testing.T) {
 	}
 }
 
-// TestClientDialPort reaches a listener inside the box through the agent, and
-// TestAgentDialRejectsBadPort rejects an out-of-range port.
+// TestClientDialPort reaches a listener inside the box through the guest, and
+// TestGuestDialRejectsBadPort rejects an out-of-range port.
 func TestClientDialPort(t *testing.T) {
 	// A local echo server stands in for an in-box service on 127.0.0.1.
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -382,7 +382,7 @@ func TestClientDialPort(t *testing.T) {
 	}()
 	port := ln.Addr().(*net.TCPAddr).Port
 
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -403,9 +403,9 @@ func TestClientDialPort(t *testing.T) {
 	}
 }
 
-// TestAgentDialRejectsBadPort writes an error response for an out-of-range port.
-func TestAgentDialRejectsBadPort(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+// TestGuestDialRejectsBadPort writes an error response for an out-of-range port.
+func TestGuestDialRejectsBadPort(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if _, err := c.DialPort(ctx, 70000); err == nil || !strings.Contains(err.Error(), "out of range") {

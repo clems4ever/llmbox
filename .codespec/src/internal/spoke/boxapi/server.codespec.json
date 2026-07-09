@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "ServeUnix",
-			"documentation_hash": "f4f367f248459c9b916f1b0ca2fd6af25284fe6d86af6e53f0c24142d8a9a31c",
+			"documentation_hash": "67048e0063b5f94c07ba71750dd657a3073eeb73c53b60775f9370492dd41291",
 			"definition_hash": "037e93935ce59ac393bbd1ffb27e95f1b867c1ecd359803f6eed25bea7a90111",
-			"reviewed_at": "2026-07-08T15:04:51.349952883Z"
+			"reviewed_at": "2026-07-09T18:49:58.994305771Z"
 		},
 		{
 			"function_name": "Close",

@@ -1,4 +1,4 @@
-package agent
+package guest
 
 import (
 	"bytes"
@@ -32,16 +32,16 @@ const (
 	submitTimeout = 90 * time.Second
 )
 
-// Options configure an Agent.
+// Options configure a Guest.
 type Options struct {
 	// ClaudeCmd is the command used in the box entrypoint (default "claude").
 	// Tests override it with a mock that mimics the auth-login / remote-control
-	// output, so the agent's PTY handling and URL scanning are exercised for real.
+	// output, so the guest's PTY handling and URL scanning are exercised for real.
 	ClaudeCmd string
 	// Shell is the shell used to run the entrypoint (default "/bin/sh").
 	Shell string
 	// Home overrides $HOME for the box's claude process and Exec commands. Empty
-	// inherits the home the agent itself was started with (a real container sets
+	// inherits the home the guest itself was started with (a real container sets
 	// HOME=/root); the in-process test fake sets a per-box home so concurrent
 	// boxes stay isolated.
 	Home string
@@ -49,11 +49,11 @@ type Options struct {
 	Log *slog.Logger
 }
 
-// Agent is the in-box guest agent. It owns the claude process on a PTY and serves
-// the control verbs over a Unix socket. A single Agent handles one box for its
+// Guest is the in-box guest. It owns the claude process on a PTY and serves
+// the control verbs over a Unix socket. A single Guest handles one box for its
 // lifetime; lifecycle verbs (Init then Start then SubmitCode) are serialised,
 // while Exec, Logs, and Dial may run concurrently once started.
-type Agent struct {
+type Guest struct {
 	claudeCmd string
 	shell     string
 	home      string
@@ -68,14 +68,14 @@ type Agent struct {
 	tr      *transcript
 }
 
-// New returns an Agent configured by opts, applying defaults for any zero field.
+// New returns a Guest configured by opts, applying defaults for any zero field.
 //
-// @arg opts The agent options; zero fields take their defaults.
-// @return *Agent A ready-to-serve agent.
+// @arg opts The guest options; zero fields take their defaults.
+// @return *Guest A ready-to-serve guest.
 //
-// @testcase TestAgentLifecycle drives an agent built by New through its verbs.
-func New(opts Options) *Agent {
-	a := &Agent{
+// @testcase TestGuestLifecycle drives a guest built by New through its verbs.
+func New(opts Options) *Guest {
+	a := &Guest{
 		claudeCmd: opts.ClaudeCmd,
 		shell:     opts.Shell,
 		home:      opts.Home,
@@ -97,15 +97,15 @@ func New(opts Options) *Agent {
 // It starts from the host-supplied Init env, then fills in HOME (preferring an
 // explicit Init HOME, else the configured Options.Home, else the ambient HOME the
 // box was started with) and PATH (from the ambient env) only when absent. It
-// deliberately does not inherit the rest of the agent's ambient environment, so a
+// deliberately does not inherit the rest of the guest's ambient environment, so a
 // stray host variable (e.g. CLAUDE_CODE_OAUTH_TOKEN) cannot leak into the box and
 // change the login flow.
 //
 // @return []string The environment for the box's processes.
 //
-// @testcase TestAgentEntryEnvFillsHomeAndPath fills HOME/PATH when Init omits them.
-// @testcase TestAgentEntryEnvKeepsInitValues keeps an Init-supplied HOME over Options.Home.
-func (a *Agent) entryEnv() []string {
+// @testcase TestGuestEntryEnvFillsHomeAndPath fills HOME/PATH when Init omits them.
+// @testcase TestGuestEntryEnvKeepsInitValues keeps an Init-supplied HOME over Options.Home.
+func (a *Guest) entryEnv() []string {
 	env := append([]string(nil), a.initReq.Env...)
 	if !hasEnvKey(env, "HOME") {
 		home := a.home
@@ -130,7 +130,7 @@ func (a *Agent) entryEnv() []string {
 // @arg key The variable name to look for.
 // @return bool True when env assigns key.
 //
-// @testcase TestAgentEntryEnvKeepsInitValues relies on hasEnvKey to detect an Init HOME.
+// @testcase TestGuestEntryEnvKeepsInitValues relies on hasEnvKey to detect an Init HOME.
 func hasEnvKey(env []string, key string) bool {
 	prefix := key + "="
 	for _, e := range env {
@@ -149,8 +149,8 @@ func hasEnvKey(env []string, key string) bool {
 // @arg path The filesystem path of the Unix control socket to create.
 // @error error if the socket cannot be created or the accept loop fails for a reason other than ctx cancellation.
 //
-// @testcase TestAgentLifecycle serves over a socket created by ListenAndServe.
-func (a *Agent) ListenAndServe(ctx context.Context, path string) error {
+// @testcase TestGuestLifecycle serves over a socket created by ListenAndServe.
+func (a *Guest) ListenAndServe(ctx context.Context, path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("creating socket dir: %w", err)
 	}
@@ -166,7 +166,7 @@ func (a *Agent) ListenAndServe(ctx context.Context, path string) error {
 	// The access gate is the 0700 parent directory, owned by the host process
 	// (the spoke): only it (and root) can traverse into it, so no other local user
 	// can reach the socket. The socket itself is made group/other-accessible
-	// because, across the container bind mount, the in-box agent runs as a
+	// because, across the container bind mount, the in-box guest runs as a
 	// different uid (root) than the host spoke, and a connect() needs write
 	// permission on the socket. The pre-chmod mode is only ever more restrictive
 	// than this, so there is no window where the socket is wider than intended.
@@ -188,7 +188,7 @@ func (a *Agent) ListenAndServe(ctx context.Context, path string) error {
 // @error error if the vsock listener cannot be created or the accept loop fails for a reason other than ctx cancellation.
 //
 // @testcase TestListenVsockReturns returns promptly (an error when AF_VSOCK is unavailable, or nil once ctx is cancelled) rather than hanging.
-func (a *Agent) ListenVsockAndServe(ctx context.Context, port uint32) error {
+func (a *Guest) ListenVsockAndServe(ctx context.Context, port uint32) error {
 	ln, err := vsock.Listen(port, nil)
 	if err != nil {
 		return fmt.Errorf("listening on vsock port %d: %w", port, err)
@@ -205,8 +205,8 @@ func (a *Agent) ListenVsockAndServe(ctx context.Context, port uint32) error {
 // @arg ln The listener to accept control connections on.
 // @error error if the accept loop fails for a reason other than ctx cancellation.
 //
-// @testcase TestAgentLifecycle serves over a listener via serve.
-func (a *Agent) serve(ctx context.Context, ln net.Listener) error {
+// @testcase TestGuestLifecycle serves over a listener via serve.
+func (a *Guest) serve(ctx context.Context, ln net.Listener) error {
 	go func() {
 		<-ctx.Done()
 		ln.Close()
@@ -228,8 +228,8 @@ func (a *Agent) serve(ctx context.Context, ln net.Listener) error {
 // kills and reaps the process. It is idempotent and safe to call when the box
 // never started.
 //
-// @testcase TestAgentLifecycle tears the box down via Shutdown.
-func (a *Agent) Shutdown() {
+// @testcase TestGuestLifecycle tears the box down via Shutdown.
+func (a *Guest) Shutdown() {
 	a.mu.Lock()
 	ptmx, cmd := a.ptmx, a.cmd
 	a.mu.Unlock()
@@ -249,8 +249,8 @@ func (a *Agent) Shutdown() {
 // @arg ctx Context for the verbs (Exec honours its cancellation).
 // @arg conn The control connection to serve.
 //
-// @testcase TestAgentLifecycle issues each verb over a connection handled here.
-func (a *Agent) handleConn(ctx context.Context, conn net.Conn) {
+// @testcase TestGuestLifecycle issues each verb over a connection handled here.
+func (a *Guest) handleConn(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
 	for {
 		var r req
@@ -279,9 +279,9 @@ func (a *Agent) handleConn(ctx context.Context, conn net.Conn) {
 // @return json.RawMessage The verb's response payload (nil for verbs that return none).
 // @error error if the verb is unknown, its payload is malformed, or it fails.
 //
-// @testcase TestAgentLifecycle exercises each verb through dispatch.
-// @testcase TestAgentUnknownVerb returns an error for an unrecognised verb.
-func (a *Agent) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
+// @testcase TestGuestLifecycle exercises each verb through dispatch.
+// @testcase TestGuestUnknownVerb returns an error for an unrecognised verb.
+func (a *Guest) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 	switch r.Verb {
 	case verbInit:
 		var in InitReq
@@ -332,9 +332,9 @@ func (a *Agent) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 // @arg in The init request carrying the files, remote args, box ID, and env.
 // @error error if a file cannot be written, or Init was already called.
 //
-// @testcase TestAgentLifecycle injects files via Init before Start.
-// @testcase TestAgentInitWritesFiles writes each file with its mode and owner.
-func (a *Agent) handleInit(in InitReq) error {
+// @testcase TestGuestLifecycle injects files via Init before Start.
+// @testcase TestGuestInitWritesFiles writes each file with its mode and owner.
+func (a *Guest) handleInit(in InitReq) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.inited {
@@ -357,9 +357,9 @@ func (a *Agent) handleInit(in InitReq) error {
 // @return StartResp The authorize URL or, when already authenticated, the session URL.
 // @error error if Init has not run, Start already ran, the launch fails, or no URL appears before the timeout.
 //
-// @testcase TestAgentLifecycle starts a box and captures its authorize URL.
-// @testcase TestAgentStartAlreadyAuthenticated returns a session URL when credentials already exist.
-func (a *Agent) handleStart() (StartResp, error) {
+// @testcase TestGuestLifecycle starts a box and captures its authorize URL.
+// @testcase TestGuestStartAlreadyAuthenticated returns a session URL when credentials already exist.
+func (a *Guest) handleStart() (StartResp, error) {
 	a.mu.Lock()
 	if !a.inited {
 		a.mu.Unlock()
@@ -403,9 +403,9 @@ func (a *Agent) handleStart() (StartResp, error) {
 // @return submitCodeResp The session URL printed once login completes.
 // @error error if Start has not run, the code cannot be written, or no session URL appears before the timeout.
 //
-// @testcase TestAgentLifecycle submits the code and returns the session URL.
-// @testcase TestAgentSubmitCodeBeforeStart errors when called before Start.
-func (a *Agent) handleSubmitCode(in submitCodeReq) (submitCodeResp, error) {
+// @testcase TestGuestLifecycle submits the code and returns the session URL.
+// @testcase TestGuestSubmitCodeBeforeStart errors when called before Start.
+func (a *Guest) handleSubmitCode(in submitCodeReq) (submitCodeResp, error) {
 	a.mu.Lock()
 	started, ptmx, tr := a.started, a.ptmx, a.tr
 	a.mu.Unlock()
@@ -433,9 +433,9 @@ func (a *Agent) handleSubmitCode(in submitCodeReq) (submitCodeResp, error) {
 // @return sandbox.ExecResult The command's stdout, stderr, and exit code.
 // @error error if no command is given or the command cannot be started.
 //
-// @testcase TestAgentLifecycle runs a command via Exec and captures its output.
-// @testcase TestAgentExecNonZeroExit reports a non-zero exit code without erroring.
-func (a *Agent) handleExec(ctx context.Context, in execReq) (sandbox.ExecResult, error) {
+// @testcase TestGuestLifecycle runs a command via Exec and captures its output.
+// @testcase TestGuestExecNonZeroExit reports a non-zero exit code without erroring.
+func (a *Guest) handleExec(ctx context.Context, in execReq) (sandbox.ExecResult, error) {
 	if len(in.Cmd) == 0 {
 		return sandbox.ExecResult{}, errors.New("empty command")
 	}
@@ -462,8 +462,8 @@ func (a *Agent) handleExec(ctx context.Context, in execReq) (sandbox.ExecResult,
 // @arg in The logs request carrying the line count.
 // @return string The trailing transcript lines (empty before Start).
 //
-// @testcase TestAgentLifecycle reads back the box transcript via Logs.
-func (a *Agent) handleLogs(in logsReq) string {
+// @testcase TestGuestLifecycle reads back the box transcript via Logs.
+func (a *Guest) handleLogs(in logsReq) string {
 	a.mu.Lock()
 	tr := a.tr
 	a.mu.Unlock()
@@ -482,8 +482,8 @@ func (a *Agent) handleLogs(in logsReq) string {
 // @arg data The JSON-encoded dialReq naming the port.
 //
 // @testcase TestClientDialPort forwards bytes between the conn and a localhost listener.
-// @testcase TestAgentDialRejectsBadPort writes an error response for an out-of-range port.
-func (a *Agent) handleDial(conn net.Conn, data json.RawMessage) {
+// @testcase TestGuestDialRejectsBadPort writes an error response for an out-of-range port.
+func (a *Guest) handleDial(conn net.Conn, data json.RawMessage) {
 	var in dialReq
 	if err := json.Unmarshal(data, &in); err != nil {
 		_ = writeFrame(conn, resp{Err: fmt.Sprintf("decoding dial: %v", err)})
@@ -513,8 +513,8 @@ func (a *Agent) handleDial(conn net.Conn, data json.RawMessage) {
 // @arg r The init request supplying the remote args and box ID.
 // @return string The /bin/sh -c command string that runs the box.
 //
-// @testcase TestAgentEntrypointNamesDefaultSession adds a --name for the box's default session.
-func (a *Agent) entrypoint(r InitReq) string {
+// @testcase TestGuestEntrypointNamesDefaultSession adds a --name for the box's default session.
+func (a *Guest) entrypoint(r InitReq) string {
 	remoteArgs := r.RemoteArgs
 	if r.BoxID != "" && !strings.Contains(remoteArgs, "--name") {
 		remoteArgs = strings.TrimSpace(remoteArgs + " --name " + r.BoxID + "-default")
@@ -531,7 +531,7 @@ func (a *Agent) entrypoint(r InitReq) string {
 // @arg f The file to write.
 // @error error if the directory or file cannot be created or chowned.
 //
-// @testcase TestAgentInitWritesFiles writes a file with the requested mode and owner.
+// @testcase TestGuestInitWritesFiles writes a file with the requested mode and owner.
 func writeInjectFile(f sandbox.InjectFile) error {
 	if err := os.MkdirAll(filepath.Dir(f.Path), 0o755); err != nil {
 		return fmt.Errorf("creating dir for %s: %w", f.Path, err)
@@ -560,7 +560,7 @@ func writeInjectFile(f sandbox.InjectFile) error {
 // @arg ptmx The PTY master to read box output from.
 // @arg tr The transcript to append output to.
 //
-// @testcase TestAgentLifecycle relies on pumpPTY to feed the transcript.
+// @testcase TestGuestLifecycle relies on pumpPTY to feed the transcript.
 func pumpPTY(ptmx *os.File, tr *transcript) {
 	buf := make([]byte, 4096)
 	for {

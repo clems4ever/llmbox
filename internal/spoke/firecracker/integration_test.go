@@ -39,7 +39,7 @@ func fcArtifacts(t *testing.T) (string, string) {
 
 // TestVMSurvivesRequestContextCancel is a regression test for boxes dying when the
 // create request ends: it boots a real control-only box, cancels the context that
-// created it, and checks the agent is still reachable. The firecracker process and
+// created it, and checks the guest is still reachable. The firecracker process and
 // the SDK's stop-on-context-done goroutine must both run on the provisioner's
 // lifetime context, not the request's, or a later operation (submit code, exec,
 // logs) hits a dead vsock with "connection refused".
@@ -79,7 +79,7 @@ func TestVMSurvivesRequestContextCancel(t *testing.T) {
 // real Firecracker microVMs, proving the microVM backend behaves identically to the
 // Docker backend and the in-process Fake. It requires a Firecracker host: /dev/kvm,
 // the firecracker binary on PATH, and a guest kernel + rootfs (whose init is the
-// llmbox agent on vsock) pointed at by env vars. It skips when any is missing, so a
+// llmbox guest on vsock) pointed at by env vars. It skips when any is missing, so a
 // normal `go test` on a machine without a Firecracker host is unaffected.
 //
 // Set to run it:
@@ -92,7 +92,7 @@ func TestVMSurvivesRequestContextCancel(t *testing.T) {
 func TestConformanceFirecracker(t *testing.T) {
 	kernel, rootfs := fcArtifacts(t)
 	// TAP/NAT egress setup needs CAP_NET_ADMIN. When not root, boot control-only
-	// boxes (loopback + vsock): the conformance flow drives the agent over vsock
+	// boxes (loopback + vsock): the conformance flow drives the guest over vsock
 	// and its mock claude needs no network, so it exercises the full box lifecycle
 	// either way. The real egress path is covered by the root-only egress test.
 	networking := os.Geteuid() == 0
@@ -121,10 +121,10 @@ func TestConformanceFirecracker(t *testing.T) {
 
 // TestBoxAPIOverVsock proves Firecracker's guest-initiated vsock convention end
 // to end on a real microVM: the provisioner pre-listens on <vsock_uds>_5001,
-// the in-guest agent bridges /run/llmbox/boxapi.sock to host port 5001, and a
+// the guest bridges /run/llmbox/boxapi.sock to host port 5001, and a
 // curl inside the guest reaches the host-side box-port API — with the box's
 // identity stamped by the host listener, not by anything the guest sent. It
-// needs a rootfs whose agent runs with --boxapi-port 5001 and which ships curl
+// needs a rootfs whose guest runs with --boxapi-port 5001 and which ships curl
 // (the production box rootfs; the busybox conformance rootfs skips).
 //
 // @testcase TestBoxAPIOverVsock curls the in-guest box API socket on a live microVM.
@@ -149,7 +149,7 @@ func TestBoxAPIOverVsock(t *testing.T) {
 		t.Fatalf("Provision: %v", err)
 	}
 
-	// Drive the in-guest side over the agent's Exec verb, exactly as Claude
+	// Drive the in-guest side over the guest's Exec verb, exactly as Claude
 	// would from a shell inside the box.
 	mgr := box.NewManager(p, box.Config{})
 	res, err := mgr.Exec(context.Background(), inst.Meta().InstanceID, []string{

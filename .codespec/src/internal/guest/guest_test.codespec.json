@@ -1,0 +1,106 @@
+{
+	"functions": [
+		{
+			"function_name": "TestListenVsockReturns",
+			"documentation_hash": "eeb39e0b9863887d0ad1e185e504247866ff825750671f836bc9478d891746ea",
+			"definition_hash": "8b96fed1a90933fd54909b0fca0e295b3cee344f068effb7831ae4b6e3e77857",
+			"reviewed_at": "2026-07-09T18:52:21.920771854Z"
+		},
+		{
+			"function_name": "writeMockClaude",
+			"documentation_hash": "1b0b03fccdf568dd1209bfdd73913577987c78f1004f1469aeefa5f966a34545",
+			"definition_hash": "3a6caedf94a8679fa0ce05607749523697eb588d67c2d72248c41d772771cf1d",
+			"reviewed_at": "2026-07-09T18:52:21.925506935Z"
+		},
+		{
+			"function_name": "startGuest",
+			"documentation_hash": "6b4beb229f3177cf9c71570b2af47a1531de94151836986ab58c06ecf132c229",
+			"definition_hash": "ece079c9b29610d83add077581f2d6b89ab6a67f4cbb47c128c1303732b5a0b1",
+			"reviewed_at": "2026-07-09T18:52:21.934855608Z"
+		},
+		{
+			"function_name": "boxEnv",
+			"documentation_hash": "a25134a74a7e3e27e77275a48e07e37c85dbc7342e256bfa112db85f7eb3d554",
+			"definition_hash": "e43321965161b2a048dcce9330dd292c29208db64fe886b854f9cd3d7320d454",
+			"reviewed_at": "2026-07-09T18:52:21.939609858Z"
+		},
+		{
+			"function_name": "TestGuestLifecycle",
+			"documentation_hash": "f3209b05b8b8cffe33692a1ad47c51f4a3fc67028ca34dcb33a06bea5763f7e0",
+			"definition_hash": "f845f9d64d4ab121ab6107810982697b77de5297eb25e3e5ce9acc75373c94da",
+			"reviewed_at": "2026-07-09T18:52:21.944249525Z"
+		},
+		{
+			"function_name": "TestListenAndServeSocketPerms",
+			"documentation_hash": "68cbd5ed777ec91f7bb6ebcfc9b1d6c5b535491cb2fcde124720cb93cb2a9f71",
+			"definition_hash": "30c7f47acf83f2d8120b77e213f3ba2c56b2619f22734aac348fbfb4b1147f0f",
+			"reviewed_at": "2026-07-09T18:52:21.948911598Z"
+		},
+		{
+			"function_name": "TestGuestStartAlreadyAuthenticated",
+			"documentation_hash": "021731488715881b629b19adec69fd226d24fb731ffb11d74e37e089111ad118",
+			"definition_hash": "7b6e4dc407e200dcaf8785729c0165cc8a48a8061317ceec218e2bbfbae3413b",
+			"reviewed_at": "2026-07-09T18:52:21.953624077Z"
+		},
+		{
+			"function_name": "TestClientOverUnixSocket",
+			"documentation_hash": "38876267b1018435b5473244dcfb5095136de1d770afe57403d9cf243ceb424d",
+			"definition_hash": "e783f0726f45c8b3f4693beadcbcd60277a8c647d0b2ad007ecce526ad2c2a10",
+			"reviewed_at": "2026-07-09T18:52:21.958229741Z"
+		},
+		{
+			"function_name": "TestGuestInitWritesFiles",
+			"documentation_hash": "4b31f64c97b3f221474a51ae6a3cf398f64c82e36e6afa1cdbbb7acc3d14dcbb",
+			"definition_hash": "c2f3002c55e327d27fecd293f9d70612fd1a3bff759e0291873674c323d304a2",
+			"reviewed_at": "2026-07-09T18:52:21.962809185Z"
+		},
+		{
+			"function_name": "TestGuestExecNonZeroExit",
+			"documentation_hash": "abcd197ce2ed6f10d7ac6fa3f6f42d3bb21f7b3a397b774a835eebb871847767",
+			"definition_hash": "5095bd20978739c6d843118fc6bc880418b782c704e6612b22f2ee790a5aca06",
+			"reviewed_at": "2026-07-09T18:52:21.967335361Z"
+		},
+		{
+			"function_name": "TestGuestUnknownVerb",
+			"documentation_hash": "64ac232f56c0066c455c3bd6f4053f06209a880b069103ab4e314f8f4ea2a315",
+			"definition_hash": "58a545cf8a455ea6b4ff7369b842fcc1c905658005f197a5f68a8cbd89678cf5",
+			"reviewed_at": "2026-07-09T18:52:23.170735713Z"
+		},
+		{
+			"function_name": "TestGuestSubmitCodeBeforeStart",
+			"documentation_hash": "9222773432a2e4aa3b670b32ff576e8f003ea6227390efe69886af4c3b3c9ec2",
+			"definition_hash": "e82b0e2d12fbf5865f13039d0d6dc129ac5aa62defca6367a9564a97987100f9",
+			"reviewed_at": "2026-07-09T18:52:23.175449025Z"
+		},
+		{
+			"function_name": "TestGuestEntryEnvFillsHomeAndPath",
+			"documentation_hash": "9e1116b6eb310a438e12b14de573f9ccf84453e0cff0a8a3ddfdbe62cffa2993",
+			"definition_hash": "e9dd6dae5c83246bd82b2b286706db19f1d832c618f9bc0757cc3857f4190bbe",
+			"reviewed_at": "2026-07-09T18:52:23.184834356Z"
+		},
+		{
+			"function_name": "TestGuestEntryEnvKeepsInitValues",
+			"documentation_hash": "80fb57c098a434a55d2f31765a8981fc1d98b081089b7491f7829f4a4e6bfaf4",
+			"definition_hash": "616817b14cfbd2d9651d64d2632fd97fe6787016ab1efbbb774b58fcf9ae7428",
+			"reviewed_at": "2026-07-09T18:52:23.189651664Z"
+		},
+		{
+			"function_name": "TestGuestEntrypointNamesDefaultSession",
+			"documentation_hash": "5601d2e8a31351e89850e06fc091884a4451f1c737ee5c95b88459b4cc8657d5",
+			"definition_hash": "8c8faf7e7222d624b40ffa1b623a31ccb4194cdf5cf0a2b4b27f001fd7c26d44",
+			"reviewed_at": "2026-07-09T18:52:23.194354194Z"
+		},
+		{
+			"function_name": "TestClientDialPort",
+			"documentation_hash": "7baa5fac065b0553ecb6cf2331084985a65c78687a7ec52839330974a868c189",
+			"definition_hash": "eb8f98fbf2fdf115fb89df3f8216f60f82dfb071bd937b4290f3456e0d7f0ce8",
+			"reviewed_at": "2026-07-09T18:52:23.199047313Z"
+		},
+		{
+			"function_name": "TestGuestDialRejectsBadPort",
+			"documentation_hash": "0a60db8bba74e4217cac336bb827b47810fcb36b512cd45680632fc001e73126",
+			"definition_hash": "c7856436c73fea2ef729304f0627852c0fbebebe88207a50f01cbddf73eec730",
+			"reviewed_at": "2026-07-09T18:52:23.203519355Z"
+		}
+	]
+}

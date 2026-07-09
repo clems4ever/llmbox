@@ -67,28 +67,16 @@
 			"reviewed_at": "2026-07-04T20:21:09.64029041Z"
 		},
 		{
-			"function_name": "TestWaitForAgent",
-			"documentation_hash": "9abdd9786b43642eacae6059a1d55283898ed8bb23283ab34b53e872e30cb8fc",
-			"definition_hash": "b7fc2403413b15e8db29c1dfd38ba86edb708c35dcc8ed634fabd404be41dcaf",
-			"reviewed_at": "2026-07-04T20:21:09.647371769Z"
-		},
-		{
-			"function_name": "TestWaitForAgentTimesOut",
-			"documentation_hash": "73d1a98d9af9df86cd5402a9a1f8847b60f963b045e9c26e4ade622de2638a3c",
-			"definition_hash": "7bf88fe0a25d812b191b0492f1a4eb0604299df164534825aad733cd046e511b",
-			"reviewed_at": "2026-07-04T20:21:23.922045817Z"
-		},
-		{
 			"function_name": "TestDialVsockHandshake",
 			"documentation_hash": "cb5b66b9014e2bea6b5b2be2af8bb6d30a779db271e2dc9fc7e3aed9462d8880",
-			"definition_hash": "32e9b4ae1567027cca7c07603c6ffb6457caa6fde53d67678b39badeaba32e89",
-			"reviewed_at": "2026-07-04T20:21:23.926647084Z"
+			"definition_hash": "369631865169f2670edb18ba6cba228d107c21ebfff91c4e9b1bc0bf9ec13aa4",
+			"reviewed_at": "2026-07-09T18:49:59.013067736Z"
 		},
 		{
 			"function_name": "TestDialVsockRejected",
 			"documentation_hash": "f119cd68411b974d10fbdaf1f486488a03efed72944cacfb752e3b5ebfbaed36",
-			"definition_hash": "f6d8c31920d360919295bb349856579c285e38ffa8056e5f72cc43e5d3a99000",
-			"reviewed_at": "2026-07-04T20:21:23.940002542Z"
+			"definition_hash": "4dfce9965052b8dc5c547960557b05cab46f0a5817ee915450980a11acb34f3e",
+			"reviewed_at": "2026-07-09T18:49:59.013932004Z"
 		},
 		{
 			"function_name": "TestNetFor",
@@ -196,6 +184,18 @@
 			"documentation_hash": "e1e70b3a550375b7423f4f4c49af8dbdb91cb7181a2c73faea5868c0be76116e",
 			"definition_hash": "6f052f84688502aaded5744dfa7679013ff775e550ce6a5467855a91784e6e5c",
 			"reviewed_at": "2026-07-07T10:38:54.034885411Z"
+		},
+		{
+			"function_name": "TestWaitForGuest",
+			"documentation_hash": "38cea217eb01cfe15d283b77ecf539f33ffdafda5217cf0bc707687794479b67",
+			"definition_hash": "4a2213d3641aee1ee64eab63ea2f19bbdd71a58116d4f9f1c2726152b4f8dfc5",
+			"reviewed_at": "2026-07-09T18:49:59.011116457Z"
+		},
+		{
+			"function_name": "TestWaitForGuestTimesOut",
+			"documentation_hash": "c7024ec1f0341a4aaa05d3352eb70ce66d2afba83f9a72be0a1dbe4d5cdcae3d",
+			"definition_hash": "84ce643012a1d11a4362f23e455006538b848f77787f071926d3755d2d471698",
+			"reviewed_at": "2026-07-09T18:49:59.01216536Z"
 		}
 	]
 }
