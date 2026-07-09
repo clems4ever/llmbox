@@ -14,75 +14,76 @@ import (
 // schema is the full relational schema, created idempotently on Open. Each record
 // type maps to its own table with a primary-key column and one column per durable
 // field, so the store can query state directly (e.g. purge by expiry) instead of
-// scanning opaque blobs. The one map-shaped field (a session's hook state) is held
-// as JSON text, the only value without a natural columnar shape.
+// scanning opaque blobs. The one map-shaped field (a box's hook state) is held as
+// JSON text, the only value without a natural columnar shape. Every secret we
+// store is held as its SHA-256 hash in a secret_hash column, never in the clear.
 const schema = `
-CREATE TABLE IF NOT EXISTS sessions (
+CREATE TABLE IF NOT EXISTS boxes (
 	token          TEXT PRIMARY KEY,
-	container_id   TEXT NOT NULL,
-	authorize_url  TEXT NOT NULL,
-	created_at     TEXT NOT NULL,
-	hook_state     TEXT,
+	instance_id    TEXT NOT NULL,
 	box_id         TEXT NOT NULL,
+	spoke          TEXT NOT NULL,
+	owner          TEXT NOT NULL,
 	description    TEXT NOT NULL,
-	spoke_name     TEXT NOT NULL,
-	status         TEXT NOT NULL,
+	authorize_url  TEXT NOT NULL,
 	session_url    TEXT NOT NULL,
-	err            TEXT NOT NULL,
-	activated_by   TEXT NOT NULL,
-	box_state      TEXT NOT NULL DEFAULT '',
-	last_seen      TEXT NOT NULL DEFAULT '',
-	name           TEXT NOT NULL DEFAULT '',
-	image          TEXT NOT NULL DEFAULT '',
-	instance_state TEXT NOT NULL DEFAULT ''
+	status         TEXT NOT NULL,
+	last_error     TEXT NOT NULL,
+	hook_state     TEXT,
+	lifecycle      TEXT NOT NULL,
+	created_at     TEXT NOT NULL,
+	observed_name  TEXT NOT NULL,
+	observed_image TEXT NOT NULL,
+	observed_state TEXT NOT NULL,
+	observed_at    TEXT
 );
-CREATE TABLE IF NOT EXISTS login_sessions (
-	id         TEXT PRIMARY KEY,
-	email      TEXT NOT NULL,
-	provider   TEXT NOT NULL,
-	csrf       TEXT NOT NULL,
-	expires_at TEXT NOT NULL,
-	activate   INTEGER NOT NULL,
-	admin      INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS login_flows (
-	state        TEXT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS identity_sessions (
+	session_id   TEXT PRIMARY KEY,
+	email        TEXT NOT NULL,
 	provider     TEXT NOT NULL,
-	return_token TEXT NOT NULL,
-	return_to    TEXT NOT NULL,
-	nonce        TEXT NOT NULL,
-	verifier     TEXT NOT NULL,
-	expires_at   TEXT NOT NULL
+	csrf_token   TEXT NOT NULL,
+	expires_at   TEXT NOT NULL,
+	can_activate INTEGER NOT NULL,
+	can_admin    INTEGER NOT NULL
 );
-CREATE TABLE IF NOT EXISTS join_tokens (
-	hash       TEXT PRIMARY KEY,
-	name       TEXT NOT NULL,
-	expires_at TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS oidc_flows (
+	state         TEXT PRIMARY KEY,
+	provider      TEXT NOT NULL,
+	return_token  TEXT NOT NULL,
+	return_to     TEXT NOT NULL,
+	nonce         TEXT NOT NULL,
+	pkce_verifier TEXT NOT NULL,
+	expires_at    TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS spoke_join_tokens (
+	secret_hash TEXT PRIMARY KEY,
+	name        TEXT NOT NULL,
+	expires_at  TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS spokes (
-	name            TEXT PRIMARY KEY,
-	credential_hash TEXT NOT NULL,
-	enrolled_at     TEXT NOT NULL
+	name        TEXT PRIMARY KEY,
+	secret_hash TEXT NOT NULL,
+	enrolled_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS proxies (
-	slug         TEXT PRIMARY KEY,
-	box_id       TEXT NOT NULL,
-	container_id TEXT NOT NULL,
-	port         INTEGER NOT NULL,
-	spoke        TEXT NOT NULL,
-	created_at   TEXT NOT NULL,
-	created_by   TEXT NOT NULL,
-	description  TEXT NOT NULL
+	slug        TEXT PRIMARY KEY,
+	box_id      TEXT NOT NULL,
+	instance_id TEXT NOT NULL,
+	port        INTEGER NOT NULL,
+	spoke       TEXT NOT NULL,
+	owner       TEXT NOT NULL,
+	description TEXT NOT NULL,
+	created_at  TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS settings (
 	key   TEXT PRIMARY KEY,
 	value TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS api_keys (
-	hash       TEXT PRIMARY KEY,
-	name       TEXT NOT NULL,
-	created_at TEXT NOT NULL,
-	expires_at TEXT NOT NULL
+	secret_hash TEXT PRIMARY KEY,
+	name        TEXT NOT NULL,
+	created_at  TEXT NOT NULL,
+	expires_at  TEXT NOT NULL
 );
 `
 
@@ -100,7 +101,7 @@ type sqliteStore struct {
 // @return Store A ready-to-use, SQLite-backed store.
 // @error error if the database cannot be opened or initialized.
 //
-// @testcase TestSQLiteStoreRoundTrip opens a store and round-trips a session.
+// @testcase TestSQLiteStoreRoundTrip opens a store and round-trips a box.
 func Open(path string) (Store, error) { return openSQLite(path) }
 
 // openSQLite opens (creating if needed) a SQLite database at path, applies the
@@ -110,65 +111,22 @@ func Open(path string) (Store, error) { return openSQLite(path) }
 // @return *sqliteStore A ready-to-use store backed by the opened database.
 // @error error if the database cannot be opened or the schema cannot be created.
 //
-// @testcase TestSQLiteStoreRoundTrip opens a store in a temp dir and round-trips a session.
+// @testcase TestSQLiteStoreRoundTrip opens a store in a temp dir and round-trips a box.
 func openSQLite(path string) (*sqliteStore, error) {
 	// WAL keeps the file durable across restarts; busy_timeout lets a contended
 	// write wait rather than fail immediately; foreign_keys is the modern default.
 	dsn := path + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("opening session store %q: %w", path, err)
+		return nil, fmt.Errorf("opening store %q: %w", path, err)
 	}
 	// One connection serializes access so SQLite never returns "database is locked".
 	db.SetMaxOpenConns(1)
 	if _, err := db.Exec(schema); err != nil {
 		_ = db.Close()
-		return nil, fmt.Errorf("initializing session store %q: %w", path, err)
-	}
-	if err := migrateSessions(db); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("migrating session store %q: %w", path, err)
+		return nil, fmt.Errorf("initializing store %q: %w", path, err)
 	}
 	return &sqliteStore{db: db}, nil
-}
-
-// migrateSessions applies the additive sessions-table changes to a database
-// created by an older build (CREATE TABLE IF NOT EXISTS does not alter an
-// existing table). Each missing column is added with the same default the
-// schema declares; a column that already exists is left untouched, so the
-// migration is idempotent.
-//
-// @arg db The open database to migrate.
-// @error error if the existing columns cannot be read or a column cannot be added.
-//
-// @testcase TestSQLiteMigratesLegacySessions adds the new columns to a pre-existing sessions table.
-func migrateSessions(db *sql.DB) error {
-	rows, err := db.Query(`SELECT name FROM pragma_table_info('sessions')`)
-	if err != nil {
-		return fmt.Errorf("reading sessions columns: %w", err)
-	}
-	existing := map[string]bool{}
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			rows.Close()
-			return fmt.Errorf("scanning sessions column: %w", err)
-		}
-		existing[name] = true
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	for _, col := range []string{"box_state", "last_seen", "name", "image", "instance_state"} {
-		if existing[col] {
-			continue
-		}
-		if _, err := db.Exec(fmt.Sprintf(`ALTER TABLE sessions ADD COLUMN %s TEXT NOT NULL DEFAULT ''`, col)); err != nil {
-			return fmt.Errorf("adding sessions column %s: %w", col, err)
-		}
-	}
-	return nil
 }
 
 // encodeTime renders a time as a string the same way encoding/json does
@@ -197,108 +155,110 @@ func decodeTime(s string) (time.Time, error) {
 	return t, nil
 }
 
-// Save writes (creating or replacing) one session keyed by its token.
+// PutBox writes (creating or replacing) one box keyed by its token.
 //
-// @arg ps The session snapshot to persist.
+// @arg b The box snapshot to persist.
 // @error error if encoding the hook state or the write fails.
 //
-// @testcase TestSQLiteStoreRoundTrip saves a session and reads it back.
-func (s *sqliteStore) Save(ps PersistedSession) error {
+// @testcase TestSQLiteStoreRoundTrip saves a box and reads it back.
+func (s *sqliteStore) PutBox(b Box) error {
 	// A nil hook-state map is stored as SQL NULL so it decodes back to nil (not an
 	// empty map), keeping the round-trip exact.
 	var hookState any
-	if ps.HookState != nil {
-		data, err := json.Marshal(ps.HookState)
+	if b.HookState != nil {
+		data, err := json.Marshal(b.HookState)
 		if err != nil {
 			return fmt.Errorf("encoding hook state: %w", err)
 		}
 		hookState = string(data)
 	}
-	// A zero LastSeen (never observed) is stored as the empty string so the
-	// round-trip stays exact.
-	lastSeen := ""
-	if !ps.LastSeen.IsZero() {
-		lastSeen = encodeTime(ps.LastSeen)
+	// A zero ObservedAt (never observed) is stored as SQL NULL so it decodes back
+	// to the zero time, keeping the round-trip exact.
+	var observedAt any
+	if !b.ObservedAt.IsZero() {
+		observedAt = encodeTime(b.ObservedAt)
 	}
 	_, err := s.db.Exec(`
-		INSERT INTO sessions (token, container_id, authorize_url, created_at, hook_state,
-			box_id, description, spoke_name, status, session_url, err, activated_by,
-			box_state, last_seen, name, image, instance_state)
+		INSERT INTO boxes (token, instance_id, box_id, spoke, owner, description,
+			authorize_url, session_url, status, last_error, hook_state, lifecycle,
+			created_at, observed_name, observed_image, observed_state, observed_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(token) DO UPDATE SET
-			container_id=excluded.container_id, authorize_url=excluded.authorize_url,
-			created_at=excluded.created_at, hook_state=excluded.hook_state,
-			box_id=excluded.box_id, description=excluded.description,
-			spoke_name=excluded.spoke_name, status=excluded.status,
-			session_url=excluded.session_url, err=excluded.err,
-			activated_by=excluded.activated_by, box_state=excluded.box_state,
-			last_seen=excluded.last_seen, name=excluded.name,
-			image=excluded.image, instance_state=excluded.instance_state`,
-		ps.Token, ps.ContainerID, ps.AuthorizeURL, encodeTime(ps.CreatedAt), hookState,
-		ps.BoxID, ps.Description, ps.SpokeName, ps.Status, ps.SessionURL, ps.Err, ps.ActivatedBy,
-		ps.BoxState, lastSeen, ps.Name, ps.Image, ps.InstanceState)
+			instance_id=excluded.instance_id, box_id=excluded.box_id,
+			spoke=excluded.spoke, owner=excluded.owner, description=excluded.description,
+			authorize_url=excluded.authorize_url, session_url=excluded.session_url,
+			status=excluded.status, last_error=excluded.last_error,
+			hook_state=excluded.hook_state, lifecycle=excluded.lifecycle,
+			created_at=excluded.created_at, observed_name=excluded.observed_name,
+			observed_image=excluded.observed_image, observed_state=excluded.observed_state,
+			observed_at=excluded.observed_at`,
+		b.Token, b.InstanceID, b.BoxID, b.Spoke, b.Owner, b.Description,
+		b.AuthorizeURL, b.SessionURL, b.Status, b.LastError, hookState, string(b.Lifecycle),
+		encodeTime(b.CreatedAt), b.ObservedName, b.ObservedImage, b.ObservedState, observedAt)
 	if err != nil {
-		return fmt.Errorf("saving session: %w", err)
+		return fmt.Errorf("saving box: %w", err)
 	}
 	return nil
 }
 
-// Delete removes the session for a token; deleting a missing token is a no-op.
+// DeleteBox removes the box for a token; deleting a missing token is a no-op.
 //
-// @arg token The token whose session to delete.
+// @arg token The token whose box to delete.
 // @error error if the write fails.
 //
-// @testcase TestSQLiteStoreDelete deletes a session and confirms it is gone.
-func (s *sqliteStore) Delete(token string) error {
-	if _, err := s.db.Exec(`DELETE FROM sessions WHERE token = ?`, token); err != nil {
-		return fmt.Errorf("deleting session: %w", err)
+// @testcase TestSQLiteStoreDelete deletes a box and confirms it is gone.
+func (s *sqliteStore) DeleteBox(token string) error {
+	if _, err := s.db.Exec(`DELETE FROM boxes WHERE token = ?`, token); err != nil {
+		return fmt.Errorf("deleting box: %w", err)
 	}
 	return nil
 }
 
-// LoadAll returns every persisted session.
+// ListBoxes returns every persisted box.
 //
-// @return []PersistedSession One entry per stored token.
+// @return []Box One entry per stored token.
 // @error error if the query or row scanning fails.
 //
-// @testcase TestSQLiteStoreRoundTrip loads the stored sessions back.
-func (s *sqliteStore) LoadAll() ([]PersistedSession, error) {
+// @testcase TestSQLiteStoreRoundTrip loads the stored boxes back.
+func (s *sqliteStore) ListBoxes() ([]Box, error) {
 	rows, err := s.db.Query(`
-		SELECT token, container_id, authorize_url, created_at, hook_state,
-			box_id, description, spoke_name, status, session_url, err, activated_by,
-			box_state, last_seen, name, image, instance_state
-		FROM sessions`)
+		SELECT token, instance_id, box_id, spoke, owner, description,
+			authorize_url, session_url, status, last_error, hook_state, lifecycle,
+			created_at, observed_name, observed_image, observed_state, observed_at
+		FROM boxes`)
 	if err != nil {
-		return nil, fmt.Errorf("loading sessions: %w", err)
+		return nil, fmt.Errorf("loading boxes: %w", err)
 	}
 	defer rows.Close()
-	var out []PersistedSession
+	var out []Box
 	for rows.Next() {
 		var (
-			ps        PersistedSession
-			createdAt string
-			lastSeen  string
-			hookState sql.NullString
+			b          Box
+			lifecycle  string
+			createdAt  string
+			hookState  sql.NullString
+			observedAt sql.NullString
 		)
-		if err := rows.Scan(&ps.Token, &ps.ContainerID, &ps.AuthorizeURL, &createdAt, &hookState,
-			&ps.BoxID, &ps.Description, &ps.SpokeName, &ps.Status, &ps.SessionURL, &ps.Err, &ps.ActivatedBy,
-			&ps.BoxState, &lastSeen, &ps.Name, &ps.Image, &ps.InstanceState); err != nil {
-			return nil, fmt.Errorf("scanning session: %w", err)
+		if err := rows.Scan(&b.Token, &b.InstanceID, &b.BoxID, &b.Spoke, &b.Owner, &b.Description,
+			&b.AuthorizeURL, &b.SessionURL, &b.Status, &b.LastError, &hookState, &lifecycle,
+			&createdAt, &b.ObservedName, &b.ObservedImage, &b.ObservedState, &observedAt); err != nil {
+			return nil, fmt.Errorf("scanning box: %w", err)
 		}
-		if ps.CreatedAt, err = decodeTime(createdAt); err != nil {
+		b.Lifecycle = Lifecycle(lifecycle)
+		if b.CreatedAt, err = decodeTime(createdAt); err != nil {
 			return nil, err
 		}
-		if lastSeen != "" {
-			if ps.LastSeen, err = decodeTime(lastSeen); err != nil {
+		if observedAt.Valid && observedAt.String != "" {
+			if b.ObservedAt, err = decodeTime(observedAt.String); err != nil {
 				return nil, err
 			}
 		}
 		if hookState.Valid {
-			if err := json.Unmarshal([]byte(hookState.String), &ps.HookState); err != nil {
+			if err := json.Unmarshal([]byte(hookState.String), &b.HookState); err != nil {
 				return nil, fmt.Errorf("decoding hook state: %w", err)
 			}
 		}
-		out = append(out, ps)
+		out = append(out, b)
 	}
 	return out, rows.Err()
 }
@@ -310,138 +270,138 @@ func (s *sqliteStore) LoadAll() ([]PersistedSession, error) {
 // @testcase TestSQLiteStoreRoundTrip closes the store when done.
 func (s *sqliteStore) Close() error { return s.db.Close() }
 
-// SaveLoginFlow stores the in-flight OIDC handshake state under the state key.
+// PutOIDCFlow stores the in-flight OIDC handshake state under the state key.
 //
 // @arg state The OAuth state parameter the flow is keyed by.
 // @arg f The flow to persist.
 // @error error if the write fails.
 //
-// @testcase TestLoginStoreFlowRoundTrip saves a flow and takes it back once.
-func (s *sqliteStore) SaveLoginFlow(state string, f LoginFlow) error {
+// @testcase TestIdentityStoreFlowRoundTrip saves a flow and takes it back once.
+func (s *sqliteStore) PutOIDCFlow(state string, f OIDCFlow) error {
 	_, err := s.db.Exec(`
-		INSERT INTO login_flows (state, provider, return_token, return_to, nonce, verifier, expires_at)
+		INSERT INTO oidc_flows (state, provider, return_token, return_to, nonce, pkce_verifier, expires_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(state) DO UPDATE SET
 			provider=excluded.provider, return_token=excluded.return_token,
 			return_to=excluded.return_to, nonce=excluded.nonce,
-			verifier=excluded.verifier, expires_at=excluded.expires_at`,
-		state, f.Provider, f.ReturnToken, f.ReturnTo, f.Nonce, f.Verifier, encodeTime(f.ExpiresAt))
+			pkce_verifier=excluded.pkce_verifier, expires_at=excluded.expires_at`,
+		state, f.Provider, f.ReturnToken, f.ReturnTo, f.Nonce, f.PKCEVerifier, encodeTime(f.ExpiresAt))
 	if err != nil {
-		return fmt.Errorf("saving login flow: %w", err)
+		return fmt.Errorf("saving oidc flow: %w", err)
 	}
 	return nil
 }
 
-// TakeLoginFlow returns and removes the flow for state in one transaction, so a
+// TakeOIDCFlow returns and removes the flow for state in one transaction, so a
 // flow can be used at most once.
 //
 // @arg state The OAuth state parameter to consume.
-// @return LoginFlow The decoded flow when one matched.
+// @return OIDCFlow The decoded flow when one matched.
 // @return bool True when a flow matched, false otherwise.
 // @error error if the transaction or decoding fails.
 //
-// @testcase TestLoginStoreFlowRoundTrip consumes a flow and finds it gone afterwards.
-func (s *sqliteStore) TakeLoginFlow(state string) (LoginFlow, bool, error) {
+// @testcase TestIdentityStoreFlowRoundTrip consumes a flow and finds it gone afterwards.
+func (s *sqliteStore) TakeOIDCFlow(state string) (OIDCFlow, bool, error) {
 	// DELETE ... RETURNING fetches and removes the row atomically, enforcing
 	// one-time use without a separate read-then-delete race.
 	var (
-		f         LoginFlow
+		f         OIDCFlow
 		expiresAt string
 	)
 	err := s.db.QueryRow(`
-		DELETE FROM login_flows WHERE state = ?
-		RETURNING provider, return_token, return_to, nonce, verifier, expires_at`, state).
-		Scan(&f.Provider, &f.ReturnToken, &f.ReturnTo, &f.Nonce, &f.Verifier, &expiresAt)
+		DELETE FROM oidc_flows WHERE state = ?
+		RETURNING provider, return_token, return_to, nonce, pkce_verifier, expires_at`, state).
+		Scan(&f.Provider, &f.ReturnToken, &f.ReturnTo, &f.Nonce, &f.PKCEVerifier, &expiresAt)
 	if err == sql.ErrNoRows {
-		return LoginFlow{}, false, nil
+		return OIDCFlow{}, false, nil
 	}
 	if err != nil {
-		return LoginFlow{}, false, fmt.Errorf("taking login flow: %w", err)
+		return OIDCFlow{}, false, fmt.Errorf("taking oidc flow: %w", err)
 	}
 	if f.ExpiresAt, err = decodeTime(expiresAt); err != nil {
-		return LoginFlow{}, false, err
+		return OIDCFlow{}, false, err
 	}
 	return f, true, nil
 }
 
-// SaveLoginSession stores a completed login session under its opaque id.
+// PutIdentitySession stores a completed identity session under its opaque id.
 //
 // @arg id The opaque session id (the browser cookie value).
 // @arg sess The session to persist.
 // @error error if the write fails.
 //
-// @testcase TestLoginStoreSessionRoundTrip saves and reads back a login session.
-func (s *sqliteStore) SaveLoginSession(id string, sess LoginSession) error {
+// @testcase TestIdentityStoreSessionRoundTrip saves and reads back an identity session.
+func (s *sqliteStore) PutIdentitySession(id string, sess IdentitySession) error {
 	_, err := s.db.Exec(`
-		INSERT INTO login_sessions (id, email, provider, csrf, expires_at, activate, admin)
+		INSERT INTO identity_sessions (session_id, email, provider, csrf_token, expires_at, can_activate, can_admin)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(id) DO UPDATE SET
-			email=excluded.email, provider=excluded.provider, csrf=excluded.csrf,
-			expires_at=excluded.expires_at, activate=excluded.activate, admin=excluded.admin`,
-		id, sess.Email, sess.Provider, sess.CSRF, encodeTime(sess.ExpiresAt), sess.Activate, sess.Admin)
+		ON CONFLICT(session_id) DO UPDATE SET
+			email=excluded.email, provider=excluded.provider, csrf_token=excluded.csrf_token,
+			expires_at=excluded.expires_at, can_activate=excluded.can_activate, can_admin=excluded.can_admin`,
+		id, sess.Email, sess.Provider, sess.CSRFToken, encodeTime(sess.ExpiresAt), sess.CanActivate, sess.CanAdmin)
 	if err != nil {
-		return fmt.Errorf("saving login session: %w", err)
+		return fmt.Errorf("saving identity session: %w", err)
 	}
 	return nil
 }
 
-// LoginSession returns the login session for id.
+// GetIdentitySession returns the identity session for id.
 //
 // @arg id The opaque session id to look up.
-// @return LoginSession The decoded session when one matched.
+// @return IdentitySession The decoded session when one matched.
 // @return bool True when a session matched, false otherwise.
 // @error error if the query or decoding fails.
 //
-// @testcase TestLoginStoreSessionRoundTrip reads back a stored login session.
-func (s *sqliteStore) LoginSession(id string) (LoginSession, bool, error) {
+// @testcase TestIdentityStoreSessionRoundTrip reads back a stored identity session.
+func (s *sqliteStore) GetIdentitySession(id string) (IdentitySession, bool, error) {
 	var (
-		sess      LoginSession
+		sess      IdentitySession
 		expiresAt string
 	)
 	err := s.db.QueryRow(`
-		SELECT email, provider, csrf, expires_at, activate, admin
-		FROM login_sessions WHERE id = ?`, id).
-		Scan(&sess.Email, &sess.Provider, &sess.CSRF, &expiresAt, &sess.Activate, &sess.Admin)
+		SELECT email, provider, csrf_token, expires_at, can_activate, can_admin
+		FROM identity_sessions WHERE session_id = ?`, id).
+		Scan(&sess.Email, &sess.Provider, &sess.CSRFToken, &expiresAt, &sess.CanActivate, &sess.CanAdmin)
 	if err == sql.ErrNoRows {
-		return LoginSession{}, false, nil
+		return IdentitySession{}, false, nil
 	}
 	if err != nil {
-		return LoginSession{}, false, fmt.Errorf("reading login session: %w", err)
+		return IdentitySession{}, false, fmt.Errorf("reading identity session: %w", err)
 	}
 	if sess.ExpiresAt, err = decodeTime(expiresAt); err != nil {
-		return LoginSession{}, false, err
+		return IdentitySession{}, false, err
 	}
 	return sess, true, nil
 }
 
-// DeleteLoginSession removes a login session; deleting a missing id is a no-op.
+// DeleteIdentitySession removes an identity session; deleting a missing id is a no-op.
 //
 // @arg id The opaque session id to delete.
 // @error error if the write fails.
 //
-// @testcase TestLoginStoreSessionRoundTrip deletes a session and confirms it is gone.
-func (s *sqliteStore) DeleteLoginSession(id string) error {
-	if _, err := s.db.Exec(`DELETE FROM login_sessions WHERE id = ?`, id); err != nil {
-		return fmt.Errorf("deleting login session: %w", err)
+// @testcase TestIdentityStoreSessionRoundTrip deletes a session and confirms it is gone.
+func (s *sqliteStore) DeleteIdentitySession(id string) error {
+	if _, err := s.db.Exec(`DELETE FROM identity_sessions WHERE session_id = ?`, id); err != nil {
+		return fmt.Errorf("deleting identity session: %w", err)
 	}
 	return nil
 }
 
-// PurgeExpiredLogins drops login sessions and flows whose ExpiresAt is before
-// now. Expiry is also enforced at read time, so this is housekeeping that keeps
-// the tables from growing unbounded.
+// PurgeExpiredIdentities drops identity sessions and flows whose ExpiresAt is
+// before now. Expiry is also enforced at read time, so this is housekeeping that
+// keeps the tables from growing unbounded.
 //
 // @arg now The cutoff time; entries expiring before it are removed.
 // @error error if either delete fails.
 //
-// @testcase TestLoginStorePurgeExpired drops expired entries and keeps live ones.
-func (s *sqliteStore) PurgeExpiredLogins(now time.Time) error {
+// @testcase TestIdentityStorePurgeExpired drops expired entries and keeps live ones.
+func (s *sqliteStore) PurgeExpiredIdentities(now time.Time) error {
 	cutoff := encodeTime(now)
-	if _, err := s.db.Exec(`DELETE FROM login_sessions WHERE expires_at < ?`, cutoff); err != nil {
-		return fmt.Errorf("purging login sessions: %w", err)
+	if _, err := s.db.Exec(`DELETE FROM identity_sessions WHERE expires_at < ?`, cutoff); err != nil {
+		return fmt.Errorf("purging identity sessions: %w", err)
 	}
-	if _, err := s.db.Exec(`DELETE FROM login_flows WHERE expires_at < ?`, cutoff); err != nil {
-		return fmt.Errorf("purging login flows: %w", err)
+	if _, err := s.db.Exec(`DELETE FROM oidc_flows WHERE expires_at < ?`, cutoff); err != nil {
+		return fmt.Errorf("purging oidc flows: %w", err)
 	}
 	return nil
 }
@@ -455,8 +415,8 @@ func (s *sqliteStore) PurgeExpiredLogins(now time.Time) error {
 // @testcase TestClusterStoreJoinTokenRoundTrip stores and takes a join token.
 func (s *sqliteStore) PutJoinToken(hash string, rec cluster.JoinTokenRecord) error {
 	_, err := s.db.Exec(`
-		INSERT INTO join_tokens (hash, name, expires_at) VALUES (?, ?, ?)
-		ON CONFLICT(hash) DO UPDATE SET name=excluded.name, expires_at=excluded.expires_at`,
+		INSERT INTO spoke_join_tokens (secret_hash, name, expires_at) VALUES (?, ?, ?)
+		ON CONFLICT(secret_hash) DO UPDATE SET name=excluded.name, expires_at=excluded.expires_at`,
 		hash, rec.Name, encodeTime(rec.ExpiresAt))
 	if err != nil {
 		return fmt.Errorf("saving join token: %w", err)
@@ -479,7 +439,7 @@ func (s *sqliteStore) TakeJoinToken(hash string) (cluster.JoinTokenRecord, bool,
 		expiresAt string
 	)
 	err := s.db.QueryRow(`
-		DELETE FROM join_tokens WHERE hash = ? RETURNING name, expires_at`, hash).
+		DELETE FROM spoke_join_tokens WHERE secret_hash = ? RETURNING name, expires_at`, hash).
 		Scan(&rec.Name, &expiresAt)
 	if err == sql.ErrNoRows {
 		return cluster.JoinTokenRecord{}, false, nil
@@ -501,7 +461,7 @@ func (s *sqliteStore) TakeJoinToken(hash string) (cluster.JoinTokenRecord, bool,
 //
 // @testcase TestClusterStoreJoinTokenListAndDelete lists and revokes join tokens.
 func (s *sqliteStore) ListJoinTokens() ([]cluster.JoinTokenInfo, error) {
-	rows, err := s.db.Query(`SELECT hash, name, expires_at FROM join_tokens`)
+	rows, err := s.db.Query(`SELECT secret_hash, name, expires_at FROM spoke_join_tokens`)
 	if err != nil {
 		return nil, fmt.Errorf("listing join tokens: %w", err)
 	}
@@ -531,7 +491,7 @@ func (s *sqliteStore) ListJoinTokens() ([]cluster.JoinTokenInfo, error) {
 //
 // @testcase TestClusterStoreJoinTokenListAndDelete revokes a join token by ID.
 func (s *sqliteStore) DeleteJoinToken(hash string) error {
-	if _, err := s.db.Exec(`DELETE FROM join_tokens WHERE hash = ?`, hash); err != nil {
+	if _, err := s.db.Exec(`DELETE FROM spoke_join_tokens WHERE secret_hash = ?`, hash); err != nil {
 		return fmt.Errorf("deleting join token: %w", err)
 	}
 	return nil
@@ -546,8 +506,8 @@ func (s *sqliteStore) DeleteJoinToken(hash string) error {
 // @testcase TestAPIKeyStoreRoundTrip stores a key this reads back by hash.
 func (s *sqliteStore) PutAPIKey(hash string, rec APIKeyRecord) error {
 	_, err := s.db.Exec(`
-		INSERT INTO api_keys (hash, name, created_at, expires_at) VALUES (?, ?, ?, ?)
-		ON CONFLICT(hash) DO UPDATE SET name=excluded.name, created_at=excluded.created_at, expires_at=excluded.expires_at`,
+		INSERT INTO api_keys (secret_hash, name, created_at, expires_at) VALUES (?, ?, ?, ?)
+		ON CONFLICT(secret_hash) DO UPDATE SET name=excluded.name, created_at=excluded.created_at, expires_at=excluded.expires_at`,
 		hash, rec.Name, encodeTime(rec.CreatedAt), encodeTime(rec.ExpiresAt))
 	if err != nil {
 		return fmt.Errorf("saving api key: %w", err)
@@ -569,7 +529,7 @@ func (s *sqliteStore) GetAPIKey(hash string) (APIKeyRecord, bool, error) {
 		rec                  APIKeyRecord
 		createdAt, expiresAt string
 	)
-	err := s.db.QueryRow(`SELECT name, created_at, expires_at FROM api_keys WHERE hash = ?`, hash).
+	err := s.db.QueryRow(`SELECT name, created_at, expires_at FROM api_keys WHERE secret_hash = ?`, hash).
 		Scan(&rec.Name, &createdAt, &expiresAt)
 	if err == sql.ErrNoRows {
 		return APIKeyRecord{}, false, nil
@@ -593,7 +553,7 @@ func (s *sqliteStore) GetAPIKey(hash string) (APIKeyRecord, bool, error) {
 //
 // @testcase TestAPIKeyStoreListAndDelete lists and deletes API keys.
 func (s *sqliteStore) ListAPIKeys() ([]APIKeyInfo, error) {
-	rows, err := s.db.Query(`SELECT hash, name, created_at, expires_at FROM api_keys`)
+	rows, err := s.db.Query(`SELECT secret_hash, name, created_at, expires_at FROM api_keys`)
 	if err != nil {
 		return nil, fmt.Errorf("listing api keys: %w", err)
 	}
@@ -626,7 +586,7 @@ func (s *sqliteStore) ListAPIKeys() ([]APIKeyInfo, error) {
 //
 // @testcase TestAPIKeyStoreListAndDelete deletes an API key by ID.
 func (s *sqliteStore) DeleteAPIKey(hash string) error {
-	if _, err := s.db.Exec(`DELETE FROM api_keys WHERE hash = ?`, hash); err != nil {
+	if _, err := s.db.Exec(`DELETE FROM api_keys WHERE secret_hash = ?`, hash); err != nil {
 		return fmt.Errorf("deleting api key: %w", err)
 	}
 	return nil
@@ -641,9 +601,9 @@ func (s *sqliteStore) DeleteAPIKey(hash string) error {
 // @testcase TestClusterStoreSpokeRoundTrip stores and reads back a spoke.
 func (s *sqliteStore) PutSpoke(name string, rec cluster.SpokeRecord) error {
 	_, err := s.db.Exec(`
-		INSERT INTO spokes (name, credential_hash, enrolled_at) VALUES (?, ?, ?)
+		INSERT INTO spokes (name, secret_hash, enrolled_at) VALUES (?, ?, ?)
 		ON CONFLICT(name) DO UPDATE SET
-			credential_hash=excluded.credential_hash, enrolled_at=excluded.enrolled_at`,
+			secret_hash=excluded.secret_hash, enrolled_at=excluded.enrolled_at`,
 		name, rec.CredentialHash, encodeTime(rec.EnrolledAt))
 	if err != nil {
 		return fmt.Errorf("saving spoke: %w", err)
@@ -665,7 +625,7 @@ func (s *sqliteStore) GetSpoke(name string) (cluster.SpokeRecord, bool, error) {
 		enrolledAt string
 	)
 	err := s.db.QueryRow(`
-		SELECT name, credential_hash, enrolled_at FROM spokes WHERE name = ?`, name).
+		SELECT name, secret_hash, enrolled_at FROM spokes WHERE name = ?`, name).
 		Scan(&rec.Name, &rec.CredentialHash, &enrolledAt)
 	if err == sql.ErrNoRows {
 		return cluster.SpokeRecord{}, false, nil
@@ -686,7 +646,7 @@ func (s *sqliteStore) GetSpoke(name string) (cluster.SpokeRecord, bool, error) {
 //
 // @testcase TestClusterStoreSpokeRoundTrip lists the enrolled spokes.
 func (s *sqliteStore) ListSpokes() ([]cluster.SpokeRecord, error) {
-	rows, err := s.db.Query(`SELECT name, credential_hash, enrolled_at FROM spokes`)
+	rows, err := s.db.Query(`SELECT name, secret_hash, enrolled_at FROM spokes`)
 	if err != nil {
 		return nil, fmt.Errorf("listing spokes: %w", err)
 	}
@@ -729,14 +689,14 @@ func (s *sqliteStore) DeleteSpoke(name string) error {
 // @testcase TestProxyStoreRoundTrip saves a proxy and reads it back.
 func (s *sqliteStore) SaveProxy(rec ProxyRecord) error {
 	_, err := s.db.Exec(`
-		INSERT INTO proxies (slug, box_id, container_id, port, spoke, created_at, created_by, description)
+		INSERT INTO proxies (slug, box_id, instance_id, port, spoke, owner, description, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(slug) DO UPDATE SET
-			box_id=excluded.box_id, container_id=excluded.container_id, port=excluded.port,
-			spoke=excluded.spoke, created_at=excluded.created_at,
-			created_by=excluded.created_by, description=excluded.description`,
-		rec.Slug, rec.BoxID, rec.ContainerID, rec.Port, rec.Spoke,
-		encodeTime(rec.CreatedAt), rec.CreatedBy, rec.Description)
+			box_id=excluded.box_id, instance_id=excluded.instance_id, port=excluded.port,
+			spoke=excluded.spoke, owner=excluded.owner, description=excluded.description,
+			created_at=excluded.created_at`,
+		rec.Slug, rec.BoxID, rec.InstanceID, rec.Port, rec.Spoke,
+		rec.Owner, rec.Description, encodeTime(rec.CreatedAt))
 	if err != nil {
 		return fmt.Errorf("saving proxy: %w", err)
 	}
@@ -753,7 +713,7 @@ func (s *sqliteStore) SaveProxy(rec ProxyRecord) error {
 // @testcase TestProxyStoreRoundTrip reads back a stored proxy and misses an unknown slug.
 func (s *sqliteStore) GetProxy(slug string) (ProxyRecord, bool, error) {
 	rec, ok, err := scanProxy(s.db.QueryRow(`
-		SELECT slug, box_id, container_id, port, spoke, created_at, created_by, description
+		SELECT slug, box_id, instance_id, port, spoke, owner, description, created_at
 		FROM proxies WHERE slug = ?`, slug))
 	if err != nil {
 		return ProxyRecord{}, false, fmt.Errorf("reading proxy: %w", err)
@@ -775,8 +735,8 @@ func scanProxy(row interface{ Scan(...any) error }) (ProxyRecord, bool, error) {
 		rec       ProxyRecord
 		createdAt string
 	)
-	err := row.Scan(&rec.Slug, &rec.BoxID, &rec.ContainerID, &rec.Port, &rec.Spoke,
-		&createdAt, &rec.CreatedBy, &rec.Description)
+	err := row.Scan(&rec.Slug, &rec.BoxID, &rec.InstanceID, &rec.Port, &rec.Spoke,
+		&rec.Owner, &rec.Description, &createdAt)
 	if err == sql.ErrNoRows {
 		return ProxyRecord{}, false, nil
 	}
@@ -797,7 +757,7 @@ func scanProxy(row interface{ Scan(...any) error }) (ProxyRecord, bool, error) {
 // @testcase TestProxyStoreRoundTrip lists the stored proxies.
 func (s *sqliteStore) ListProxies() ([]ProxyRecord, error) {
 	rows, err := s.db.Query(`
-		SELECT slug, box_id, container_id, port, spoke, created_at, created_by, description
+		SELECT slug, box_id, instance_id, port, spoke, owner, description, created_at
 		FROM proxies`)
 	if err != nil {
 		return nil, fmt.Errorf("listing proxies: %w", err)

@@ -41,7 +41,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
-	saved, err := st.LoadAll()
+	saved, err := st.ListBoxes()
 	if err != nil {
 		t.Fatalf("LoadAll: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
-	saved, _ = st.LoadAll()
+	saved, _ = st.ListBoxes()
 	if len(saved) != 1 || saved[0].Status != "ready" || saved[0].SessionURL != "https://claude.ai/code/s/1" {
 		t.Errorf("ready status not persisted: %+v", saved)
 	}
@@ -73,10 +73,10 @@ func TestRestoreLoadsWithoutSpokes(t *testing.T) {
 	defer st.Close()
 
 	// Two saved sessions: one box still exists, one is gone from its spoke.
-	if err := st.Save(persistedSession{Token: "live", ContainerID: "aaaaaaaaaaaa1111", Status: "pending"}); err != nil {
+	if err := st.PutBox(boxRecord{Token: "live", InstanceID: "aaaaaaaaaaaa1111", Status: "pending"}); err != nil {
 		t.Fatalf("Save live: %v", err)
 	}
-	if err := st.Save(persistedSession{Token: "dead", ContainerID: "bbbbbbbbbbbb2222", Status: "pending"}); err != nil {
+	if err := st.PutBox(boxRecord{Token: "dead", InstanceID: "bbbbbbbbbbbb2222", Status: "pending"}); err != nil {
 		t.Fatalf("Save dead: %v", err)
 	}
 
@@ -111,10 +111,10 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 	}
 	defer st.Close()
 
-	if err := st.Save(persistedSession{Token: "live", ContainerID: "aaaaaaaaaaaa1111", Status: "pending", BoxID: "live-box"}); err != nil {
+	if err := st.PutBox(boxRecord{Token: "live", InstanceID: "aaaaaaaaaaaa1111", Status: "pending", BoxID: "live-box"}); err != nil {
 		t.Fatalf("Save live: %v", err)
 	}
-	if err := st.Save(persistedSession{Token: "dead", ContainerID: "bbbbbbbbbbbb2222", Status: "pending", BoxID: "dead-box"}); err != nil {
+	if err := st.PutBox(boxRecord{Token: "dead", InstanceID: "bbbbbbbbbbbb2222", Status: "pending", BoxID: "dead-box"}); err != nil {
 		t.Fatalf("Save dead: %v", err)
 	}
 
@@ -137,16 +137,16 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 		t.Error("live box's record should stay running")
 	}
 	// The transition is persisted, and the live record carries observed metadata.
-	saved, _ := st.LoadAll()
-	byToken := map[string]persistedSession{}
+	saved, _ := st.ListBoxes()
+	byToken := map[string]boxRecord{}
 	for _, ps := range saved {
 		byToken[ps.Token] = ps
 	}
-	if got := byToken["dead"].BoxState; got != boxStateTerminated {
+	if got := string(byToken["dead"].Lifecycle); got != boxStateTerminated {
 		t.Errorf("dead record box state = %q, want terminated", got)
 	}
 	live := byToken["live"]
-	if live.Name != "n1" || live.Image != "img:1" || live.InstanceState != "running" || live.LastSeen.IsZero() {
+	if live.ObservedName != "n1" || live.ObservedImage != "img:1" || live.ObservedState != "running" || live.ObservedAt.IsZero() {
 		t.Errorf("live record metadata not synced: %+v", live)
 	}
 }
@@ -180,11 +180,11 @@ func TestSyncRefreshesObservedMetadata(t *testing.T) {
 	s.syncSpokes(context.Background())
 
 	ps := s.lookup("tok").persist()
-	if ps.Name != "n1" || ps.Image != "img:2" || ps.InstanceState != "exited" || ps.LastSeen.IsZero() {
+	if ps.ObservedName != "n1" || ps.ObservedImage != "img:2" || ps.ObservedState != "exited" || ps.ObservedAt.IsZero() {
 		t.Errorf("observed metadata not recorded: %+v", ps)
 	}
-	if ps.BoxState != boxStateRunning {
-		t.Errorf("box state = %q, want running", ps.BoxState)
+	if string(ps.Lifecycle) != boxStateRunning {
+		t.Errorf("box state = %q, want running", ps.Lifecycle)
 	}
 	boxes, _ := s.listBoxes(context.Background())
 	if len(boxes) != 1 || boxes[0].State != "exited" || boxes[0].Image != "img:2" {

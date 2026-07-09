@@ -199,7 +199,7 @@ func TestCreateProxyReplacesStaleContainer(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{CreateID: "newcontainer00000"}, nil)
 	// Pre-seed a proxy from an earlier box generation (a different container).
 	if err := st.SaveProxy(store.ProxyRecord{
-		Slug: "oldslug", BoxID: "web-box", ContainerID: "oldcontainer00000", Port: 8000, Spoke: testSpoke,
+		Slug: "oldslug", BoxID: "web-box", InstanceID: "oldcontainer00000", Port: 8000, Spoke: testSpoke,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -212,8 +212,8 @@ func TestCreateProxyReplacesStaleContainer(t *testing.T) {
 	if rec.Slug == "oldslug" {
 		t.Error("createProxy reused the stale slug from the destroyed container")
 	}
-	if rec.ContainerID != "newcontainer00000" {
-		t.Errorf("new proxy container = %q, want the current box's container", rec.ContainerID)
+	if rec.InstanceID != "newcontainer00000" {
+		t.Errorf("new proxy container = %q, want the current box's container", rec.InstanceID)
 	}
 	// The stale record is gone, and only the fresh one remains.
 	if _, ok, _ := st.GetProxy("oldslug"); ok {
@@ -229,7 +229,7 @@ func TestCreateProxyReplacesStaleContainer(t *testing.T) {
 func TestDestroySessionlessBoxRemovesProxies(t *testing.T) {
 	s, st := newProxyServer(t, &testutils.FakeMgr{}, nil)
 	if err := st.SaveProxy(store.ProxyRecord{
-		Slug: "slug1", BoxID: "web-box", ContainerID: "c1", Port: 8000, Spoke: testSpoke,
+		Slug: "slug1", BoxID: "web-box", InstanceID: "c1", Port: 8000, Spoke: testSpoke,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -266,10 +266,10 @@ func TestSyncReconcilesProxies(t *testing.T) {
 	}}
 	s, st := newProxyServer(t, mgr, nil)
 	// One proxy for a live box, one for a box that no longer exists.
-	if err := st.SaveProxy(store.ProxyRecord{Slug: "live", BoxID: "live-box", ContainerID: "live123", Port: 8000, Spoke: testSpoke}); err != nil {
+	if err := st.SaveProxy(store.ProxyRecord{Slug: "live", BoxID: "live-box", InstanceID: "live123", Port: 8000, Spoke: testSpoke}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.SaveProxy(store.ProxyRecord{Slug: "dead", BoxID: "dead-box", ContainerID: "dead999", Port: 8000, Spoke: testSpoke}); err != nil {
+	if err := st.SaveProxy(store.ProxyRecord{Slug: "dead", BoxID: "dead-box", InstanceID: "dead999", Port: 8000, Spoke: testSpoke}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -446,7 +446,7 @@ func TestHandleProxyDialsByContainerID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rec.BoxID == rec.ContainerID {
+	if rec.BoxID == rec.InstanceID {
 		t.Fatalf("test setup invalid: box ID and container ID must differ (both %q)", rec.BoxID)
 	}
 
@@ -463,8 +463,8 @@ func TestHandleProxyDialsByContainerID(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
-	if mgr.gotBoxID != rec.ContainerID {
-		t.Errorf("DialBox dialed %q, want container ID %q (dialing the box ID never resolves in findManaged)", mgr.gotBoxID, rec.ContainerID)
+	if mgr.gotBoxID != rec.InstanceID {
+		t.Errorf("DialBox dialed %q, want container ID %q (dialing the box ID never resolves in findManaged)", mgr.gotBoxID, rec.InstanceID)
 	}
 }
 
@@ -530,7 +530,7 @@ func TestHandleProxyAuthorizedForwards(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Seed a signed-in box-activator session and present its cookie.
-	if err := st.SaveLoginSession("SID", store.LoginSession{Email: "dev@corp.com", Activate: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+	if err := st.PutIdentitySession("SID", store.IdentitySession{Email: "dev@corp.com", CanActivate: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -588,8 +588,8 @@ func TestHandleProxyNamedSpokeForwards(t *testing.T) {
 	if got := string(body[:n]); got != "remote box at /page?x=1" {
 		t.Errorf("body = %q", got)
 	}
-	if remote.gotBoxID != rec.ContainerID {
-		t.Errorf("remote spoke dialed box id %q, want container ID %q", remote.gotBoxID, rec.ContainerID)
+	if remote.gotBoxID != rec.InstanceID {
+		t.Errorf("remote spoke dialed box id %q, want container ID %q", remote.gotBoxID, rec.InstanceID)
 	}
 }
 

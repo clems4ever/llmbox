@@ -11,29 +11,29 @@ import (
 // find nothing. Tests that don't exercise persistence pass it to hub.New.
 type NoopStore struct{}
 
-// Save discards the session.
+// PutBox discards the box.
 //
-// @arg _ The session to (not) persist.
+// @arg _ The box to (not) persist.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) Save(_ store.PersistedSession) error { return nil }
+func (NoopStore) PutBox(_ store.Box) error { return nil }
 
-// Delete does nothing.
+// DeleteBox does nothing.
 //
 // @arg _ The token to (not) delete.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) Delete(_ string) error { return nil }
+func (NoopStore) DeleteBox(_ string) error { return nil }
 
-// LoadAll returns no sessions.
+// ListBoxes returns no boxes.
 //
-// @return []store.PersistedSession Always nil.
+// @return []store.Box Always nil.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) LoadAll() ([]store.PersistedSession, error) { return nil, nil }
+func (NoopStore) ListBoxes() ([]store.Box, error) { return nil, nil }
 
 // Close does nothing.
 //
@@ -42,63 +42,63 @@ func (NoopStore) LoadAll() ([]store.PersistedSession, error) { return nil, nil }
 // @testcase TestNoopStore checks every no-op method is inert.
 func (NoopStore) Close() error { return nil }
 
-// SaveLoginFlow discards the flow.
+// PutOIDCFlow discards the flow.
 //
 // @arg _ The OAuth state key.
 // @arg _ The flow to (not) persist.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) SaveLoginFlow(_ string, _ store.LoginFlow) error { return nil }
+func (NoopStore) PutOIDCFlow(_ string, _ store.OIDCFlow) error { return nil }
 
-// TakeLoginFlow finds nothing.
+// TakeOIDCFlow finds nothing.
 //
 // @arg _ The OAuth state key.
-// @return store.LoginFlow The zero flow.
+// @return store.OIDCFlow The zero flow.
 // @return bool Always false.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) TakeLoginFlow(_ string) (store.LoginFlow, bool, error) {
-	return store.LoginFlow{}, false, nil
+func (NoopStore) TakeOIDCFlow(_ string) (store.OIDCFlow, bool, error) {
+	return store.OIDCFlow{}, false, nil
 }
 
-// SaveLoginSession discards the session.
+// PutIdentitySession discards the session.
 //
 // @arg _ The opaque session id.
 // @arg _ The session to (not) persist.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) SaveLoginSession(_ string, _ store.LoginSession) error { return nil }
+func (NoopStore) PutIdentitySession(_ string, _ store.IdentitySession) error { return nil }
 
-// LoginSession finds nothing.
+// GetIdentitySession finds nothing.
 //
 // @arg _ The opaque session id.
-// @return store.LoginSession The zero session.
+// @return store.IdentitySession The zero session.
 // @return bool Always false.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) LoginSession(_ string) (store.LoginSession, bool, error) {
-	return store.LoginSession{}, false, nil
+func (NoopStore) GetIdentitySession(_ string) (store.IdentitySession, bool, error) {
+	return store.IdentitySession{}, false, nil
 }
 
-// DeleteLoginSession does nothing.
+// DeleteIdentitySession does nothing.
 //
 // @arg _ The opaque session id.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) DeleteLoginSession(_ string) error { return nil }
+func (NoopStore) DeleteIdentitySession(_ string) error { return nil }
 
-// PurgeExpiredLogins does nothing.
+// PurgeExpiredIdentities does nothing.
 //
 // @arg _ The cutoff time.
 // @error error Always nil.
 //
 // @testcase TestNoopStore checks every no-op method is inert.
-func (NoopStore) PurgeExpiredLogins(_ time.Time) error { return nil }
+func (NoopStore) PurgeExpiredIdentities(_ time.Time) error { return nil }
 
 // PutJoinToken discards the token.
 //

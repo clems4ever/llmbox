@@ -109,10 +109,10 @@ func TestCreateBoxSyncsObservedMetadata(t *testing.T) {
 		t.Fatalf("CreateBox: %v", err)
 	}
 	ps := sess.persist()
-	if ps.Name != "cname" || ps.Image != "img:9" || ps.InstanceState != "running" {
+	if ps.ObservedName != "cname" || ps.ObservedImage != "img:9" || ps.ObservedState != "running" {
 		t.Errorf("create did not sync the observed metadata: %+v", ps)
 	}
-	if ps.BoxState != boxStateRunning || ps.LastSeen.IsZero() {
+	if string(ps.Lifecycle) != boxStateRunning || ps.ObservedAt.IsZero() {
 		t.Errorf("new record should be running with a last-seen time: %+v", ps)
 	}
 }

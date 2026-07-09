@@ -11,8 +11,8 @@
 			"function_name": "PruneDepartedSpokes",
 			"receiver": "Server",
 			"documentation_hash": "7e6e9bedb0fbbca264a0a5c4568b699c9b6171aea17fbef12690d756f2c20b5d",
-			"definition_hash": "827a23c47396f55ddab82ffa6f06d1a2dadef79d2503efe727ea5e24fe80f062",
-			"reviewed_at": "2026-07-07T08:15:52.586438911Z"
+			"definition_hash": "5baf987c05da2ef74063d04081b258c2198aaf27a8c6a8361f0597779e9887b8",
+			"reviewed_at": "2026-07-09T18:10:52.505332812Z"
 		},
 		{
 			"function_name": "pruneProxiesForDepartedSpokes",

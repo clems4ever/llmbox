@@ -9,26 +9,20 @@
 		{
 			"function_name": "TestCreateBoxPersistsSession",
 			"documentation_hash": "781fc62fc14bdc6a69e716c28ac26eff1f4bd36aefe3d1832fcd961682a504e4",
-			"definition_hash": "c5b8013cd493ddde99e867b9cf9210f37a4d4f69e4afc45534831e39fdc04b57",
-			"reviewed_at": "2026-07-07T08:15:52.629112401Z"
-		},
-		{
-			"function_name": "TestRestoreLoadsAndReconciles",
-			"documentation_hash": "09b6be0bb0232ccd450cfd3824f2f6b7ff53378c8073fd3b55b090ef8fb4c357",
-			"definition_hash": "a4e23ea1f56027543ffb749168fcae03adc0e721a81374b02b288e9ff92f1cd5",
-			"reviewed_at": "2026-07-07T08:15:52.629284536Z"
+			"definition_hash": "e505ab7066c743fde335dc8cd07361a9feed6b1937e8885240da8c85eba9d81f",
+			"reviewed_at": "2026-07-09T18:10:52.595945223Z"
 		},
 		{
 			"function_name": "TestRestoreLoadsWithoutSpokes",
 			"documentation_hash": "dccf045a7b59f6e90e818ed33e80629d0c27ba471c3aaaf9613c6d378ceff480",
-			"definition_hash": "8144f3f2aff4a44acd35daafe0169a270eca53a5390c518d4502503d2cee5401",
-			"reviewed_at": "2026-07-09T10:09:05.643642327Z"
+			"definition_hash": "1f266a6b1ba8c39ee1f84355b122ad8f773ee09f54db968c301fd663d707b881",
+			"reviewed_at": "2026-07-09T18:10:52.596335849Z"
 		},
 		{
 			"function_name": "TestSyncMarksVanishedBoxTerminated",
 			"documentation_hash": "289b887e6c0befaec84d8f323a26b2760177afb898694e53b7c94c59eca56603",
-			"definition_hash": "7179c737946ce255ba57c7fe1baebea1c799cdcc1f745fefc1872c10e5a3c3fe",
-			"reviewed_at": "2026-07-09T10:09:05.644006772Z"
+			"definition_hash": "d674d41840a2d70ace5a2008e4e58c721a7adf5c9eb2427d4923cafc0d568ce5",
+			"reviewed_at": "2026-07-09T18:10:52.59671981Z"
 		},
 		{
 			"function_name": "TestSyncGraceKeepsFreshRecord",
@@ -39,8 +33,8 @@
 		{
 			"function_name": "TestSyncRefreshesObservedMetadata",
 			"documentation_hash": "e460cef18b19b013d1c88770f195924866c4c04a60ed7af7d6a6a682c50b11da",
-			"definition_hash": "64559fca388a3b209a5629e283222f7d7676186ddf841d68c823769fb4782771",
-			"reviewed_at": "2026-07-09T10:09:05.644855721Z"
+			"definition_hash": "5ba9c429647bb685150a9e7f92dffda9612753768591156193585d64928e04b1",
+			"reviewed_at": "2026-07-09T18:10:52.597576115Z"
 		},
 		{
 			"function_name": "TestSyncSkipsUnreachableSpoke",

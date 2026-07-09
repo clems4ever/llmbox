@@ -103,7 +103,7 @@ func (b apiBackend) ListBoxes(_ context.Context) ([]api.BoxView, error) {
 	for _, ps := range recs {
 		view := api.BoxView{Box: b.s.boxFromRecord(ps, connected)}
 		switch {
-		case ps.BoxState == boxStateTerminated:
+		case ps.Lifecycle == store.LifecycleTerminated:
 			// A tombstone has nothing to activate or open.
 		case ps.Status == "ready":
 			view.SessionURL = ps.SessionURL

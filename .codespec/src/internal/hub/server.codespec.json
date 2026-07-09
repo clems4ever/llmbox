@@ -10,22 +10,22 @@
 		{
 			"function_name": "persistLocked",
 			"receiver": "session",
-			"documentation_hash": "72fbe470c5d53f3c68de98479499ab305305d768c3cff0fee62e903fced44eb5",
-			"definition_hash": "b1aa8f579b8d2971e86f631af22bad512c022297be84c08a9336adc81a36d71f",
-			"reviewed_at": "2026-07-09T10:09:04.941396522Z"
+			"documentation_hash": "1822a59d10bcf871f9a18eb0a30d5924f5a085953315227e63ccb91a780a62bc",
+			"definition_hash": "e35b28971a8aef791cad68e0d41c4fda174c3a784cb4e407ecad8b7c8fff4336",
+			"reviewed_at": "2026-07-09T18:10:52.519882681Z"
 		},
 		{
 			"function_name": "persist",
 			"receiver": "session",
-			"documentation_hash": "d1d271f823c3d771c64c7f5b3abab6ffa6a5971357a705036725d46d54e30bb9",
-			"definition_hash": "ff1acd831bdc550c0da3785e482099b2cc15ee9dd4ba679a1269e001808d6a85",
-			"reviewed_at": "2026-06-18T13:16:38.717733191Z"
+			"documentation_hash": "4ab630949a8a0e4c9dc5f88f515ad9f9d38b0cb47653218f65791751024ff1db",
+			"definition_hash": "94253e783a9a575be3bc271e5c65960416e640396e7063d601dd6a1cc1fbc30c",
+			"reviewed_at": "2026-07-09T18:10:52.522938177Z"
 		},
 		{
 			"function_name": "sessionFromPersisted",
-			"documentation_hash": "4fe8ff6888faa54c159f06f87cd22fc13415c250fe06e9ef133b74736ba52f63",
-			"definition_hash": "4388259faeb1d237f10bba492ab194380e48ceffd91c6dd990f6fa74de597563",
-			"reviewed_at": "2026-07-09T10:09:04.943782107Z"
+			"documentation_hash": "51404d00ead02f9e7dfb27bb6646daff4a601d4a4d0f76e3665a98d642bc78cd",
+			"definition_hash": "27bef1a45a7a1df148fd021fef29c084162100572a0f27aec071a16226e2d859",
+			"reviewed_at": "2026-07-09T18:12:54.835753329Z"
 		},
 		{
 			"function_name": "New",
@@ -37,8 +37,8 @@
 			"function_name": "Restore",
 			"receiver": "Server",
 			"documentation_hash": "adfb9fc03c26ff99e0a219f48ee72b46ddf45a34b212394c1d3c68181e99e9c6",
-			"definition_hash": "9587f9b3ffba23b4beacb65cdccae71853ad8c4d780e725913605856f0424167",
-			"reviewed_at": "2026-07-09T10:09:04.948573719Z"
+			"definition_hash": "3a0ac1e912db7802040e8dc56b8aa46b29b7c7102af318f285c4328f596e6ebb",
+			"reviewed_at": "2026-07-09T18:10:52.528568668Z"
 		},
 		{
 			"function_name": "runDestroyHooks",
@@ -65,15 +65,15 @@
 			"function_name": "ReapLoop",
 			"receiver": "Server",
 			"documentation_hash": "c7446750fb94d783f6f390a44aa45ffcf7645c1dd1adf132e7fb10147e66eb36",
-			"definition_hash": "13ace1b39b951ba30615ce4bcdeed5f7ef8a96528da14e60f9f6f3de03aaa723",
-			"reviewed_at": "2026-07-09T10:09:05.418791764Z"
+			"definition_hash": "2cdb817082ec26b32a1e25c9be7bf6609072b26b99949af082f42dc803d58cd4",
+			"reviewed_at": "2026-07-09T18:10:52.55548461Z"
 		},
 		{
 			"function_name": "pruneSessions",
 			"receiver": "Server",
 			"documentation_hash": "23c55ae6234174ed2f0a7add4898f8701b93ed7fc53618e18d1deb48ecdf3dd4",
-			"definition_hash": "1d4e38761ac16c255f5252ddb459b836cbaf88d032175718db918384d9359b2a",
-			"reviewed_at": "2026-06-27T17:02:38.546415608Z"
+			"definition_hash": "b27b4746d3e5d537596a31b9fc8fee314e683d9f0cfadf27b25c61c13b0a6d9b",
+			"reviewed_at": "2026-07-09T18:10:52.558234405Z"
 		},
 		{
 			"function_name": "newToken",
@@ -112,9 +112,9 @@
 		{
 			"function_name": "allSpokes",
 			"receiver": "Server",
-			"documentation_hash": "5b9a07b12d04ecf41cdf6247976502541b6716f7949309e347ac82475c2d55e3",
+			"documentation_hash": "9e35818227682917f7a6c0498fd2f5b6e00b23600ca673d862762dc8e2e45fd8",
 			"definition_hash": "8fe6fb135275f0807cff8b274a9a9550a103a917081b108f88374d2107227aec",
-			"reviewed_at": "2026-07-07T08:15:52.605282985Z"
+			"reviewed_at": "2026-07-09T18:14:25.100092106Z"
 		},
 		{
 			"function_name": "reapAllSpokes",
@@ -140,15 +140,15 @@
 			"function_name": "createBox",
 			"receiver": "Server",
 			"documentation_hash": "7ec83815bb971e39fa83fb7ca1aed21a12941313cd362548079d2e5b069431c8",
-			"definition_hash": "d9ab770ef7b0895901654f9b6af153171a893217f7d8e8e155afa09b4ec58c59",
-			"reviewed_at": "2026-07-09T10:09:05.1721407Z"
+			"definition_hash": "74fc0829dc74139df38d211ff354d00a3d3e955e7c579afd2ee37b77c1ce9fe8",
+			"reviewed_at": "2026-07-09T18:10:52.537809393Z"
 		},
 		{
 			"function_name": "submitCode",
 			"receiver": "Server",
 			"documentation_hash": "ae456d7cb22ce9941de60565d1f18288601b9a928b485b8f1eb866ad65401fde",
-			"definition_hash": "7b0b6d384a5ce93ef1e69474772c893ca85744418c79b810ddcb87c8147f139a",
-			"reviewed_at": "2026-07-01T13:12:43.935873003Z"
+			"definition_hash": "10aa4177069ec98e8c090fdbb238b64b5b34add993c95155cb53ab86ac1c69df",
+			"reviewed_at": "2026-07-09T18:10:52.543671367Z"
 		},
 		{
 			"function_name": "listBoxes",
@@ -175,8 +175,8 @@
 			"function_name": "destroyBox",
 			"receiver": "Server",
 			"documentation_hash": "12f9a5cb969fb0136b22f73e08fe27a77ad43b85a691e8d63060c2e6efbfbb93",
-			"definition_hash": "cab405a35df659c5d2a542ab9c94f0a681dc6bb06c00b9175b5b023625556ec2",
-			"reviewed_at": "2026-07-09T10:09:05.416423129Z"
+			"definition_hash": "e0dc0b6ac309a5f676d4ed8642f01285b80d9e6493a8bd942c6436e723c9e0f4",
+			"reviewed_at": "2026-07-09T18:10:52.551852846Z"
 		},
 		{
 			"function_name": "idMatchesBox",
@@ -202,8 +202,8 @@
 			"function_name": "reconcileProxies",
 			"receiver": "Server",
 			"documentation_hash": "48a489ff913bdd459b1f6b8b4c3ce67f8fed198eb479d20ea2987f242fc62a5b",
-			"definition_hash": "e5d32a08b52eb932f3a71881b65f25f50fc220eca47db63403e0d88c932ed982",
-			"reviewed_at": "2026-07-09T10:09:05.16946273Z"
+			"definition_hash": "31c5a321be26787fbffb97a109e2c50fa8962592e5b7a71cc0bd8d6856e31c26",
+			"reviewed_at": "2026-07-09T18:10:52.534789039Z"
 		},
 		{
 			"function_name": "releaseBoxID",
@@ -299,8 +299,8 @@
 			"function_name": "syncSpokeInventory",
 			"receiver": "Server",
 			"documentation_hash": "59b5579560112448024fe555bbf2a15abe149a4004e5c3a7b3766b4761fb7aab",
-			"definition_hash": "5c7cee32b2d9afdcc0374e67828f595dddcf2a15928069c996b5b1d583c2cd80",
-			"reviewed_at": "2026-07-09T10:09:05.157120182Z"
+			"definition_hash": "09f043dd7647b0dbbc4f2a887b9dcbce4df118ee0ea96cda46750e72dda8e0ce",
+			"reviewed_at": "2026-07-09T18:10:52.531328633Z"
 		},
 		{
 			"function_name": "syncSpoke",
@@ -313,15 +313,15 @@
 			"function_name": "dropTerminatedRecords",
 			"receiver": "Server",
 			"documentation_hash": "300f48f2d67a5f84dfcbcfe214dc6d44ba17393f20bd2afaf337d38937977999",
-			"definition_hash": "d710e7253144cc37f18adb8dc235e3ff96c29ae93b0275782f17c5a8b47eed74",
-			"reviewed_at": "2026-07-09T10:09:05.174899269Z"
+			"definition_hash": "a73148404ae992a6f23659b5dcffdee8d1a3bd1ed140c4e1ce6d477054373e27",
+			"reviewed_at": "2026-07-09T18:10:52.540631701Z"
 		},
 		{
 			"function_name": "boxRecords",
 			"receiver": "Server",
-			"documentation_hash": "5520507ba3267901fe98b785a38d0de23a22606741f2e2411eb7bc467269f980",
-			"definition_hash": "fbff5628a19219f9f4e9eab32a3c881bb728e295dfd8951747fc76ebe6bcc320",
-			"reviewed_at": "2026-07-09T10:09:05.182616042Z"
+			"documentation_hash": "adbd352bfbb05afba4b4456cf695b6a9e6f3507422136ef2988f30d17b635838",
+			"definition_hash": "3b1d93660f1cbee966172c868a298da1311e3fdebbd6bbe663dfca0f8886e232",
+			"reviewed_at": "2026-07-09T18:10:52.546381509Z"
 		},
 		{
 			"function_name": "connectedSpokeSet",
@@ -333,9 +333,9 @@
 		{
 			"function_name": "boxFromRecord",
 			"receiver": "Server",
-			"documentation_hash": "6b4ffedb6d0a498f903e94a97b5fef55f6200d89eeba23cbecbdea31c4d56dc2",
-			"definition_hash": "219db2763331dd7b58a74ae8575e5da658940fee85d1f14b06e27cabe1e930b3",
-			"reviewed_at": "2026-07-09T10:09:05.397254318Z"
+			"documentation_hash": "d3a54615ded9f33dcf27b8cca3d9e94ae155193af6fad233e4959d0b14d66f40",
+			"definition_hash": "a0f161fe0a1688833feae00262c26514e1cac98c50d4abfe41f9d33591127b67",
+			"reviewed_at": "2026-07-09T18:10:52.549052391Z"
 		},
 		{
 			"function_name": "shortInstanceID",

@@ -29,7 +29,7 @@ func seedSession(t *testing.T, s *Server, token, boxID, spoke string) {
 	s.mu.Lock()
 	s.byToken[token] = sess
 	s.mu.Unlock()
-	if err := s.store.Save(sess.persist()); err != nil {
+	if err := s.store.PutBox(sess.persist()); err != nil {
 		t.Fatalf("seed session %q: %v", boxID, err)
 	}
 }
@@ -40,7 +40,7 @@ func mustSaveProxy(t *testing.T, st Store, slug, boxID, spoke string) {
 	if err := st.SaveProxy(store.ProxyRecord{
 		Slug:        slug,
 		BoxID:       boxID,
-		ContainerID: "container-" + boxID,
+		InstanceID:  "container-" + boxID,
 		Port:        8000,
 		Spoke:       spoke,
 	}); err != nil {
@@ -169,7 +169,7 @@ func TestPruneDepartedSpokesRemovesStaleObjects(t *testing.T) {
 	}
 
 	// Store: ghost session token removed.
-	all, err := st.LoadAll()
+	all, err := st.ListBoxes()
 	if err != nil {
 		t.Fatalf("LoadAll: %v", err)
 	}

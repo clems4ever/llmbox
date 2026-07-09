@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestRestoreKeepsDisconnectedSpokeSessions",
 			"documentation_hash": "de012c8a4e829a474817e59ab3f72534d7d924eebb0ec9315c7553a50a3388fd",
-			"definition_hash": "5d0863a478d0d57d6479f2fea18d77a30fc12c351ddfbca58c0ebdaa6c4ef52f",
-			"reviewed_at": "2026-07-09T10:09:04.935856286Z"
+			"definition_hash": "d8e648d8bbc48f1685fa7a19ef615c5f9d85ecf821a5bc7ca8dcc8970491653d",
+			"reviewed_at": "2026-07-09T18:10:52.505128722Z"
 		},
 		{
 			"function_name": "TestCreateBoxRoutesToSpoke",

@@ -3,14 +3,14 @@
 		{
 			"function_name": "seedSession",
 			"documentation_hash": "c3dcb0fd6bff7c489537ab099342fa97826965b39571ced14b6dbe09212c639a",
-			"definition_hash": "0cad06260ea77b509495383e79e74e1743f8d115fb1cdf2c26c2bd1d0aa952ad",
-			"reviewed_at": "2026-06-29T15:39:25.606171835Z"
+			"definition_hash": "542b00910bb089a2e51d32bb2a178fbe211b6473497178c615b8b1cd4922f2ca",
+			"reviewed_at": "2026-07-09T18:10:52.598206243Z"
 		},
 		{
 			"function_name": "mustSaveProxy",
 			"documentation_hash": "61a918705245bf8f723f8f9f443101f8d136668eff583084d729f41ffa824722",
-			"definition_hash": "08467d08ee9370578e258d81a8f0f7039befafefee3af9ad4c88574d89ab86d4",
-			"reviewed_at": "2026-06-29T15:39:25.606440558Z"
+			"definition_hash": "081901d33dad25cf53207975033ea39dcd760202e4831278e405abf253e1435f",
+			"reviewed_at": "2026-07-09T18:10:52.59883475Z"
 		},
 		{
 			"function_name": "TestCreateBoxRejectsDuplicateBoxIDSameSpoke",
@@ -39,8 +39,8 @@
 		{
 			"function_name": "TestPruneDepartedSpokesRemovesStaleObjects",
 			"documentation_hash": "d78555e0e790b19e1767c8db60a6e9968fb9f43d63394ca87a2d3bdbc67f89d1",
-			"definition_hash": "259da6bb0e8b78eb5850289c3cd0c29103b3d6b343c56ad8855d1c6d6e4a15ee",
-			"reviewed_at": "2026-07-07T08:15:52.629950749Z"
+			"definition_hash": "18061c819aa15e3e5cf232ef1dca34e088d876996f99d5f2eb78c3939a2a5c94",
+			"reviewed_at": "2026-07-09T18:10:52.599481738Z"
 		},
 		{
 			"function_name": "TestPruneDepartedSpokesKeepsOfflineEnrolledSpoke",

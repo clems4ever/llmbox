@@ -1,74 +1,11 @@
 {
 	"functions": [
 		{
-			"function_name": "Save",
-			"receiver": "NoopStore",
-			"documentation_hash": "8f6d0acb8055da378734f73214488dd3093ab5cdbb167a55cf12f6f3e5f21155",
-			"definition_hash": "c3b2b673491f83d55f04ec3c722d79ec2ede52da6944eac0b423e8d66fc0ad91",
-			"reviewed_at": "2026-06-25T12:22:55.629463042Z"
-		},
-		{
-			"function_name": "Delete",
-			"receiver": "NoopStore",
-			"documentation_hash": "6112ebe36734f1dbf46f43bf5673d4447f7461e13a2e7f73ab3143b232c33e50",
-			"definition_hash": "20342048169b1bd35f247ee48949de829d134a1584ff654b58322aac67a38d14",
-			"reviewed_at": "2026-06-25T12:22:55.639079787Z"
-		},
-		{
-			"function_name": "LoadAll",
-			"receiver": "NoopStore",
-			"documentation_hash": "3901e81e18235c7dbce4a1a2cc09b907476035a87d593207f9fc515366e7e9e4",
-			"definition_hash": "19e05b60dcb1fc362cc9ca926a35bece55760e140ba87886dca3b0da56d973c4",
-			"reviewed_at": "2026-06-25T12:22:55.647230677Z"
-		},
-		{
 			"function_name": "Close",
 			"receiver": "NoopStore",
 			"documentation_hash": "8ab7d46d1ae3a69c0c57d7bbb216fff92f4dc2bdfe62fad63a1f1c9dc32345fd",
 			"definition_hash": "155b98a0c303a09decf55e6503e9d6a156b63e6c3d8b462b1f427110811a5025",
 			"reviewed_at": "2026-06-25T12:22:55.65146475Z"
-		},
-		{
-			"function_name": "SaveLoginFlow",
-			"receiver": "NoopStore",
-			"documentation_hash": "8746b109436e5bd12ea76adee45ea245640cc686b6c4a1ca0130fe9506c25876",
-			"definition_hash": "4ab1cf92679de5de721dcee765aa7a065794f9dd3882c4822801cb9f2fed60b7",
-			"reviewed_at": "2026-06-25T12:22:55.654343671Z"
-		},
-		{
-			"function_name": "TakeLoginFlow",
-			"receiver": "NoopStore",
-			"documentation_hash": "8708cf6fb11725342015491b1a3c4de19e27c3434678a6eaf085468eef11924d",
-			"definition_hash": "abfa9294e9835d1e91a4f34381dfb4e491ffa12552446e2d3a543ebc402b7863",
-			"reviewed_at": "2026-06-25T12:22:55.656652776Z"
-		},
-		{
-			"function_name": "SaveLoginSession",
-			"receiver": "NoopStore",
-			"documentation_hash": "e7f17924a228f1316309b4298a4a63df8724882daa48b2f18db31cfdfeac4b3e",
-			"definition_hash": "59913adf3368cedea76ea1582822aa8a75bb75116434f423b453d70b3ed0ad93",
-			"reviewed_at": "2026-06-25T12:22:55.658972718Z"
-		},
-		{
-			"function_name": "LoginSession",
-			"receiver": "NoopStore",
-			"documentation_hash": "490eb6d81ee05fb33f66da5e95cc83a752091c432d7d71c4f1f275093edd89bd",
-			"definition_hash": "16c09b87d831019051763de4f4a6901998ab0db4a3b528c6330d6d36e5c5140a",
-			"reviewed_at": "2026-06-25T12:22:55.661623766Z"
-		},
-		{
-			"function_name": "DeleteLoginSession",
-			"receiver": "NoopStore",
-			"documentation_hash": "dfd548eb90a93210885557fe41bca01bae0fd2d6ed4780b7494c04cc28235eca",
-			"definition_hash": "1520b40de5583e841cc6b8dd6b3f2d799c48a34624a379af5c955566d63c5f5d",
-			"reviewed_at": "2026-06-25T12:22:55.667292038Z"
-		},
-		{
-			"function_name": "PurgeExpiredLogins",
-			"receiver": "NoopStore",
-			"documentation_hash": "bc9d27a93d776b0f42912180ba500097564b87fd3ce947fd445a8d99559c9f6a",
-			"definition_hash": "7d5a6b850f995a82ad7f4f3e37b7823395244cd35e73e09be62c3f4e494d2504",
-			"reviewed_at": "2026-06-25T12:22:55.674639906Z"
 		},
 		{
 			"function_name": "PutJoinToken",
@@ -195,6 +132,69 @@
 			"documentation_hash": "acbe5807b42da02ddba24e28ae5ff611825a00cadf210bb7885c91b9ab4ad6c9",
 			"definition_hash": "0efedfdd2773bf2f20e160a74f82a7cc95c784fcd52e315eb8d536a08627e8de",
 			"reviewed_at": "2026-07-08T12:57:12.268320267Z"
+		},
+		{
+			"function_name": "PutBox",
+			"receiver": "NoopStore",
+			"documentation_hash": "59c5fe0fede374cbe043db8b78e733d282985198c29148dd74ade79897ae9548",
+			"definition_hash": "ed36021e18ee3b617566b20f9218185808b4622c0e823db8750a60fb110ac77f",
+			"reviewed_at": "2026-07-09T18:10:52.599990902Z"
+		},
+		{
+			"function_name": "DeleteBox",
+			"receiver": "NoopStore",
+			"documentation_hash": "d5e04a0da79f087c2341aa6d7225954c172aa381aafbbf79e7aef1afbdc1a29d",
+			"definition_hash": "325627ad61820254a89573ca06b9e432f023280c87f5cd5e0bf17418fb285f62",
+			"reviewed_at": "2026-07-09T18:10:52.600841269Z"
+		},
+		{
+			"function_name": "ListBoxes",
+			"receiver": "NoopStore",
+			"documentation_hash": "fca4baf65299bfbd582fe29ab12c5eeec0bf4ed4f8d499a9529bda1d2abb1273",
+			"definition_hash": "82cc51190a456eea9c1e46a162b570e820ad7a3f8d974ba8460b766dd0324cc7",
+			"reviewed_at": "2026-07-09T18:10:52.601669966Z"
+		},
+		{
+			"function_name": "PutOIDCFlow",
+			"receiver": "NoopStore",
+			"documentation_hash": "4769c0e0c8d664ee2ec9db3989bd8e2c372b9b064eeb1676707f8b1ec40d8e75",
+			"definition_hash": "3628c91f265e1d2c89792ddae8fc7a679ed7aa1cfe2be6bc7435da4fadb2664a",
+			"reviewed_at": "2026-07-09T18:10:52.602547441Z"
+		},
+		{
+			"function_name": "TakeOIDCFlow",
+			"receiver": "NoopStore",
+			"documentation_hash": "84a71166890fa7c8417dc6ba2b03448e0326bc8a725fc5cad3dd47fefab9f02b",
+			"definition_hash": "d82c750fe4f7937edab4d12ab08fb1bed57054c20764a7f4b82dab11468fa28a",
+			"reviewed_at": "2026-07-09T18:10:52.603674538Z"
+		},
+		{
+			"function_name": "PutIdentitySession",
+			"receiver": "NoopStore",
+			"documentation_hash": "fa2f9e0bb720eb6f902e8f18e3051d5fc8856aef60161973826eb6a07f515361",
+			"definition_hash": "40607202f153dec6513bb5bd5e143a3f2cd7d6423d9d8ce3a308096dd9c2f05c",
+			"reviewed_at": "2026-07-09T18:10:52.604222393Z"
+		},
+		{
+			"function_name": "GetIdentitySession",
+			"receiver": "NoopStore",
+			"documentation_hash": "a986342e020e99bb870e37a8cd3d87ac3aee083766592d11ba729066f6ed9f6f",
+			"definition_hash": "277ef3415b4ab99fd0dfb13a32e4d9b59fb4f4331c09534da48316bab56bc1e2",
+			"reviewed_at": "2026-07-09T18:10:52.604748391Z"
+		},
+		{
+			"function_name": "DeleteIdentitySession",
+			"receiver": "NoopStore",
+			"documentation_hash": "b744140b207660719905f9cf49f0a5880c3712121228de76027166d13771cefd",
+			"definition_hash": "f7b1454a6d216fb62d3f7219bda2b3fdfe27f4cf91bcc43de1f88736bb20af44",
+			"reviewed_at": "2026-07-09T18:10:52.605264655Z"
+		},
+		{
+			"function_name": "PurgeExpiredIdentities",
+			"receiver": "NoopStore",
+			"documentation_hash": "1d653893b17cf38c4187956f8bbbe8540a23c5ed4a046fd04b31d609cddfb528",
+			"definition_hash": "a6a128f08ffc07d024f171d1ce2f9faedd6dcbcd9b06da2ed9bbd3f21ab538bd",
+			"reviewed_at": "2026-07-09T18:10:52.605794804Z"
 		}
 	]
 }

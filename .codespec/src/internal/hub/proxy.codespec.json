@@ -24,8 +24,8 @@
 			"function_name": "createProxy",
 			"receiver": "Server",
 			"documentation_hash": "fa76efc56800738ebdfb23a5755bcf33d05ad2c86b64432b85750fe155e7de24",
-			"definition_hash": "d5833e6f75c51bdb2ff21e1a1ac3ceef80eb5a5fa9d85915d054022c1791fa24",
-			"reviewed_at": "2026-07-09T10:10:25.814176742Z"
+			"definition_hash": "9c82f60cb1bfea7f38256c9faee682652d181e585b62c4bf327f415094395a58",
+			"reviewed_at": "2026-07-09T18:10:52.507104535Z"
 		},
 		{
 			"function_name": "findProxy",
@@ -73,8 +73,8 @@
 			"function_name": "proxyAuthorized",
 			"receiver": "Server",
 			"documentation_hash": "b89e1d4ca7ba42e6d9d731e8732d51d8aabb1d3e50af07bcb1967b4e1f329d41",
-			"definition_hash": "5bc4a9f449e0d5f30b305e30887700a88bd1825b87e8886f47b957c5c42e864a",
-			"reviewed_at": "2026-06-27T21:14:59.776357239Z"
+			"definition_hash": "bfce0454edb5ece2ef5da0f061c348a2cc9473ef8e058477691420c012d0f782",
+			"reviewed_at": "2026-07-09T18:10:52.508145573Z"
 		},
 		{
 			"function_name": "handleProxy",
@@ -87,8 +87,8 @@
 			"function_name": "boxTransport",
 			"receiver": "Server",
 			"documentation_hash": "d66f82e841e03a5c03f9e62187d5a9787bc9809d784d9f14a5c4fc419aaec903",
-			"definition_hash": "7f6112caaf271f0747cf617507abca10de9ae617952eff144a418537a21870f9",
-			"reviewed_at": "2026-07-07T08:15:52.587816864Z"
+			"definition_hash": "6939ae8f71cbb57004b61160ed905e3e58083edfc3cdc27814ec7807fcb7dd27",
+			"reviewed_at": "2026-07-09T18:10:52.509131486Z"
 		},
 		{
 			"function_name": "isBrowserNavigation",

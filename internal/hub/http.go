@@ -172,10 +172,10 @@ func (s *Server) authStateFor(sess *session, r *http.Request) authState {
 	if s.auth != nil {
 		st.AuthEnabled = true
 		allowed = false
-		if ls, ok := s.auth.CurrentLogin(r); ok && ls.Activate {
+		if ls, ok := s.auth.CurrentLogin(r); ok && ls.CanActivate {
 			st.LoggedIn = true
 			st.Email = ls.Email
-			st.CSRF = ls.CSRF
+			st.CSRF = ls.CSRFToken
 			allowed = true
 		} else if ok {
 			st.Email = ls.Email
@@ -232,11 +232,11 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 			writeJSONError(w, http.StatusUnauthorized, "Please sign in to activate this workspace.")
 			return
 		}
-		if !ls.Activate {
+		if !ls.CanActivate {
 			writeJSONError(w, http.StatusForbidden, fmt.Sprintf("Signed in as %s, but that account is not authorized to activate workspaces here.", ls.Email))
 			return
 		}
-		if subtle.ConstantTimeCompare([]byte(req.CSRF), []byte(ls.CSRF)) != 1 {
+		if subtle.ConstantTimeCompare([]byte(req.CSRF), []byte(ls.CSRFToken)) != 1 {
 			writeJSONError(w, http.StatusForbidden, "Invalid or missing form token; reload the page and try again.")
 			return
 		}

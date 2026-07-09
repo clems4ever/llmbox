@@ -1,34 +1,34 @@
 {
 	"functions": [
 		{
-			"function_name": "TestLoginStoreFlowRoundTrip",
-			"documentation_hash": "99abf786b387519183f12337fd8d3978dce315359a52875116ed3522686c3050",
-			"definition_hash": "9ddaab03e10070d83a02e16dc1edebdfdb18bc0881fb7fd5e3c42264f7db4615",
-			"reviewed_at": "2026-06-29T15:39:25.721130668Z"
-		},
-		{
-			"function_name": "TestLoginStoreSessionRoundTrip",
-			"documentation_hash": "9a520d54c3124ef798b9649229eda0aed65b2caea4384d076fd255a2e344de1a",
-			"definition_hash": "f9cb2fea5373133330f1d7230e098453f56ca327a544cb3f98a10f14ab035f31",
-			"reviewed_at": "2026-06-29T15:39:25.721342504Z"
-		},
-		{
-			"function_name": "TestLoginStorePurgeExpired",
-			"documentation_hash": "da0ea11ec990460c8ad68ecbbaeeb4c599a5c5038d417ee60cc3f3b3ac2cab4f",
-			"definition_hash": "3bb200dac984221dd86cdf667d5027fb1ea640715e244fbb55802722e6f46cf7",
-			"reviewed_at": "2026-06-29T15:39:25.758011798Z"
-		},
-		{
 			"function_name": "TestSQLiteStoreRoundTrip",
-			"documentation_hash": "9bb4a2425d331fdda89bbaa8d3030d31b8c7fa2914535ab11f31e1448ae654b4",
-			"definition_hash": "6ec6062477498d069b05e06ba653a54dd6f8f2d629aacebae8ae0ad7c30afbaa",
-			"reviewed_at": "2026-07-09T10:09:05.643283853Z"
+			"documentation_hash": "be8ed66ae7b564f8159bcd1fc48534f485a0f425abd20cae31ce072bf28c7e42",
+			"definition_hash": "c9deabfcb8e92c3625e6af56643bef381c0e8c664bd427cfab1709950e99b315",
+			"reviewed_at": "2026-07-09T18:10:52.594470403Z"
 		},
 		{
 			"function_name": "TestSQLiteStoreDelete",
-			"documentation_hash": "d1bf44f9a6cd52b1fdebbf006e8b2d799f7fc37bd3eccc04dc0a5eb923dc42cc",
-			"definition_hash": "f4d454a060fd84e1076a8581f93c4261d633416207673974e503039c869490ae",
-			"reviewed_at": "2026-06-30T21:45:26.19135168Z"
+			"documentation_hash": "7d782dafe101e6c92395b27543fc208411a87268793c8be5e0d438f957348c85",
+			"definition_hash": "dec36dcabbeb5256d1406db9304df4fc3b8ccd68e4feecacbb24546ff394225a",
+			"reviewed_at": "2026-07-09T18:10:52.594769436Z"
+		},
+		{
+			"function_name": "TestIdentityStoreFlowRoundTrip",
+			"documentation_hash": "a45dadca831d26d14b001811aaebe2af74a89ade341a241b221f409cb6e19cf6",
+			"definition_hash": "f5c345ebd66b99e1080f52f74df995f522444a56c671f5e03c3b99d05e2f4b24",
+			"reviewed_at": "2026-07-09T18:10:52.595038032Z"
+		},
+		{
+			"function_name": "TestIdentityStoreSessionRoundTrip",
+			"documentation_hash": "89242b3667d0f86720b3185e10b221456d4e39f766c8463ea0fbead90c94b64c",
+			"definition_hash": "cc2570ef8434d6d5f11dfe20b3af669e546c86f473cf7ddbc0a2aadb426570f2",
+			"reviewed_at": "2026-07-09T18:10:52.595322874Z"
+		},
+		{
+			"function_name": "TestIdentityStorePurgeExpired",
+			"documentation_hash": "094662e0ef9cca5b30fd10f493b531cc61d244fd7fd1b1ea205f0e0f20f73025",
+			"definition_hash": "53138281443e7951027ad7fa771f26724c5f82695cd45b934697eefd3afe34d0",
+			"reviewed_at": "2026-07-09T18:10:52.595595005Z"
 		}
 	]
 }

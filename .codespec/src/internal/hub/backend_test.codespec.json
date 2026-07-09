@@ -39,8 +39,8 @@
 		{
 			"function_name": "TestCreateProxyRecordsPrincipal",
 			"documentation_hash": "20dce63893a1796fbe5810a2329c36675f1da5dabe2ca7abf0eb9ca505ab0717",
-			"definition_hash": "2957b311d40f14436456578cd3a97fec4a91de8f809da0b0de908c1c8c1f3412",
-			"reviewed_at": "2026-07-08T13:00:47.568172991Z"
+			"definition_hash": "bd2e690a9f4f8f7b2c5d300bed9316398e93a26e47b67e14da2fc294399f3c83",
+			"reviewed_at": "2026-07-09T18:10:52.504138205Z"
 		}
 	]
 }

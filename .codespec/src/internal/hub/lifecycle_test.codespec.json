@@ -21,8 +21,8 @@
 		{
 			"function_name": "TestCreateBoxSyncsObservedMetadata",
 			"documentation_hash": "4ffa90ea1c562af75f745c2ae9637a13c43804c7befea370ef8924b835a93089",
-			"definition_hash": "496d3d032131b1f562cc3f68f7a5fd8cc9b52c0ba434c0448e624b9af8de9859",
-			"reviewed_at": "2026-07-09T10:18:24.934886999Z"
+			"definition_hash": "fedfceb851406f1cf9124eb191df527f49a88327bf23d08a814168e35d643acd",
+			"reviewed_at": "2026-07-09T18:10:52.506625837Z"
 		},
 		{
 			"function_name": "TestLookupByBoxIDPrefersAliveOverTerminated",

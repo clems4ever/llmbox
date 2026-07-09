@@ -9,20 +9,22 @@ import (
 // and its callers already use bound to that package, so persistence can evolve
 // without rippling through the server.
 type (
-	// Store persists the auth-session registry, login state, and cluster records.
+	// Store persists the box registry, sign-in (identity) state, and cluster records.
 	Store = store.Store
-	// LoginSession is a completed activation login, used by the admin handlers.
-	LoginSession = store.LoginSession
-	// persistedSession is the on-disk form of a box's auth session.
-	persistedSession = store.PersistedSession
+	// IdentitySession is a completed sign-in, used by the admin handlers.
+	IdentitySession = store.IdentitySession
+	// boxRecord is the on-disk form of a box (its stable identity, activation
+	// handshake, hub lifecycle, and last-observed backend facts).
+	boxRecord = store.Box
 )
 
-// Box runtime states, re-exported from the store package (see its doc for the
-// model: running/terminated are persisted; "unreachable" is computed at read
-// time from live spoke connectivity and never stored).
+// Box lifecycle states, re-exported from the store package as plain strings for
+// the live session's string-typed state (see store.Lifecycle for the model:
+// running/terminated are persisted; "unreachable" is computed at read time from
+// live spoke connectivity and never stored).
 const (
-	boxStateRunning    = store.BoxStateRunning
-	boxStateTerminated = store.BoxStateTerminated
+	boxStateRunning    = string(store.LifecycleRunning)
+	boxStateTerminated = string(store.LifecycleTerminated)
 )
 
 // OpenStore opens (creating if needed) a SQLite-backed Store at path.

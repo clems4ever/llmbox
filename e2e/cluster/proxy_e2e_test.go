@@ -49,8 +49,8 @@ func TestProxyThroughSpoke(t *testing.T) {
 
 	// A proxy request must carry a signed-in box-activator session (the admin
 	// session has admin rights but not box-activation). Seed one and use its cookie.
-	if err := f.store.SaveLoginSession("ACT", storepkg.LoginSession{
-		Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), Activate: true,
+	if err := f.store.PutIdentitySession("ACT", storepkg.IdentitySession{
+		Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true,
 	}); err != nil {
 		t.Fatalf("seed activator session: %v", err)
 	}
@@ -128,8 +128,8 @@ func TestWebSocketProxyThroughSpoke(t *testing.T) {
 	}
 
 	// A box-activator session, presented as a cookie on the WebSocket handshake.
-	if err := f.store.SaveLoginSession("ACT", storepkg.LoginSession{
-		Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), Activate: true,
+	if err := f.store.PutIdentitySession("ACT", storepkg.IdentitySession{
+		Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true,
 	}); err != nil {
 		t.Fatalf("seed activator session: %v", err)
 	}

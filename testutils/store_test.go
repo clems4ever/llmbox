@@ -13,32 +13,32 @@ import (
 func TestNoopStore(t *testing.T) {
 	var st store.Store = NoopStore{}
 
-	if err := st.Save(store.PersistedSession{Token: "t"}); err != nil {
-		t.Errorf("Save: %v", err)
+	if err := st.PutBox(store.Box{Token: "t"}); err != nil {
+		t.Errorf("PutBox: %v", err)
 	}
-	if err := st.Delete("t"); err != nil {
-		t.Errorf("Delete: %v", err)
+	if err := st.DeleteBox("t"); err != nil {
+		t.Errorf("DeleteBox: %v", err)
 	}
-	if got, err := st.LoadAll(); err != nil || got != nil {
-		t.Errorf("LoadAll = %v, %v; want nil, nil", got, err)
+	if got, err := st.ListBoxes(); err != nil || got != nil {
+		t.Errorf("ListBoxes = %v, %v; want nil, nil", got, err)
 	}
-	if err := st.SaveLoginFlow("s", store.LoginFlow{}); err != nil {
-		t.Errorf("SaveLoginFlow: %v", err)
+	if err := st.PutOIDCFlow("s", store.OIDCFlow{}); err != nil {
+		t.Errorf("PutOIDCFlow: %v", err)
 	}
-	if _, ok, err := st.TakeLoginFlow("s"); ok || err != nil {
-		t.Errorf("TakeLoginFlow = %v, %v; want false, nil", ok, err)
+	if _, ok, err := st.TakeOIDCFlow("s"); ok || err != nil {
+		t.Errorf("TakeOIDCFlow = %v, %v; want false, nil", ok, err)
 	}
-	if err := st.SaveLoginSession("id", store.LoginSession{}); err != nil {
-		t.Errorf("SaveLoginSession: %v", err)
+	if err := st.PutIdentitySession("id", store.IdentitySession{}); err != nil {
+		t.Errorf("PutIdentitySession: %v", err)
 	}
-	if _, ok, err := st.LoginSession("id"); ok || err != nil {
-		t.Errorf("LoginSession = %v, %v; want false, nil", ok, err)
+	if _, ok, err := st.GetIdentitySession("id"); ok || err != nil {
+		t.Errorf("GetIdentitySession = %v, %v; want false, nil", ok, err)
 	}
-	if err := st.DeleteLoginSession("id"); err != nil {
-		t.Errorf("DeleteLoginSession: %v", err)
+	if err := st.DeleteIdentitySession("id"); err != nil {
+		t.Errorf("DeleteIdentitySession: %v", err)
 	}
-	if err := st.PurgeExpiredLogins(time.Unix(0, 0)); err != nil {
-		t.Errorf("PurgeExpiredLogins: %v", err)
+	if err := st.PurgeExpiredIdentities(time.Unix(0, 0)); err != nil {
+		t.Errorf("PurgeExpiredIdentities: %v", err)
 	}
 
 	if err := st.PutJoinToken("h", cluster.JoinTokenRecord{}); err != nil {

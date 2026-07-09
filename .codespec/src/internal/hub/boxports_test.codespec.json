@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestOpenBoxPortCreatesProxy",
 			"documentation_hash": "86e5f7c140f2b4b18739f8635cb006e141fb3f5d67fc1f0be582880aae4acce1",
-			"definition_hash": "78e3f00c54ad25d5b5b3b585352aebe2d3025d9097073e2116b0287de1601e86",
-			"reviewed_at": "2026-07-08T15:03:38.807675956Z"
+			"definition_hash": "9f90e6920dc09152890cfa32a2a1714ad269197f985ce4ea09219c914b081a19",
+			"reviewed_at": "2026-07-09T18:10:52.504386795Z"
 		},
 		{
 			"function_name": "TestOpenBoxPortWrongSpoke",

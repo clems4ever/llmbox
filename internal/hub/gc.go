@@ -75,7 +75,7 @@ func (s *Server) PruneDepartedSpokes() ([]string, error) {
 
 	for _, tok := range droppedTokens {
 		// The token is a secret (it forms the auth URL), so it is never logged.
-		if err := s.store.Delete(tok); err != nil {
+		if err := s.store.DeleteBox(tok); err != nil {
 			s.logger().Warn("failed to delete session for departed spoke", "err", err)
 		}
 	}

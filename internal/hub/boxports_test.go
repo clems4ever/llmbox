@@ -32,8 +32,8 @@ func TestOpenBoxPortCreatesProxy(t *testing.T) {
 	if rec.BoxID != "web-box" || rec.Port != 3000 {
 		t.Errorf("record = %+v", rec)
 	}
-	if rec.CreatedBy != "box:web-box" {
-		t.Errorf("CreatedBy = %q, want box:web-box", rec.CreatedBy)
+	if rec.Owner != "box:web-box" {
+		t.Errorf("Owner = %q, want box:web-box", rec.Owner)
 	}
 	if want := s.proxyURL(rec.Slug); info.URL != want || info.URL == "" {
 		t.Errorf("URL = %q, want %q", info.URL, want)
