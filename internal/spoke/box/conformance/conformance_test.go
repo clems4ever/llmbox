@@ -8,7 +8,7 @@ import (
 )
 
 // TestConformanceFake runs the backend-neutral box contract against the
-// in-process Fake provisioner, validating the Manager + agent-protocol stack with
+// in-process Fake provisioner, validating the Manager + guest-protocol stack with
 // no Docker. The Docker backend reuses conformance.Run with its own provisioner.
 func TestConformanceFake(t *testing.T) {
 	conformance.Run(t, func(t testing.TB) box.Provisioner {

@@ -1,0 +1,16 @@
+{
+	"functions": [
+		{
+			"function_name": "TestGuestFixtureDrivesLifecycle",
+			"documentation_hash": "a33e2e4256c4126de2519283f44ee9c4a2587c2937483e0487943da028f34dc5",
+			"definition_hash": "f0993e5eab964ea48ad47e15ca750c450e2bd1c5099209fd37d3a5a696bd8676",
+			"reviewed_at": "2026-07-09T18:52:37.5392473Z"
+		},
+		{
+			"function_name": "TestGuestFixtureSeedsCredentials",
+			"documentation_hash": "800c055a6c19eb277dc25793cae6b3af8c62b45d38e2dce688a3d7a55b25fc94",
+			"definition_hash": "4fe2bad604b5d36d9fe31b5e2f378d3d28a903e2f4b146ffe7208841026c115e",
+			"reviewed_at": "2026-07-09T18:52:37.545184721Z"
+		}
+	]
+}

@@ -24,7 +24,7 @@ import (
 
 // fakeDocker is a recording stand-in for the Docker client. On ContainerStart it
 // stands up a real Unix listener at the box's bind-mounted socket path, so the
-// agent socket Provision waits for actually appears and Control can dial it.
+// guest socket Provision waits for actually appears and Control can dial it.
 type fakeDocker struct {
 	mu sync.Mutex
 
@@ -39,7 +39,7 @@ type fakeDocker struct {
 
 	startErr   error
 	startID    string
-	skipSocket bool // when set, ContainerStart does not create the agent socket
+	skipSocket bool // when set, ContainerStart does not create the guest socket
 
 	renames     [][2]string
 	renameErr   error
@@ -99,7 +99,7 @@ func (f *fakeDocker) ContainerStart(_ context.Context, id string, _ container.St
 	if f.startErr != nil {
 		return f.startErr
 	}
-	// Mimic the agent creating its control socket once it is listening.
+	// Mimic the guest creating its control socket once it is listening.
 	if f.mountSource != "" && !f.skipSocket {
 		ln, err := net.Listen("unix", filepath.Join(f.mountSource, socketFileName))
 		if err == nil {
@@ -219,10 +219,10 @@ func newTestProvisioner(t *testing.T, f *fakeDocker) *Provisioner {
 	return &Provisioner{cli: f, defaultImage: "test-image", socketDir: t.TempDir()}
 }
 
-// TestProvisionCreatesAgentBox creates an agent-entrypoint box with the socket
+// TestProvisionCreatesGuestBox creates a guest-entrypoint box with the socket
 // mount and restart policy, names it pending, and exposes a dialable control
 // socket.
-func TestProvisionCreatesAgentBox(t *testing.T) {
+func TestProvisionCreatesGuestBox(t *testing.T) {
 	f := &fakeDocker{}
 	p := newTestProvisioner(t, f)
 
@@ -231,8 +231,8 @@ func TestProvisionCreatesAgentBox(t *testing.T) {
 		t.Fatalf("Provision: %v", err)
 	}
 
-	if got := f.createCfg.Entrypoint; len(got) < 4 || got[0] != "tini" || got[3] != "llmbox-agent" {
-		t.Fatalf("entrypoint = %v, want tini ... llmbox-agent", got)
+	if got := f.createCfg.Entrypoint; len(got) < 4 || got[0] != "tini" || got[3] != "llmbox-guest" {
+		t.Fatalf("entrypoint = %v, want tini ... llmbox-guest", got)
 	}
 	if f.createHost.RestartPolicy.Name != container.RestartPolicyUnlessStopped {
 		t.Fatalf("restart policy = %q, want unless-stopped", f.createHost.RestartPolicy.Name)
@@ -603,14 +603,14 @@ func TestProvisionRenameFailure(t *testing.T) {
 	}
 }
 
-// TestProvisionSocketTimeout cleans up when the agent socket never appears.
+// TestProvisionSocketTimeout cleans up when the guest socket never appears.
 func TestProvisionSocketTimeout(t *testing.T) {
 	f := &fakeDocker{skipSocket: true}
 	p := newTestProvisioner(t, f)
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	if _, err := p.Provision(ctx, sandbox.CreateOptions{}); err == nil {
-		t.Fatal("Provision should fail when the agent socket never appears")
+		t.Fatal("Provision should fail when the guest socket never appears")
 	}
 	if len(f.removed) == 0 {
 		t.Fatal("container should be removed when the socket never appears")

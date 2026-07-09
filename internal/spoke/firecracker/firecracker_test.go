@@ -397,8 +397,8 @@ func TestCopyFile(t *testing.T) {
 	}
 }
 
-// TestWaitForAgent checks the boot-wait succeeds once a fake vsock accepts CONNECT.
-func TestWaitForAgent(t *testing.T) {
+// TestWaitForGuest checks the boot-wait succeeds once a fake vsock accepts CONNECT.
+func TestWaitForGuest(t *testing.T) {
 	dir := shortStateDir(t)
 	sock := filepath.Join(dir, "v.sock")
 	ln, err := net.Listen("unix", sock)
@@ -407,17 +407,17 @@ func TestWaitForAgent(t *testing.T) {
 	}
 	defer ln.Close()
 	go serveFakeVsock(ln, nil)
-	if err := waitForAgent(context.Background(), sock, agentVsockPort, 3*time.Second); err != nil {
-		t.Fatalf("waitForAgent: %v", err)
+	if err := waitForGuest(context.Background(), sock, guestVsockPort, 3*time.Second); err != nil {
+		t.Fatalf("waitForGuest: %v", err)
 	}
 }
 
-// TestWaitForAgentTimesOut checks the boot-wait fails when nothing listens.
-func TestWaitForAgentTimesOut(t *testing.T) {
+// TestWaitForGuestTimesOut checks the boot-wait fails when nothing listens.
+func TestWaitForGuestTimesOut(t *testing.T) {
 	dir := shortStateDir(t)
 	sock := filepath.Join(dir, "absent.sock")
-	if err := waitForAgent(context.Background(), sock, agentVsockPort, 200*time.Millisecond); err == nil {
-		t.Fatal("waitForAgent should fail when no agent listens")
+	if err := waitForGuest(context.Background(), sock, guestVsockPort, 200*time.Millisecond); err == nil {
+		t.Fatal("waitForGuest should fail when no guest listens")
 	}
 }
 
@@ -433,7 +433,7 @@ func TestDialVsockHandshake(t *testing.T) {
 	defer ln.Close()
 	go serveFakeVsock(ln, []byte("post-handshake"))
 
-	conn, err := dialVsock(context.Background(), sock, agentVsockPort)
+	conn, err := dialVsock(context.Background(), sock, guestVsockPort)
 	if err != nil {
 		t.Fatalf("dialVsock: %v", err)
 	}
@@ -480,7 +480,7 @@ func TestDialVsockRejected(t *testing.T) {
 		_, _ = c.Write([]byte("ERR no listener\n"))
 		_ = c.Close()
 	}()
-	if _, err := dialVsock(context.Background(), sock, agentVsockPort); err == nil {
+	if _, err := dialVsock(context.Background(), sock, guestVsockPort); err == nil {
 		t.Fatal("dialVsock should fail on a non-OK reply")
 	}
 }

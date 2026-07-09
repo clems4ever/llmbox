@@ -12,9 +12,9 @@
 #
 # Usage: asset-key.sh [base|kernel]   (default: base)
 #
-# The base carries no agent or claude (those live on the payload drive), so the box
+# The base carries no guest or claude (those live on the payload drive), so the box
 # image is deliberately NOT part of its key. The payload is not keyed here — it
-# tracks the agent, which changes every commit, so it is republished per build
+# tracks the guest, which changes every commit, so it is republished per build
 # rather than content-addressed.
 set -euo pipefail
 

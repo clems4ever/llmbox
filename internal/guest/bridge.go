@@ -1,4 +1,4 @@
-package agent
+package guest
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 // to a host-side connection opened by dial — the guest half of the microVM
 // box-port API path. The in-box Claude process talks HTTP to the Unix socket
 // (the same contract as the Docker backend, where the spoke serves the socket
-// directly through the bind mount); here the agent forwards the raw bytes to
+// directly through the bind mount); here the guest forwards the raw bytes to
 // the host over vsock, where the spoke's per-VM listener serves the same API.
 // The bridge is a dumb pipe: it neither parses nor authenticates anything —
 // identity is assigned host-side by which VM's vsock the bytes arrive on. It

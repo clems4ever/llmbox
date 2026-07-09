@@ -19,7 +19,7 @@ CLAUDE.md
 /llmbox-server
 /llmbox-mcp
 /llmbox-spoke
-/llmbox-agent
+/llmbox-guest
 
 # Coverage profile (make cover)
 /coverage.out

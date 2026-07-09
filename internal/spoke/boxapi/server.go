@@ -17,7 +17,7 @@ type Server struct {
 // ServeUnix creates (replacing any stale socket file) and serves the box-port
 // API for one box at path, returning immediately; the caller stops it with
 // Close. The socket is made group/other-accessible for the same reason as the
-// agent control socket travelling the other way: across the container
+// guest control socket travelling the other way: across the container
 // boundary the connecting peer runs as a different uid, and connect() needs
 // write permission on the socket — the 0700 parent directory (the box's
 // private socket dir) remains the access gate on the host side.

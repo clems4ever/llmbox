@@ -15,15 +15,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/agent"
+	"github.com/clems4ever/llmbox/internal/guest"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/testutils"
 )
 
-// Fake is an in-process box.Provisioner: each box is a real guest agent (backed
+// Fake is an in-process box.Provisioner: each box is a real guest (backed
 // by the mock claude) serving a Unix socket, with a per-box HOME so concurrent
-// boxes stay isolated. It exercises the whole Manager + agent-protocol stack with
+// boxes stay isolated. It exercises the whole Manager + guest-protocol stack with
 // no Docker, and its boxes are cleaned up when the test ends.
 type Fake struct {
 	t       testing.TB
@@ -68,7 +68,7 @@ func (f *Fake) shutdown() {
 	}
 }
 
-// Provision starts a new box: a per-box HOME and socket, a guest agent backed by
+// Provision starts a new box: a per-box HOME and socket, a guest backed by
 // the mock claude, registered in the pending phase.
 //
 // @arg ctx Context for waiting on the box's control socket.
@@ -90,7 +90,7 @@ func (f *Fake) Provision(ctx context.Context, opts sandbox.CreateOptions) (box.I
 	}
 	sock := filepath.Join(dir, "control.sock")
 
-	a := agent.New(agent.Options{ClaudeCmd: f.claude, Home: home})
+	a := guest.New(guest.Options{ClaudeCmd: f.claude, Home: home})
 	actx, cancel := context.WithCancel(context.Background())
 	errc := make(chan error, 1)
 	go func() { errc <- a.ListenAndServe(actx, sock) }()
@@ -114,7 +114,7 @@ func (f *Fake) Provision(ctx context.Context, opts sandbox.CreateOptions) (box.I
 		phase:   "pending",
 		created: time.Now().Unix(),
 		sock:    sock,
-		agent:   a,
+		guest:   a,
 		cancel:  cancel,
 		errc:    errc,
 	}
@@ -164,14 +164,14 @@ func (f *Fake) Find(ctx context.Context, idOrName string) (box.Instance, error) 
 	return nil, fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
-// fakeInstance is one Fake box: a guest agent on a Unix socket plus its phase.
+// fakeInstance is one Fake box: a guest on a Unix socket plus its phase.
 type fakeInstance struct {
 	fake    *Fake
 	id      string
 	boxID   string
 	sock    string
 	created int64
-	agent   *agent.Agent
+	guest   *guest.Guest
 	cancel  context.CancelFunc
 	errc    chan error
 
@@ -199,10 +199,10 @@ func (i *fakeInstance) Meta() sandbox.Box {
 	}
 }
 
-// Control opens a new connection to the box's agent socket.
+// Control opens a new connection to the box's guest socket.
 //
 // @arg ctx Context for the dial.
-// @return net.Conn A control connection to the box's agent.
+// @return net.Conn A control connection to the box's guest.
 // @error error if the socket cannot be dialled.
 //
 // @testcase TestConformanceFake talks to boxes over Control.
@@ -224,7 +224,7 @@ func (i *fakeInstance) MarkReady(ctx context.Context) error {
 	return nil
 }
 
-// Destroy shuts the box's agent down and deregisters it. Destroying an
+// Destroy shuts the box's guest down and deregisters it. Destroying an
 // already-gone box returns a wrapped sandbox.ErrBoxNotFound.
 //
 // @arg ctx Context (unused by the fake).
@@ -239,7 +239,7 @@ func (i *fakeInstance) Destroy(ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.id)
 	}
-	i.agent.Shutdown()
+	i.guest.Shutdown()
 	i.cancel()
 	<-i.errc
 	return nil

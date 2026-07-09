@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-// agentVsockPort is the guest AF_VSOCK port the in-box agent listens on. It is
-// fixed (the host always knows where to reach the agent) and baked into the
-// microVM's agent invocation (--vsock-port). Firecracker multiplexes every box's
-// agent onto this same guest port over that box's own hypervisor UDS, so the
+// guestVsockPort is the guest AF_VSOCK port the in-box guest listens on. It is
+// fixed (the host always knows where to reach the guest) and baked into the
+// microVM's guest invocation (--vsock-port). Firecracker multiplexes every box's
+// guest onto this same guest port over that box's own hypervisor UDS, so the
 // port need not be unique across boxes.
-const agentVsockPort = 5000
+const guestVsockPort = 5000
 
-// boxAPIVsockPort is the HOST-side vsock port the guest agent bridges the
+// boxAPIVsockPort is the HOST-side vsock port the guest bridges the
 // in-guest /run/llmbox/boxapi.sock to (--boxapi-port). This is the
 // guest-initiated direction of Firecracker's vsock: when a guest process
 // connects to CID 2 on this port, Firecracker dials the host Unix socket at

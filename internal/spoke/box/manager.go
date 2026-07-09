@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/agent"
+	"github.com/clems4ever/llmbox/internal/guest"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
@@ -17,7 +17,7 @@ import (
 // box-count cap.
 type Config struct {
 	// RemoteArgs is passed through to the box entrypoint's `claude remote-control`
-	// invocation (the agent appends a --name for the default session).
+	// invocation (the guest appends a --name for the default session).
 	RemoteArgs string
 	// MaxBoxes caps how many managed boxes may exist at once; Create rejects a new
 	// box once the count is reached (0 = unlimited). It bounds the by-design
@@ -25,7 +25,7 @@ type Config struct {
 	MaxBoxes int
 }
 
-// Manager drives box lifecycle over a Provisioner and the in-box agent. It
+// Manager drives box lifecycle over a Provisioner and the in-box guest. It
 // implements cluster.BoxManager (and the BoxDialer the proxy layer uses) without
 // knowing how the backend runs compute. It is safe for concurrent use.
 type Manager struct {
@@ -48,14 +48,14 @@ func NewManager(prov Provisioner, cfg Config) *Manager {
 	return &Manager{prov: prov, cfg: cfg}
 }
 
-// client returns an agent client that dials inst's control channel.
+// client returns a guest client that dials inst's control channel.
 //
 // @arg inst The box instance to talk to.
-// @return *agent.Client A client bound to the instance's control channel.
+// @return *guest.Client A client bound to the instance's control channel.
 //
 // @testcase TestBoxManager exercises client through every verb.
-func (m *Manager) client(inst Instance) *agent.Client {
-	return &agent.Client{Dial: inst.Control}
+func (m *Manager) client(inst Instance) *guest.Client {
+	return &guest.Client{Dial: inst.Control}
 }
 
 // Create provisions a new box, injects its files and parameters, launches claude,
@@ -103,7 +103,7 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (id, a
 	// From here on, tear the box down on any failure so a half-created box is
 	// never left running.
 	c := m.client(inst)
-	if err := c.Init(ctx, agent.InitReq{
+	if err := c.Init(ctx, guest.InitReq{
 		Files:      opts.Files,
 		RemoteArgs: m.cfg.RemoteArgs,
 		BoxID:      opts.BoxID,
@@ -189,11 +189,11 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 
 // Logs returns the recent console transcript of a managed box.
 //
-// @arg ctx Context for the resolve and the agent call.
+// @arg ctx Context for the resolve and the guest call.
 // @arg idOrName The ID or name identifying the box.
-// @arg tail The maximum number of trailing lines (non-positive uses the agent default).
+// @arg tail The maximum number of trailing lines (non-positive uses the guest default).
 // @return string The box's trailing transcript.
-// @error error if no managed box matches or the agent call fails.
+// @error error if no managed box matches or the guest call fails.
 //
 // @testcase TestBoxManager reads back a box transcript.
 func (m *Manager) Logs(ctx context.Context, idOrName string, tail int) (string, error) {
@@ -206,11 +206,11 @@ func (m *Manager) Logs(ctx context.Context, idOrName string, tail int) (string, 
 
 // Exec runs a command inside a managed box and returns its captured result.
 //
-// @arg ctx Context for the resolve and the agent call.
+// @arg ctx Context for the resolve and the guest call.
 // @arg idOrName The ID or name identifying the box.
 // @arg cmd The command and arguments to run.
 // @return sandbox.ExecResult The command's output and exit code.
-// @error error if no managed box matches or the agent call fails.
+// @error error if no managed box matches or the guest call fails.
 //
 // @testcase TestBoxManager runs a command via Exec.
 func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error) {
@@ -222,7 +222,7 @@ func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (sand
 }
 
 // DialBox opens a connection to a TCP port inside a managed box, by asking the
-// box's agent to splice the control channel to localhost:port. It is the box
+// box's guest to splice the control channel to localhost:port. It is the box
 // reachability primitive the proxy layer builds on; it resolves through Find
 // first so it can only ever reach a box this manager created.
 //

@@ -11,8 +11,8 @@
 			"function_name": "ContainerStart",
 			"receiver": "fakeDocker",
 			"documentation_hash": "a61ff0ebf8bd806a09c5c8f809ff8cd0582f28cacf495b62ff2c25c5a471a884",
-			"definition_hash": "75e6576a42fc1253a7f5096078eddc666b9ec72a74adacc71c38c23ad9d0821f",
-			"reviewed_at": "2026-06-30T16:36:13.836867646Z"
+			"definition_hash": "6479d112d27be1515178e4766a78dd297737b81cbc70b738c2ae2818e10f16f7",
+			"reviewed_at": "2026-07-09T18:49:59.006822937Z"
 		},
 		{
 			"function_name": "closeListeners",
@@ -96,12 +96,6 @@
 			"documentation_hash": "2db05b9d40a619572a5864cbac4334f0e0cab91f4cb7cfe974b6f7cbfbb80f7d",
 			"definition_hash": "4f11ab917a3938fba51f80dcab994917c997c5dc60a07414f08d541c922f929f",
 			"reviewed_at": "2026-06-30T16:11:46.332556789Z"
-		},
-		{
-			"function_name": "TestProvisionCreatesAgentBox",
-			"documentation_hash": "436700e7e078b616b9414d4687bc563c36782b70d820e217b29a432172422901",
-			"definition_hash": "68907221c3f95716ce6fb6f1678307e91f96b3d9348f82a3848f65d2c1ed824a",
-			"reviewed_at": "2026-06-30T16:11:46.333650948Z"
 		},
 		{
 			"function_name": "TestProvisionCleansUpOnStartFailure",
@@ -207,9 +201,9 @@
 		},
 		{
 			"function_name": "TestProvisionSocketTimeout",
-			"documentation_hash": "5185710f98d382fe7dd843da2cd12517d7e18075232bf3a868b3592238f8d46a",
-			"definition_hash": "445ef2b46f3f199d58b8adff858db5715e426cf95f246c17fd75111bdb2fac5c",
-			"reviewed_at": "2026-06-30T16:36:14.071642844Z"
+			"documentation_hash": "4ebab2382875d92cda8448248de0d8b645ea9874b0a0ff0ac968d8c7c850feeb",
+			"definition_hash": "aaa0c94e4513d761efcf19c616566dc973e19de64cbb55fc276b3fe9fbdb962b",
+			"reviewed_at": "2026-07-09T18:49:59.009628007Z"
 		},
 		{
 			"function_name": "TestProvisionPullFailure",
@@ -276,6 +270,12 @@
 			"documentation_hash": "7ff00661665fc92906d2886f17a3f8296f47269a80d8a65a4a0090ed42bfb8e7",
 			"definition_hash": "00dbad10f4f5f95852af9b89cd8361b903e69cfd004e028a6d7ec64159c8558c",
 			"reviewed_at": "2026-07-08T09:43:14.710193699Z"
+		},
+		{
+			"function_name": "TestProvisionCreatesGuestBox",
+			"documentation_hash": "ae4143ae072bfc3c79a9701623377cd0e66d01141653d50a4798299dc9f0e1ea",
+			"definition_hash": "ab09fcf17eb93d5d84a02c7656bb2302d59b50c6cea8abed8e672648e7004669",
+			"reviewed_at": "2026-07-09T18:49:59.0080361Z"
 		}
 	]
 }

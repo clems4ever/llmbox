@@ -6,17 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/clems4ever/llmbox/internal/agent"
+	"github.com/clems4ever/llmbox/internal/guest"
 )
 
-// TestAgentFixtureDrivesLifecycle uses the AgentFixture to drive a box through
+// TestGuestFixtureDrivesLifecycle uses the GuestFixture to drive a box through
 // Init, Start (authorize URL), SubmitCode (session URL), Exec, and Logs.
-func TestAgentFixtureDrivesLifecycle(t *testing.T) {
-	f := NewAgentFixture(t)
+func TestGuestFixtureDrivesLifecycle(t *testing.T) {
+	f := NewGuestFixture(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if err := f.Client.Init(ctx, agent.InitReq{BoxID: "fix-box", Env: f.BoxEnv(t, false)}); err != nil {
+	if err := f.Client.Init(ctx, guest.InitReq{BoxID: "fix-box", Env: f.BoxEnv(t, false)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 
@@ -57,14 +57,14 @@ func TestAgentFixtureDrivesLifecycle(t *testing.T) {
 	f.Close()
 }
 
-// TestAgentFixtureSeedsCredentials checks that a credentialed BoxEnv makes Start
+// TestGuestFixtureSeedsCredentials checks that a credentialed BoxEnv makes Start
 // skip login and return a session URL directly.
-func TestAgentFixtureSeedsCredentials(t *testing.T) {
-	f := NewAgentFixture(t)
+func TestGuestFixtureSeedsCredentials(t *testing.T) {
+	f := NewGuestFixture(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if err := f.Client.Init(ctx, agent.InitReq{BoxID: "authed-box", Env: f.BoxEnv(t, true)}); err != nil {
+	if err := f.Client.Init(ctx, guest.InitReq{BoxID: "authed-box", Env: f.BoxEnv(t, true)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	start, err := f.Client.Start(ctx)

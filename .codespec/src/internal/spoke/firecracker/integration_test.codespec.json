@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "TestConformanceFirecracker",
-			"documentation_hash": "f1b8bef955d32e813070c05b9834a97a49a81ed19f5d07dca6b375c6cc7274ec",
-			"definition_hash": "4c03352ce062b43572cd796bc4ca2fa81c36e187ee4a367085311b0d16d00025",
-			"reviewed_at": "2026-07-08T14:50:26.495159941Z"
+			"documentation_hash": "9cd4aeda49df93296105916f08574593302a65419dfe4b67b7a2ff7d4e9fcc0d",
+			"definition_hash": "6137acfd600b9ead6dc4ad414e7638f97c6f3b2c04cbef40d5d5962c116dfdd3",
+			"reviewed_at": "2026-07-09T18:49:59.014673235Z"
 		},
 		{
 			"function_name": "fcArtifacts",
@@ -14,15 +14,15 @@
 		},
 		{
 			"function_name": "TestVMSurvivesRequestContextCancel",
-			"documentation_hash": "ba49eb08c30f84f5e57f4f5280fdf3ed8de6565f36c028ade4cc03cfd94b6495",
+			"documentation_hash": "2c20e2ff0ad686dc128755cb98c606d8b72cc96c83a22b0d0c3827b4048f4a5b",
 			"definition_hash": "54105c27bfb987062de4ba24312acf239a1f30a48b44176072f5632242a8b419",
-			"reviewed_at": "2026-07-08T14:50:26.494765914Z"
+			"reviewed_at": "2026-07-09T18:49:59.014429366Z"
 		},
 		{
 			"function_name": "TestBoxAPIOverVsock",
-			"documentation_hash": "2a3eca2718f3ab38f6bd4aefed7ba586a4617ee892b711ada8625bc795c7a320",
-			"definition_hash": "708e87a7147a2a562916dab39b690e28ed027f2eaec299129392e528c9782731",
-			"reviewed_at": "2026-07-08T14:59:27.486547949Z"
+			"documentation_hash": "1941222f227b08b32b6f95f5f61729ea6cd5fec5347c0b1361b155ec10e16704",
+			"definition_hash": "18b6c4089b06be8218e2254aad104cdaa0d83734355cce4af9677ebf15ef6674",
+			"reviewed_at": "2026-07-09T18:49:59.014883587Z"
 		}
 	]
 }

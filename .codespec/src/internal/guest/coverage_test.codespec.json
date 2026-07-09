@@ -4,98 +4,98 @@
 			"function_name": "TestTranscriptAppendTrims",
 			"documentation_hash": "98f075eff6f7ff9a19e82141effc8155cb990e9585a66841c689643de9103a9c",
 			"definition_hash": "59b52ef4d6f28160872283e1b7396e6a9c41942f6d1ea19a0b05218483cf68d9",
-			"reviewed_at": "2026-06-30T16:37:03.438049217Z"
+			"reviewed_at": "2026-07-09T18:52:18.79602058Z"
 		},
 		{
 			"function_name": "TestLastLinesTruncates",
 			"documentation_hash": "0ad65340b08f2941083f66be83a358bd4745d1fb6b5a37993a5ede3f2f3b7640",
 			"definition_hash": "ea27271c95edaba4d44b41f70f7e7eed4503054d873c7c4e432a6c6bc8fa4d67",
-			"reviewed_at": "2026-06-30T16:37:03.438406744Z"
+			"reviewed_at": "2026-07-09T18:52:18.800535981Z"
 		},
 		{
 			"function_name": "TestWriteInjectFileDefaultMode",
 			"documentation_hash": "60964f1de3f60afee50551ea1aa667e214fd14a10688578a4a0abb239587e32f",
 			"definition_hash": "77c3a4b5ed440ef44b25c8998d2654d92ab3b61acc4ba016d18c374dff2458b5",
-			"reviewed_at": "2026-06-30T16:37:03.447950988Z"
+			"reviewed_at": "2026-07-09T18:52:18.810675428Z"
 		},
 		{
 			"function_name": "TestHandleInitTwiceErrors",
 			"documentation_hash": "239844865ccf5710f2f49cb05cc2b4c0082a49398cf2e4aec83b3350df865da4",
 			"definition_hash": "23215af1f5fc5bfe17ef6b13bf98d763d2a6b5ba64e6d781b416e78ae51560b7",
-			"reviewed_at": "2026-06-30T16:37:03.448284287Z"
+			"reviewed_at": "2026-07-09T18:52:18.815021035Z"
 		},
 		{
 			"function_name": "TestHandleStartBeforeInit",
 			"documentation_hash": "c14c7b9a2757ee64f469635c149d186287d65e8280b0668456b686c9e8e84a95",
 			"definition_hash": "9120d8f546ed838115681aa5d22e3dd9b02c4656aa662ea26ab63b3c011e6b7d",
-			"reviewed_at": "2026-06-30T16:37:03.449091103Z"
+			"reviewed_at": "2026-07-09T18:52:18.819420382Z"
 		},
 		{
 			"function_name": "TestHandleLogsBeforeStart",
 			"documentation_hash": "b11bb5994fa30dfa05d27f3ffd20b3aa5ce6d19bbbecf9f79a992d9c7da8ae5b",
 			"definition_hash": "736e9a0114fb69f7320cfda9d3a10525db1dbff11e3d8fee9ae98f82cf28c3f2",
-			"reviewed_at": "2026-06-30T16:43:41.240048494Z"
+			"reviewed_at": "2026-07-09T18:52:18.823774777Z"
 		},
 		{
 			"function_name": "TestDialPortUnreachable",
 			"documentation_hash": "d3496db5a2d0a5fdcda93b884eed730814f43a07c40fd593c48258640f52156f",
-			"definition_hash": "5677f64a58cc7d2a40cd8851e884e034b11b385337d1c89b5c41c49ba371b61a",
-			"reviewed_at": "2026-06-30T16:37:03.44984871Z"
+			"definition_hash": "ad4dbe94c3e106d8f0deb0c48647d1b062e93976ab605be440d50356d53b1d89",
+			"reviewed_at": "2026-07-09T18:52:18.828181776Z"
 		},
 		{
 			"function_name": "TestWriteInjectFileChowns",
 			"documentation_hash": "8e230fa8b7fb8345a7925229fa74fd935e5ced6c29263591d3f0be343a063b23",
 			"definition_hash": "d2a69d5aba2b1a7e448053c418098d8ab0455cf364dec8d08289d782fff59ef9",
-			"reviewed_at": "2026-06-30T16:37:03.450175129Z"
+			"reviewed_at": "2026-07-09T18:52:18.832627032Z"
 		},
 		{
-			"function_name": "TestAgentStartTwice",
-			"documentation_hash": "ae050d2802e501e62af00836126bfc937f1e5349f20c04926d1f47ec4df6c7d2",
-			"definition_hash": "94622ffeb01ca136e9ef6f21e42fe749c520425b60ccfc5b4cabc21a7060a9c1",
-			"reviewed_at": "2026-06-30T16:37:03.450496181Z"
+			"function_name": "TestGuestStartTwice",
+			"documentation_hash": "ee4c91b35e458b61de6226a98638803e13dc56e981ac6da607c87921e01b9550",
+			"definition_hash": "08d2bcb683b98b4a0061ed0f928ee4159a0ffddf2d09b2ccfd0b0f7515706940",
+			"reviewed_at": "2026-07-09T18:52:18.837218828Z"
 		},
 		{
-			"function_name": "TestAgentExecEmptyCommand",
-			"documentation_hash": "f6b82ae0e81c3106f9c45d6e59ddb5f5ee588285a2bc9d097293c85a5874edb3",
-			"definition_hash": "64bb79542ee50c331f000b351cad4149d0d95b4f0198b78e53712d36445da7e9",
-			"reviewed_at": "2026-06-30T16:37:03.450829284Z"
+			"function_name": "TestGuestExecEmptyCommand",
+			"documentation_hash": "9878c4916aabf4daea8176b168a680407fbfdda26f7ddcbdc9cb69aca39bf638",
+			"definition_hash": "d9c4166b4f4750464b5160b0e6bdfd5b71a9b8f6c306e17581faeb25c0730cba",
+			"reviewed_at": "2026-07-09T18:52:18.841782806Z"
 		},
 		{
 			"function_name": "TestClientDialError",
 			"documentation_hash": "bcaeb388c14147c075c288c8b233a41f14cc39d50a1581285cb1a9ccd99caf86",
 			"definition_hash": "88fdd8af258c44946407013265974458049d6d550dd9019fa05ce8a513f1bfdb",
-			"reviewed_at": "2026-06-30T16:37:03.482879351Z"
+			"reviewed_at": "2026-07-09T18:52:19.356238157Z"
 		},
 		{
 			"function_name": "Error",
 			"receiver": "errorString",
 			"documentation_hash": "458a0c47ba0ae0d6e9732acb43b2f9955b8625c23b14a071c16c531c2c2f6b7c",
 			"definition_hash": "695bcd865356971e868bc75b9118022281b926f78cb78655c38fe30c8d2723cb",
-			"reviewed_at": "2026-06-30T16:37:03.483304851Z"
+			"reviewed_at": "2026-07-09T18:52:19.360732136Z"
 		},
 		{
-			"function_name": "TestAgentMalformedPayload",
-			"documentation_hash": "de1b2b88e7d237730b11f934c088eeff207e38deede1154346be936b6f1267b8",
-			"definition_hash": "10af88aab71939af751b55a83ef9bf6f5c0f61cc506873be84b11849f250e88d",
-			"reviewed_at": "2026-06-30T16:37:03.483704931Z"
+			"function_name": "TestGuestMalformedPayload",
+			"documentation_hash": "6dea383871558e5a2583445f38185ea7ba2a71e9cf99f5b33c3db5bc730232c2",
+			"definition_hash": "7caf6fa33e8629aa87568117156a4e94b09f7b610070b538ab6c07253598c056",
+			"reviewed_at": "2026-07-09T18:52:19.370539601Z"
 		},
 		{
 			"function_name": "jsonRaw",
 			"documentation_hash": "950b9265eaf519bee69ad0c3bc4cedea3ba81447d560598f4e0a251ef6b8a53f",
 			"definition_hash": "929aee0925996ccc1c94ebff48d465bc7bb4d59aa9d292b642cc128354c2a7e9",
-			"reviewed_at": "2026-06-30T16:37:03.484058827Z"
+			"reviewed_at": "2026-07-09T18:52:19.375081766Z"
 		},
 		{
-			"function_name": "TestAgentStartNoURL",
-			"documentation_hash": "37a5147bb4e546387d06769a94516787437138b0c145055dba73d790fa12d429",
-			"definition_hash": "d17cb4a872ac48895b4a71df933958bbf8c969d98b430985db467f6a5dff7b3a",
-			"reviewed_at": "2026-06-30T16:37:03.484419807Z"
+			"function_name": "TestGuestStartNoURL",
+			"documentation_hash": "f3d1c8ceb421be464cc133538e37435ddc6e6586b2b8587a45997ca4f4d0a320",
+			"definition_hash": "ee0be312e9800edb07d6319211bbb33185474441c261e89d24bcd2829a2c6238",
+			"reviewed_at": "2026-07-09T18:52:19.379390021Z"
 		},
 		{
-			"function_name": "TestAgentDialDecodeError",
-			"documentation_hash": "c813255cdd8c1fbddbdf936906b4c313387b0d1d6611ded8fce62534c21f0e3f",
-			"definition_hash": "03a9fa8cc0daff15cef03caf35618c977ff35c2d844df623b1abd73b0c90a246",
-			"reviewed_at": "2026-06-30T16:37:03.484766514Z"
+			"function_name": "TestGuestDialDecodeError",
+			"documentation_hash": "49350e61c037837e78c062d9a32d3dc2aae9cd00060c161d7ab87d1bb5e00544",
+			"definition_hash": "ddee264a74d7513e552226a48295f09348f5b994278c7bf7f59ecd96af82cf54",
+			"reviewed_at": "2026-07-09T18:52:19.383709645Z"
 		}
 	]
 }

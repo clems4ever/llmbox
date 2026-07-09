@@ -1,0 +1,132 @@
+{
+	"functions": [
+		{
+			"function_name": "New",
+			"documentation_hash": "afe79c50b8f6ab9a7fc22d54910d6ae5329b54d176b5f9f4e9d10058b250304d",
+			"definition_hash": "1194c8c0d954ccc6435d52e8682d88c5f644b3cb2afa62c30445a92450a1663c",
+			"reviewed_at": "2026-07-09T18:51:40.230807932Z"
+		},
+		{
+			"function_name": "entryEnv",
+			"receiver": "Guest",
+			"documentation_hash": "131b674d2ade188419013457a5ae77bbf0b5a7f442f8a7fcf0b5a81fb91c200e",
+			"definition_hash": "92f13b18cbf0daa54125a37834a6d0b4142cdc308f7323327ab93fe7c1b8fc5d",
+			"reviewed_at": "2026-07-09T18:51:40.236657564Z"
+		},
+		{
+			"function_name": "hasEnvKey",
+			"documentation_hash": "f35b10e68438e72afa17583138d3711e1188ef770eb781c0d437160d23fdb4d0",
+			"definition_hash": "862f37b0f3bb1ca826f6069ae12c856b4b059ab158e4ff2be121749afaece211",
+			"reviewed_at": "2026-07-09T18:51:40.247663371Z"
+		},
+		{
+			"function_name": "ListenAndServe",
+			"receiver": "Guest",
+			"documentation_hash": "f9e6446f6060c76834952ded9f9ea67b8949f071c491432b25f9dfcb8d8cb399",
+			"definition_hash": "7efc3252def8ee7dd437302de9f1e88ab10395374189eda6a7ea40a65d407da1",
+			"reviewed_at": "2026-07-09T18:51:40.255207194Z"
+		},
+		{
+			"function_name": "ListenVsockAndServe",
+			"receiver": "Guest",
+			"documentation_hash": "b44db4b0436f0444ab9fec05ea5b164fdc7709269f4e42dfe0dfb7f080d76620",
+			"definition_hash": "d14131a4a2296e5d5762418f3ecb10b63247ab35d33a9ffe4cb4c4169916dbf4",
+			"reviewed_at": "2026-07-09T18:51:40.260331856Z"
+		},
+		{
+			"function_name": "serve",
+			"receiver": "Guest",
+			"documentation_hash": "9f76215be9c00095956c43d6ef582df9b0245da9e861716ce1446377e8022900",
+			"definition_hash": "5c3dda0c7f7033293075ddc7c7d3d5ef100a57a86c99548729f00c6d1fc4fb05",
+			"reviewed_at": "2026-07-09T18:51:40.265114856Z"
+		},
+		{
+			"function_name": "Shutdown",
+			"receiver": "Guest",
+			"documentation_hash": "a1b6ac9b970342acf33ce86c5b60f78b166b5e31c2f2dd4b8eae2aef10f396bf",
+			"definition_hash": "c8090614ae5b9c41ff67de43e67c9da7c7e2564ed4ce2b1e7c912fd2d2cedf44",
+			"reviewed_at": "2026-07-09T18:51:40.269846721Z"
+		},
+		{
+			"function_name": "handleConn",
+			"receiver": "Guest",
+			"documentation_hash": "27442eb4765698f97134afbb12f93e323c6c8dfe2594562acd806e5a0c02b15f",
+			"definition_hash": "174cfef542d1d85304407a07f5a6d7af40c85be0b350ea5e8705c21bab810e98",
+			"reviewed_at": "2026-07-09T18:51:40.274672391Z"
+		},
+		{
+			"function_name": "dispatch",
+			"receiver": "Guest",
+			"documentation_hash": "71ae0abd79e2133ee431d1f00d0a14e387ca454246180f7943fa75680d6eea05",
+			"definition_hash": "8b064fc2dc034de5104b655dbc21db86436934f01fa2aa9c9ae09138e5936038",
+			"reviewed_at": "2026-07-09T18:51:40.279592751Z"
+		},
+		{
+			"function_name": "handleInit",
+			"receiver": "Guest",
+			"documentation_hash": "aa75d5d2120e442545a72df4bb2cda20b1480903c7b7cd009ae2cfdd6a08f40b",
+			"definition_hash": "60edfd76f4a365b0cbc48b601e1f02366236d8cc25839a0c7afddc8ba0c3aecd",
+			"reviewed_at": "2026-07-09T18:51:40.284274755Z"
+		},
+		{
+			"function_name": "handleStart",
+			"receiver": "Guest",
+			"documentation_hash": "8eb9b9b5858864da2500ba0b80097a4cafcbc8662724c1876bcf3e077a5cf259",
+			"definition_hash": "e0e994b379da65e69df34fa6f0b595d7a34c558289ba3c29fc2e210ad3e567ee",
+			"reviewed_at": "2026-07-09T18:51:40.491884758Z"
+		},
+		{
+			"function_name": "handleSubmitCode",
+			"receiver": "Guest",
+			"documentation_hash": "9c541a9933dc2d5c4cae4bd63a0c04069e8c05689efa44d9bda29c58676bb25c",
+			"definition_hash": "02b3a811e36d0766df4aafb3088b07b4787bdec391fd8e462eeed2bb4b40244d",
+			"reviewed_at": "2026-07-09T18:51:40.50037447Z"
+		},
+		{
+			"function_name": "handleExec",
+			"receiver": "Guest",
+			"documentation_hash": "8f3b54248b43c613e1f093dc45603d7cdeff6fea845966f2f7ff9604fa44540b",
+			"definition_hash": "5c86beed3131fafda6c5c19d4fbf9938408b35e4883148990cd5f194f8314280",
+			"reviewed_at": "2026-07-09T18:51:40.509217831Z"
+		},
+		{
+			"function_name": "handleLogs",
+			"receiver": "Guest",
+			"documentation_hash": "a6bc2be478d7b33b75741f51c07713993e76d20e9f01686f2a91aa2839eb8b7a",
+			"definition_hash": "7043816b07b44640cac6aca743111594c1c2fd237990c38c419ae68027f6d1fb",
+			"reviewed_at": "2026-07-09T18:51:40.517482448Z"
+		},
+		{
+			"function_name": "handleDial",
+			"receiver": "Guest",
+			"documentation_hash": "3572d0c0d6f03c70bd14f348f2b8dc077deb131a0c92a40258da4de8409d91f0",
+			"definition_hash": "a5fc9856942ae5d2a3180ee353a0a84b768eab6d72692d16701a50f023e3b494",
+			"reviewed_at": "2026-07-09T18:51:40.522460097Z"
+		},
+		{
+			"function_name": "entrypoint",
+			"receiver": "Guest",
+			"documentation_hash": "4d639306ec2bbe85b9550aa1aa7212b0ea2c29fddb9b30e4cbeebf2cada33e5a",
+			"definition_hash": "d35867624499f3e666ee9ca8d4145031eb0e964a1db6aa6c448ae0116c702e6d",
+			"reviewed_at": "2026-07-09T18:51:40.527747883Z"
+		},
+		{
+			"function_name": "writeInjectFile",
+			"documentation_hash": "af5a70e84e71915c041409e26ecbbee09f2b619bc6addc3e73156eeae847a75a",
+			"definition_hash": "360a2044aac90ab384dbe77e269d718472d9667b8899c75c8066c5d4e5c2ae16",
+			"reviewed_at": "2026-07-09T18:51:40.533346436Z"
+		},
+		{
+			"function_name": "pumpPTY",
+			"documentation_hash": "98459c7d3297e50038c85ba0fa840487d4740590bae789f63598402c1e43930a",
+			"definition_hash": "42dd629ec3d73d27d5756837e8b7a0a51973d7c1aa070e63884f0a616c95c593",
+			"reviewed_at": "2026-07-09T18:51:40.538566977Z"
+		},
+		{
+			"function_name": "splice",
+			"documentation_hash": "35fa931939b0d5d4aa98381fa91b9c43b1d67e408962734ea0c5fcb97121193e",
+			"definition_hash": "c3a989810d46a4937a99a1b2f37e58c0654e220b7223b2be742d9b2a218bb1cd",
+			"reviewed_at": "2026-07-09T18:51:40.543527562Z"
+		}
+	]
+}

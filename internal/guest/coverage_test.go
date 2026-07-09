@@ -1,4 +1,4 @@
-package agent
+package guest
 
 import (
 	"context"
@@ -81,10 +81,10 @@ func TestHandleLogsBeforeStart(t *testing.T) {
 
 // TestDialPortUnreachable surfaces an error when the in-box port has no listener.
 func TestDialPortUnreachable(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	// 9 is the discard port; nothing listens, so the agent's dial is refused.
+	// 9 is the discard port; nothing listens, so the guest's dial is refused.
 	if _, err := c.DialPort(ctx, 9); err == nil {
 		t.Fatal("DialPort to an unused port should fail")
 	}
@@ -99,9 +99,9 @@ func TestWriteInjectFileChowns(t *testing.T) {
 	}
 }
 
-// TestAgentStartTwice rejects a second Start.
-func TestAgentStartTwice(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+// TestGuestStartTwice rejects a second Start.
+func TestGuestStartTwice(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
@@ -115,9 +115,9 @@ func TestAgentStartTwice(t *testing.T) {
 	}
 }
 
-// TestAgentExecEmptyCommand rejects an empty command.
-func TestAgentExecEmptyCommand(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+// TestGuestExecEmptyCommand rejects an empty command.
+func TestGuestExecEmptyCommand(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if _, err := c.Exec(ctx, nil); err == nil {
@@ -145,10 +145,10 @@ type errorString string
 // Error implements error for the test error type.
 func (e errorString) Error() string { return string(e) }
 
-// TestAgentMalformedPayload returns an error response for a verb whose payload is
+// TestGuestMalformedPayload returns an error response for a verb whose payload is
 // not valid JSON.
-func TestAgentMalformedPayload(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+func TestGuestMalformedPayload(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	conn, err := c.Dial(context.Background())
 	if err != nil {
 		t.Fatalf("dial: %v", err)
@@ -176,14 +176,14 @@ echo "login failed: invalid request"
 exit 1
 `
 
-// TestAgentStartNoURL surfaces the box's tail output when no URL appears before
+// TestGuestStartNoURL surfaces the box's tail output when no URL appears before
 // the box process exits.
-func TestAgentStartNoURL(t *testing.T) {
+func TestGuestStartNoURL(t *testing.T) {
 	mock := filepath.Join(t.TempDir(), "claude")
 	if err := os.WriteFile(mock, []byte(noURLClaude), 0o755); err != nil {
 		t.Fatalf("write mock: %v", err)
 	}
-	_, c := startAgent(t, Options{ClaudeCmd: mock})
+	_, c := startGuest(t, Options{ClaudeCmd: mock})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
@@ -194,10 +194,10 @@ func TestAgentStartNoURL(t *testing.T) {
 	}
 }
 
-// TestAgentDialDecodeError returns an error response for a dial whose payload is
+// TestGuestDialDecodeError returns an error response for a dial whose payload is
 // malformed.
-func TestAgentDialDecodeError(t *testing.T) {
-	_, c := startAgent(t, Options{ClaudeCmd: writeMockClaude(t)})
+func TestGuestDialDecodeError(t *testing.T) {
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	conn, err := c.Dial(context.Background())
 	if err != nil {
 		t.Fatalf("dial: %v", err)

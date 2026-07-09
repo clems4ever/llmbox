@@ -5,11 +5,11 @@ name: Firecracker assets
 # files), so a spoke can run `llmbox-spoke firecracker` with no image
 # flags and pull everything prebuilt:
 #
-#   llmbox-fc-base    the multi-GiB Debian base rootfs (no agent) — slow, rarely
+#   llmbox-fc-base    the multi-GiB Debian base rootfs (no guest) — slow, rarely
 #                     changes: content-addressed by input hash, skip-on-hit.
 #   llmbox-fc-kernel  the full guest kernel — slow (~15 min) but very rare:
 #                     content-addressed by input hash, skip-on-hit.
-#   llmbox-fc-payload the tiny agent + claude drive — changes every commit, so it
+#   llmbox-fc-payload the tiny guest + claude drive — changes every commit, so it
 #                     is (re)published on every push to main, tagged :latest.
 #
 # The expensive jobs gate themselves on a cache hit rather than on a paths filter,
@@ -77,7 +77,7 @@ jobs:
           echo "published $ref (and :latest)"
 
   payload:
-    name: Agent payload
+    name: Guest payload
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,8 +88,8 @@ jobs:
       - uses: oras-project/setup-oras@v1
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io -u "${{ github.actor }}" --password-stdin
-      - name: Build and publish the agent payload
-        # The payload tracks the agent (which changes every commit), so it is always
+      - name: Build and publish the guest payload
+        # The payload tracks the guest (which changes every commit), so it is always
         # rebuilt and republished, tagged :latest (what the spoke pulls by default)
         # and :<sha> for pinning.
         run: |

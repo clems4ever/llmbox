@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build a generic Debian *base* rootfs for Firecracker boxes: a full bookworm base
 # with systemd as PID 1, Docker, Node, and net tooling. It is deliberately
-# AGENT-AGNOSTIC — it contains nothing about llmbox, claude, or any particular
-# agent. Everything agent-specific rides on a separate read-only "payload" drive
+# GUEST-AGNOSTIC — it contains nothing about llmbox, claude, or any particular
+# guest. Everything guest-specific rides on a separate read-only "payload" drive
 # (build-payload-drive.sh) that this base mounts and runs at boot.
 #
 # The only contract the base defines is a generic payload loader:
@@ -10,10 +10,10 @@
 #   mount the payload block device (/dev/vdb) read-only at /payload,
 #   then run /payload/entrypoint
 #
-# Any agent (llmbox, or something else entirely) ships a payload with an
-# /entrypoint and its own binaries; swapping agents never touches this base. That
+# Any guest (llmbox, or something else entirely) ships a payload with an
+# /entrypoint and its own binaries; swapping guests never touches this base. That
 # also keeps the base slow-changing and cacheable (see firecracker-assets.yml):
-# nothing an agent update changes lives here.
+# nothing a guest update changes lives here.
 #
 # Everything is assembled as root inside a throwaway Debian container (via
 # mmdebstrap), so file ownership and modes are correct (root-owned, /tmp 1777) —
@@ -32,7 +32,7 @@ ROOTFS_GB="${ROOTFS_GB:-6}"
 mkdir -p "$OUT"
 
 # The generic payload loader: mount the read-only payload drive (/dev/vdb) at
-# /payload and run its entrypoint. This unit names no specific agent, binary, or
+# /payload and run its entrypoint. This unit names no specific guest, binary, or
 # protocol — the payload owns all of that (its entrypoint seeds whatever state it
 # needs and execs whatever it runs). Restart=always relaunches a crashed entrypoint;
 # the mount is guarded with mountpoint so it re-runs cleanly.

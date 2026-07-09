@@ -1,10 +1,10 @@
 # llmbox-box — the default base image launched per sandboxed box.
 #
 # Each box runs Claude Code in remote-control mode, driven by the llmbox guest
-# agent. This image bakes in:
-#   - the standalone `claude` binary on PATH (the agent runs `claude auth login`
+# guest. This image bakes in:
+#   - the standalone `claude` binary on PATH (the guest runs `claude auth login`
 #     then `claude remote-control` inside the box),
-#   - the `llmbox-agent` binary on PATH — the box entrypoint: it owns the claude
+#   - the `llmbox-guest` binary on PATH — the box entrypoint: it owns the claude
 #     process on a PTY and serves the box control verbs over a Unix socket the
 #     host bind-mounts in,
 #   - tini, used as PID 1 so orphaned descendants of Claude (the many short-lived
@@ -47,14 +47,14 @@ RUN set -eux; \
     install -D -m0755 "$real" /opt/llmbox/claude; \
     /opt/llmbox/claude --version
 
-# ---- agent build stage ----
-# Build the static llmbox-agent binary (the box entrypoint) from this repo.
-FROM golang:1.26-bookworm AS agent
+# ---- guest build stage ----
+# Build the static llmbox-guest binary (the box entrypoint) from this repo.
+FROM golang:1.26-bookworm AS guest
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -o /opt/llmbox/llmbox-agent ./cmd/llmbox-agent
+RUN CGO_ENABLED=0 go build -trimpath -o /opt/llmbox/llmbox-guest ./cmd/llmbox-guest
 
 # ---- box image ----
 FROM debian:bookworm-slim
@@ -70,9 +70,9 @@ RUN apt-get update \
     && npm install -g pm2@${PM2_VERSION} \
     && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/*
-# Claude and the guest agent on PATH so the entrypoint can invoke them directly.
+# Claude and the guest on PATH so the entrypoint can invoke them directly.
 COPY --from=claude /opt/llmbox/claude /usr/local/bin/claude
-COPY --from=agent /opt/llmbox/llmbox-agent /usr/local/bin/llmbox-agent
+COPY --from=guest /opt/llmbox/llmbox-guest /usr/local/bin/llmbox-guest
 # Pre-seed ~/.claude.json so a fresh box pre-answers the workspace-trust and
 # remote-control prompts (HOME=/root and WORKDIR=/workspace are forced by the
 # provisioner). claude merges its account fields into this file at login without
@@ -87,4 +87,4 @@ COPY docker/skills/ /root/.claude/skills/
 WORKDIR /workspace
 # Default entrypoint for standalone runs; the llmbox provisioner overrides this
 # with the same command plus an explicit --socket path.
-ENTRYPOINT ["tini", "-g", "--", "llmbox-agent"]
+ENTRYPOINT ["tini", "-g", "--", "llmbox-guest"]

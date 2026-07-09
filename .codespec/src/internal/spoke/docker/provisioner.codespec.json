@@ -2,16 +2,16 @@
 	"functions": [
 		{
 			"function_name": "NewProvisioner",
-			"documentation_hash": "ae375e2dc1042111c1b84e60e15b1b6caebe68c97ae5140cfbb4b2a768ba8921",
+			"documentation_hash": "72ff2b54ef76968ce9c31e7992df866d6e08ff8831b10ae46507c55e65d6e6d3",
 			"definition_hash": "68f188d17ee7eb75c66fbe0e6a4efa7a42c6bf793237ee5348107228cd2dec36",
-			"reviewed_at": "2026-07-08T14:50:26.482337237Z"
+			"reviewed_at": "2026-07-09T18:49:58.995209502Z"
 		},
 		{
 			"function_name": "logger",
 			"receiver": "Provisioner",
-			"documentation_hash": "0819cd3942a587993dd7ff18613cc4f859344a1d71e050d44736260cefa65ea1",
+			"documentation_hash": "5c3f11e969911b96024ab4c9a752bef35df43c19043cea1743112bc6d7dd50fe",
 			"definition_hash": "c3968b544c14929566dd5c2157b5ae7097c96b7dd4df8ea1d48e3c490ad07aa6",
-			"reviewed_at": "2026-06-30T16:10:22.270613367Z"
+			"reviewed_at": "2026-07-09T18:49:58.996569254Z"
 		},
 		{
 			"function_name": "SetPerBoxLimits",
@@ -37,9 +37,9 @@
 		{
 			"function_name": "Close",
 			"receiver": "Provisioner",
-			"documentation_hash": "8d1a55e03c73997ed600531bdbe5b4b784de322b87fcf9133d486f70d2da9748",
+			"documentation_hash": "d1409bd7c87ff8448aeaccb6b0d4f4003bbd11752b6b160a8885b506bdd12067",
 			"definition_hash": "5c43e0dab58aab1f240193f04dfd0587af417512a8e632de33e22287e7f01d9d",
-			"reviewed_at": "2026-07-08T14:50:26.483815202Z"
+			"reviewed_at": "2026-07-09T18:49:58.997920641Z"
 		},
 		{
 			"function_name": "phaseOf",
@@ -70,27 +70,27 @@
 		{
 			"function_name": "Provision",
 			"receiver": "Provisioner",
-			"documentation_hash": "3775f57631b94cce02126192cb9444736314d100a2e0dee90c3e37da7dbb688e",
-			"definition_hash": "803dc59efe71c6fde2a93b37defb448402e5a3eef562b1ad3573df72376a5686",
-			"reviewed_at": "2026-07-08T14:50:26.485330857Z"
+			"documentation_hash": "fb97b247c5d90b3efeb4e1716a6632b4d0a7c230ffe87c91551770a3c4f26fc7",
+			"definition_hash": "6043f0a0a36904d3c1d1b7d6c71817e075ebf1ed6f998d829627e4c3407ac4b2",
+			"reviewed_at": "2026-07-09T18:49:58.999230749Z"
 		},
 		{
 			"function_name": "waitForSocket",
-			"documentation_hash": "4686b19020d8db7f984fa76a11337a6984e69f880ec67b2995bbe2e293bf486e",
+			"documentation_hash": "7c2d35ea2dcaf8d087d57ffe2be5523b36b372ca03692d4c67340c17ff0ac3fe",
 			"definition_hash": "6059e049909d909aa1737e3a2262c9f9b28599b8be6d06642cf6a61d4bf2e53b",
-			"reviewed_at": "2026-06-30T16:10:22.311874855Z"
+			"reviewed_at": "2026-07-09T18:49:59.000570158Z"
 		},
 		{
 			"function_name": "newSocketToken",
-			"documentation_hash": "7571750422e74887260914227692d51412d20aad26ca388ea575f89b16302568",
+			"documentation_hash": "ee4d66c36d702870ea12d20fba7775ea153b9733d51e172dc7515a69ebf50499",
 			"definition_hash": "49d7de938b8c94fb13dfd3fbb71953f381ad9aac5f468d7114c8e2522ef3f899",
-			"reviewed_at": "2026-06-30T16:43:41.27649513Z"
+			"reviewed_at": "2026-07-09T18:49:59.001902972Z"
 		},
 		{
 			"function_name": "boxNetworkName",
-			"documentation_hash": "07067699396fb6ebc1f9a428f6abccad50b61d2668a139641e5917c2c5ff8e0e",
+			"documentation_hash": "9f9ed76b33aeb35d81255546ad6175765cf6290d54e8943b49cbc8a91c8cb8b5",
 			"definition_hash": "85b0424b05382023b765783df613bb336025b75828e71f11d0b6261b6f419e37",
-			"reviewed_at": "2026-06-30T16:10:22.313843976Z"
+			"reviewed_at": "2026-07-09T18:49:59.003075605Z"
 		},
 		{
 			"function_name": "setupBoxNetwork",
@@ -141,9 +141,9 @@
 		{
 			"function_name": "socketPath",
 			"receiver": "dockerInstance",
-			"documentation_hash": "18286e345a03254c47e4cfd403241891fc576de3ae6a79b9169616dec0f3e352",
+			"documentation_hash": "8fe87a107e1c35eba0ce799a59b22381a169de3ece4aa096591baf29e2b4e3bf",
 			"definition_hash": "527a5ea28b6723b1b559ef619a48ba96154664be1c36fd4091bcd411f3a6e15c",
-			"reviewed_at": "2026-06-30T16:10:22.353812725Z"
+			"reviewed_at": "2026-07-09T18:49:59.004518424Z"
 		},
 		{
 			"function_name": "Meta",
@@ -155,9 +155,9 @@
 		{
 			"function_name": "Control",
 			"receiver": "dockerInstance",
-			"documentation_hash": "76461bddf242411e3901afc14c2d0e564d43c7b11489dc9c7520670f821b5542",
+			"documentation_hash": "baac5cc28f5a9b875d07263363ffc5239462ed7ca17d46c59b7f682e478ac279",
 			"definition_hash": "28049f9c7998dc6ee75b819fe5cc2fd35276aedee8d81653fa025ae4f4dd16dc",
-			"reviewed_at": "2026-06-30T16:10:22.35599113Z"
+			"reviewed_at": "2026-07-09T18:49:59.005777812Z"
 		},
 		{
 			"function_name": "MarkReady",

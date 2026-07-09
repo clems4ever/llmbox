@@ -2,7 +2,7 @@
 
 llmbox can expose an HTTP server running **inside a box** to a human's browser,
 so a user can ask Claude to "start a dev server and let me see it" and get back a
-working URL. Proxies are **default-deny**: nothing is reachable until the agent
+working URL. Proxies are **default-deny**: nothing is reachable until the guest
 explicitly enables a proxy (over MCP or the admin UI).
 
 ## How it works

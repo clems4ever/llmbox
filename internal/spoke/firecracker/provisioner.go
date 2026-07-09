@@ -1,11 +1,11 @@
 // Package firecracker implements a box.Provisioner backed by Firecracker microVMs.
 // Each box is a microVM booting a shared guest kernel and a per-box copy of a
-// rootfs whose init is the llmbox guest agent listening on AF_VSOCK. The host
-// reaches the agent over the VM's vsock (control and port-proxy), exactly as the
-// Docker backend reaches its agent over a bind-mounted Unix socket — so all box
-// behaviour (login, exec, logs, dialing) runs through the agent, not through the
+// rootfs whose init is the llmbox guest listening on AF_VSOCK. The host
+// reaches the guest over the VM's vsock (control and port-proxy), exactly as the
+// Docker backend reaches its guest over a bind-mounted Unix socket — so all box
+// behaviour (login, exec, logs, dialing) runs through the guest, not through the
 // provisioner. Guest outbound traffic (egress) goes through a per-box TAP device
-// the host NATs; the agent is never in the egress path.
+// the host NATs; the guest is never in the egress path.
 //
 // Firecracker has no daemon that tracks boxes, so the provisioner persists each
 // box's metadata under a state directory and holds live machine handles in memory;
@@ -53,10 +53,10 @@ const (
 	// small to boot Linux.
 	minMemSizeMib = 128
 
-	// bootWait bounds how long Provision waits for the guest agent to answer on
+	// bootWait bounds how long Provision waits for the guest to answer on
 	// vsock after the VM starts.
 	bootWait = 45 * time.Second
-	// bootPoll is the interval between agent-reachability probes during bootWait.
+	// bootPoll is the interval between guest-reachability probes during bootWait.
 	bootPoll = 100 * time.Millisecond
 
 	// defaultPoolSize is the number of egress TAP slots provisioned at startup when
@@ -80,16 +80,16 @@ type machine interface {
 type machineFactory func(ctx context.Context, cfg fcsdk.Config) (machine, error)
 
 // Provisioner creates and tears down Firecracker microVM boxes and exposes each
-// box's agent over the VM's vsock. It implements box.Provisioner (plus Close).
+// box's guest over the VM's vsock. It implements box.Provisioner (plus Close).
 type Provisioner struct {
 	kernelImage   string
 	defaultRootfs string
 	// payloadImage is an optional host path to a small read-only ext4 carrying the
-	// guest agent (plus the claude binary and trust seed). When set, every box
+	// guest (plus the claude binary and trust seed). When set, every box
 	// attaches it as a second, shared, read-only drive (/dev/vdb) that the base
-	// rootfs's loader unit mounts and runs — so the agent can be updated by
+	// rootfs's loader unit mounts and runs — so the guest can be updated by
 	// swapping this tiny image without rebuilding the multi-GiB base rootfs. Empty
-	// keeps the legacy all-in-one layout where the agent is baked into the rootfs.
+	// keeps the legacy all-in-one layout where the guest is baked into the rootfs.
 	payloadImage   string
 	stateDir       string
 	firecrackerBin string
@@ -100,7 +100,7 @@ type Provisioner struct {
 	log            *slog.Logger
 	// netEnabled controls whether boxes get a TAP + NAT egress interface. When
 	// false, a box boots with only loopback and vsock (control-only / air-gapped):
-	// the agent is still reachable over vsock, but the guest has no outbound
+	// the guest is still reachable over vsock, but the guest has no outbound
 	// network. Egress setup needs CAP_NET_ADMIN, so this also allows booting boxes
 	// as an unprivileged user.
 	netEnabled bool
@@ -195,10 +195,10 @@ func (p *Provisioner) SetPoolSize(n int) {
 }
 
 // SetPayloadImage sets an optional host path to a read-only ext4 carrying the
-// guest agent (and claude + trust seed). When non-empty, every box boots with it
+// guest (and claude + trust seed). When non-empty, every box boots with it
 // attached as a shared read-only second drive (/dev/vdb) that the base rootfs's
-// loader unit mounts; this decouples the fast-changing agent from the slow,
-// multi-GiB base rootfs. Empty keeps the all-in-one rootfs (agent baked in).
+// loader unit mounts; this decouples the fast-changing guest from the slow,
+// multi-GiB base rootfs. Empty keeps the all-in-one rootfs (guest baked in).
 //
 // @arg path Host path to the payload ext4; empty disables the second drive.
 //
@@ -258,7 +258,7 @@ func (p *Provisioner) realMachineFactory(_ context.Context, cfg fcsdk.Config) (m
 	// Deliberately use the provisioner's lifetime context, NOT the passed (request)
 	// context: exec.CommandContext kills the firecracker process when its context is
 	// done, and the box must outlive the create request so later operations (submit
-	// code, exec, logs) still reach its agent. StopVMM / Close stop it explicitly.
+	// code, exec, logs) still reach its guest. StopVMM / Close stop it explicitly.
 	logger := logrus.NewEntry(logrus.New())
 	cmd := fcsdk.VMCommandBuilder{}.WithSocketPath(cfg.SocketPath).WithBin(p.firecrackerBin).Build(p.procCtx)
 	return fcsdk.NewMachine(p.procCtx, cfg, fcsdk.WithProcessRunner(cmd), fcsdk.WithLogger(logger))
@@ -267,12 +267,12 @@ func (p *Provisioner) realMachineFactory(_ context.Context, cfg fcsdk.Config) (m
 // Provision boots a new microVM box: it copies the rootfs, attaches the shared
 // read-only payload drive when one is configured, assigns a pooled TAP for egress,
 // boots the VM with the guest kernel and a vsock device, and waits for the guest
-// agent to answer on vsock. The box is created in the pending phase.
+// guest to answer on vsock. The box is created in the pending phase.
 //
-// @arg ctx Context for the boot and the agent wait.
+// @arg ctx Context for the boot and the guest wait.
 // @arg opts The caller-controlled box ID, description, and files (the rootfs is the spoke's configured default).
 // @return box.Instance A handle to the booted box, in the pending phase.
-// @error error if the box id is invalid, the kernel/rootfs is missing, the egress pool cannot be provisioned, or the VM cannot be prepared, booted, or its agent does not answer.
+// @error error if the box id is invalid, the kernel/rootfs is missing, the egress pool cannot be provisioned, or the VM cannot be prepared, booted, or its guest does not answer.
 //
 // @testcase TestProvisionerBookkeeping provisions a box with a fake machine and finds it back.
 // @testcase TestProvisionCleansUpOnBootFailure cleans up files and the slot index when boot fails.
@@ -355,7 +355,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	// only when egress networking is enabled; a control-only box boots with just
 	// loopback and vsock. net.ifnames=0 keeps the NIC named eth0 (so the ip= arg
 	// and a systemd guest's network config agree); init=/init lets a rootfs point
-	// /init at its real init (systemd, or the agent directly).
+	// /init at its real init (systemd, or the guest directly).
 	kernelArgs := "console=ttyS0 reboot=k panic=1 pci=off net.ifnames=0 init=/init"
 	if p.netEnabled {
 		kernelArgs += " " + n.kernelIPArg()
@@ -363,7 +363,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 
 	// The root drive is a per-box writable copy of the rootfs. When a payload image
 	// is configured, it rides along as a second, read-only drive (/dev/vdb) shared
-	// unchanged across every box — never copied — which is what lets the agent be
+	// unchanged across every box — never copied — which is what lets the guest be
 	// swapped without rebuilding the base rootfs and keeps concurrent boxes sharing
 	// one on-disk payload.
 	drives := []models.Drive{{
@@ -410,14 +410,14 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	// Start on the provisioner's lifetime context, not the request context: the SDK
 	// spawns a goroutine that calls StopVMM when the Start context is done, so
 	// starting on the request context would kill the VM the moment create returns.
-	// The agent wait below still honours the request context for its own timeout.
+	// The guest wait below still honours the request context for its own timeout.
 	if err := m.Start(p.procCtx); err != nil {
 		cleanup(m)
 		return nil, fmt.Errorf("starting microVM: %w", err)
 	}
-	if err := waitForAgent(ctx, vsockUDS, agentVsockPort, bootWait); err != nil {
+	if err := waitForGuest(ctx, vsockUDS, guestVsockPort, bootWait); err != nil {
 		cleanup(m)
-		return nil, fmt.Errorf("waiting for box agent: %w", err)
+		return nil, fmt.Errorf("waiting for box guest: %w", err)
 	}
 
 	meta := boxMeta{
@@ -619,18 +619,18 @@ func copyFile(src, dst string) error {
 	return out.Close()
 }
 
-// waitForAgent polls the box's vsock until the guest agent accepts a CONNECT (it is
+// waitForGuest polls the box's vsock until the guest accepts a CONNECT (it is
 // listening) or the timeout elapses. A successful probe is closed immediately; the
 // caller opens its own control connections afterwards.
 //
 // @arg ctx Context whose cancellation aborts the wait.
 // @arg udsPath The box's Firecracker vsock Unix-socket path.
-// @arg port The guest agent's AF_VSOCK port.
+// @arg port The guest's AF_VSOCK port.
 // @arg timeout How long to wait before giving up.
-// @error error if the agent does not answer before the timeout or ctx is cancelled.
+// @error error if the guest does not answer before the timeout or ctx is cancelled.
 //
-// @testcase TestWaitForAgent succeeds once a fake vsock accepts the CONNECT.
-func waitForAgent(ctx context.Context, udsPath string, port uint32, timeout time.Duration) error {
+// @testcase TestWaitForGuest succeeds once a fake vsock accepts the CONNECT.
+func waitForGuest(ctx context.Context, udsPath string, port uint32, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for {
 		probeCtx, cancel := context.WithTimeout(ctx, bootPoll)
@@ -641,7 +641,7 @@ func waitForAgent(ctx context.Context, udsPath string, port uint32, timeout time
 			return nil
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("box agent did not answer on vsock within %s: %w", timeout, err)
+			return fmt.Errorf("box guest did not answer on vsock within %s: %w", timeout, err)
 		}
 		select {
 		case <-ctx.Done():
@@ -682,16 +682,16 @@ func (i *fcInstance) Meta() sandbox.Box {
 	return i.meta.toBox(state)
 }
 
-// Control opens a control connection to the box's agent over the VM's vsock,
+// Control opens a control connection to the box's guest over the VM's vsock,
 // performing Firecracker's CONNECT handshake.
 //
 // @arg ctx Context for the dial and handshake.
-// @return net.Conn A control connection to the box's agent.
+// @return net.Conn A control connection to the box's guest.
 // @error error if the vsock cannot be dialled or the handshake fails.
 //
-// @testcase TestConformanceFirecracker drives the agent through Control.
+// @testcase TestConformanceFirecracker drives the guest through Control.
 func (i *fcInstance) Control(ctx context.Context) (net.Conn, error) {
-	return dialVsock(ctx, i.vsockUDS, agentVsockPort)
+	return dialVsock(ctx, i.vsockUDS, guestVsockPort)
 }
 
 // MarkReady moves the box from the pending phase to ready and persists the change,

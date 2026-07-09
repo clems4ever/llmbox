@@ -31,15 +31,15 @@
 			"function_name": "realMachineFactory",
 			"receiver": "Provisioner",
 			"documentation_hash": "e47b8cbc70a0d05a17c0db4fa5723387feabb9e16e22e9e21d0dbea9dfffb7e5",
-			"definition_hash": "c80f3bacc34f5465b5847ba06d7a518b74eec99331d9146351221d730bd84366",
-			"reviewed_at": "2026-07-06T08:23:15.58973552Z"
+			"definition_hash": "2b1709bd4666088cb62a84ecae0783e8feed3e1a974a35e0055d4059f604ecb3",
+			"reviewed_at": "2026-07-09T18:49:59.016290462Z"
 		},
 		{
 			"function_name": "Provision",
 			"receiver": "Provisioner",
-			"documentation_hash": "c15f44fc2c241a0b66662f86ea2b58ae939dd2464d06c918891ffbc3d2657151",
-			"definition_hash": "7e62c40efb7e87476e6ff9a6df85f68dd74f98ec4bd63e6bcc410670d20837e8",
-			"reviewed_at": "2026-07-08T14:50:26.496699183Z"
+			"documentation_hash": "84e870a2cce437f633580a552dcc74c63e357a78ede5bf564e80983412a7d6f3",
+			"definition_hash": "74e03e12d905459103fc8b318a039b6ed1431c375265a1d1dc73479f8cb18867",
+			"reviewed_at": "2026-07-09T18:49:59.017329698Z"
 		},
 		{
 			"function_name": "List",
@@ -102,12 +102,6 @@
 			"reviewed_at": "2026-07-04T20:24:29.482320579Z"
 		},
 		{
-			"function_name": "waitForAgent",
-			"documentation_hash": "e2f648dbc3c4346282fa33c1d8650c9141c23c41c34ad4258692631c673a0fb0",
-			"definition_hash": "3552c210100b203cb286d8f3e326ec06995d45896c5c0d65bb5ecb997d6d0094",
-			"reviewed_at": "2026-07-04T20:24:29.483539237Z"
-		},
-		{
 			"function_name": "Meta",
 			"receiver": "fcInstance",
 			"documentation_hash": "4aee1718ffea7a29bdc0f52cc80ac1a7b6cc79d15db37ac17077065fe5314d80",
@@ -117,9 +111,9 @@
 		{
 			"function_name": "Control",
 			"receiver": "fcInstance",
-			"documentation_hash": "74495bb1e72a168cb2ea5b67fdaba13557b86dfcdc3266b2ad97d0965d151c0e",
-			"definition_hash": "8d90c2fdbe896b58aaa1c663d282ffd4c829df3ea736baddcb7a3d507ec25ead",
-			"reviewed_at": "2026-07-04T20:24:29.486186448Z"
+			"documentation_hash": "0296e00934e1c0d893e19fbdc98fb30de0d7e0665e14e5aa3e3c1a258e5a323d",
+			"definition_hash": "669687374385d38a5217688edca5b9facd94462384701fcc8400dacd242a3479",
+			"reviewed_at": "2026-07-09T18:49:59.019186832Z"
 		},
 		{
 			"function_name": "MarkReady",
@@ -152,9 +146,15 @@
 		{
 			"function_name": "SetPayloadImage",
 			"receiver": "Provisioner",
-			"documentation_hash": "ccb208cf3a2762de2e3653970b2ea8beeccd5eb397c8d972e32b420f3525bca4",
+			"documentation_hash": "bffbe30b028d9964b4ab3340bb31a55c658d24f40ffc04fe39178cf66bb2c624",
 			"definition_hash": "aebdee73ac97c7f6c245d333fcfe0d99d9ed49a32a55796e90225c031b156923",
-			"reviewed_at": "2026-07-07T10:38:54.035920223Z"
+			"reviewed_at": "2026-07-09T18:49:59.01548595Z"
+		},
+		{
+			"function_name": "waitForGuest",
+			"documentation_hash": "1a8235f6138e8aff363392b2a80dbb62394065f5510e2e6eddfdeffb591bb56d",
+			"definition_hash": "c1ae46648d8eebfe87bff606b78adca03714f9cef4d5f4c6333772a121d1cbda",
+			"reviewed_at": "2026-07-09T18:49:59.018274248Z"
 		}
 	]
 }
