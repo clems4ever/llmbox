@@ -10,8 +10,8 @@
 			"function_name": "requireAPIAuth",
 			"receiver": "Server",
 			"documentation_hash": "3f3101eeed57efed7ad0a7f80ae378f438bd192545137bb4a4ee97b13cfd6112",
-			"definition_hash": "5b7df6d27b228c01e4925ccc1f0981153086bb2bd33908751f9f940f3014d071",
-			"reviewed_at": "2026-07-08T12:59:26.488829655Z"
+			"definition_hash": "4326bc395708223aa185025eb09f772ad016fc0d4e47d5351f3d33cc2f6e7d0e",
+			"reviewed_at": "2026-07-09T18:10:52.494997908Z"
 		},
 		{
 			"function_name": "bearerToken",
@@ -29,8 +29,8 @@
 			"function_name": "handleMe",
 			"receiver": "Server",
 			"documentation_hash": "3e5b302ffad2bb04cb81e3cd8bb5b2090aaad8984aae9fd31ac4089107c0e794",
-			"definition_hash": "ea8cfddb25467b5c0ec9c7c47be66b3094d48fb902e22b998eab62a876401ba6",
-			"reviewed_at": "2026-07-08T12:59:26.499903466Z"
+			"definition_hash": "a918435ed563191f042be8d42181a64270a2978e3bed526137cd4320f142568d",
+			"reviewed_at": "2026-07-09T18:10:52.495240328Z"
 		}
 	]
 }

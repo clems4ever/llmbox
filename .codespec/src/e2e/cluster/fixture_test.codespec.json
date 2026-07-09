@@ -11,8 +11,8 @@
 			"function_name": "signInAdmin",
 			"receiver": "clusterFixture",
 			"documentation_hash": "80873c964cec1f07768788b530a0527bd797d47f16e793eee935874bdcb2826a",
-			"definition_hash": "f1f227306b0ce08ea8aeaba5b3ce2fd9278e0c6efec1bbede26a1df84f4e5edb",
-			"reviewed_at": "2026-06-27T11:22:57.131089162Z"
+			"definition_hash": "3f3c493e06829aad0a4a3065e67d8b34b04f900da086b701f8a5e16dea909f7c",
+			"reviewed_at": "2026-07-09T18:10:52.49384691Z"
 		},
 		{
 			"function_name": "waitSpokeConnected",

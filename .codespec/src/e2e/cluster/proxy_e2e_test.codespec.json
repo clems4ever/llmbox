@@ -3,14 +3,14 @@
 		{
 			"function_name": "TestProxyThroughSpoke",
 			"documentation_hash": "e1742f59e9f547d1aa8dd17efbfb389991a41a30f1e429ee7f56aa5643b0890f",
-			"definition_hash": "45fe25b11f8b811513b32a1059e556c73ee2d8c25bfc2b723f24f960ae261dd9",
-			"reviewed_at": "2026-07-07T08:15:52.54552237Z"
+			"definition_hash": "fbbca236b109d59931442ca5f5c51588f1d881a18ed6238186d7f89eee8500fa",
+			"reviewed_at": "2026-07-09T18:10:52.494186522Z"
 		},
 		{
 			"function_name": "TestWebSocketProxyThroughSpoke",
 			"documentation_hash": "e1acb352f32f254f5c6207ac97dedc6e5b40800c9e5fb0cbbead7dc1fa700194",
-			"definition_hash": "61ec0ed639a9026676e1fd5e0c654e9996b3310bef713b1b1816b8fcb80508cf",
-			"reviewed_at": "2026-07-07T09:45:45.276964774Z"
+			"definition_hash": "8ac669804cfe14671aedad9ae17fae1cfcb9b2ac9325e4d1a8e502efacc048a7",
+			"reviewed_at": "2026-07-09T18:10:52.494434212Z"
 		}
 	]
 }

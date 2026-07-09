@@ -96,7 +96,7 @@ func TestActivationGatedByLogin(t *testing.T) {
 	}
 
 	// Seed a login session (authorized to activate) and post with the right CSRF.
-	if err := st.SaveLoginSession("SID", LoginSession{Email: "alice@corp.com", CSRF: "CSRF", ExpiresAt: time.Now().Add(time.Hour), Activate: true}); err != nil {
+	if err := st.PutIdentitySession("SID", IdentitySession{Email: "alice@corp.com", CSRFToken: "CSRF", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true}); err != nil {
 		t.Fatal(err)
 	}
 	cookie := &http.Cookie{Name: auth.LoginCookie, Value: "SID"}

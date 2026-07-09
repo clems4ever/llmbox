@@ -1,8 +1,8 @@
-// Package store persists llmbox's durable state — the auth-session registry, the
-// activation login state, and the cluster enrollment records — behind a small set
-// of interfaces. SQLite is the only implementation today (see Open), but the
-// interfaces are deliberately backend-agnostic so another engine (Postgres, …)
-// can be added without touching the server.
+// Package store persists llmbox's durable state — the box registry, the identity
+// (activation login) state, the cluster enrollment records, API keys, and hub-wide
+// settings — behind a small set of interfaces. SQLite is the only implementation
+// today (see Open), but the interfaces are deliberately backend-agnostic so another
+// engine (Postgres, …) can be added without touching the server.
 package store
 
 import (
@@ -12,81 +12,104 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 )
 
-// LoginSession is a completed activation login, keyed in the store by an opaque
-// random session ID (the value of the browser cookie). Its presence means the
-// user authenticated and was authorized; CSRF guards the activation POST.
-type LoginSession struct {
-	Email     string    `json:"email"`
-	Provider  string    `json:"provider"`
-	CSRF      string    `json:"csrf"`
-	ExpiresAt time.Time `json:"expires_at"`
+// Lifecycle is a box's authoritative runtime state as the hub records it. It is
+// the hub's own view, distinct from the backend's observed state (see
+// Box.ObservedState): a box is either believed to exist (LifecycleRunning) or
+// confirmed gone from its spoke (LifecycleTerminated — a tombstone kept so the UI
+// can show what happened until the record is removed). "Unreachable" is
+// deliberately NOT a Lifecycle value: it is a live property (is the box's spoke
+// connected right now?) computed at read time, so it can never go stale.
+type Lifecycle string
 
-	// Activate reports whether this identity may activate boxes (i.e. it passed
-	// the provider's box-activation allow rule). Admin reports whether it may use
-	// the admin UI. The two capabilities are independent and both decided once at
-	// sign-in, so each surface can enforce its own gate from the stored session.
-	Activate bool `json:"activate"`
-	Admin    bool `json:"admin"`
-}
-
-// LoginFlow is the short-lived state of an in-flight OIDC handshake, keyed in the
-// store by the OAuth state parameter. It is consumed (deleted) on callback.
-type LoginFlow struct {
-	Provider    string    `json:"provider"`
-	ReturnToken string    `json:"return_token"`
-	ReturnTo    string    `json:"return_to"`
-	Nonce       string    `json:"nonce"`
-	Verifier    string    `json:"verifier"`
-	ExpiresAt   time.Time `json:"expires_at"`
-}
-
-// Box runtime states persisted per session. The hub's record of a box is either
-// alive as far as anyone knows (running) or confirmed gone from its spoke
-// (terminated — a tombstone kept so the UI can show what happened until the
-// record is removed). "Unreachable" is deliberately NOT a stored state: it is a
-// live property (is the box's spoke connected right now?) computed at read time,
-// so it can never go stale in the store.
 const (
-	// BoxStateRunning marks a box believed to exist on its spoke. Legacy rows
-	// persisted before this field existed decode as running.
-	BoxStateRunning = "running"
-	// BoxStateTerminated marks a box confirmed absent from its (reachable) spoke:
+	// LifecycleRunning marks a box believed to exist on its spoke.
+	LifecycleRunning Lifecycle = "running"
+	// LifecycleTerminated marks a box confirmed absent from its (reachable) spoke:
 	// it exited or was removed out of band. The record is kept as a tombstone.
-	BoxStateTerminated = "terminated"
+	LifecycleTerminated Lifecycle = "terminated"
 )
 
-// PersistedSession is the on-disk form of a box's auth session. It mirrors the
-// durable fields of the server's live session so the registry survives a restart.
-type PersistedSession struct {
-	Token        string            `json:"token"`
-	ContainerID  string            `json:"container_id"`
-	AuthorizeURL string            `json:"authorize_url"`
-	CreatedAt    time.Time         `json:"created_at"`
-	HookState    map[string]string `json:"hook_state,omitempty"`
-	BoxID        string            `json:"box_id,omitempty"`
-	Description  string            `json:"description,omitempty"`
-	SpokeName    string            `json:"spoke_name,omitempty"`
-	Status       string            `json:"status"`
-	SessionURL   string            `json:"session_url,omitempty"`
-	Err          string            `json:"err,omitempty"`
-	ActivatedBy  string            `json:"activated_by,omitempty"`
+// Box is the persisted form of one box: its stable identity, where it runs, the
+// auth handshake that activates it, its hub-recorded lifecycle, and the backend
+// facts last observed for it. It is keyed in the store by its Token (the box's
+// bearer credential to the hub), because a box ID is unique only per spoke while
+// the token is globally unique. Fields grouped by concern:
+//
+//   - identity/placement: Token, InstanceID, BoxID, Spoke, Owner, Description.
+//   - activation handshake: AuthorizeURL, SessionURL, Status, LastError, HookState.
+//   - hub lifecycle: Lifecycle, CreatedAt.
+//   - last-observed backend facts (Observed*): what the sync pass last saw on the
+//     spoke, stored so the record renders in full while its spoke is offline.
+type Box struct {
+	// Token is the box's bearer credential to the hub and the store key.
+	Token string `json:"token"`
+	// InstanceID is the backend generation the box currently runs as (its
+	// container/microVM id). A box destroyed and recreated with the same BoxID
+	// gets a new InstanceID, so it pins a record to one generation.
+	InstanceID string `json:"instance_id"`
+	// BoxID is the caller-assigned logical id, unique per spoke.
+	BoxID string `json:"box_id,omitempty"`
+	// Spoke is the cluster spoke the box runs on.
+	Spoke string `json:"spoke,omitempty"`
+	// Owner is the identity (email) that activated the box, when auth is enabled.
+	Owner string `json:"owner,omitempty"`
+	// Description is the caller-supplied human note.
+	Description string `json:"description,omitempty"`
 
-	// BoxState is the box's observed runtime state: BoxStateRunning or
-	// BoxStateTerminated. An empty value (a row written by an older build)
-	// means running.
-	BoxState string `json:"box_state,omitempty"`
-	// LastSeen is when the box was last observed on its spoke by the hub's sync
-	// pass (zero when never observed since this field was introduced). It lets
-	// the UI say "last seen 5m ago" for a box whose spoke is offline.
-	LastSeen time.Time `json:"last_seen,omitempty"`
-	// Name, Image, and InstanceState mirror the box's backend metadata (the
-	// instance name, the image or rootfs it runs, and the backend state such as
-	// "running" or "exited") as last observed by the sync pass. They are stored
-	// so the record can be rendered in full — including in the UI — while the
-	// box's spoke is offline.
-	Name          string `json:"name,omitempty"`
-	Image         string `json:"image,omitempty"`
-	InstanceState string `json:"instance_state,omitempty"`
+	// AuthorizeURL is the provider authorize URL the box is activated against.
+	AuthorizeURL string `json:"authorize_url"`
+	// SessionURL is the remote-control session URL, set once the box is ready.
+	SessionURL string `json:"session_url,omitempty"`
+	// Status is the activation-handshake status: "pending" | "ready" | "error".
+	Status string `json:"status"`
+	// LastError is the activation error detail, set when Status is "error".
+	LastError string `json:"last_error,omitempty"`
+	// HookState is the opaque per-hook state returned by the box.create hooks,
+	// replayed to box.destroy. It is the one field without a natural columnar
+	// shape, so it is held as JSON text.
+	HookState map[string]string `json:"hook_state,omitempty"`
+
+	// Lifecycle is the hub's authoritative runtime state for the box.
+	Lifecycle Lifecycle `json:"lifecycle,omitempty"`
+	// CreatedAt is when the box was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// ObservedName, ObservedImage, and ObservedState mirror the backend metadata
+	// (instance name, image/rootfs, and backend state such as "running"/"exited")
+	// as last seen by the sync pass. ObservedAt is when that observation was made
+	// (zero when the box has never been observed).
+	ObservedName  string    `json:"observed_name,omitempty"`
+	ObservedImage string    `json:"observed_image,omitempty"`
+	ObservedState string    `json:"observed_state,omitempty"`
+	ObservedAt    time.Time `json:"observed_at,omitempty"`
+}
+
+// IdentitySession is a completed sign-in, keyed in the store by an opaque random
+// session ID (the value of the browser cookie). Its presence means the user
+// authenticated and was authorized; the CSRF token guards the activation POST.
+type IdentitySession struct {
+	Email     string    `json:"email"`
+	Provider  string    `json:"provider"`
+	CSRFToken string    `json:"csrf_token"`
+	ExpiresAt time.Time `json:"expires_at"`
+
+	// CanActivate reports whether this identity may activate boxes (it passed the
+	// provider's box-activation allow rule). CanAdmin reports whether it may use
+	// the admin UI. The two capabilities are independent and both decided once at
+	// sign-in, so each surface enforces its own gate from the stored session.
+	CanActivate bool `json:"can_activate"`
+	CanAdmin    bool `json:"can_admin"`
+}
+
+// OIDCFlow is the short-lived state of an in-flight OIDC handshake, keyed in the
+// store by the OAuth state parameter. It is consumed (deleted) on callback.
+type OIDCFlow struct {
+	Provider     string    `json:"provider"`
+	ReturnToken  string    `json:"return_token"`
+	ReturnTo     string    `json:"return_to"`
+	Nonce        string    `json:"nonce"`
+	PKCEVerifier string    `json:"pkce_verifier"`
+	ExpiresAt    time.Time `json:"expires_at"`
 }
 
 // ProxyRecord is the on-disk form of an enabled HTTP proxy: a stable, unguessable
@@ -99,39 +122,22 @@ type ProxyRecord struct {
 	Slug string `json:"slug"`
 	// BoxID is the box whose port is exposed (the caller-assigned box ID).
 	BoxID string `json:"box_id"`
-	// ContainerID is the container the proxy was created for. It pins the proxy to
-	// one box *generation*: a box destroyed and later recreated with the same box
-	// ID gets a different container, so a stale proxy is never silently reused for
-	// the new box (it is replaced, and reconciliation drops it).
-	ContainerID string `json:"container_id,omitempty"`
+	// InstanceID is the backend generation the proxy was created for. It pins the
+	// proxy to one box generation: a box destroyed and later recreated with the
+	// same box ID gets a different instance, so a stale proxy is never silently
+	// reused for the new box (it is replaced, and reconciliation drops it).
+	InstanceID string `json:"instance_id,omitempty"`
 	// Port is the TCP port inside the box that requests are forwarded to.
 	Port int `json:"port"`
 	// Spoke is the cluster spoke the box runs on.
 	Spoke string `json:"spoke,omitempty"`
 	// CreatedAt is when the proxy was enabled.
 	CreatedAt time.Time `json:"created_at"`
-	// CreatedBy is the identity (email) that enabled the proxy, when known (e.g.
-	// an admin acting through the UI); empty for proxies enabled over MCP.
-	CreatedBy string `json:"created_by,omitempty"`
-	// Description is an optional human-readable note about the proxy, supplied at
-	// creation. It is omitted from the on-disk JSON when empty, so records written
-	// before this field existed decode with an empty Description (backward compatible).
+	// Owner is the identity (email) that enabled the proxy, when known (e.g. an
+	// admin acting through the UI); empty for proxies enabled over MCP.
+	Owner string `json:"owner,omitempty"`
+	// Description is an optional human-readable note about the proxy.
 	Description string `json:"description,omitempty"`
-}
-
-// ProxyStore persists the enabled-proxy registry across restarts, keyed by the
-// proxy's slug. It is the store's own concern (separate from sessions, logins,
-// and cluster enrollment) so a backend can implement and test it in isolation.
-// All methods must be safe for concurrent use.
-type ProxyStore interface {
-	// SaveProxy writes (creating or replacing) one proxy keyed by its slug.
-	SaveProxy(rec ProxyRecord) error
-	// GetProxy returns the proxy for a slug; the bool is false when none matches.
-	GetProxy(slug string) (ProxyRecord, bool, error)
-	// ListProxies returns every enabled proxy.
-	ListProxies() ([]ProxyRecord, error)
-	// DeleteProxy removes the proxy for a slug; deleting a missing slug is a no-op.
-	DeleteProxy(slug string) error
 }
 
 // APIKeyRecord is the on-disk form of one API key: its human-readable name and
@@ -157,6 +163,52 @@ type APIKeyInfo struct {
 	ExpiresAt time.Time
 }
 
+// BoxStore persists the box registry across restarts. It is the store's own
+// concern (identities, cluster enrollment, and proxies are separate contracts),
+// so a backend can implement and test it in isolation. All methods must be safe
+// for concurrent use.
+type BoxStore interface {
+	// PutBox writes (creating or replacing) one box keyed by its token.
+	PutBox(b Box) error
+	// DeleteBox removes the box for a token; deleting a missing token is a no-op.
+	DeleteBox(token string) error
+	// ListBoxes returns every persisted box.
+	ListBoxes() ([]Box, error)
+}
+
+// IdentityStore persists the sign-in state across restarts: completed identity
+// sessions (keyed by an opaque cookie ID) and the short-lived in-flight OIDC
+// handshake state (keyed by the OAuth state parameter). All methods must be safe
+// for concurrent use.
+type IdentityStore interface {
+	// PutOIDCFlow stores the in-flight handshake state under the OAuth state key.
+	PutOIDCFlow(state string, f OIDCFlow) error
+	// TakeOIDCFlow returns and removes the flow for state (one-time use); the bool
+	// is false when no flow matches.
+	TakeOIDCFlow(state string) (OIDCFlow, bool, error)
+	// PutIdentitySession stores a completed identity session under its opaque id.
+	PutIdentitySession(id string, s IdentitySession) error
+	// GetIdentitySession returns the session for id; the bool is false when none matches.
+	GetIdentitySession(id string) (IdentitySession, bool, error)
+	// DeleteIdentitySession removes an identity session; deleting a missing id is a no-op.
+	DeleteIdentitySession(id string) error
+	// PurgeExpiredIdentities drops identity sessions and flows that expired before now.
+	PurgeExpiredIdentities(now time.Time) error
+}
+
+// ProxyStore persists the enabled-proxy registry across restarts, keyed by the
+// proxy's slug. All methods must be safe for concurrent use.
+type ProxyStore interface {
+	// SaveProxy writes (creating or replacing) one proxy keyed by its slug.
+	SaveProxy(rec ProxyRecord) error
+	// GetProxy returns the proxy for a slug; the bool is false when none matches.
+	GetProxy(slug string) (ProxyRecord, bool, error)
+	// ListProxies returns every enabled proxy.
+	ListProxies() ([]ProxyRecord, error)
+	// DeleteProxy removes the proxy for a slug; deleting a missing slug is a no-op.
+	DeleteProxy(slug string) error
+}
+
 // APIKeyStore persists the API keys that authenticate box-control API callers.
 // Keys are keyed by the SHA-256 hash of their secret, so the store never holds
 // a usable credential. All methods must be safe for concurrent use.
@@ -171,19 +223,6 @@ type APIKeyStore interface {
 	DeleteAPIKey(hash string) error
 }
 
-// SessionStore persists the box auth-session registry across restarts. It is the
-// store's own concern (logins and cluster enrollment are separate contracts), so
-// a backend can implement and test it in isolation. All methods must be safe for
-// concurrent use.
-type SessionStore interface {
-	// Save writes (creating or replacing) one session keyed by its token.
-	Save(ps PersistedSession) error
-	// Delete removes the session for a token; deleting a missing token is a no-op.
-	Delete(token string) error
-	// LoadAll returns every persisted session.
-	LoadAll() ([]PersistedSession, error)
-}
-
 // SettingsStore persists small hub-wide settings as opaque key/value strings
 // (e.g. the name of the default spoke an admin picked in the UI). It is a
 // deliberately generic key/value contract — one row per setting — so operator
@@ -196,37 +235,17 @@ type SettingsStore interface {
 	GetSetting(key string) (string, bool, error)
 }
 
-// Store is the aggregate persistence contract the server depends on: the session
-// registry, the activation login state, the cluster enrollment records, API
+// Store is the aggregate persistence contract the server depends on: the box
+// registry, the sign-in (identity) state, the cluster enrollment records, API
 // keys, and hub-wide settings, plus a Close that releases the backend. All
 // methods must be safe for concurrent use. Use Open for a SQLite-backed
 // implementation.
 type Store interface {
-	SessionStore
-	LoginStore
+	BoxStore
+	IdentityStore
 	ProxyStore
 	SettingsStore
 	APIKeyStore
 	cluster.Store
 	io.Closer
-}
-
-// LoginStore persists the activation login state across restarts: completed
-// login sessions (keyed by an opaque cookie ID) and the short-lived in-flight
-// OIDC handshake state (keyed by the OAuth state parameter). All methods must be
-// safe for concurrent use.
-type LoginStore interface {
-	// SaveLoginFlow stores the in-flight handshake state under the OAuth state key.
-	SaveLoginFlow(state string, f LoginFlow) error
-	// TakeLoginFlow returns and removes the flow for state (one-time use); the bool
-	// is false when no flow matches.
-	TakeLoginFlow(state string) (LoginFlow, bool, error)
-	// SaveLoginSession stores a completed login session under its opaque id.
-	SaveLoginSession(id string, s LoginSession) error
-	// LoginSession returns the session for id; the bool is false when none matches.
-	LoginSession(id string) (LoginSession, bool, error)
-	// DeleteLoginSession removes a login session; deleting a missing id is a no-op.
-	DeleteLoginSession(id string) error
-	// PurgeExpiredLogins drops login sessions and flows that expired before now.
-	PurgeExpiredLogins(now time.Time) error
 }

@@ -74,11 +74,11 @@ func (s *Server) requireAPIAuth(next http.Handler) http.Handler {
 		// no sign-in provider is configured; only API keys work then.
 		if s.auth != nil {
 			if ls, ok := s.auth.CurrentLogin(r); ok {
-				if !ls.Admin {
+				if !ls.CanAdmin {
 					writeJSONError(w, http.StatusForbidden, "not an administrator")
 					return
 				}
-				if subtle.ConstantTimeCompare([]byte(r.Header.Get(csrfHeader)), []byte(ls.CSRF)) != 1 {
+				if subtle.ConstantTimeCompare([]byte(r.Header.Get(csrfHeader)), []byte(ls.CSRFToken)) != 1 {
 					writeJSONError(w, http.StatusForbidden, "invalid or missing "+csrfHeader+" header")
 					return
 				}
@@ -157,5 +157,5 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// The CSRF token is per-session state; never let a cache serve it across users.
 	w.Header().Set("Cache-Control", "no-store")
-	_ = json.NewEncoder(w).Encode(meResponse{Email: ls.Email, Admin: ls.Admin, CSRF: ls.CSRF})
+	_ = json.NewEncoder(w).Encode(meResponse{Email: ls.Email, Admin: ls.CanAdmin, CSRF: ls.CSRFToken})
 }

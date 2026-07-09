@@ -28,9 +28,9 @@
 		{
 			"function_name": "Bind",
 			"receiver": "Authenticator",
-			"documentation_hash": "387edd93be6264336bf37ca3d7c68413590333f8ead6ef05f936b442cc7a11f2",
-			"definition_hash": "e5120ede602b2137cf82d5728581eaf323a33f47890745930fbb2f5d880ab172",
-			"reviewed_at": "2026-06-27T11:25:38.876997059Z"
+			"documentation_hash": "6c80ab3d8f0bd70674bac843a5e3ddfa998a938bfb23a0b0192711afae3d24ea",
+			"definition_hash": "f946a2138e935b9e472876aa902f9877c0e2696971362e55e04dbde5c99780ce",
+			"reviewed_at": "2026-07-09T18:10:52.495838902Z"
 		},
 		{
 			"function_name": "logger",
@@ -84,22 +84,22 @@
 			"function_name": "HandleLogin",
 			"receiver": "Authenticator",
 			"documentation_hash": "5acbf87aa92fcfb9df27c0bdc377e6c8bffc365e297a3e8433f1861fbee9e745",
-			"definition_hash": "590069004e54ce59ee0ba38df933019e3812229d16abf98cf9b15d4ac41201ae",
-			"reviewed_at": "2026-06-27T21:48:07.171021661Z"
+			"definition_hash": "08cb1af64a4688e3e2f6922e4dcb5d5dc4b95c1646479d28855783c20428aaeb",
+			"reviewed_at": "2026-07-09T18:10:52.496973521Z"
 		},
 		{
 			"function_name": "HandleCallback",
 			"receiver": "Authenticator",
-			"documentation_hash": "f0ef8e80ca8947b4993f6c043bc42ce4cde365b7feb46b9789a1ddf068efa7e4",
-			"definition_hash": "81c037db7cb3c319b589ee80d4fc5067f623a7acd7c8c4df2f405377d029c5a0",
-			"reviewed_at": "2026-06-27T17:02:38.49119582Z"
+			"documentation_hash": "22f5d7e0511738c161bd2324386ad2d346b217757252f54e8d6b104a83d2623f",
+			"definition_hash": "c4eaae248e2b7fe6a7de3ca7ca07097f76778a49849ae90042f5db82e641e670",
+			"reviewed_at": "2026-07-09T18:10:52.497794162Z"
 		},
 		{
 			"function_name": "CurrentLogin",
 			"receiver": "Authenticator",
-			"documentation_hash": "83dd76ee382bddac34b50d64cbc60185e285217e5073f51eea9fa162f460a863",
-			"definition_hash": "f42fcda96dc9fecbefa9fcc2fc3c713e3e520ff2b7cc6307a4412c358c68c764",
-			"reviewed_at": "2026-06-27T17:09:19.659835481Z"
+			"documentation_hash": "9453c214d08a0d7cea4bdeeda5e2e20ee1ad70fabcdf437180adc7174f6ef838",
+			"definition_hash": "febb697aef2d2524398e77ba7c4e11d2d0e6ed86438c916163f5c751caa43075",
+			"reviewed_at": "2026-07-09T18:10:52.498540117Z"
 		},
 		{
 			"function_name": "randToken",

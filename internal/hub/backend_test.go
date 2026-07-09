@@ -152,7 +152,7 @@ func TestCreateProxyRecordsPrincipal(t *testing.T) {
 	if err != nil || len(proxies) != 1 {
 		t.Fatalf("listProxies = %+v (%v)", proxies, err)
 	}
-	if proxies[0].CreatedBy != "admin@corp.com" {
-		t.Errorf("CreatedBy = %q, want the principal", proxies[0].CreatedBy)
+	if proxies[0].Owner != "admin@corp.com" {
+		t.Errorf("CreatedBy = %q, want the principal", proxies[0].Owner)
 	}
 }

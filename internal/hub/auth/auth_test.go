@@ -136,7 +136,7 @@ func TestProviderLoginRedirects(t *testing.T) {
 	if state == "" || loc.Query().Get("code_challenge") == "" {
 		t.Fatalf("missing state/PKCE in %q", loc.RawQuery)
 	}
-	flow, ok, err := st.TakeLoginFlow(state)
+	flow, ok, err := st.TakeOIDCFlow(state)
 	if err != nil || !ok {
 		t.Fatalf("flow not persisted for state: ok=%v err=%v", ok, err)
 	}
@@ -156,7 +156,7 @@ func TestProviderLoginReturnPath(t *testing.T) {
 		t.Fatalf("status = %d, want 302", rec.Code)
 	}
 	loc, _ := url.Parse(rec.Header().Get("Location"))
-	flow, ok, err := st.TakeLoginFlow(loc.Query().Get("state"))
+	flow, ok, err := st.TakeOIDCFlow(loc.Query().Get("state"))
 	if err != nil || !ok {
 		t.Fatalf("flow not persisted: ok=%v err=%v", ok, err)
 	}
@@ -170,7 +170,7 @@ func TestProviderLoginReturnPath(t *testing.T) {
 func TestProviderCallbackActivates(t *testing.T) {
 	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "alice@corp.com", EmailVerified: true}, nil))
 
-	if err := st.SaveLoginFlow("STATE", store.LoginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+	if err := st.PutOIDCFlow("STATE", store.OIDCFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -192,7 +192,7 @@ func TestProviderCallbackActivates(t *testing.T) {
 	if cookie == nil {
 		t.Fatal("no login cookie set")
 	}
-	ls, ok, err := st.LoginSession(cookie.Value)
+	ls, ok, err := st.GetIdentitySession(cookie.Value)
 	if err != nil || !ok {
 		t.Fatalf("login session not stored: ok=%v err=%v", ok, err)
 	}
@@ -206,7 +206,7 @@ func TestProviderCallbackActivates(t *testing.T) {
 func TestProviderCallbackRejectsUnauthorized(t *testing.T) {
 	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "mallory@evil.com", EmailVerified: true}, nil))
 
-	if err := st.SaveLoginFlow("STATE", store.LoginFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+	if err := st.PutOIDCFlow("STATE", store.OIDCFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 	rec := httptest.NewRecorder()
@@ -228,7 +228,7 @@ func TestProviderCallbackAdminOnly(t *testing.T) {
 	a, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "boss@admin.io", EmailVerified: true}, nil))
 	a.adminEmails = map[string]bool{"boss@admin.io": true}
 
-	if err := st.SaveLoginFlow("STATE", store.LoginFlow{Provider: "google", ReturnTo: "/admin", Nonce: "N", Verifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+	if err := st.PutOIDCFlow("STATE", store.OIDCFlow{Provider: "google", ReturnTo: "/admin", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 	rec := httptest.NewRecorder()
@@ -249,8 +249,8 @@ func TestProviderCallbackAdminOnly(t *testing.T) {
 	if cookie == nil {
 		t.Fatal("no login cookie set")
 	}
-	ls, ok, _ := st.LoginSession(cookie.Value)
-	if !ok || !ls.Admin || ls.Activate {
+	ls, ok, _ := st.GetIdentitySession(cookie.Value)
+	if !ok || !ls.CanAdmin || ls.CanActivate {
 		t.Errorf("session = %+v, want Admin=true Activate=false", ls)
 	}
 }
@@ -383,17 +383,17 @@ func TestCurrentLogin(t *testing.T) {
 	}
 
 	// A live session resolves via its cookie.
-	if err := st.SaveLoginSession("SID", store.LoginSession{Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), Activate: true}); err != nil {
+	if err := st.PutIdentitySession("SID", store.IdentitySession{Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true}); err != nil {
 		t.Fatal(err)
 	}
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: LoginCookie, Value: "SID"})
-	if ls, ok := a.CurrentLogin(req); !ok || ls.Email != "dev@corp.com" || !ls.Activate {
+	if ls, ok := a.CurrentLogin(req); !ok || ls.Email != "dev@corp.com" || !ls.CanActivate {
 		t.Errorf("CurrentLogin = (%+v, %v), want the signed-in session", ls, ok)
 	}
 
 	// An expired session is treated as not-signed-in.
-	if err := st.SaveLoginSession("OLD", store.LoginSession{Email: "x@corp.com", ExpiresAt: time.Now().Add(-time.Minute)}); err != nil {
+	if err := st.PutIdentitySession("OLD", store.IdentitySession{Email: "x@corp.com", ExpiresAt: time.Now().Add(-time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 	reqOld := httptest.NewRequest(http.MethodGet, "/", nil)

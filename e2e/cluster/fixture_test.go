@@ -105,11 +105,11 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 // token, so the fixture's admin requests are authorized.
 func (f *clusterFixture) signInAdmin() {
 	f.t.Helper()
-	if err := f.store.SaveLoginSession("SID", storepkg.LoginSession{
+	if err := f.store.PutIdentitySession("SID", storepkg.IdentitySession{
 		Email:     "admin@corp.com",
-		CSRF:      "CSRF",
+		CSRFToken: "CSRF",
 		ExpiresAt: time.Now().Add(time.Hour),
-		Admin:     true,
+		CanAdmin:  true,
 	}); err != nil {
 		f.t.Fatalf("save login session: %v", err)
 	}

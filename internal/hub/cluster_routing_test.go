@@ -402,10 +402,10 @@ func TestRestoreKeepsDisconnectedSpokeSessions(t *testing.T) {
 	_ = store.PutSpoke("offline", cluster.SpokeRecord{Name: "offline"})
 
 	// A dead session on a connected spoke and a session on a spoke that isn't connected.
-	if err := store.Save(persistedSession{Token: "dead-edge", ContainerID: "deadbeef", SpokeName: "edge", Status: "pending"}); err != nil {
+	if err := store.PutBox(boxRecord{Token: "dead-edge", InstanceID: "deadbeef", Spoke: "edge", Status: "pending"}); err != nil {
 		t.Fatalf("save: %v", err)
 	}
-	if err := store.Save(persistedSession{Token: "off-sess", ContainerID: "offcid", SpokeName: "offline", Status: "ready"}); err != nil {
+	if err := store.PutBox(boxRecord{Token: "off-sess", InstanceID: "offcid", Spoke: "offline", Status: "ready"}); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 

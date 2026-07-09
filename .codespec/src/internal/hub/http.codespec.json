@@ -11,8 +11,8 @@
 			"function_name": "handleAuthSubmit",
 			"receiver": "Server",
 			"documentation_hash": "40e09e0aeb47e4bf82920dbcad3fcbba27cbd720ceda68bf23e5fedb324138fa",
-			"definition_hash": "576c0d16f53716b1c6fa6422f3643a71d665f775e0c1f6da8249b34abfb778ca",
-			"reviewed_at": "2026-07-09T11:33:00.455739865Z"
+			"definition_hash": "02e01d8a93d1e3c426609f49ea88498bed91a97038310e3f8de3c4338cc4db23",
+			"reviewed_at": "2026-07-09T18:10:52.506345909Z"
 		},
 		{
 			"function_name": "APIHandler",
@@ -46,8 +46,8 @@
 			"function_name": "authStateFor",
 			"receiver": "Server",
 			"documentation_hash": "041c3e85d7f418b878c10ea96084205c619bafa6a3e2fdd117bf8459db51ca75",
-			"definition_hash": "020771517b9985a5d4a33a367fd29d04f5ff0c0200b117277060ed51e216a928",
-			"reviewed_at": "2026-07-09T11:33:00.455241935Z"
+			"definition_hash": "7061943f065255f051dc4abb00a6ff321173dd624f1e042c37582d77de744a66",
+			"reviewed_at": "2026-07-09T18:10:52.505825924Z"
 		},
 		{
 			"function_name": "providerButtons",

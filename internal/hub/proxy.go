@@ -169,7 +169,7 @@ func (s *Server) createProxy(boxID string, port int, createdBy, description stri
 		// over from an earlier box that happened to share this box ID points at a
 		// destroyed container, so it must not be handed back for the new box —
 		// delete it and mint a fresh slug instead.
-		if existing.ContainerID == sess.ContainerID {
+		if existing.InstanceID == sess.ContainerID {
 			return *existing, nil
 		}
 		if derr := s.store.DeleteProxy(existing.Slug); derr != nil {
@@ -183,11 +183,11 @@ func (s *Server) createProxy(boxID string, port int, createdBy, description stri
 	rec := store.ProxyRecord{
 		Slug:        slug,
 		BoxID:       boxID,
-		ContainerID: sess.ContainerID,
+		InstanceID:  sess.ContainerID,
 		Port:        port,
 		Spoke:       sess.SpokeName,
 		CreatedAt:   time.Now(),
-		CreatedBy:   createdBy,
+		Owner:       createdBy,
 		Description: description,
 	}
 	if err := s.store.SaveProxy(rec); err != nil {
@@ -353,7 +353,7 @@ func (s *Server) proxyAuthorized(r *http.Request) (bool, int) {
 	if !ok {
 		return false, http.StatusUnauthorized
 	}
-	if !ls.Activate {
+	if !ls.CanActivate {
 		return false, http.StatusForbidden
 	}
 	return true, 0
@@ -452,7 +452,7 @@ func (s *Server) boxTransport(mgr boxManager, rec store.ProxyRecord) (http.Round
 	// matches <box-id>".
 	return &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return dialer.DialBox(ctx, rec.ContainerID, rec.Port)
+			return dialer.DialBox(ctx, rec.InstanceID, rec.Port)
 		},
 		ResponseHeaderTimeout: 60 * time.Second,
 	}, true

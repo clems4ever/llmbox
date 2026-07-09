@@ -26,6 +26,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/hub/auth"
 	"github.com/clems4ever/llmbox/internal/hub/hooks"
+	"github.com/clems4ever/llmbox/internal/hub/store"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/docker"
@@ -139,67 +140,67 @@ func (s *session) snapshot() (status, sessionURL, errMsg string) {
 // persistLocked builds the on-disk form of the session. The caller must hold
 // s.mu, as it reads the mutable status fields.
 //
-// @return persistedSession A snapshot of the session's durable fields.
+// @return boxRecord A snapshot of the session's durable fields.
 //
 // @testcase TestCreateBoxPersistsSession persists a session built via persistLocked.
-func (s *session) persistLocked() persistedSession {
-	return persistedSession{
+func (s *session) persistLocked() boxRecord {
+	return boxRecord{
 		Token:         s.Token,
-		ContainerID:   s.ContainerID,
+		InstanceID:    s.ContainerID,
 		AuthorizeURL:  s.AuthorizeURL,
 		CreatedAt:     s.CreatedAt,
 		HookState:     s.HookState,
 		BoxID:         s.BoxID,
 		Description:   s.Description,
-		SpokeName:     s.SpokeName,
+		Spoke:         s.SpokeName,
 		Status:        s.Status,
 		SessionURL:    s.SessionURL,
-		Err:           s.Err,
-		ActivatedBy:   s.ActivatedBy,
-		BoxState:      s.BoxState,
-		LastSeen:      s.LastSeen,
-		Name:          s.Name,
-		Image:         s.Image,
-		InstanceState: s.InstanceState,
+		LastError:     s.Err,
+		Owner:         s.ActivatedBy,
+		Lifecycle:     store.Lifecycle(s.BoxState),
+		ObservedAt:    s.LastSeen,
+		ObservedName:  s.Name,
+		ObservedImage: s.Image,
+		ObservedState: s.InstanceState,
 	}
 }
 
 // persist builds the on-disk form of the session, taking the lock itself.
 //
-// @return persistedSession A snapshot of the session's durable fields.
+// @return boxRecord A snapshot of the session's durable fields.
 //
 // @testcase TestCreateBoxPersistsSession persists a freshly created session.
-func (s *session) persist() persistedSession {
+func (s *session) persist() boxRecord {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.persistLocked()
 }
 
-// sessionFromPersisted reconstructs a live session from its on-disk form.
+// sessionFromPersisted reconstructs a live session from its on-disk box record.
 //
-// @arg ps The persisted session to rehydrate.
+// @arg ps The box record to rehydrate.
 // @return *session A live session carrying the persisted fields.
 //
-// @testcase TestRestoreLoadsAndReconciles rehydrates sessions from the store.
-func sessionFromPersisted(ps persistedSession) *session {
+// @testcase TestRestoreLoadsWithoutSpokes rehydrates sessions from the store.
+func sessionFromPersisted(ps boxRecord) *session {
 	return &session{
 		Token:         ps.Token,
-		ContainerID:   ps.ContainerID,
+		ContainerID:   ps.InstanceID,
 		AuthorizeURL:  ps.AuthorizeURL,
 		CreatedAt:     ps.CreatedAt,
 		HookState:     ps.HookState,
 		BoxID:         ps.BoxID,
 		Description:   ps.Description,
-		SpokeName:     ps.SpokeName,
+		SpokeName:     ps.Spoke,
 		Status:        ps.Status,
 		SessionURL:    ps.SessionURL,
-		Err:           ps.Err,
-		ActivatedBy:   ps.ActivatedBy,
-		BoxState:      ps.BoxState,
-		LastSeen:      ps.LastSeen,
-		Name:          ps.Name,
-		Image:         ps.Image,
-		InstanceState: ps.InstanceState,
+		Err:           ps.LastError,
+		ActivatedBy:   ps.Owner,
+		BoxState:      string(ps.Lifecycle),
+		LastSeen:      ps.ObservedAt,
+		Name:          ps.ObservedName,
+		Image:         ps.ObservedImage,
+		InstanceState: ps.ObservedState,
 	}
 }
 
@@ -491,7 +492,7 @@ func (s *Server) spoke(name string) (boxManager, error) {
 //
 // @return map[string]boxManager The connected remote spokes, keyed by name.
 //
-// @testcase TestListFansOutAcrossSpokes aggregates boxes from every spoke.
+// @testcase TestReapFansOutAcrossSpokes fans a cluster-wide operation across every spoke.
 func (s *Server) allSpokes() map[string]boxManager {
 	out := map[string]boxManager{}
 	if s.hub != nil {
@@ -618,7 +619,7 @@ func (s *Server) SpokeStatuses(_ context.Context) ([]SpokeStatus, error) {
 // @testcase TestRestoreLoadsWithoutSpokes restores every record without contacting any spoke.
 // @testcase TestRestoreKeepsDisconnectedSpokeSessions keeps a session whose spoke is offline.
 func (s *Server) Restore() (int, error) {
-	saved, err := s.store.LoadAll()
+	saved, err := s.store.ListBoxes()
 	if err != nil {
 		return 0, fmt.Errorf("loading sessions: %w", err)
 	}
@@ -725,7 +726,7 @@ func (s *Server) syncSpokeInventory(spokeName string, boxes []sandbox.Box) {
 			sess.InstanceState = live.State
 			ps := sess.persistLocked()
 			sess.mu.Unlock()
-			if err := s.store.Save(ps); err != nil {
+			if err := s.store.PutBox(ps); err != nil {
 				s.logger().Warn("persisting synced box record", "box", ps.BoxID, "err", err)
 			}
 			continue
@@ -739,7 +740,7 @@ func (s *Server) syncSpokeInventory(spokeName string, boxes []sandbox.Box) {
 		sess.BoxState = boxStateTerminated
 		ps := sess.persistLocked()
 		sess.mu.Unlock()
-		if err := s.store.Save(ps); err != nil {
+		if err := s.store.PutBox(ps); err != nil {
 			s.logger().Warn("persisting terminated box record", "box", ps.BoxID, "err", err)
 		}
 		s.logger().Info("box gone from its spoke; record marked terminated", "box", ps.BoxID, "spoke", spokeName)
@@ -803,10 +804,10 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 		}
 		alive := false
 		for _, b := range boxes {
-			// Prefer the container ID (the exact box generation); fall back to box ID
-			// for a proxy persisted before container IDs were recorded.
-			if p.ContainerID != "" {
-				if strings.HasPrefix(p.ContainerID, b.InstanceID) {
+			// Prefer the instance ID (the exact box generation); fall back to box ID
+			// for a proxy persisted before instance IDs were recorded.
+			if p.InstanceID != "" {
+				if strings.HasPrefix(p.InstanceID, b.InstanceID) {
 					alive = true
 					break
 				}
@@ -928,7 +929,7 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	s.byToken[tok] = sess
 	s.mu.Unlock()
 	// Best-effort persist: a disk hiccup shouldn't fail an otherwise-good box.
-	if err := s.store.Save(sess.persist()); err != nil {
+	if err := s.store.PutBox(sess.persist()); err != nil {
 		s.logger().Warn("failed to persist new session", "box", sess.BoxID, "err", err)
 	}
 	// Recreating a dead box under its old ID replaces its tombstone: the
@@ -964,7 +965,7 @@ func (s *Server) dropTerminatedRecords(boxID, keepToken string) {
 	}
 	s.mu.Unlock()
 	for _, tok := range dropped {
-		if err := s.store.Delete(tok); err != nil {
+		if err := s.store.DeleteBox(tok); err != nil {
 			s.logger().Warn("failed to delete replaced tombstone record", "box", boxID, "err", err)
 		}
 	}
@@ -1138,7 +1139,7 @@ func (s *Server) submitCode(ctx context.Context, tok, code string) error {
 	ps := sess.persistLocked()
 	sess.mu.Unlock()
 	// Persist the new status so a restart sees the box as ready (or errored).
-	if serr := s.store.Save(ps); serr != nil {
+	if serr := s.store.PutBox(ps); serr != nil {
 		s.logger().Warn("failed to persist session status", "box", ps.BoxID, "err", serr)
 	}
 	return err
@@ -1150,17 +1151,17 @@ func (s *Server) submitCode(ctx context.Context, tok, code string) error {
 // the registry (the store's in-memory mirror), never from a live spoke, so the
 // listing works identically whether a spoke is connected or not.
 //
-// @return []persistedSession One snapshot per tracked session, newest first.
+// @return []boxRecord One snapshot per tracked session, newest first.
 //
 // @testcase TestListBoxesFromRecords lists every record without contacting a spoke.
-func (s *Server) boxRecords() []persistedSession {
+func (s *Server) boxRecords() []boxRecord {
 	s.mu.Lock()
 	sessions := make([]*session, 0, len(s.byToken))
 	for _, sess := range s.byToken {
 		sessions = append(sessions, sess)
 	}
 	s.mu.Unlock()
-	out := make([]persistedSession, 0, len(sessions))
+	out := make([]boxRecord, 0, len(sessions))
 	for _, sess := range sessions {
 		out = append(out, sess.persist())
 	}
@@ -1197,22 +1198,22 @@ func (s *Server) connectedSpokeSet() map[string]bool {
 // observable record shows the backend state the sync pass last recorded (e.g.
 // "running" or "exited", defaulting to "running" before the first sync).
 //
-// @arg ps The session record to render.
+// @arg ps The box record to render.
 // @arg connected The currently connected spoke names (see connectedSpokeSet).
 // @return sandbox.Box The record rendered as a box view.
 //
 // @testcase TestListBoxesFromRecords renders running records from their stored metadata.
 // @testcase TestListBoxesMarksUnreachable renders a disconnected spoke's record as unreachable.
 // @testcase TestSyncMarksVanishedBoxTerminated renders a vanished box as terminated.
-func (s *Server) boxFromRecord(ps persistedSession, connected map[string]bool) sandbox.Box {
-	spoke := s.resolveStoredSpoke(ps.SpokeName)
-	state := ps.InstanceState
+func (s *Server) boxFromRecord(ps boxRecord, connected map[string]bool) sandbox.Box {
+	spoke := s.resolveStoredSpoke(ps.Spoke)
+	state := ps.ObservedState
 	if state == "" {
 		state = boxStateRunning
 	}
 	status := state
 	switch {
-	case ps.BoxState == boxStateTerminated:
+	case ps.Lifecycle == store.LifecycleTerminated:
 		state = boxStateTerminated
 		status = "gone from its spoke"
 	case !connected[spoke]:
@@ -1220,20 +1221,20 @@ func (s *Server) boxFromRecord(ps persistedSession, connected map[string]bool) s
 		status = "spoke offline"
 	}
 	var lastSeen int64
-	if !ps.LastSeen.IsZero() {
-		lastSeen = ps.LastSeen.Unix()
+	if !ps.ObservedAt.IsZero() {
+		lastSeen = ps.ObservedAt.Unix()
 	}
 	phase := ps.Status
 	if phase == "" {
 		phase = "pending"
 	}
 	return sandbox.Box{
-		InstanceID:  shortInstanceID(ps.ContainerID),
-		Name:        ps.Name,
+		InstanceID:  shortInstanceID(ps.InstanceID),
+		Name:        ps.ObservedName,
 		BoxID:       ps.BoxID,
 		Description: ps.Description,
 		Spoke:       spoke,
-		Image:       ps.Image,
+		Image:       ps.ObservedImage,
 		State:       state,
 		Status:      status,
 		Phase:       phase,
@@ -1465,7 +1466,7 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 	s.mu.Unlock()
 	for _, tok := range dropped {
 		// The token is a secret (it's the auth URL), so it is never logged.
-		if err := s.store.Delete(tok); err != nil {
+		if err := s.store.DeleteBox(tok); err != nil {
 			s.logger().Warn("failed to delete session from store", "err", err)
 		}
 	}
@@ -1537,9 +1538,9 @@ func (s *Server) ReapLoop(ctx context.Context, every time.Duration, log func(str
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			// Housekeeping: drop expired login sessions/flows (expiry is also
+			// Housekeeping: drop expired identity sessions/OIDC flows (expiry is also
 			// enforced at read time, so this just bounds the buckets' growth).
-			if err := s.store.PurgeExpiredLogins(time.Now()); err != nil {
+			if err := s.store.PurgeExpiredIdentities(time.Now()); err != nil {
 				s.logger().Warn("purging expired login sessions", "err", err)
 			}
 			// Purge objects pinned to spokes that have disappeared (de-enrolled).
@@ -1613,7 +1614,7 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 	s.mu.Unlock()
 	for _, tok := range dropped {
 		// The token is a secret (it's the auth URL), so it is never logged.
-		if err := s.store.Delete(tok); err != nil {
+		if err := s.store.DeleteBox(tok); err != nil {
 			s.logger().Warn("failed to delete session from store", "err", err)
 		}
 	}

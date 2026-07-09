@@ -72,9 +72,9 @@ func newAdminServer(t *testing.T) (*hub.Server, *testutils.FakeMgr, hub.Store) {
 // @return *http.Cookie The login cookie naming the persisted session.
 func signIn(t *testing.T, st hub.Store, admin, activate bool) *http.Cookie {
 	t.Helper()
-	if err := st.SaveLoginSession("SID", store.LoginSession{
-		Email: "admin@corp.com", CSRF: "CSRF", ExpiresAt: time.Now().Add(time.Hour),
-		Admin: admin, Activate: activate,
+	if err := st.PutIdentitySession("SID", store.IdentitySession{
+		Email: "admin@corp.com", CSRFToken: "CSRF", ExpiresAt: time.Now().Add(time.Hour),
+		CanAdmin: admin, CanActivate: activate,
 	}); err != nil {
 		t.Fatal(err)
 	}

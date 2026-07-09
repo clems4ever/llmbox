@@ -121,10 +121,10 @@ type Authenticator struct {
 	// leaves the cookie host-only.
 	cookieDomain string
 
-	// store persists the in-flight handshake state and completed login sessions.
+	// store persists the in-flight handshake state and completed identity sessions.
 	// It is bound by the server (which owns the store) via Bind before serving;
 	// the OIDC handlers and CurrentLogin read and write it.
-	store store.LoginStore
+	store store.IdentityStore
 	// log records best-effort handler failures; nil falls back to slog.Default().
 	log *slog.Logger
 }
@@ -200,15 +200,15 @@ func NewTestAuthenticator(adminEmails ...string) *Authenticator {
 	}
 }
 
-// Bind attaches the login store (and an optional logger) the OIDC handlers and
+// Bind attaches the identity store (and an optional logger) the OIDC handlers and
 // CurrentLogin use. The server, which owns the store, calls it once at
 // construction before serving. It is a no-op on a nil Authenticator.
 //
-// @arg s The login store the handlers persist handshake and session state to.
+// @arg s The identity store the handlers persist handshake and session state to.
 // @arg log Optional logger for handler failures; nil falls back to slog.Default().
 //
 // @testcase TestProviderCallbackActivates exercises handlers backed by a bound store.
-func (a *Authenticator) Bind(s store.LoginStore, log *slog.Logger) {
+func (a *Authenticator) Bind(s store.IdentityStore, log *slog.Logger) {
 	if a == nil {
 		return
 	}
@@ -445,16 +445,16 @@ func (a *Authenticator) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	verifier := oauth2.GenerateVerifier()
-	flow := store.LoginFlow{
-		Provider:    p.name,
-		ReturnToken: token,
-		ReturnTo:    returnTo,
-		Nonce:       nonce,
-		Verifier:    verifier,
-		ExpiresAt:   time.Now().Add(flowTTL),
+	flow := store.OIDCFlow{
+		Provider:     p.name,
+		ReturnToken:  token,
+		ReturnTo:     returnTo,
+		Nonce:        nonce,
+		PKCEVerifier: verifier,
+		ExpiresAt:    time.Now().Add(flowTTL),
 	}
-	if err := a.store.SaveLoginFlow(state, flow); err != nil {
-		a.logger().Error("saving login flow", "err", err)
+	if err := a.store.PutOIDCFlow(state, flow); err != nil {
+		a.logger().Error("saving oidc flow", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -463,7 +463,7 @@ func (a *Authenticator) HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleCallback completes an OIDC handshake: it consumes the stored flow,
-// exchanges the code, verifies the ID token, and on success creates a login
+// exchanges the code, verifies the ID token, and on success creates an identity
 // session recording the identity's box-activation and admin capabilities, then
 // redirects to the flow's return target (a box auth page or the admin UI). It
 // rejects only an identity with neither capability.
@@ -485,9 +485,9 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sign-in was cancelled or failed: "+e, http.StatusBadRequest)
 		return
 	}
-	flow, ok, err := a.store.TakeLoginFlow(q.Get("state"))
+	flow, ok, err := a.store.TakeOIDCFlow(q.Get("state"))
 	if err != nil {
-		a.logger().Error("reading login flow", "err", err)
+		a.logger().Error("reading oidc flow", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -495,7 +495,7 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "your sign-in link expired or was already used; please start again", http.StatusBadRequest)
 		return
 	}
-	tok, err := p.oauth2.Exchange(r.Context(), q.Get("code"), oauth2.VerifierOption(flow.Verifier))
+	tok, err := p.oauth2.Exchange(r.Context(), q.Get("code"), oauth2.VerifierOption(flow.PKCEVerifier))
 	if err != nil {
 		a.logger().Warn("oidc code exchange failed", "provider", p.name, "err", err)
 		http.Error(w, "sign-in failed", http.StatusBadGateway)
@@ -533,15 +533,15 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	expires := time.Now().Add(a.sessionTTL)
-	if err := a.store.SaveLoginSession(id, store.LoginSession{
-		Email:     claims.Email,
-		Provider:  p.name,
-		CSRF:      csrf,
-		ExpiresAt: expires,
-		Activate:  canActivate,
-		Admin:     isAdmin,
+	if err := a.store.PutIdentitySession(id, store.IdentitySession{
+		Email:       claims.Email,
+		Provider:    p.name,
+		CSRFToken:   csrf,
+		ExpiresAt:   expires,
+		CanActivate: canActivate,
+		CanAdmin:    isAdmin,
 	}); err != nil {
-		a.logger().Error("saving login session", "err", err)
+		a.logger().Error("saving identity session", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -565,22 +565,22 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/auth/"+url.PathEscape(flow.ReturnToken), http.StatusFound)
 }
 
-// CurrentLogin returns the live, unexpired login session for the request's
+// CurrentLogin returns the live, unexpired identity session for the request's
 // cookie, or false when the visitor is not signed in.
 //
 // @arg r The incoming request (read for the login cookie).
-// @return store.LoginSession The signed-in session when present and unexpired.
-// @return bool True when a valid login session exists.
+// @return store.IdentitySession The signed-in session when present and unexpired.
+// @return bool True when a valid identity session exists.
 //
 // @testcase TestCurrentLogin resolves a live session by cookie and rejects missing or expired ones.
-func (a *Authenticator) CurrentLogin(r *http.Request) (store.LoginSession, bool) {
+func (a *Authenticator) CurrentLogin(r *http.Request) (store.IdentitySession, bool) {
 	c, err := r.Cookie(LoginCookie)
 	if err != nil {
-		return store.LoginSession{}, false
+		return store.IdentitySession{}, false
 	}
-	ls, ok, err := a.store.LoginSession(c.Value)
+	ls, ok, err := a.store.GetIdentitySession(c.Value)
 	if err != nil || !ok || time.Now().After(ls.ExpiresAt) {
-		return store.LoginSession{}, false
+		return store.IdentitySession{}, false
 	}
 	return ls, true
 }
