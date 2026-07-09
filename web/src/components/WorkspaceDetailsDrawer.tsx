@@ -95,7 +95,7 @@ function Metadata({ box }: { box: BoxView }): JSX.Element {
     <Stack gap="sm">
       {box.description && <Text size="sm">{box.description}</Text>}
       <SimpleGrid cols={2} spacing="sm" verticalSpacing="xs">
-        <Field label="Spoke" value={box.spoke || "—"} mono />
+        <Field label="Runner" value={box.spoke || "—"} mono />
         <Field label="Image" value={box.image} mono />
         <Field label="State" value={box.state} />
         <Field label="Created" value={createdAt(box.created) || "—"} />

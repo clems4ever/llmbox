@@ -64,9 +64,9 @@ export function WorkspacesView({
     const id = boxId(b);
     confirmDestroy({
       title: "Remove workspace",
-      message: `Remove workspace ${id}? This destroys the box and cannot be undone.`,
+      message: `Remove workspace ${id}? This destroys the workspace and cannot be undone.`,
       action: () => api.destroyBox(id),
-      success: `removed box ${id}`,
+      success: `removed workspace ${id}`,
       refresh,
     });
   };
@@ -77,7 +77,7 @@ export function WorkspacesView({
         <Box>
           <Title order={2}>Workspaces</Title>
           <Text c="dimmed" size="sm">
-            Isolated boxes running on your spokes. Select one to manage its HTTP proxies.
+            Isolated workspaces running on your runners. Select one to manage its HTTP proxies.
           </Text>
         </Box>
         <Group gap="sm">
@@ -155,7 +155,7 @@ function WorkspaceTable({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Workspace</Table.Th>
-              <Table.Th>Spoke</Table.Th>
+              <Table.Th>Runner</Table.Th>
               <Table.Th>Image</Table.Th>
               <Table.Th>State</Table.Th>
               <Table.Th>Phase</Table.Th>
@@ -275,7 +275,7 @@ function EmptyWorkspaces({ onCreate }: { onCreate: () => void }): JSX.Element {
       <Stack align="center" gap="sm">
         <Text fw={600}>No workspaces yet</Text>
         <Text c="dimmed" size="sm" ta="center">
-          Create your first workspace to spin up an isolated box on one of your spokes.
+          Create your first workspace to spin up an isolated environment on one of your runners.
         </Text>
         <Button leftSection={<IconPlus size={16} />} onClick={onCreate}>
           New workspace

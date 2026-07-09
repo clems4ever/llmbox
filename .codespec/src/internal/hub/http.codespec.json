@@ -11,8 +11,8 @@
 			"function_name": "handleAuthSubmit",
 			"receiver": "Server",
 			"documentation_hash": "f45e9f0d45ebd585cefa5df03feee1bf0a9a1c1c4621657abf03b9fd4661ff1e",
-			"definition_hash": "92007e47fdc8dd99dd12bec4d27c2820c98cbc88d2ed7fe5d0d2b4ce7a5fcebf",
-			"reviewed_at": "2026-06-27T11:23:54.520155661Z"
+			"definition_hash": "1faa9f34fae1d4f17f2286f9a377c569f11f713c9c54623a00e9560bb274ad51",
+			"reviewed_at": "2026-07-09T10:33:39.891117989Z"
 		},
 		{
 			"function_name": "render",

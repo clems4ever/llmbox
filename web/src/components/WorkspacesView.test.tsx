@@ -70,6 +70,6 @@ describe("WorkspacesView", () => {
     await user.click(within(dialog).getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(api.destroyBox).toHaveBeenCalledWith("alpha"));
     await waitFor(() => expect(refresh).toHaveBeenCalled());
-    expect(await screen.findByText("removed box alpha")).toBeInTheDocument();
+    expect(await screen.findByText("removed workspace alpha")).toBeInTheDocument();
   });
 });

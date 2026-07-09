@@ -1,7 +1,9 @@
-// InfrastructureView is the operator-facing screen: the spokes that host
-// workspaces, plus the outstanding join tokens that let new spokes enroll. It
-// offers make-default / drop on spokes and revoke on tokens, and hosts the
-// create-spoke modal. This is the "plumbing" behind the workspaces list.
+// InfrastructureView is the operator-facing screen: the runners that host
+// workspaces, plus the outstanding join tokens that let new runners enroll. It
+// offers make-default / drop on runners and revoke on tokens, and hosts the
+// create-runner modal. This is the "plumbing" behind the workspaces list.
+// ("Runner" is the UI name for what the architecture, CLI, and API call a
+// spoke — the llmbox-spoke agent that dials the hub.)
 import { useState } from "react";
 import {
   ActionIcon,
@@ -49,11 +51,11 @@ export function InfrastructureView({
         <Box>
           <Title order={2}>Infrastructure</Title>
           <Text c="dimmed" size="sm">
-            Spokes host your workspaces; join tokens let new spokes enroll.
+            Runners host your workspaces; join tokens let new runners enroll.
           </Text>
         </Box>
         <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateOpen(true)}>
-          New spoke
+          New runner
         </Button>
       </Group>
 
@@ -88,28 +90,28 @@ interface SpokesCardProps {
 function SpokesCard({ api, spokes, refresh }: SpokesCardProps): JSX.Element {
   const makeDefault = (name: string) =>
     void perform(() => api.setDefaultSpoke(name), {
-      success: `default spoke is now ${name}`,
+      success: `default runner is now ${name}`,
       onDone: refresh,
     });
 
   const drop = (name: string) =>
     confirmDestroy({
-      title: "Drop spoke",
-      message: `Drop spoke ${name} and kick its connection?`,
+      title: "Drop runner",
+      message: `Drop runner ${name} and kick its connection?`,
       confirmLabel: "Drop",
       action: () => api.dropSpoke(name),
-      success: `dropped spoke ${name}`,
+      success: `dropped runner ${name}`,
       refresh,
     });
 
   return (
     <Paper withBorder radius="md" id="spokes-card">
       <Group px="md" pt="md" pb="xs">
-        <Title order={4}>Spokes</Title>
+        <Title order={4}>Runners</Title>
       </Group>
       {spokes.length === 0 ? (
         <Text c="dimmed" size="sm" px="md" pb="md">
-          No spokes enrolled yet. Create one — it prints a command to run on the spoke host.
+          No runners enrolled yet. Create one — it prints a command to run on the runner host.
         </Text>
       ) : (
         <Table.ScrollContainer minWidth={560}>
@@ -154,7 +156,7 @@ function SpokesCard({ api, spokes, refresh }: SpokesCardProps): JSX.Element {
                           </ActionIcon>
                         </Tooltip>
                       )}
-                      <Tooltip label="Drop spoke">
+                      <Tooltip label="Drop runner">
                         <ActionIcon
                           variant="subtle"
                           color="red"
@@ -188,7 +190,7 @@ function TokensCard({ api, data, refresh }: TokensCardProps): JSX.Element {
   const revoke = (id: string) =>
     confirmDestroy({
       title: "Revoke join token",
-      message: "Revoke this join token? A spoke that hasn't enrolled yet can no longer use it.",
+      message: "Revoke this join token? A runner that hasn't enrolled yet can no longer use it.",
       confirmLabel: "Revoke",
       action: () => api.revokeJoinToken(id),
       success: "revoked join token",
@@ -205,7 +207,7 @@ function TokensCard({ api, data, refresh }: TokensCardProps): JSX.Element {
           <Table.Thead>
             <Table.Tr>
               <Table.Th>ID</Table.Th>
-              <Table.Th>Spoke</Table.Th>
+              <Table.Th>Runner</Table.Th>
               <Table.Th>Expires</Table.Th>
               <Table.Th />
             </Table.Tr>

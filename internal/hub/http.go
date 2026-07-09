@@ -176,11 +176,11 @@ func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 	if s.auth != nil {
 		ls, ok := s.auth.CurrentLogin(r)
 		if !ok {
-			http.Error(w, "Please sign in to activate this box.", http.StatusUnauthorized)
+			http.Error(w, "Please sign in to activate this workspace.", http.StatusUnauthorized)
 			return
 		}
 		if !ls.Activate {
-			http.Error(w, fmt.Sprintf("Signed in as %s, but that account is not authorized to activate boxes here.", ls.Email), http.StatusForbidden)
+			http.Error(w, fmt.Sprintf("Signed in as %s, but that account is not authorized to activate workspaces here.", ls.Email), http.StatusForbidden)
 			return
 		}
 		if subtle.ConstantTimeCompare([]byte(r.PostFormValue("csrf")), []byte(ls.CSRF)) != 1 {

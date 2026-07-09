@@ -25,7 +25,7 @@ describe("Dashboard", () => {
     const { user } = render(<Dashboard api={api} session={session} />);
     await screen.findAllByText("Workspaces");
     await user.click(screen.getByText("Infrastructure"));
-    expect(await screen.findByText("Spokes")).toBeInTheDocument();
+    expect(await screen.findByText("Runners")).toBeInTheDocument();
     expect(screen.getByText("edge-1")).toBeInTheDocument();
   });
 
