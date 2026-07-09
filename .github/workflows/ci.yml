@@ -55,6 +55,23 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the admin web app
+        # The dist under internal/hub/webdist is generated, not committed (only
+        # its .gitkeep is tracked), and the hub embeds + serves it — so it must
+        # exist before `go test` (TestAdminSPAServed) and before the binaries
+        # are compiled.
+        run: |
+          cd web
+          npm ci
+          npm run build
+
       - name: Vet
         run: go vet ./...
 
@@ -64,12 +81,18 @@ jobs:
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
 
-      - name: Refresh coverage badge on the PR branch
-        # Regenerate the badge from this PR's coverage and commit it onto the PR
-        # branch (so it lands in the PR diff and reaches main through the merge)
-        # rather than pushing straight to main, which the branch-protection
-        # ruleset forbids. The commit is made via the GraphQL API
-        # (commit-signed.sh) so GitHub signs it — the signed-commits ruleset
+      - name: Web unit tests with coverage
+        # The admin SPA (web/) has its own Vitest suite. Its line-coverage total
+        # drives the separate "ui coverage" badge below. --run is implied by the
+        # coverage script (vitest run --coverage).
+        run: cd web && npm run coverage
+
+      - name: Refresh coverage badges on the PR branch
+        # Regenerate the Go and UI coverage badges from this PR's coverage and
+        # commit them onto the PR branch (so they land in the PR diff and reach
+        # main through the merge) rather than pushing straight to main, which the
+        # branch-protection ruleset forbids. The commit is made via the GraphQL
+        # API (commit-signed.sh) so GitHub signs it — the signed-commits ruleset
         # rejects the unsigned commit a plain `git push` would produce here.
         # Same-repo PRs only: fork PRs get a read-only GITHUB_TOKEN and cannot
         # push. [skip ci] avoids re-triggering CI.
@@ -82,23 +105,32 @@ jobs:
           BRANCH: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/,"",$3); print $3}')
-          rounded=$(printf '%.0f' "$pct")
-          color=red
-          if   [ "$rounded" -ge 80 ]; then color=brightgreen
-          elif [ "$rounded" -ge 60 ]; then color=yellow
-          elif [ "$rounded" -ge 40 ]; then color=orange
-          fi
-          mkdir -p .github/badges
-          curl -fsSL "https://img.shields.io/badge/coverage-${pct}%25-${color}" -o .github/badges/coverage.svg
+          # Pick a shields.io colour from a rounded percentage.
+          badge_color() {
+            local r; r=$(printf '%.0f' "$1")
+            if   [ "$r" -ge 80 ]; then echo brightgreen
+            elif [ "$r" -ge 60 ]; then echo yellow
+            elif [ "$r" -ge 40 ]; then echo orange
+            else echo red
+            fi
+          }
+          gopct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/,"",$3); print $3}')
+          uipct=$(node -p "require('./web/coverage/coverage-summary.json').total.lines.pct")
 
-          if git diff --quiet -- .github/badges/coverage.svg; then
-            echo "coverage badge unchanged ($pct%)"
+          mkdir -p .github/badges
+          curl -fsSL "https://img.shields.io/badge/coverage-${gopct}%25-$(badge_color "$gopct")" \
+            -o .github/badges/coverage.svg
+          curl -fsSL "https://img.shields.io/badge/ui%20coverage-${uipct}%25-$(badge_color "$uipct")" \
+            -o .github/badges/ui-coverage.svg
+
+          changed=$(git status --porcelain -- .github/badges | awk '{print $NF}')
+          if [ -z "$changed" ]; then
+            echo "coverage badges unchanged (go ${gopct}%, ui ${uipct}%)"
             exit 0
           fi
           .github/scripts/commit-signed.sh \
-            "ci: update coverage badge (${pct}%) [skip ci]" \
-            .github/badges/coverage.svg >/dev/null
+            "ci: update coverage badges (go ${gopct}%, ui ${uipct}%) [skip ci]" \
+            $changed >/dev/null
 
   e2e:
     name: E2E (WebDriver)
@@ -118,6 +150,21 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the admin web app
+        # The browser tests drive the SPA the hub embeds from
+        # internal/hub/webdist, which is generated, not committed.
+        run: |
+          cd web
+          npm ci
+          npm run build
 
       - name: Set up Chrome and ChromeDriver
         id: setup-chrome

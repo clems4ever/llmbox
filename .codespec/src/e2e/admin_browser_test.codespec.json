@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "TestAdminRemoveBoxInBrowser",
-			"documentation_hash": "fddaa3bd07575e57d1d3fc6dc4f8810fa3a34cc60c24bd3daba14be026eda3f9",
-			"definition_hash": "94afa745406d1f11f0c12c0c50f9f5a83a6e728861338d6c9641466fe6bb39f3",
-			"reviewed_at": "2026-07-08T12:57:12.207621029Z"
+			"documentation_hash": "5480870697b039d202a005717b41584ebc809f0f5e4eb4b7e09e241facb859c5",
+			"definition_hash": "e7ae7756b6e3f7fd8617ad1e62054c0c669af6d73d790778a90ffa4d823a80cb",
+			"reviewed_at": "2026-07-08T22:14:46.021408707Z"
 		}
 	]
 }

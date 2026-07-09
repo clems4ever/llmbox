@@ -1,0 +1,279 @@
+// WorkspacesView is the primary screen: the list of workspaces (boxes) with a
+// table/grid view toggle, a "New workspace" action, and per-row Details/Remove.
+// Selecting a workspace opens its details drawer (owned by Dashboard); creating
+// one opens the modal. HTTP proxies are deliberately NOT shown here — they live
+// under each workspace's details, since a proxy only means something in the
+// context of the box it fronts.
+import { useState } from "react";
+import {
+  ActionIcon,
+  Anchor,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Group,
+  Paper,
+  SegmentedControl,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Table,
+  Text,
+  Title,
+  Tooltip,
+} from "@mantine/core";
+import {
+  IconExternalLink,
+  IconLayoutGrid,
+  IconLayoutList,
+  IconPlayerPlay,
+  IconPlus,
+  IconTrash,
+} from "@tabler/icons-react";
+import type { Api, BoxView } from "../api";
+import type { DashboardData } from "../lib/data";
+import { boxId, createdAt } from "../lib/format";
+import { confirmDestroy } from "../lib/confirm";
+import { StatusBadge } from "./StatusBadge";
+import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
+
+export type WorkspaceLayout = "table" | "grid";
+
+export interface WorkspacesViewProps {
+  api: Api;
+  data: DashboardData | null;
+  refresh: () => Promise<void>;
+  onSelect: (id: string) => void;
+}
+
+/** WorkspacesView renders the workspace list plus its create/remove controls.
+ *
+ * @arg props Dashboard data, the api client, and selection/refresh callbacks.
+ * @return JSX.Element The workspaces screen.
+ */
+export function WorkspacesView({
+  api,
+  data,
+  refresh,
+  onSelect,
+}: WorkspacesViewProps): JSX.Element {
+  const [layout, setLayout] = useState<WorkspaceLayout>("table");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const remove = (b: BoxView) => {
+    const id = boxId(b);
+    confirmDestroy({
+      title: "Remove workspace",
+      message: `Remove workspace ${id}? This destroys the box and cannot be undone.`,
+      action: () => api.destroyBox(id),
+      success: `removed box ${id}`,
+      refresh,
+    });
+  };
+
+  return (
+    <Stack gap="lg">
+      <Group justify="space-between" align="flex-end" wrap="wrap">
+        <Box>
+          <Title order={2}>Workspaces</Title>
+          <Text c="dimmed" size="sm">
+            Isolated boxes running on your spokes. Select one to manage its HTTP proxies.
+          </Text>
+        </Box>
+        <Group gap="sm">
+          <SegmentedControl
+            value={layout}
+            onChange={(v) => setLayout(v as WorkspaceLayout)}
+            aria-label="View layout"
+            data={[
+              { value: "table", label: <IconLayoutList size={16} aria-label="Table view" /> },
+              { value: "grid", label: <IconLayoutGrid size={16} aria-label="Grid view" /> },
+            ]}
+          />
+          <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateOpen(true)}>
+            New workspace
+          </Button>
+        </Group>
+      </Group>
+
+      {data === null ? (
+        <Stack gap="xs">
+          <Skeleton height={44} radius="sm" />
+          <Skeleton height={44} radius="sm" />
+          <Skeleton height={44} radius="sm" />
+        </Stack>
+      ) : data.boxes.length === 0 ? (
+        <EmptyWorkspaces onCreate={() => setCreateOpen(true)} />
+      ) : layout === "table" ? (
+        <WorkspaceTable boxes={data.boxes} onSelect={onSelect} onRemove={remove} />
+      ) : (
+        <WorkspaceGrid boxes={data.boxes} onSelect={onSelect} onRemove={remove} />
+      )}
+
+      <CreateWorkspaceModal
+        api={api}
+        spokes={data?.spokes ?? []}
+        opened={createOpen}
+        onClose={() => setCreateOpen(false)}
+        refresh={refresh}
+      />
+    </Stack>
+  );
+}
+
+/** WorkspaceLink renders a box's activation or session link, or a dash. */
+function WorkspaceLink({ box }: { box: BoxView }): JSX.Element {
+  if (box.auth_url) {
+    return (
+      <Anchor href={box.auth_url} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>
+        <Group gap={4} wrap="nowrap"><IconPlayerPlay size={14} /> Activate</Group>
+      </Anchor>
+    );
+  }
+  if (box.session_url) {
+    return (
+      <Anchor href={box.session_url} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>
+        <Group gap={4} wrap="nowrap"><IconExternalLink size={14} /> Open</Group>
+      </Anchor>
+    );
+  }
+  return <Text c="dimmed" size="sm">—</Text>;
+}
+
+interface RowProps {
+  boxes: BoxView[];
+  onSelect: (id: string) => void;
+  onRemove: (b: BoxView) => void;
+}
+
+/** WorkspaceTable renders the dense, sortable-looking table view. */
+function WorkspaceTable({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
+  return (
+    <Paper withBorder radius="md" id="boxes-card">
+      <Table.ScrollContainer minWidth={720}>
+        <Table highlightOnHover verticalSpacing="sm" horizontalSpacing="md">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Workspace</Table.Th>
+              <Table.Th>Spoke</Table.Th>
+              <Table.Th>Image</Table.Th>
+              <Table.Th>State</Table.Th>
+              <Table.Th>Phase</Table.Th>
+              <Table.Th>Link</Table.Th>
+              <Table.Th />
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {boxes.map((b) => {
+              const id = boxId(b);
+              return (
+                <Table.Tr
+                  key={id}
+                  data-box-row={id}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => onSelect(id)}
+                >
+                  <Table.Td>
+                    <Text fw={600} className="mono-wrap">{id}</Text>
+                    {b.description && (
+                      <Text c="dimmed" size="xs">{b.description}</Text>
+                    )}
+                  </Table.Td>
+                  <Table.Td className="mono-wrap" data-box-spoke={id}>{b.spoke ?? ""}</Table.Td>
+                  <Table.Td className="mono-wrap">{b.image}</Table.Td>
+                  <Table.Td><Text size="sm">{b.state}</Text></Table.Td>
+                  <Table.Td><StatusBadge phase={b.phase} /></Table.Td>
+                  <Table.Td onClick={(e) => e.stopPropagation()}><WorkspaceLink box={b} /></Table.Td>
+                  <Table.Td onClick={(e) => e.stopPropagation()} ta="right">
+                    <Tooltip label="Remove workspace">
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        data-box={id}
+                        aria-label={`Remove ${id}`}
+                        onClick={() => onRemove(b)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+    </Paper>
+  );
+}
+
+/** WorkspaceGrid renders the roomier card view. */
+function WorkspaceGrid({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
+  return (
+    <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} id="boxes-card">
+      {boxes.map((b) => {
+        const id = boxId(b);
+        return (
+          <Card
+            key={id}
+            withBorder
+            radius="md"
+            padding="md"
+            data-box-row={id}
+            style={{ cursor: "pointer" }}
+            onClick={() => onSelect(id)}
+          >
+            <Group justify="space-between" wrap="nowrap" mb="xs">
+              <Text fw={600} className="mono-wrap">{id}</Text>
+              <StatusBadge phase={b.phase} />
+            </Group>
+            {b.description && (
+              <Text c="dimmed" size="sm" lineClamp={2} mb="xs">{b.description}</Text>
+            )}
+            <Stack gap={4} mb="sm">
+              <Group gap="xs">
+                <Badge variant="light" color="gray" size="sm">{b.state}</Badge>
+                {b.spoke && <Text size="xs" c="dimmed" data-box-spoke={id}>on {b.spoke}</Text>}
+              </Group>
+              {b.created > 0 && (
+                <Text size="xs" c="dimmed">created {createdAt(b.created)}</Text>
+              )}
+            </Stack>
+            <Group justify="space-between" onClick={(e) => e.stopPropagation()}>
+              <WorkspaceLink box={b} />
+              <Tooltip label="Remove workspace">
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  data-box={id}
+                  aria-label={`Remove ${id}`}
+                  onClick={() => onRemove(b)}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          </Card>
+        );
+      })}
+    </SimpleGrid>
+  );
+}
+
+/** EmptyWorkspaces is the zero-state prompt shown when no workspaces exist. */
+function EmptyWorkspaces({ onCreate }: { onCreate: () => void }): JSX.Element {
+  return (
+    <Paper withBorder radius="md" p="xl">
+      <Stack align="center" gap="sm">
+        <Text fw={600}>No workspaces yet</Text>
+        <Text c="dimmed" size="sm" ta="center">
+          Create your first workspace to spin up an isolated box on one of your spokes.
+        </Text>
+        <Button leftSection={<IconPlus size={16} />} onClick={onCreate}>
+          New workspace
+        </Button>
+      </Stack>
+    </Paper>
+  );
+}

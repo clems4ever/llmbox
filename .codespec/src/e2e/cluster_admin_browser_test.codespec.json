@@ -100,37 +100,37 @@
 		{
 			"function_name": "createBox",
 			"receiver": "clusterBrowserEnv",
-			"documentation_hash": "8dae606d54911ef9c5018068cd525608507d83bec0254d32f77ebc5280f13955",
-			"definition_hash": "5bba388e03b3ae349162a73452a3bdefe4e2ffbef03c4103212b6fdda75a045d",
-			"reviewed_at": "2026-07-08T12:57:12.223207404Z"
+			"documentation_hash": "c0034e8579ed9d7a6fbf5201afa2b5b6cc59c08e91d29d805ee2f96f86ac1beb",
+			"definition_hash": "63abb8d7f5d2f8ac1b5eb3b4850dd214903239bf51de0683d8fba0fa6c94f734",
+			"reviewed_at": "2026-07-08T22:15:15.142675144Z"
 		},
 		{
 			"function_name": "openAdmin",
 			"receiver": "clusterBrowserEnv",
-			"documentation_hash": "55423edd1d13e36b5b99d3f30586c68488475db99ab3248db990d23d76ad24d0",
+			"documentation_hash": "730b780ee1396182ffc4f7ac7b771690b5e682d74367b96e1cac9e312845ea73",
 			"definition_hash": "0db732ab42f984ce7679e9a3bb7cc978d2e7ea56e97a568bbe8ae7c6a497d748",
-			"reviewed_at": "2026-06-27T11:22:57.900442313Z"
+			"reviewed_at": "2026-07-08T22:15:15.097821245Z"
 		},
 		{
 			"function_name": "reload",
 			"receiver": "clusterBrowserEnv",
-			"documentation_hash": "2e9e8d8f1cbc56823cad940ca750a7c6b2f35d9b03764d495cb816126b198c4e",
-			"definition_hash": "5145c7bb3cefa978c329fce47476d9aed0dc69326007160e3fcd0b2616ab0e1d",
-			"reviewed_at": "2026-06-27T10:01:08.720554591Z"
+			"documentation_hash": "f4faa408f1459b4415b5347d55b0d2f6333c1f1482c47f2eb7edb62e9fa7dc63",
+			"definition_hash": "ac25c108db08583d8885d18d580114d3b9278fdb7426a82d5cf2d340ca106120",
+			"reviewed_at": "2026-07-08T22:15:15.098865129Z"
 		},
 		{
 			"function_name": "removeBox",
 			"receiver": "clusterBrowserEnv",
-			"documentation_hash": "62e278c40c0abc120954e0f8c327b72a5d05137ee6548c98c3bb111007a52fff",
-			"definition_hash": "18f94c94cff5f8993961b89501955e56ac8f3971eb49a67710884bd62595b4b6",
-			"reviewed_at": "2026-07-08T12:57:12.224505152Z"
+			"documentation_hash": "dbf388197d5515cd89324fee72545382671fc6fb81d829b2dcc625de8d0371d0",
+			"definition_hash": "6261e4d392249e3024e21914d498efee9bb2fdf09dad9c979a0edd182d33285e",
+			"reviewed_at": "2026-07-08T22:15:15.14500147Z"
 		},
 		{
 			"function_name": "waitSpokeStatus",
 			"receiver": "clusterBrowserEnv",
-			"documentation_hash": "e1b311e23dea67d4da689afc72805dc785c75f7242d630c58cde5ab2c06ce29e",
-			"definition_hash": "68fb94976eabe1773fdca015adb5188896ddff0fbb7c314935b83ab7399fe63c",
-			"reviewed_at": "2026-06-27T10:01:08.726562102Z"
+			"documentation_hash": "3bf9f250174987d349c9498651020ec066a95b1b63cefdc66a6e8f58e6e14253",
+			"definition_hash": "2633cd1ce81fb0a6806fa9afe853aa20d06e17d3d91b5b4726deb1946daaafa4",
+			"reviewed_at": "2026-07-09T08:01:09.007727199Z"
 		},
 		{
 			"function_name": "newClusterBrowserEnv",
@@ -158,22 +158,29 @@
 		},
 		{
 			"function_name": "boxCellXPath",
-			"documentation_hash": "3659c933a87407e02811ccb6631fc7762843366919c7f1cf3f23a5e28c164374",
-			"definition_hash": "01996f35a38057ccfbb3f38f647aabb5cf6da5ca55fc4a1e4e51f6ba003e9480",
-			"reviewed_at": "2026-06-27T10:01:11.197804053Z"
+			"documentation_hash": "666f04a1bc2d8cdc79e8915ada876f1f2128af8627a76b6751a294ec58c64fa9",
+			"definition_hash": "cef36ff1ed7b9188ab703db26348c234e7961e49dfefeb58a87a1b77857eedd5",
+			"reviewed_at": "2026-07-08T22:15:15.149649934Z"
 		},
 		{
 			"function_name": "boxSpoke",
 			"receiver": "clusterBrowserEnv",
-			"documentation_hash": "50ea79cc00c41777137eb1286949b57168b04de3036089aeb3ddd5d64802497d",
-			"definition_hash": "8af4238360a72b3a0f32ab90f50496e29fc8f514a1a42d8ac5dd3a72ea5ed644",
-			"reviewed_at": "2026-06-27T10:01:11.200412837Z"
+			"documentation_hash": "88f0cd58e7e6281a5ece75b0f3d18fe8444a68b9fdd026435a4ee4a8829d1f26",
+			"definition_hash": "5edb7c8553f6b624b7f9d7948fbf7b68bee5e5fd3fece4653cc96f6f494a84ca",
+			"reviewed_at": "2026-07-08T22:15:15.147308681Z"
 		},
 		{
 			"function_name": "randContainerID",
 			"documentation_hash": "f132ff2b99213bfe565cf2816fdb04a50f0b0383d6d00fe4c8a505be280b8f9c",
 			"definition_hash": "f9002c47f97cc8b843d7c2d6d380f797c6753b75fa0d83de98eb08e8702609aa",
 			"reviewed_at": "2026-06-27T10:01:11.202660391Z"
+		},
+		{
+			"function_name": "showView",
+			"receiver": "clusterBrowserEnv",
+			"documentation_hash": "b1078ae2b80b15a9981ad66388565512baf5a8230e79a0160ac8422eb5453db0",
+			"definition_hash": "59da5d139f4a4455acd4844267c6efa4d49ee4e28eee49e4346f89763b58519f",
+			"reviewed_at": "2026-07-08T22:15:15.137206755Z"
 		}
 	]
 }

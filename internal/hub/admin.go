@@ -12,9 +12,11 @@ import (
 // request leaves the TTL unset.
 const defaultAdminTokenTTL = time.Hour
 
-// webDist is the built admin single-page app (Vite + TypeScript, sources under
+// webDist is the built admin single-page app (Vite + React, sources under
 // web/ at the repo root), embedded so the server ships as one binary. The dist
-// is committed; rebuild it with `make web` after changing anything under web/.
+// is generated, not committed (only webdist/.gitkeep is tracked so the embed
+// pattern always matches): build it with `make web` before compiling a binary
+// that should serve the UI. CI and the Dockerfile do this automatically.
 //
 //go:embed all:webdist
 var webDist embed.FS

@@ -294,7 +294,7 @@ func (r *browserRemote) reconnect() {
 
 // openAdmin loads /admin in the browser, injects the admin login cookie via
 // document.cookie (skipping the OIDC dance, like TestAdminRemoveBoxInBrowser),
-// reloads, and stubs window.confirm so the Remove confirmation never blocks.
+// and reloads so the SPA boots with the session.
 //
 // @arg b The browser session to drive.
 func (e *clusterBrowserEnv) openAdmin(b *browser) {
@@ -309,8 +309,10 @@ func (e *clusterBrowserEnv) openAdmin(b *browser) {
 	e.reload(b)
 }
 
-// reload navigates to /admin afresh and re-stubs window.confirm (a navigation
-// resets the page's JS), so the dashboard reflects current server state.
+// reload navigates to /admin afresh (a navigation resets the page's JS and
+// refetches the dashboard), so the page reflects current server state. The SPA
+// opens on the Workspaces view. Destructive actions are now guarded by an
+// in-app confirmation modal rather than window.confirm, so nothing to stub.
 //
 // @arg b The browser session to drive.
 func (e *clusterBrowserEnv) reload(b *browser) {
@@ -318,13 +320,31 @@ func (e *clusterBrowserEnv) reload(b *browser) {
 	if err := b.wd.Get(e.httpSrv.URL + "/admin"); err != nil {
 		e.t.Fatalf("loading /admin: %v", err)
 	}
-	if _, err := b.wd.ExecuteScript("window.confirm = function () { return true; };", nil); err != nil {
-		e.t.Fatalf("stubbing confirm(): %v", err)
+}
+
+// showView clicks the named section in the SPA navbar (Workspaces or
+// Infrastructure). Unlike reload it switches views WITHOUT refetching, so a
+// stale list stays stale — which TestAdminRemoveHumanDestroyedBoxOnSpokeInBrowser
+// depends on. It waits for the nav item, which also waits out the SPA boot.
+//
+// @arg b The browser session to drive.
+// @arg label The nav item label to click ("Workspaces" or "Infrastructure").
+func (e *clusterBrowserEnv) showView(b *browser, label string) {
+	e.t.Helper()
+	nav := b.waitFor(e.t, selenium.ByXPATH,
+		fmt.Sprintf(`//*[contains(@class,'mantine-NavLink-label') and normalize-space(.)=%q]`, label))
+	if err := nav.Click(); err != nil {
+		e.t.Fatalf("clicking %q nav: %v", label, err)
 	}
 }
 
-// waitSpokeStatus reloads the dashboard until the named spoke's status pill shows
-// the wanted state (connected or offline), failing the test if it never does.
+// waitSpokeStatus polls until the named spoke's status badge shows the wanted
+// state (connected or offline), failing the test if it never does. Each iteration
+// reloads /admin afresh — which re-establishes the session from the login cookie
+// and refetches the spoke list — then opens the Infrastructure view and waits a
+// short beat for the async fetch to render before checking. Reloading per poll
+// (rather than nursing one long-lived page) avoids a mid-poll session refresh
+// redirecting to sign-in, and naturally re-observes a flapping connection.
 //
 // @arg b The browser session to drive.
 // @arg name The spoke name to watch.
@@ -335,37 +355,48 @@ func (e *clusterBrowserEnv) waitSpokeStatus(b *browser, name string, connected b
 	if connected {
 		want = "connected"
 	}
-	pill := fmt.Sprintf(
-		`//div[@id='spokes-card']//tr[td[contains(@class,'mono') and normalize-space(.)=%q]]//span[contains(@class,'pill')]`,
-		name)
-	deadline := time.Now().Add(20 * time.Second)
+	// Match on the row's data-spoke-status attribute, NOT on rendered badge text:
+	// WebDriver's Text() returns text as rendered, and Mantine badges are
+	// uppercased by CSS, so a text comparison against "connected" can never match.
+	// The SPA stamps the raw status on the row exactly so tests stay independent
+	// of styling.
+	row := fmt.Sprintf(`//tr[@data-spoke-row=%q and @data-spoke-status=%q]`, name, want)
+	deadline := time.Now().Add(40 * time.Second)
 	for {
 		e.reload(b)
-		if el, err := b.wd.FindElement(selenium.ByXPATH, pill); err == nil {
-			if txt, _ := el.Text(); strings.TrimSpace(txt) == want {
+		e.showView(b, "Infrastructure")
+		// Let the just-loaded Infrastructure view finish its async fetch and
+		// render the spokes table before judging (skip the skeleton frame).
+		settle := time.Now().Add(3 * time.Second)
+		for time.Now().Before(settle) {
+			if _, err := b.wd.FindElement(selenium.ByXPATH, row); err == nil {
 				return
 			}
+			time.Sleep(150 * time.Millisecond)
 		}
 		if time.Now().After(deadline) {
 			src, _ := b.wd.PageSource()
 			e.t.Fatalf("spoke %q never showed %q in the dashboard; page was:\n%s", name, want, src)
 		}
-		time.Sleep(200 * time.Millisecond)
 	}
 }
 
-// createBox fills the admin create-box form for the given spoke and clicks
-// Create, then waits for the box's row to appear in the dashboard.
+// createBox opens the "New workspace" modal, fills the create-box form for the
+// given spoke and submits, closes the resulting activation-link panel, then waits
+// for the box's row to appear in the Workspaces list. It reloads first so the
+// modal's spoke picker reflects the freshly-connected spoke.
 //
 // @arg b The browser session to drive.
 // @arg boxID The box ID to create.
 // @arg spoke The spoke to create the box on (must be a connected option).
 func (e *clusterBrowserEnv) createBox(b *browser, boxID, spoke string) {
 	e.t.Helper()
-	idInput := b.waitFor(e.t, selenium.ByXPATH, `//form[@id='create-box-form']//input[@name='box_id']`)
-	if err := idInput.Clear(); err != nil {
-		e.t.Fatalf("clearing box id field: %v", err)
+	e.reload(b) // fresh Workspaces view with up-to-date spoke options
+	newBtn := b.waitFor(e.t, selenium.ByXPATH, `//button[normalize-space()='New workspace']`)
+	if err := newBtn.Click(); err != nil {
+		e.t.Fatalf("clicking New workspace: %v", err)
 	}
+	idInput := b.waitFor(e.t, selenium.ByXPATH, `//form[@id='create-box-form']//input[@name='box_id']`)
 	if err := idInput.SendKeys(boxID); err != nil {
 		e.t.Fatalf("typing box id: %v", err)
 	}
@@ -378,20 +409,31 @@ func (e *clusterBrowserEnv) createBox(b *browser, boxID, spoke string) {
 	if err := btn.Click(); err != nil {
 		e.t.Fatalf("clicking Create: %v", err)
 	}
-	// The SPA submits over fetch() and refreshes the cards; the new row appears.
+	// Creation swaps the modal to the activation-link panel; Done closes it and
+	// refreshes the list, where the new row then appears.
+	done := b.waitFor(e.t, selenium.ByXPATH, `//button[normalize-space()='Done']`)
+	if err := done.Click(); err != nil {
+		e.t.Fatalf("closing the activation panel: %v", err)
+	}
 	b.waitFor(e.t, selenium.ByXPATH, boxCellXPath(boxID))
 }
 
-// removeBox clicks the Remove button on the given box's row and waits for the row
-// to disappear from the dashboard.
+// removeBox clicks the Remove button on the given box's row, confirms in the
+// modal, and waits for the row to disappear. It switches to the Workspaces view
+// via the navbar (never a reload) so a deliberately-stale row is preserved.
 //
 // @arg b The browser session to drive.
 // @arg boxID The box ID to remove.
 func (e *clusterBrowserEnv) removeBox(b *browser, boxID string) {
 	e.t.Helper()
+	e.showView(b, "Workspaces")
 	btn := b.waitFor(e.t, selenium.ByXPATH, fmt.Sprintf(`//button[@data-box=%q]`, boxID))
 	if err := btn.Click(); err != nil {
 		e.t.Fatalf("clicking Remove for %q: %v", boxID, err)
+	}
+	confirm := b.waitFor(e.t, selenium.ByXPATH, `//button[normalize-space()='Remove']`)
+	if err := confirm.Click(); err != nil {
+		e.t.Fatalf("confirming Remove for %q: %v", boxID, err)
 	}
 	deadline := time.Now().Add(20 * time.Second)
 	for {
@@ -406,16 +448,15 @@ func (e *clusterBrowserEnv) removeBox(b *browser, boxID string) {
 	}
 }
 
-// boxSpoke returns the spoke a box is listed under in the dashboard, or "" when
-// the box has no row.
+// boxSpoke returns the spoke a box is listed under in the Workspaces list, or ""
+// when the box has no row.
 //
 // @arg b The browser session to read from.
 // @arg boxID The box ID to look up.
 // @return string The spoke cell's text, or "" when the box is absent.
 func (e *clusterBrowserEnv) boxSpoke(b *browser, boxID string) string {
-	cell, err := b.wd.FindElement(selenium.ByXPATH, fmt.Sprintf(
-		`//div[@id='boxes-card']//tr[td[contains(@class,'mono') and normalize-space(.)=%q]]/td[contains(@class,'mono')][2]`,
-		boxID))
+	cell, err := b.wd.FindElement(selenium.ByXPATH,
+		fmt.Sprintf(`//*[@data-box-spoke=%q]`, boxID))
 	if err != nil {
 		return ""
 	}
@@ -423,12 +464,12 @@ func (e *clusterBrowserEnv) boxSpoke(b *browser, boxID string) string {
 	return strings.TrimSpace(txt)
 }
 
-// boxCellXPath builds the XPath of the box-ID cell for a box row in the dashboard.
+// boxCellXPath builds the XPath of the box row for a box in the Workspaces list.
 //
-// @arg boxID The box ID the cell holds.
-// @return string The XPath selecting that cell.
+// @arg boxID The box ID the row holds.
+// @return string The XPath selecting that row.
 func boxCellXPath(boxID string) string {
-	return fmt.Sprintf(`//div[@id='boxes-card']//td[contains(@class,'mono') and normalize-space(.)=%q]`, boxID)
+	return fmt.Sprintf(`//*[@data-box-row=%q]`, boxID)
 }
 
 // randContainerID returns a random hex string for a fake container ID.

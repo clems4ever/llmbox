@@ -33,5 +33,10 @@ CLAUDE.md
 # air live-reload working dir (see .air.toml)
 /tmp/
 /build-errors.log
-# Web app toolchain (the built dist under internal/hub/webdist IS committed)
+# Web app toolchain. The built dist under internal/hub/webdist is generated
+# (make web) and NOT committed; only its .gitkeep is tracked so the go:embed
+# pattern always matches. CI and the Dockerfile build it before compiling Go.
 /web/node_modules/
+/web/coverage/
+/internal/hub/webdist/*
+!/internal/hub/webdist/.gitkeep

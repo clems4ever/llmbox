@@ -14,6 +14,10 @@ IMAGE       := llmbox
 VERSION     := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COVERPROFILE := coverage.out
 
+# The admin SPA dist embedded into the hub binary. It is generated, not
+# committed; targets that need it depend on this file (see its rule below).
+WEBDIST := internal/hub/webdist/index.html
+
 # Build a static binary, matching the Dockerfile.
 GO_BUILD_ENV := CGO_ENABLED=0
 GO_BUILD_FLAGS := -trimpath -ldflags="-s -w"
@@ -33,7 +37,7 @@ help: ## Show this help.
 build: build-hub build-spoke build-mcp build-agent ## Build all llmbox binaries (hub, spoke, mcp, agent).
 
 .PHONY: build-hub
-build-hub: ## Build the hub (llmbox-server) binary into ./$(BINARY).
+build-hub: $(WEBDIST) ## Build the hub (llmbox-server) binary into ./$(BINARY).
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(BINARY) $(PKG)
 
 .PHONY: build-mcp
@@ -49,8 +53,22 @@ build-agent: ## Build the stand-alone llmbox-agent (guest) binary into ./$(AGENT
 	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(AGENT_BINARY) $(AGENT_PKG)
 
 .PHONY: web
-web: ## Rebuild the admin web app into internal/hub/webdist (commit the result; embedded at go build).
+web: ## Rebuild the admin web app into internal/hub/webdist (generated, not committed; embedded at go build).
 	cd web && npm install && npm run build
+
+# The dist is generated, not committed; anything that runs the hub's tests (or
+# builds a binary meant to serve the UI) needs it present. This sentinel builds
+# it only when missing — run `make web` explicitly to pick up web/ changes.
+$(WEBDIST):
+	cd web && npm install && npm run build
+
+.PHONY: web-test
+web-test: ## Run the admin web app unit tests (Vitest + Testing Library).
+	cd web && npm install && npm test
+
+.PHONY: web-cover
+web-cover: ## Run the web app tests with coverage and print the line total.
+	cd web && npm install && npm run coverage
 
 .PHONY: install
 install: ## Install the hub, mcp, spoke, and agent binaries into $GOPATH/bin.
@@ -91,7 +109,7 @@ lint: fmt-check vet ## Run all static checks (fmt-check, vet).
 # --- test --------------------------------------------------------------------
 
 .PHONY: test
-test: ## Run the unit test suite.
+test: $(WEBDIST) ## Run the unit test suite.
 	go test ./...
 
 .PHONY: test-integration
@@ -156,7 +174,7 @@ test-firecracker: firecracker-assets ## Build the firecracker artifacts if missi
 		go test -v ./internal/spoke/firecracker/ -run 'TestConformanceFirecracker|TestVMSurvivesRequestContextCancel'
 
 .PHONY: test-e2e
-test-e2e: ## Run the end-to-end browser tests (needs Chrome + chromedriver; see e2e/ and internal/hub/admin_browser_e2e_test.go).
+test-e2e: $(WEBDIST) ## Run the end-to-end browser tests (needs Chrome + chromedriver; see e2e/ and internal/hub/admin_browser_e2e_test.go).
 	go test -tags e2e ./e2e/... ./internal/hub/...
 
 .PHONY: test-e2e-cluster
@@ -164,7 +182,7 @@ test-e2e-cluster: ## Run the hub-and-spoke clustering e2e test (no browser neede
 	go test -tags e2e ./e2e/cluster/...
 
 .PHONY: cover
-cover: ## Run tests with coverage and print the total.
+cover: $(WEBDIST) ## Run tests with coverage and print the total.
 	go test -covermode=atomic -coverprofile=$(COVERPROFILE) ./...
 	go tool cover -func=$(COVERPROFILE) | tail -1
 

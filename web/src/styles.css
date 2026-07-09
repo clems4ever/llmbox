@@ -1,0 +1,15 @@
+/* App-level tweaks layered on top of Mantine's own stylesheet. The palette and
+ * shapes live in the Mantine theme (src/theme.ts); this file only carries the
+ * few things a theme object can't express. */
+
+/* Long identifiers and URLs (box IDs, proxy links) must wrap inside table cells
+ * and cards rather than force a horizontal scrollbar. */
+.mono-wrap {
+  font-family: var(--mantine-font-family-monospace);
+  word-break: break-all;
+}
+
+/* The empty-state blocks read as quiet, centered helper text. */
+.empty-hint {
+  color: var(--mantine-color-dimmed);
+}
