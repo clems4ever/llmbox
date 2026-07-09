@@ -82,39 +82,35 @@ func (b apiBackend) LookupByBoxID(boxID string) (api.BoxSession, bool) {
 	}, true
 }
 
-// ListBoxes returns all boxes managed across every spoke, each merged with its
-// live session state: the activation page URL while the box is pending, or the
-// remote-control session URL once it is ready. A box whose session the hub no
-// longer tracks carries neither URL.
+// ListBoxes returns every tracked box rendered from its record, each merged
+// with its session state: the activation page URL while the box is pending, or
+// the remote-control session URL once it is ready. The records are the system
+// of record, so a box on an offline spoke stays listed (as unreachable) and a
+// terminated box stays listed as a tombstone — carrying neither URL, since
+// there is nothing left to activate or open.
 //
-// @arg ctx Context for the list request.
+// @arg _ Context (unused; the data is the in-memory registry).
 // @return []api.BoxView The boxes with their activation/session URLs.
-// @error error if listing boxes fails.
+// @error error Always nil (kept for interface stability).
 //
 // @testcase TestListLlmboxesReturnsBoxID lists boxes through the backend.
 // @testcase TestListBoxesCarriesSessionURLs merges each box's auth or session URL into the view.
-func (b apiBackend) ListBoxes(ctx context.Context) ([]api.BoxView, error) {
-	boxes, err := b.s.listBoxes(ctx)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]api.BoxView, len(boxes))
-	for i, box := range boxes {
-		out[i] = api.BoxView{Box: box}
-		id := box.BoxID
-		if id == "" {
-			id = box.Name
+// @testcase TestListBoxesMarksUnreachable keeps a disconnected spoke's boxes listed.
+func (b apiBackend) ListBoxes(_ context.Context) ([]api.BoxView, error) {
+	connected := b.s.connectedSpokeSet()
+	recs := b.s.boxRecords()
+	out := make([]api.BoxView, 0, len(recs))
+	for _, ps := range recs {
+		view := api.BoxView{Box: b.s.boxFromRecord(ps, connected)}
+		switch {
+		case ps.BoxState == boxStateTerminated:
+			// A tombstone has nothing to activate or open.
+		case ps.Status == "ready":
+			view.SessionURL = ps.SessionURL
+		default:
+			view.AuthURL = b.s.AuthPageURL(ps.Token)
 		}
-		sess := b.s.lookupByBoxID(id)
-		if sess == nil {
-			continue
-		}
-		status, sessionURL, _ := sess.snapshot()
-		if status == "ready" {
-			out[i].SessionURL = sessionURL
-		} else {
-			out[i].AuthURL = b.s.AuthPageURL(sess.Token)
-		}
+		out = append(out, view)
 	}
 	return out, nil
 }

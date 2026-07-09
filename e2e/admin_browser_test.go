@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -11,7 +12,6 @@ import (
 	"github.com/tebeka/selenium"
 
 	"github.com/clems4ever/llmbox/internal/hub/auth"
-	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // TestAdminRemoveBoxInBrowser drives the workspace "Remove" button through a real
@@ -27,17 +27,32 @@ import (
 //
 // @arg t The test, failed on any setup, navigation, or assertion error.
 func TestAdminRemoveBoxInBrowser(t *testing.T) {
-	s, f, st := newAdminServer(t)
-	// Seed one box so the dashboard renders a Remove button; the fake manager's
-	// Destroy just records the id, so a confirmed removal shows a "removed box
-	// foo" success notification.
-	f.ListResult = []sandbox.Box{{
-		BoxID: "foo", Spoke: e2eDefaultSpoke, Image: "img", State: "running", Phase: "ready",
-	}}
+	s, _, st := newAdminServer(t)
 	cookie := signIn(t, st, true, false) // admin session "SID" with CSRF "CSRF"
 
 	httpSrv := httptest.NewServer(s.APIHandler())
 	t.Cleanup(httpSrv.Close)
+
+	// Seed one box through the box-control API so the hub holds a record for it
+	// (the dashboard renders from the hub's records, not from a live spoke
+	// listing); the fake manager's Destroy just records the id, so a confirmed
+	// removal shows a "removed box foo" success notification.
+	createReq, err := http.NewRequest(http.MethodPost, httpSrv.URL+"/api/v1/create-box",
+		strings.NewReader(`{"opts":{"BoxID":"foo"}}`))
+	if err != nil {
+		t.Fatalf("build create-box request: %v", err)
+	}
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("X-CSRF-Token", "CSRF")
+	createReq.AddCookie(cookie)
+	resp, err := http.DefaultClient.Do(createReq)
+	if err != nil {
+		t.Fatalf("create-box: %v", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("create-box status = %s, want 200", resp.Status)
+	}
 
 	b := newBrowser(t)
 	t.Cleanup(b.close)

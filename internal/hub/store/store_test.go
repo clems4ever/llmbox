@@ -16,14 +16,19 @@ func TestSQLiteStoreRoundTrip(t *testing.T) {
 	}
 
 	ps := PersistedSession{
-		Token:        "tok1",
-		ContainerID:  "abcdef0123456789",
-		AuthorizeURL: "https://claude.com/cai/oauth/authorize?x=1",
-		CreatedAt:    time.Unix(1700000000, 0).UTC(),
-		HookState:    map[string]string{"granular-hook": "subj-1"},
-		BoxID:        "web-box",
-		Description:  "front-end",
-		Status:       "pending",
+		Token:         "tok1",
+		ContainerID:   "abcdef0123456789",
+		AuthorizeURL:  "https://claude.com/cai/oauth/authorize?x=1",
+		CreatedAt:     time.Unix(1700000000, 0).UTC(),
+		HookState:     map[string]string{"granular-hook": "subj-1"},
+		BoxID:         "web-box",
+		Description:   "front-end",
+		Status:        "pending",
+		BoxState:      BoxStateRunning,
+		LastSeen:      time.Unix(1700000100, 0).UTC(),
+		Name:          "cname",
+		Image:         "img:1",
+		InstanceState: "running",
 	}
 	if err := st.Save(ps); err != nil {
 		t.Fatalf("Save: %v", err)

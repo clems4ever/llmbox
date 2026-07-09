@@ -19,6 +19,7 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -96,6 +97,30 @@ type session struct {
 	SessionURL  string
 	Err         string
 	ActivatedBy string // identity (email) that submitted the code, when auth is enabled
+
+	// BoxState is the box's persisted runtime state (boxStateRunning or
+	// boxStateTerminated; "" from an older record means running). LastSeen is
+	// when the box was last observed on its spoke; Name, Image, and
+	// InstanceState mirror the backend metadata observed then, so the record
+	// renders in full while its spoke is offline. All are updated by the sync
+	// pass and guarded by mu.
+	BoxState      string
+	LastSeen      time.Time
+	Name          string
+	Image         string
+	InstanceState string
+}
+
+// terminated reports whether the box behind this session has been confirmed
+// gone from its spoke (the record is a tombstone).
+//
+// @return bool True when the session's box state is terminated.
+//
+// @testcase TestDestroyTerminatedRecordSkipsSpoke clears a tombstone without a spoke round-trip.
+func (s *session) terminated() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.BoxState == boxStateTerminated
 }
 
 // snapshot reads the session's mutable state under its lock.
@@ -119,18 +144,23 @@ func (s *session) snapshot() (status, sessionURL, errMsg string) {
 // @testcase TestCreateBoxPersistsSession persists a session built via persistLocked.
 func (s *session) persistLocked() persistedSession {
 	return persistedSession{
-		Token:        s.Token,
-		ContainerID:  s.ContainerID,
-		AuthorizeURL: s.AuthorizeURL,
-		CreatedAt:    s.CreatedAt,
-		HookState:    s.HookState,
-		BoxID:        s.BoxID,
-		Description:  s.Description,
-		SpokeName:    s.SpokeName,
-		Status:       s.Status,
-		SessionURL:   s.SessionURL,
-		Err:          s.Err,
-		ActivatedBy:  s.ActivatedBy,
+		Token:         s.Token,
+		ContainerID:   s.ContainerID,
+		AuthorizeURL:  s.AuthorizeURL,
+		CreatedAt:     s.CreatedAt,
+		HookState:     s.HookState,
+		BoxID:         s.BoxID,
+		Description:   s.Description,
+		SpokeName:     s.SpokeName,
+		Status:        s.Status,
+		SessionURL:    s.SessionURL,
+		Err:           s.Err,
+		ActivatedBy:   s.ActivatedBy,
+		BoxState:      s.BoxState,
+		LastSeen:      s.LastSeen,
+		Name:          s.Name,
+		Image:         s.Image,
+		InstanceState: s.InstanceState,
 	}
 }
 
@@ -153,18 +183,23 @@ func (s *session) persist() persistedSession {
 // @testcase TestRestoreLoadsAndReconciles rehydrates sessions from the store.
 func sessionFromPersisted(ps persistedSession) *session {
 	return &session{
-		Token:        ps.Token,
-		ContainerID:  ps.ContainerID,
-		AuthorizeURL: ps.AuthorizeURL,
-		CreatedAt:    ps.CreatedAt,
-		HookState:    ps.HookState,
-		BoxID:        ps.BoxID,
-		Description:  ps.Description,
-		SpokeName:    ps.SpokeName,
-		Status:       ps.Status,
-		SessionURL:   ps.SessionURL,
-		Err:          ps.Err,
-		ActivatedBy:  ps.ActivatedBy,
+		Token:         ps.Token,
+		ContainerID:   ps.ContainerID,
+		AuthorizeURL:  ps.AuthorizeURL,
+		CreatedAt:     ps.CreatedAt,
+		HookState:     ps.HookState,
+		BoxID:         ps.BoxID,
+		Description:   ps.Description,
+		SpokeName:     ps.SpokeName,
+		Status:        ps.Status,
+		SessionURL:    ps.SessionURL,
+		Err:           ps.Err,
+		ActivatedBy:   ps.ActivatedBy,
+		BoxState:      ps.BoxState,
+		LastSeen:      ps.LastSeen,
+		Name:          ps.Name,
+		Image:         ps.Image,
+		InstanceState: ps.InstanceState,
 	}
 }
 
@@ -466,40 +501,36 @@ func (s *Server) allSpokes() map[string]boxManager {
 }
 
 // reserveBoxID claims boxID for an in-flight create so no other box — on this or
-// any other spoke — can hold it. Existence is read from the spokes themselves (the
-// same live source as the box list), so uniqueness can never disagree with what the
-// dashboard shows: it fails if a connected spoke already reports a box with the ID,
-// or if another in-flight create on this hub already claimed it (case-insensitive).
-// An empty box ID is unnamed and exempt. Every successful reserve must be paired
-// with releaseBoxID once the create settles. Spokes also reject a duplicate box ID
-// at provision time, which backstops the window where a spoke is briefly
-// disconnected and its boxes are not visible here.
+// any other spoke — can hold it. Existence is read from the box records (the same
+// source of truth as the box list), so uniqueness can never disagree with what the
+// dashboard shows: it fails if a record already holds the ID (case-insensitive),
+// or if another in-flight create on this hub already claimed it. A terminated
+// record does not block the ID — recreating a dead box under its old name is
+// allowed, and the tombstone is replaced once the create succeeds. An empty box
+// ID is unnamed and exempt. Every successful reserve must be paired with
+// releaseBoxID once the create settles. Spokes also reject a duplicate box ID at
+// provision time, which backstops boxes the hub has no record of.
 //
-// @arg ctx Context for the spoke box-list query.
 // @arg boxID The caller-assigned box ID to claim, or "" for an unnamed box.
-// @error error if the box ID is already in use on a spoke or being created.
+// @error error if the box ID is already held by a live record or being created.
 //
 // @testcase TestCreateBoxRejectsDuplicateBoxIDSameSpoke rejects a duplicate on one spoke.
 // @testcase TestCreateBoxRejectsDuplicateBoxIDAcrossSpokes rejects a duplicate on another spoke.
-func (s *Server) reserveBoxID(ctx context.Context, boxID string) error {
+// @testcase TestCreateBoxReplacesTerminatedTombstone allows reusing a terminated record's box ID.
+func (s *Server) reserveBoxID(boxID string) error {
 	if boxID == "" {
 		return nil
-	}
-	// Ask the spokes what boxes exist (the box list's source of truth) rather than
-	// consulting the session registry, which can hold a session for a box the spoke
-	// no longer has.
-	boxes, err := s.listBoxes(ctx)
-	if err != nil {
-		return err
-	}
-	for _, b := range boxes {
-		if strings.EqualFold(b.BoxID, boxID) {
-			return fmt.Errorf("box ID %q is already in use on spoke %q; choose a different box ID", boxID, b.Spoke)
-		}
 	}
 	key := strings.ToLower(boxID)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	for _, sess := range s.byToken {
+		// terminated() takes the session lock; s.mu → sess.mu is the codebase's
+		// lock order, never the reverse.
+		if strings.EqualFold(sess.BoxID, boxID) && !sess.terminated() {
+			return fmt.Errorf("box ID %q is already in use on spoke %q; choose a different box ID", boxID, sess.SpokeName)
+		}
+	}
 	if _, claimed := s.pendingBoxIDs[key]; claimed {
 		return fmt.Errorf("box ID %q is already being created; choose a different box ID", boxID)
 	}
@@ -570,82 +601,37 @@ func (s *Server) SpokeStatuses(_ context.Context) ([]SpokeStatus, error) {
 	return out, nil
 }
 
-// Restore loads persisted sessions into the registry and reconciles them with
-// the spokes: a session whose box no longer exists on its (reachable) spoke is
-// dropped (and deleted from the store) so a stale token can't linger. A session
-// whose spoke is not currently connected is kept — the box may still be alive,
-// we just can't verify it yet. Enabled proxies are reconciled the same way, so a
-// box removed out of band before this restart leaves no proxy a later same-id box
-// could reuse. Finally, sessions and proxies pinned to a spoke that has been
-// de-enrolled (departed, not merely offline) are purged via PruneDepartedSpokes.
-// It returns the number of sessions restored. Call it once at startup, before serving.
+// Restore loads persisted sessions into the registry. It deliberately talks to
+// no spoke: the store is the system of record, so startup only reads it back —
+// a box's record is never dropped here just because its spoke is offline at
+// boot. Drift between the records and what the spokes actually run is corrected
+// continuously by the sync pass (see syncSpokes), which runs the same way at
+// startup and an hour later rather than as a one-shot boot step. The only purge
+// is store-driven: sessions and proxies pinned to a spoke that was de-enrolled
+// (departed, not merely offline) while the hub was down are removed via
+// PruneDepartedSpokes. It returns the number of sessions restored. Call it once
+// at startup, before serving.
 //
-// @arg ctx Context for the spoke listings used to reconcile.
 // @return int The number of sessions restored into the registry.
 // @error error if the store cannot be read.
 //
-// @testcase TestRestoreLoadsAndReconciles restores live sessions and drops dead ones.
+// @testcase TestRestoreLoadsWithoutSpokes restores every record without contacting any spoke.
 // @testcase TestRestoreKeepsDisconnectedSpokeSessions keeps a session whose spoke is offline.
-// @testcase TestRestoreReconcilesProxies drops a stale proxy whose box is gone.
-func (s *Server) Restore(ctx context.Context) (int, error) {
+func (s *Server) Restore() (int, error) {
 	saved, err := s.store.LoadAll()
 	if err != nil {
 		return 0, fmt.Errorf("loading sessions: %w", err)
 	}
-
-	// List each connected spoke. A spoke that errors (or is offline) is treated as
-	// unreachable, so its sessions are kept rather than dropped.
-	boxesBySpoke := map[string][]sandbox.Box{}
-	for name, bm := range s.allSpokes() {
-		boxes, err := bm.List(ctx)
-		if err != nil {
-			s.logger().Warn("listing spoke to reconcile sessions failed; keeping its sessions", "spoke", name, "err", err)
-			continue
-		}
-		boxesBySpoke[name] = boxes
-	}
-
-	// reachable reports whether we could list the session's spoke; alive reports
-	// whether the box is present there. List returns short (12-char) container IDs;
-	// a session stores the full one.
-	reconcile := func(spokeName, containerID string) (reachable, alive bool) {
-		boxes, ok := boxesBySpoke[spokeName]
-		if !ok {
-			return false, false
-		}
-		for _, b := range boxes {
-			if strings.HasPrefix(containerID, b.InstanceID) {
-				return true, true
-			}
-		}
-		return true, false
-	}
-
 	s.mu.Lock()
 	for _, ps := range saved {
-		spokeName := s.resolveStoredSpoke(ps.SpokeName)
-		if reachable, alive := reconcile(spokeName, ps.ContainerID); reachable && !alive {
-			if err := s.store.Delete(ps.Token); err != nil {
-				s.logger().Warn("failed to delete stale session during restore", "box", ps.BoxID, "err", err)
-			}
-			continue
-		}
 		s.byToken[ps.Token] = sessionFromPersisted(ps)
 	}
 	n := len(s.byToken)
 	s.mu.Unlock()
 
-	// Reconcile proxies too: drop any whose box generation no longer exists on a
-	// reachable spoke. This closes the reuse window where a box is removed out of
-	// band (so neither destroy nor reap ran) and the server then restarts — without
-	// this, the orphaned proxy would survive and a later box created with the same
-	// box ID would inherit its slug. A proxy on an unreachable spoke is kept.
-	s.reconcileProxies(boxesBySpoke)
-
-	// Purge sessions and proxies pinned to spokes that have been de-enrolled since
-	// the last run, so a removed spoke leaves no objects behind to resolve at
-	// random. (Reconciliation above only drops boxes gone from a *reachable* spoke;
-	// this drops everything tied to a spoke that no longer exists at all.)
+	// Purge sessions and proxies pinned to spokes that were de-enrolled while the
+	// hub was down, so a removed spoke leaves no objects behind to resolve at
+	// random. This reads only the store (enrollment records), never a spoke.
 	if purged, err := s.PruneDepartedSpokes(); err != nil {
 		s.logger().Warn("pruning departed spokes during restore", "err", err)
 	} else if len(purged) > 0 {
@@ -654,14 +640,155 @@ func (s *Server) Restore(ctx context.Context) (int, error) {
 	return n, nil
 }
 
+// syncTerminateGrace is how old a session must be before the sync pass may
+// conclude its box is gone. It closes the race where a spoke listing taken just
+// before (or during) a create is folded in just after the session registers —
+// without the grace, the brand-new box would be absent from that stale listing
+// and wrongly tombstoned.
+const syncTerminateGrace = time.Minute
+
+// syncSpokes folds every connected spoke's live box inventory into the session
+// records — the continuous convergence that replaces one-shot startup
+// reconciliation. For each spoke that answers, records pinned to it are
+// refreshed (metadata, last-seen) or marked terminated when their box is gone;
+// proxies whose box generation no longer exists are dropped. A spoke that is
+// offline or fails to list is skipped entirely: nothing is concluded about
+// boxes the hub cannot currently observe. Called periodically from ReapLoop
+// and, targeted, after a create.
+//
+// @arg ctx Context for the per-spoke list requests.
+//
+// @testcase TestSyncMarksVanishedBoxTerminated tombstones a box gone from a reachable spoke.
+// @testcase TestSyncRefreshesObservedMetadata records name/image/state/last-seen from the listing.
+// @testcase TestSyncSkipsUnreachableSpoke leaves an offline spoke's records untouched.
+// @testcase TestSyncReconcilesProxies drops a proxy whose box is gone from a reachable spoke.
+func (s *Server) syncSpokes(ctx context.Context) {
+	boxesBySpoke := map[string][]sandbox.Box{}
+	for name, bm := range s.allSpokes() {
+		boxes, err := bm.List(ctx)
+		if err != nil {
+			s.logger().Warn("listing spoke for sync failed; leaving its records untouched", "spoke", name, "err", err)
+			continue
+		}
+		boxesBySpoke[name] = boxes
+	}
+	for name, boxes := range boxesBySpoke {
+		s.syncSpokeInventory(name, boxes)
+	}
+	s.reconcileProxies(boxesBySpoke)
+}
+
+// syncSpokeInventory reconciles the records pinned to one spoke against the
+// boxes that spoke actually reports. A record whose box appears in the listing
+// is refreshed (observed name, image, backend state, last-seen) and re-marked
+// running; a record whose box is absent — beyond the create grace period — is
+// marked terminated exactly once, its destroy hooks replayed and its proxies
+// dropped, and kept as a tombstone so the UI shows what happened until the
+// record is removed. Boxes the spoke reports that the hub has no record of are
+// logged, never silently ignored.
+//
+// @arg spokeName The spoke whose inventory boxes is.
+// @arg boxes The boxes the spoke reported (short instance IDs).
+//
+// @testcase TestSyncMarksVanishedBoxTerminated marks a vanished box terminated and runs its destroy hooks once.
+// @testcase TestSyncRefreshesObservedMetadata persists the observed metadata on a live record.
+// @testcase TestSyncGraceKeepsFreshRecord leaves a just-created record alone when absent from a stale listing.
+// @testcase TestSyncRevivesReappearedBox re-marks a tombstone running when its box reappears.
+func (s *Server) syncSpokeInventory(spokeName string, boxes []sandbox.Box) {
+	now := time.Now()
+	s.mu.Lock()
+	var sessions []*session
+	for _, sess := range s.byToken {
+		if s.resolveStoredSpoke(sess.SpokeName) == spokeName {
+			sessions = append(sessions, sess)
+		}
+	}
+	s.mu.Unlock()
+
+	matched := map[string]bool{}
+	var torn []tornBox
+	for _, sess := range sessions {
+		var live *sandbox.Box
+		for i := range boxes {
+			if boxes[i].InstanceID != "" && strings.HasPrefix(sess.ContainerID, boxes[i].InstanceID) {
+				live = &boxes[i]
+				matched[boxes[i].InstanceID] = true
+				break
+			}
+		}
+		sess.mu.Lock()
+		if live != nil {
+			sess.BoxState = boxStateRunning
+			sess.LastSeen = now
+			sess.Name = live.Name
+			sess.Image = live.Image
+			sess.InstanceState = live.State
+			ps := sess.persistLocked()
+			sess.mu.Unlock()
+			if err := s.store.Save(ps); err != nil {
+				s.logger().Warn("persisting synced box record", "box", ps.BoxID, "err", err)
+			}
+			continue
+		}
+		alreadyTerminated := sess.BoxState == boxStateTerminated
+		withinGrace := now.Sub(sess.CreatedAt) < syncTerminateGrace
+		if alreadyTerminated || withinGrace {
+			sess.mu.Unlock()
+			continue
+		}
+		sess.BoxState = boxStateTerminated
+		ps := sess.persistLocked()
+		sess.mu.Unlock()
+		if err := s.store.Save(ps); err != nil {
+			s.logger().Warn("persisting terminated box record", "box", ps.BoxID, "err", err)
+		}
+		s.logger().Info("box gone from its spoke; record marked terminated", "box", ps.BoxID, "spoke", spokeName)
+		torn = append(torn, tornBox{boxID: ps.BoxID, state: ps.HookState})
+	}
+	// The running→terminated transition happens exactly once (the state is
+	// persisted), so hooks fire once per disappearance and proxies stop routing.
+	for _, tb := range torn {
+		s.runDestroyHooks(hooks.BoxInfo{BoxID: tb.boxID}, tb.state)
+		s.deleteProxiesForBox(tb.boxID)
+	}
+	// Surface managed boxes the hub has no record of (e.g. created out of band,
+	// or records lost with a previous database) rather than hiding them.
+	for _, b := range boxes {
+		if !matched[b.InstanceID] {
+			s.logger().Info("spoke reports a box the hub has no record of", "spoke", spokeName, "instance", b.InstanceID, "box", b.BoxID)
+		}
+	}
+}
+
+// syncSpoke folds one spoke's live inventory into the records — the targeted
+// form of syncSpokes, run right after a create so the new box's observed
+// metadata (name, image, backend state) lands in its record without waiting for
+// the next periodic pass. Best-effort: a list failure is logged and the record
+// simply stays metadata-less until the next sync.
+//
+// @arg ctx Context for the list request.
+// @arg name The spoke to sync.
+// @arg bm The spoke's box manager.
+//
+// @testcase TestCreateBoxSyncsObservedMetadata populates the new record's metadata at create time.
+func (s *Server) syncSpoke(ctx context.Context, name string, bm boxManager) {
+	boxes, err := bm.List(ctx)
+	if err != nil {
+		s.logger().Warn("listing spoke after create failed; record metadata deferred to next sync", "spoke", name, "err", err)
+		return
+	}
+	s.syncSpokeInventory(name, boxes)
+}
+
 // reconcileProxies deletes proxies whose box no longer exists on its (listed)
 // spoke, matching by container ID so a same-box-ID box of a newer generation
 // does not keep an old proxy alive. boxesBySpoke holds the boxes successfully
-// listed per spoke; a proxy whose spoke is absent (unreachable) is kept.
+// listed per spoke; a proxy whose spoke is absent (unreachable) is kept. Called
+// from the periodic sync pass.
 //
 // @arg boxesBySpoke The boxes listed per reachable spoke, keyed by spoke name.
 //
-// @testcase TestRestoreReconcilesProxies drops a proxy whose box is gone and keeps a live one.
+// @testcase TestSyncReconcilesProxies drops a proxy whose box is gone and keeps a live one.
 func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 	proxies, err := s.store.ListProxies()
 	if err != nil {
@@ -742,7 +869,7 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	// Claim the box ID hub-wide before any slow work, so a box ID is unique across
 	// every spoke (the per-spoke docker layer only sees its own boxes). The claim
 	// is held until the session is registered (or the create fails), then released.
-	if err := s.reserveBoxID(ctx, opts.BoxID); err != nil {
+	if err := s.reserveBoxID(opts.BoxID); err != nil {
 		return nil, err
 	}
 	defer s.releaseBoxID(opts.BoxID)
@@ -793,6 +920,9 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 		BoxID:        opts.BoxID,
 		Description:  opts.Description,
 		SpokeName:    spokeName,
+		// The spoke just created the box, so it was observed alive this instant.
+		BoxState: boxStateRunning,
+		LastSeen: time.Now(),
 	}
 	s.mu.Lock()
 	s.byToken[tok] = sess
@@ -801,7 +931,43 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	if err := s.store.Save(sess.persist()); err != nil {
 		s.logger().Warn("failed to persist new session", "box", sess.BoxID, "err", err)
 	}
+	// Recreating a dead box under its old ID replaces its tombstone: the
+	// terminated record's hooks already ran and its proxies are gone, so only the
+	// record itself remains to clear.
+	s.dropTerminatedRecords(opts.BoxID, tok)
+	// Fold the spoke's inventory in right away so the record carries the box's
+	// observed name/image/state without waiting for the next periodic sync.
+	s.syncSpoke(ctx, spokeName, mgr)
 	return sess, nil
+}
+
+// dropTerminatedRecords deletes every terminated record holding boxID (there is
+// normally at most one), sparing the session registered under keepToken. It is
+// how recreating a box under a dead box's ID replaces the tombstone instead of
+// listing two boxes with one name. No-op for an unnamed box.
+//
+// @arg boxID The box ID whose tombstones to clear; "" is a no-op.
+// @arg keepToken The token of the just-registered session to spare.
+//
+// @testcase TestCreateBoxReplacesTerminatedTombstone clears the tombstone when its box ID is reused.
+func (s *Server) dropTerminatedRecords(boxID, keepToken string) {
+	if boxID == "" {
+		return
+	}
+	s.mu.Lock()
+	var dropped []string
+	for tok, sess := range s.byToken {
+		if tok != keepToken && strings.EqualFold(sess.BoxID, boxID) && sess.terminated() {
+			delete(s.byToken, tok)
+			dropped = append(dropped, tok)
+		}
+	}
+	s.mu.Unlock()
+	for _, tok := range dropped {
+		if err := s.store.Delete(tok); err != nil {
+			s.logger().Warn("failed to delete replaced tombstone record", "box", boxID, "err", err)
+		}
+	}
 }
 
 // runDestroyHooks best-effort runs the box.destroy hooks for the given per-hook
@@ -874,16 +1040,25 @@ func (s *Server) lookupByBoxID(boxID string) *session {
 		return nil
 	}
 	// spoke() touches the hub, so it is called outside s.mu. The fields compared
-	// (SpokeName, CreatedAt, Token) are immutable after creation.
+	// (SpokeName, CreatedAt, Token) are immutable after creation; liveness is read
+	// under the session's own lock.
 	best := matches[0]
-	bestReachable := s.spokeReachable(best.SpokeName)
+	bestRank := boxIDMatchRank{alive: !best.terminated(), reachable: s.spokeReachable(best.SpokeName)}
 	for _, c := range matches[1:] {
-		cReachable := s.spokeReachable(c.SpokeName)
-		if betterBoxIDMatch(c, cReachable, best, bestReachable) {
-			best, bestReachable = c, cReachable
+		cRank := boxIDMatchRank{alive: !c.terminated(), reachable: s.spokeReachable(c.SpokeName)}
+		if betterBoxIDMatch(c, cRank, best, bestRank) {
+			best, bestRank = c, cRank
 		}
 	}
 	return best
+}
+
+// boxIDMatchRank carries the health facts lookupByBoxID orders duplicate box-ID
+// matches by: whether the session's box is still alive (not a terminated
+// tombstone) and whether its spoke is currently reachable.
+type boxIDMatchRank struct {
+	alive     bool
+	reachable bool
 }
 
 // spokeReachable reports whether the named spoke is currently resolvable (the
@@ -899,19 +1074,25 @@ func (s *Server) spokeReachable(name string) bool {
 }
 
 // betterBoxIDMatch reports whether candidate c should be preferred over best when
-// resolving a box ID, applying the total order: reachable spoke first, then newer
-// CreatedAt, then lexically smaller Token (a stable final tiebreak).
+// resolving a box ID, applying the total order: alive (non-terminated) first, then
+// reachable spoke, then newer CreatedAt, then lexically smaller Token (a stable
+// final tiebreak). Alive outranks reachable so a duplicate ID never resolves to a
+// tombstone while a live box exists anywhere.
 //
 // @arg c The candidate session.
-// @arg cReachable Whether c's spoke is currently reachable.
+// @arg cRank The candidate's health facts (alive, spoke reachable).
 // @arg best The current best session.
-// @arg bestReachable Whether best's spoke is currently reachable.
+// @arg bestRank The current best's health facts.
 // @return bool True when c is the better match.
 //
 // @testcase TestLookupByBoxIDPrefersReachableSpoke exercises the reachable-then-newer-then-token ordering.
-func betterBoxIDMatch(c *session, cReachable bool, best *session, bestReachable bool) bool {
-	if cReachable != bestReachable {
-		return cReachable
+// @testcase TestLookupByBoxIDPrefersAliveOverTerminated prefers a live box over a tombstone with the same ID.
+func betterBoxIDMatch(c *session, cRank boxIDMatchRank, best *session, bestRank boxIDMatchRank) bool {
+	if cRank.alive != bestRank.alive {
+		return cRank.alive
+	}
+	if cRank.reachable != bestRank.reachable {
+		return cRank.reachable
 	}
 	if !c.CreatedAt.Equal(best.CreatedAt) {
 		return c.CreatedAt.After(best.CreatedAt)
@@ -963,28 +1144,136 @@ func (s *Server) submitCode(ctx context.Context, tok, code string) error {
 	return err
 }
 
-// listBoxes returns all managed boxes across every connected spoke, each tagged
-// with the spoke it runs on. A spoke that errors is logged and skipped so one bad
-// spoke doesn't fail the whole listing.
+// boxRecords returns a stable snapshot of every tracked session in its
+// persisted form, newest first (then by token, so equal timestamps still order
+// deterministically). It is the read path of the box list: records come from
+// the registry (the store's in-memory mirror), never from a live spoke, so the
+// listing works identically whether a spoke is connected or not.
 //
-// @arg ctx Context for the list request.
-// @return []sandbox.Box The boxes managed by this server, tagged with their spoke.
-// @error error Always nil (per-spoke failures are logged and skipped).
+// @return []persistedSession One snapshot per tracked session, newest first.
+//
+// @testcase TestListBoxesFromRecords lists every record without contacting a spoke.
+func (s *Server) boxRecords() []persistedSession {
+	s.mu.Lock()
+	sessions := make([]*session, 0, len(s.byToken))
+	for _, sess := range s.byToken {
+		sessions = append(sessions, sess)
+	}
+	s.mu.Unlock()
+	out := make([]persistedSession, 0, len(sessions))
+	for _, sess := range sessions {
+		out = append(out, sess.persist())
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].CreatedAt.After(out[j].CreatedAt)
+		}
+		return out[i].Token < out[j].Token
+	})
+	return out
+}
+
+// connectedSpokeSet returns the names of the spokes currently holding a live
+// connection to the hub. It is the read-time input that turns a stored
+// "running" record into a displayed "unreachable" one, so staleness is
+// impossible: connectivity is always evaluated at the moment of the read.
+//
+// @return map[string]bool The connected spoke names.
+//
+// @testcase TestListBoxesMarksUnreachable marks a record unreachable when its spoke is not in the set.
+func (s *Server) connectedSpokeSet() map[string]bool {
+	out := map[string]bool{}
+	for name := range s.allSpokes() {
+		out[name] = true
+	}
+	return out
+}
+
+// boxFromRecord renders one session record as the sandbox.Box view the API and
+// UI consume. The displayed state is derived, in priority order: a terminated
+// record shows "terminated" (a tombstone — the box is confirmed gone from its
+// spoke); a record whose spoke has no live connection shows "unreachable" (the
+// box may well still be running, the hub just cannot see it right now); an
+// observable record shows the backend state the sync pass last recorded (e.g.
+// "running" or "exited", defaulting to "running" before the first sync).
+//
+// @arg ps The session record to render.
+// @arg connected The currently connected spoke names (see connectedSpokeSet).
+// @return sandbox.Box The record rendered as a box view.
+//
+// @testcase TestListBoxesFromRecords renders running records from their stored metadata.
+// @testcase TestListBoxesMarksUnreachable renders a disconnected spoke's record as unreachable.
+// @testcase TestSyncMarksVanishedBoxTerminated renders a vanished box as terminated.
+func (s *Server) boxFromRecord(ps persistedSession, connected map[string]bool) sandbox.Box {
+	spoke := s.resolveStoredSpoke(ps.SpokeName)
+	state := ps.InstanceState
+	if state == "" {
+		state = boxStateRunning
+	}
+	status := state
+	switch {
+	case ps.BoxState == boxStateTerminated:
+		state = boxStateTerminated
+		status = "gone from its spoke"
+	case !connected[spoke]:
+		state = sandbox.StateUnreachable
+		status = "spoke offline"
+	}
+	var lastSeen int64
+	if !ps.LastSeen.IsZero() {
+		lastSeen = ps.LastSeen.Unix()
+	}
+	phase := ps.Status
+	if phase == "" {
+		phase = "pending"
+	}
+	return sandbox.Box{
+		InstanceID:  shortInstanceID(ps.ContainerID),
+		Name:        ps.Name,
+		BoxID:       ps.BoxID,
+		Description: ps.Description,
+		Spoke:       spoke,
+		Image:       ps.Image,
+		State:       state,
+		Status:      status,
+		Phase:       phase,
+		Created:     ps.CreatedAt.Unix(),
+		LastSeen:    lastSeen,
+	}
+}
+
+// shortInstanceID truncates a full container/instance ID to the 12-character
+// short form spokes report in their listings, leaving shorter IDs untouched.
+//
+// @arg id The full instance ID.
+// @return string The short (at most 12 character) form.
+//
+// @testcase TestListBoxesFromRecords lists boxes with short instance IDs.
+func shortInstanceID(id string) string {
+	if len(id) > 12 {
+		return id[:12]
+	}
+	return id
+}
+
+// listBoxes returns every tracked box rendered from its record — the store is
+// the system of record, so a box on an offline spoke stays listed (as
+// unreachable) and a terminated box stays listed as a tombstone until its
+// record is removed. No spoke is contacted.
+//
+// @arg _ Context (unused; the data is the in-memory registry).
+// @return []sandbox.Box The tracked boxes, newest first.
+// @error error Always nil (kept for interface stability).
 //
 // @testcase TestBoxToolsOverBackend exercises the server's box wiring.
-// @testcase TestListFansOutAcrossSpokes aggregates and tags boxes from every spoke.
-func (s *Server) listBoxes(ctx context.Context) ([]sandbox.Box, error) {
-	var out []sandbox.Box
-	for name, bm := range s.allSpokes() {
-		boxes, err := bm.List(ctx)
-		if err != nil {
-			s.logger().Warn("listing spoke failed; skipping it", "spoke", name, "err", err)
-			continue
-		}
-		for i := range boxes {
-			boxes[i].Spoke = name
-		}
-		out = append(out, boxes...)
+// @testcase TestListBoxesFromRecords lists records across spokes without contacting them.
+// @testcase TestListBoxesMarksUnreachable keeps a disconnected spoke's boxes listed.
+func (s *Server) listBoxes(_ context.Context) ([]sandbox.Box, error) {
+	connected := s.connectedSpokeSet()
+	recs := s.boxRecords()
+	out := make([]sandbox.Box, 0, len(recs))
+	for _, ps := range recs {
+		out = append(out, s.boxFromRecord(ps, connected))
 	}
 	return out, nil
 }
@@ -1005,6 +1294,9 @@ func (s *Server) boxLogs(ctx context.Context, boxID string, tail int) (string, e
 	sess := s.lookupByBoxID(boxID)
 	if sess == nil {
 		return "", fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
+	}
+	if sess.terminated() {
+		return "", fmt.Errorf("box %q is terminated (it no longer exists on its spoke); its logs are gone", boxID)
 	}
 	mgr, err := s.spoke(sess.SpokeName)
 	if err != nil {
@@ -1032,6 +1324,9 @@ func (s *Server) boxExec(ctx context.Context, boxID, command string) (sandbox.Ex
 	sess := s.lookupByBoxID(boxID)
 	if sess == nil {
 		return sandbox.ExecResult{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
+	}
+	if sess.terminated() {
+		return sandbox.ExecResult{}, fmt.Errorf("box %q is terminated (it no longer exists on its spoke)", boxID)
 	}
 	mgr, err := s.spoke(sess.SpokeName)
 	if err != nil {
@@ -1082,10 +1377,15 @@ func boxMatchesSession(sess *session, idOrName string) bool {
 // idempotent: if the box's container is already gone on its spoke (a not-found
 // error), the destroy is treated as success and the session is still forgotten,
 // so a box a human removed out of band can be cleared from the UI without error.
+// A terminated record (a tombstone — the box is confirmed gone) is removed
+// without contacting any spoke, and its destroy hooks are not re-run (they fired
+// when it was marked terminated). A box whose spoke is offline is refused with
+// its record kept: the hub will not guess about a box it cannot observe — retry
+// when the spoke reconnects, or drop the spoke to purge everything pinned to it.
 //
 // @arg ctx Context for the destroy request.
 // @arg idOrName The box ID or container ID identifying the box to destroy.
-// @error error if the box's spoke is not connected, or the box cannot be destroyed for a reason other than already being gone.
+// @error error if the box's spoke is not connected (and the record is not terminated), or the box cannot be destroyed for a reason other than already being gone.
 //
 // @testcase TestDestroyForgetsSession checks the session is forgotten after destroy.
 // @testcase TestDestroyRunsDestroyHooks checks the box's hook state is replayed to the destroy hooks.
@@ -1094,28 +1394,36 @@ func boxMatchesSession(sess *session, idOrName string) bool {
 // @testcase TestDestroySessionlessBoxFindsSpoke destroys a box with no tracked session on its actual spoke.
 // @testcase TestDestroyAlreadyGoneBoxSucceeds treats a not-found from the spoke as a successful, session-clearing removal.
 // @testcase TestDestroyUnknownBoxIsIdempotent treats a box no spoke reports as already gone (no-op success).
+// @testcase TestDestroyTerminatedRecordSkipsSpoke removes a tombstone without a spoke and without re-running hooks.
+// @testcase TestDestroyUnreachableSpokeRefused refuses to destroy a box whose spoke is offline and keeps its record.
 func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 	// Route to the spoke the matching session names. idOrName may be a box ID
 	// (what the admin UI sends) or a container ID, so match on both.
 	var mgr boxManager
 	matched := false
+	terminated := false
 	var spokeErr error
 	s.mu.Lock()
 	for _, sess := range s.byToken {
 		if boxMatchesSession(sess, idOrName) {
-			mgr, spokeErr = s.spoke(sess.SpokeName)
 			matched = true
+			// terminated() takes sess.mu; s.mu → sess.mu is the lock order.
+			if terminated = sess.terminated(); terminated {
+				// A tombstone needs no spoke: the box is confirmed gone, only the
+				// record remains to clear.
+				break
+			}
+			mgr, spokeErr = s.spoke(sess.SpokeName)
 			break
 		}
 	}
 	s.mu.Unlock()
 	if spokeErr != nil {
-		return spokeErr
+		return fmt.Errorf("box %q cannot be destroyed right now: %w; the box record is kept — retry when its spoke reconnects, or drop the spoke to purge it", idOrName, spokeErr)
 	}
-	// No tracked session named the box. The admin box list is built straight from
-	// each spoke (see listBoxes), so a box can appear there — and be Remove-able —
-	// with no session: e.g. its login session expired, or it was created
-	// out-of-band. Locate the box across the connected spokes the way the list does.
+	// No tracked session named the box. A destroy may still legitimately target a
+	// box the hub has no record of (e.g. records lost with a previous database, or
+	// a box created out of band) — locate it across the connected spokes.
 	if !matched {
 		hosting, err := s.spokeHostingBox(ctx, idOrName)
 		if err != nil {
@@ -1123,9 +1431,10 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 		}
 		mgr = hosting
 	}
-	// mgr is nil when no session names the box and no connected spoke reports it:
-	// the box is already gone everywhere, which is the desired end state. Skip the
-	// destroy and fall through to forget any session so the UI clears without error.
+	// mgr is nil when the record is terminated, or when no session names the box
+	// and no connected spoke reports it: either way the box is already gone
+	// everywhere, which is the desired end state. Skip the destroy and fall
+	// through to forget any record so the UI clears without error.
 	if mgr != nil {
 		if err := mgr.Destroy(ctx, idOrName); err != nil {
 			// Removal is idempotent: if the box's container is already gone on its
@@ -1146,7 +1455,11 @@ func (s *Server) destroyBox(ctx context.Context, idOrName string) error {
 		if boxMatchesSession(sess, idOrName) {
 			delete(s.byToken, tok)
 			dropped = append(dropped, tok)
-			torn = append(torn, tornBox{boxID: sess.BoxID, state: sess.HookState})
+			// A terminated record's destroy hooks already ran when the sync pass
+			// tombstoned it; re-running them would replay cleanup that happened.
+			if !sess.terminated() {
+				torn = append(torn, tornBox{boxID: sess.BoxID, state: sess.HookState})
+			}
 		}
 	}
 	s.mu.Unlock()
@@ -1204,14 +1517,18 @@ type tornBox struct {
 	state map[string]string
 }
 
-// ReapLoop periodically destroys orphaned (never-authenticated) boxes and prunes
-// their sessions. It blocks until ctx is cancelled.
+// ReapLoop periodically destroys orphaned (never-authenticated) boxes, prunes
+// their sessions, and runs the sync pass that folds each connected spoke's live
+// inventory into the box records (see syncSpokes) — the continuous convergence
+// keeping the store honest instead of a one-shot startup reconciliation. It
+// blocks until ctx is cancelled.
 //
 // @arg ctx Context whose cancellation stops the loop.
-// @arg every How often to run a reap pass.
+// @arg every How often to run a reap-and-sync pass.
 // @arg log Optional sink for reaper log messages; may be nil.
 //
 // @testcase TestPruneSessionsAfterReap covers the session pruning ReapLoop relies on.
+// @testcase TestSyncMarksVanishedBoxTerminated covers the sync pass ReapLoop runs.
 func (s *Server) ReapLoop(ctx context.Context, every time.Duration, log func(string)) {
 	t := time.NewTicker(every)
 	defer t.Stop()
@@ -1238,6 +1555,9 @@ func (s *Server) ReapLoop(ctx context.Context, every time.Duration, log func(str
 					log(fmt.Sprintf("reaper: destroyed %d orphaned box(es): %s", len(reaped), strings.Join(reaped, ", ")))
 				}
 			}
+			// Converge the records with reality last, so the tick ends with the
+			// post-reap state folded in.
+			s.syncSpokes(ctx)
 		}
 	}
 }

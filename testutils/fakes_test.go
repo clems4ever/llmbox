@@ -40,6 +40,9 @@ func TestFakeMgr(t *testing.T) {
 	if got, err := m.List(context.Background()); err != nil || len(got) != 2 {
 		t.Errorf("List = %v, %v", got, err)
 	}
+	if f.ListCalls() != 1 {
+		t.Errorf("ListCalls = %d, want 1", f.ListCalls())
+	}
 	if logs, err := m.Logs(context.Background(), "b1", 5); err != nil || logs != "logs" {
 		t.Errorf("Logs = %q, %v", logs, err)
 	}

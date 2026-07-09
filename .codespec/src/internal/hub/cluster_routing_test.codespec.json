@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "TestRestoreKeepsDisconnectedSpokeSessions",
-			"documentation_hash": "2a1f26bd843763c16176401babf17da7ba27c5f9f91c7cc7785ef8a3e4cc6592",
-			"definition_hash": "9a9fb1ebbd2116a527995590d4bb35090865c1f6d84718fd8a4e3aefa9a0212a",
-			"reviewed_at": "2026-07-07T08:15:52.586109663Z"
+			"documentation_hash": "de012c8a4e829a474817e59ab3f72534d7d924eebb0ec9315c7553a50a3388fd",
+			"definition_hash": "5d0863a478d0d57d6479f2fea18d77a30fc12c351ddfbca58c0ebdaa6c4ef52f",
+			"reviewed_at": "2026-07-09T10:09:04.935856286Z"
 		},
 		{
 			"function_name": "TestCreateBoxRoutesToSpoke",
@@ -101,6 +101,18 @@
 			"documentation_hash": "962c98dc098ab43f25f609a1bedd506a0c04e0b1d25912769db23715930e326f",
 			"definition_hash": "f34f2a82f8e0c5f839008aab449b176ea114b9dc25863277ce52ce1214800809",
 			"reviewed_at": "2026-07-07T09:35:35.081708598Z"
+		},
+		{
+			"function_name": "TestListBoxesFromRecords",
+			"documentation_hash": "8b8ea6643fb486e186e77a706fc861415d742e526692cc919cd9d9e22d0ea602",
+			"definition_hash": "1c8db6853ac2416e166d781415bf3eb45f6e5e697bb9167ab6701feebdd8c048",
+			"reviewed_at": "2026-07-09T10:09:04.934093733Z"
+		},
+		{
+			"function_name": "TestListBoxesMarksUnreachable",
+			"documentation_hash": "da3259f55fa39f2fd8d2bf27f5b10a53918c2d38790b5d8a1090b5e13b692d8d",
+			"definition_hash": "17673b90985ecda4daf62445414baaf789b2e8e7cbba874471803f300c52fece",
+			"reviewed_at": "2026-07-09T10:09:04.934961651Z"
 		}
 	]
 }

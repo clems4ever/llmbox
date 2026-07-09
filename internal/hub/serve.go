@@ -97,8 +97,10 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 		WriteTimeout:      90 * time.Second,
 	}
 
-	// Reload sessions saved before a restart, dropping any whose box is gone.
-	if n, err := srv.Restore(ctx); err != nil {
+	// Reload the box records saved before the restart. This reads only the store —
+	// no spoke is contacted at startup; the periodic sync pass reconciles the
+	// records with what the spokes actually run once they (re)connect.
+	if n, err := srv.Restore(); err != nil {
 		log.Printf("restore: %v", err)
 	} else if n > 0 {
 		log.Printf("restored %d session(s) from %s", n, cfg.StateFile)

@@ -19,6 +19,20 @@ import (
 // rather than in a specific isolation backend.
 var ErrBoxNotFound = errors.New("no managed box matches")
 
+// Hub-derived box states surfaced in Box.State alongside the backend's own
+// instance states (e.g. "running", "exited"). They exist at the hub layer, not
+// in any backend: a backend always reports what it actually sees, while the hub
+// derives these from its records and live spoke connectivity.
+const (
+	// StateUnreachable marks a box whose spoke currently has no live connection
+	// to the hub — the box may well still be running, the hub just cannot
+	// observe it right now.
+	StateUnreachable = "unreachable"
+	// StateTerminated marks a box confirmed gone from its (reachable) spoke; its
+	// record is kept as a tombstone until removed.
+	StateTerminated = "terminated"
+)
+
 // Box is a view of a managed box returned to callers.
 type Box struct {
 	InstanceID  string `json:"instance_id" jsonschema:"the backend instance ID identifying the box (e.g. a short container ID or microVM ID)"`
@@ -27,10 +41,11 @@ type Box struct {
 	Description string `json:"description,omitempty" jsonschema:"the caller-supplied description label, if any"`
 	Spoke       string `json:"spoke,omitempty" jsonschema:"the cluster spoke the box runs on"`
 	Image       string `json:"image" jsonschema:"the image or rootfs the box runs (may be empty for backends without an image concept)"`
-	State       string `json:"state" jsonschema:"the instance state, e.g. running or stopped"`
+	State       string `json:"state" jsonschema:"the instance state, e.g. running or exited; unreachable when the box's spoke is offline, terminated when the box is confirmed gone from its spoke"`
 	Status      string `json:"status" jsonschema:"a human readable status string"`
-	Phase       string `json:"phase" jsonschema:"auth phase: pending (awaiting login) or ready (authenticated)"`
+	Phase       string `json:"phase" jsonschema:"auth phase: pending (awaiting login), ready (authenticated), or error (activation failed)"`
 	Created     int64  `json:"created" jsonschema:"creation time as a unix timestamp"`
+	LastSeen    int64  `json:"last_seen,omitempty" jsonschema:"when the hub last observed the box on its spoke, as a unix timestamp (0 when never observed)"`
 }
 
 // ExecResult is the captured outcome of a command run inside a box.

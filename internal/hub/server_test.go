@@ -494,11 +494,15 @@ func TestGetByBoxID(t *testing.T) {
 // TestListLlmboxesReturnsBoxID checks the MCP backend's box listing surfaces
 // each box's box ID (the hostname the user sees) along with its description.
 func TestListLlmboxesReturnsBoxID(t *testing.T) {
-	f := &testutils.FakeMgr{ListResult: []sandbox.Box{
-		{InstanceID: "abcdef0123456789", BoxID: "web-box", Description: "front-end work"},
-		{InstanceID: "0123456789abcdef"},
-	}}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box", Description: "front-end work"}); err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+	f.CreateID = "0123456789abcdef"
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{}); err != nil {
+		t.Fatalf("CreateBox unnamed: %v", err)
+	}
 
 	boxes, err := s.boxBackend().ListBoxes(context.Background())
 	if err != nil {
@@ -507,11 +511,15 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 	if len(boxes) != 2 {
 		t.Fatalf("got %d boxes, want 2", len(boxes))
 	}
-	if boxes[0].BoxID != "web-box" || boxes[0].Description != "front-end work" {
-		t.Errorf("box0 box ID/description = %q/%q, want web-box/front-end work", boxes[0].BoxID, boxes[0].Description)
+	byID := map[string]bool{}
+	for _, b := range boxes {
+		byID[b.BoxID] = true
+		if b.BoxID == "web-box" && b.Description != "front-end work" {
+			t.Errorf("web-box description = %q, want front-end work", b.Description)
+		}
 	}
-	if boxes[1].BoxID != "" {
-		t.Errorf("box1 box ID = %q, want empty", boxes[1].BoxID)
+	if !byID["web-box"] || !byID[""] {
+		t.Errorf("expected web-box and one unnamed box, got %+v", boxes)
 	}
 }
 
