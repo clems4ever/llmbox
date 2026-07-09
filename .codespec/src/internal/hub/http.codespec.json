@@ -15,13 +15,6 @@
 			"reviewed_at": "2026-07-09T11:33:00.455739865Z"
 		},
 		{
-			"function_name": "render",
-			"receiver": "Server",
-			"documentation_hash": "b5fe0fd3cf94bb0eaaf62b47836317459960440f5bd46e0856e165d2a00d2077",
-			"definition_hash": "454a27e76becc7cce5018d9c6fc498269feb48e916ee2b2061076366c095de22",
-			"reviewed_at": "2026-06-18T17:12:11.811278136Z"
-		},
-		{
 			"function_name": "APIHandler",
 			"receiver": "Server",
 			"documentation_hash": "7738ce50af9dc40b36ad941957c4c1f313df12c7d93f327092c7980f18d05574",
