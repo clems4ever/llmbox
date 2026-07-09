@@ -104,13 +104,13 @@ func TestEndToEndWorkflow(t *testing.T) {
 		t.Fatalf("resolving screenshot dir: %v", err)
 	}
 
-	// Open the activation page; it offers the "Sign in with Claude" link.
+	// Open the activation page; it offers the "Sign in with Claude" link. The
+	// page renders client-side (React), so wait for the activation view instead
+	// of reading the initial page source.
 	if err := b.wd.Get(authURL); err != nil {
 		t.Fatalf("loading auth page: %v", err)
 	}
-	if src, _ := b.wd.PageSource(); !strings.Contains(src, "Activate your llmbox") {
-		t.Fatalf("auth page did not render the activation view:\n%s", src)
-	}
+	b.waitFor(t, by("xpath"), "//h2[contains(normalize-space(.),'Activate your llmbox')]")
 	// Capture the activation page for the README when a screenshot dir is set
 	// (CI does this); it is otherwise skipped, so a plain test run writes nothing.
 	if shotDir != "" {
@@ -329,7 +329,7 @@ func listMentionsReadyBox(out map[string]any, boxID string) bool {
 // by maps a short selector name to the WebDriver By* strategy constant, so the
 // workflow reads cleanly without repeating the selenium package qualifier.
 //
-// @arg kind One of "css", "id", or "name".
+// @arg kind One of "css", "id", "name", or "xpath".
 // @return string The corresponding WebDriver selector strategy.
 func by(kind string) string {
 	switch kind {
@@ -339,6 +339,8 @@ func by(kind string) string {
 		return "id"
 	case "name":
 		return "name"
+	case "xpath":
+		return "xpath"
 	default:
 		panic("unknown selector kind: " + kind)
 	}

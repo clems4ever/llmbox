@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -79,23 +80,47 @@ func signInServer(t *testing.T) (*Server, Store) {
 	return newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, auth.NewTestAuthenticator("admin@corp.com"))
 }
 
-// TestSignInPageRendersButtons checks the sign-in page lists a provider button
-// whose login link carries the return target.
+// signInStateJSON GETs the sign-in page's JSON state for a return target.
+func signInStateJSON(t *testing.T, s *Server, rawQuery string) (int, map[string]any) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/signin/state?"+rawQuery, nil)
+	w := httptest.NewRecorder()
+	s.APIHandler().ServeHTTP(w, req)
+	var out map[string]any
+	if w.Code == http.StatusOK {
+		if err := json.Unmarshal(w.Body.Bytes(), &out); err != nil {
+			t.Fatalf("decoding sign-in state: %v", err)
+		}
+	}
+	return w.Code, out
+}
+
+// TestSignInPageRendersButtons checks the sign-in page serves its static shell
+// and its state lists a provider button whose login link carries the return
+// target.
 func TestSignInPageRendersButtons(t *testing.T) {
 	s, _ := signInServer(t)
+
+	// The page itself is the static shell from the built web app.
 	req := httptest.NewRequest(http.MethodGet, "/signin?return=%2Fdash", nil)
 	w := httptest.NewRecorder()
 	s.APIHandler().ServeHTTP(w, req)
-
 	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", w.Code)
+		t.Fatalf("shell status = %d, want 200 (is the web app built? run `make web`)", w.Code)
 	}
-	body := w.Body.String()
-	if !strings.Contains(body, "Sign in with Google") {
-		t.Errorf("body lacks provider button: %s", body)
+
+	// The state carries the provider button with the return target.
+	code, st := signInStateJSON(t, s, "return=%2Fdash")
+	if code != http.StatusOK {
+		t.Fatalf("state status = %d, want 200", code)
 	}
-	if !strings.Contains(body, "/auth/google/login?return=%2Fdash") {
-		t.Errorf("button lacks return target: %s", body)
+	providers, _ := st["providers"].([]any)
+	if len(providers) != 1 {
+		t.Fatalf("providers = %v, want one google button", st["providers"])
+	}
+	button, _ := providers[0].(map[string]any)
+	if button["label"] != "Google" || button["login_path"] != "/auth/google/login?return=%2Fdash" {
+		t.Errorf("button = %v, want the google login path carrying the return target", button)
 	}
 }
 
@@ -116,18 +141,18 @@ func TestSignInPageRedirectsWhenSignedIn(t *testing.T) {
 	}
 }
 
-// TestSignInPageRejectsUnsafeReturn checks an unsafe return target yields a page
-// with no sign-in buttons (and no redirect), never an open redirect.
+// TestSignInPageRejectsUnsafeReturn checks an unsafe return target yields a
+// state with no sign-in buttons (and no redirect), never an open redirect.
 func TestSignInPageRejectsUnsafeReturn(t *testing.T) {
 	s, _ := signInServer(t)
-	req := httptest.NewRequest(http.MethodGet, "/signin?return=https://evil.com/x", nil)
-	w := httptest.NewRecorder()
-	s.APIHandler().ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", w.Code)
+	code, st := signInStateJSON(t, s, "return=https%3A%2F%2Fevil.com%2Fx")
+	if code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", code)
 	}
-	if body := w.Body.String(); strings.Contains(body, "Sign in with Google") {
-		t.Errorf("body should not offer sign-in for an unsafe return: %s", body)
+	if providers, _ := st["providers"].([]any); len(providers) != 0 {
+		t.Errorf("providers = %v, want none for an unsafe return", st["providers"])
+	}
+	if rt, ok := st["return_to"]; ok && rt != "" {
+		t.Errorf("return_to = %v, want empty for an unsafe return", rt)
 	}
 }

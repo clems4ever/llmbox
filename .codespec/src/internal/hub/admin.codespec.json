@@ -3,9 +3,9 @@
 		{
 			"function_name": "registerAdminRoutes",
 			"receiver": "Server",
-			"documentation_hash": "c340f7407a3a798401d7c034639b5f7a584d32aa2844f26590686f70c51db2ac",
-			"definition_hash": "63a1f450935fdeeccc0de2d9e63af2344f7183652f2190a5021ce0ff003ad5e0",
-			"reviewed_at": "2026-07-08T12:57:12.227665774Z"
+			"documentation_hash": "110184efa26e19fa952c87ba9ab77a1f4e2d40241d74d0d0b16c7eebc125eecf",
+			"definition_hash": "389acaaf83680c5cc113edb2466c0f7075fb3cd8812bd97421e1ceab5ff37e4a",
+			"reviewed_at": "2026-07-09T11:33:00.219596515Z"
 		},
 		{
 			"function_name": "spokeConnectURL",
@@ -26,6 +26,26 @@
 			"documentation_hash": "c17a8c5d73fb0567bc3ecfb509ec82a64b5fadd1e603102c88c6b3dd1ab32582",
 			"definition_hash": "3cc72b5856c5f043e12d6bfc7a59838d167e5f1d8bf0b310e989da39e5f9a650",
 			"reviewed_at": "2026-07-08T12:57:12.227889532Z"
+		},
+		{
+			"function_name": "uiAssets",
+			"documentation_hash": "23efc990a0eefd799739a93057fda727d54e381fbd22780de85b4faa91bc256a",
+			"definition_hash": "e964ce0b74f668c22b0af87d85de194810c19aaa8effea7d6f3dd1c822182f9b",
+			"reviewed_at": "2026-07-09T11:33:00.218312913Z"
+		},
+		{
+			"function_name": "servePage",
+			"receiver": "Server",
+			"documentation_hash": "9062725fda96a6004086b3a7e0c8241f6e284f5a69401e401702c656be2431ab",
+			"definition_hash": "86cd873c43a800ed416fd9a07373f23da14f3bc1188d99df05d013a297ac9984",
+			"reviewed_at": "2026-07-09T11:33:00.218799262Z"
+		},
+		{
+			"function_name": "registerAssetRoutes",
+			"receiver": "Server",
+			"documentation_hash": "39457fd247bef5a8bc02f3675845790e76aa36746966acfefa8f975026b431e3",
+			"definition_hash": "87958d80ec079d7c57936b04335dabf84c8e118241c497c05db03af1f60aefab",
+			"reviewed_at": "2026-07-09T11:33:00.219197527Z"
 		}
 	]
 }

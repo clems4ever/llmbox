@@ -88,15 +88,15 @@
 		},
 		{
 			"function_name": "TestAuthPageRendersAndSubmits",
-			"documentation_hash": "0ef2991d53177aa86f422fa572c3382e75cd23fc9717ab20077b475bce4a3269",
-			"definition_hash": "c8f571122148790cd0b95768aa88221e0ba8a3fef6eae39ae6db170edafa8831",
-			"reviewed_at": "2026-06-29T15:39:25.523475691Z"
+			"documentation_hash": "b5893bc0a0686615e7a020f01591e082fce0bfe703b6fa6148cf577a20e688f6",
+			"definition_hash": "d4d3af704fe973e5398550133c06cd2555e4e20896aa1884df82def81ee92f42",
+			"reviewed_at": "2026-07-09T11:33:00.460111126Z"
 		},
 		{
 			"function_name": "TestAuthPageUnknownToken",
-			"documentation_hash": "418d8d64cd1bfc5be9f28aee0ff3893df69576c37c70c33282dec53186f01e46",
-			"definition_hash": "47897fe96d4703869dd43a265db196b97f6e0c0d94262823ada2ef05081bdd4f",
-			"reviewed_at": "2026-06-25T12:45:36.361493807Z"
+			"documentation_hash": "55e5e83fc29235d3ba82c2332c9ad1eee072801f7f9a2634a73facc614397298",
+			"definition_hash": "a8af47602715b63d94aca83f6a7677309eedc6dd11b3e742cbe86c0435cab111",
+			"reviewed_at": "2026-07-09T11:33:00.678362561Z"
 		},
 		{
 			"function_name": "TestHealthz",
@@ -148,9 +148,9 @@
 		},
 		{
 			"function_name": "TestAuthPageShowsBoxAndSpoke",
-			"documentation_hash": "01c007d008dc96c06d63dfc4db0c607f833d52160aeed95f522318f03f25c725",
-			"definition_hash": "2118e599d8c24c4638b4ad0ef8b17e198ebfda5e1b26de0dacef4e466dbccb46",
-			"reviewed_at": "2026-07-09T10:34:01.597963021Z"
+			"documentation_hash": "f433f5e1b184be9c52d298331d798d34bfe91dcdeef5543dba86a4e1f9f1ea40",
+			"definition_hash": "8ad3c6bc785b0dab437ac062964c30994caeffc9eb0c4cdd004c08310692fe95",
+			"reviewed_at": "2026-07-09T11:33:00.675358738Z"
 		},
 		{
 			"function_name": "TestAPIHandlerServesUIAndAPI",
@@ -203,6 +203,18 @@
 			"documentation_hash": "02deb4dc71bc87368d3c9b53f9f2669587891e4425836d848e6153fc274428e6",
 			"definition_hash": "3908175ff13ee2ed5dbde136f24c7f1aab1c0668c3c757f3c152c85078b568ec",
 			"reviewed_at": "2026-07-08T12:57:12.245513719Z"
+		},
+		{
+			"function_name": "authStateJSON",
+			"documentation_hash": "e55171507ff1c2a9e37e0a046c2695b38ceb3d6bf315e82db7348d3a96d7a0e1",
+			"definition_hash": "b44b5134c960443513d4a59a273d9d85672fce940bdf1546c07cb5bf5e94079b",
+			"reviewed_at": "2026-07-09T11:33:00.459066473Z"
+		},
+		{
+			"function_name": "TestAuthPageServesShell",
+			"documentation_hash": "ee96331c68d5d827171349221821ec2c19e2becec1a69b531ef7ef82e1285792",
+			"definition_hash": "ba8bca6e94f532644f9af8a5cd45b314334a38fa3d23664ee65f4a9f7586f6f6",
+			"reviewed_at": "2026-07-09T11:33:00.67673439Z"
 		}
 	]
 }

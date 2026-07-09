@@ -2,10 +2,10 @@ package hub
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -314,74 +314,101 @@ func TestPruneSessionsAfterReap(t *testing.T) {
 
 // --- web handlers ---
 
-// TestAuthPageRendersAndSubmits checks the auth page renders and the code submits.
+// authStateJSON GETs an auth session's JSON state and decodes it.
+func authStateJSON(t *testing.T, h http.Handler, token string) (int, map[string]any) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/auth/"+token+"/state", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	var out map[string]any
+	if rec.Code == http.StatusOK {
+		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+			t.Fatalf("decoding state: %v", err)
+		}
+	}
+	return rec.Code, out
+}
+
+// TestAuthPageRendersAndSubmits checks the activation state endpoint carries the
+// authorize URL and the code submit endpoint returns the session URL.
 func TestAuthPageRendersAndSubmits(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "https://claude.com/cai/oauth/authorize?a=b", SubmitURL: "https://claude.ai/code/s/9"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
 	h := s.APIHandler()
 
-	// GET the page: shows the authorize link and a paste form.
-	req := httptest.NewRequest(http.MethodGet, "/auth/"+sess.Token, nil)
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("GET status %d", rec.Code)
+	// GET the state: with auth disabled, the full state (authorize URL) is open.
+	code, st := authStateJSON(t, h, sess.Token)
+	if code != http.StatusOK {
+		t.Fatalf("GET state status %d", code)
 	}
-	body := rec.Body.String()
-	if !strings.Contains(body, "claude.com/cai/oauth/authorize?a=b") {
-		t.Error("authorize URL missing from page")
+	if st["authorize_url"] != "https://claude.com/cai/oauth/authorize?a=b" {
+		t.Errorf("authorize URL missing from state: %v", st)
 	}
-	if !strings.Contains(body, `name="code"`) {
-		t.Error("code form missing from page")
+	if st["status"] != "pending" {
+		t.Errorf("status = %v, want pending", st["status"])
 	}
 
-	// POST the code: box becomes ready, page shows the session URL.
-	form := url.Values{"code": {"THECODE"}}
-	preq := httptest.NewRequest(http.MethodPost, "/auth/"+sess.Token, strings.NewReader(form.Encode()))
-	preq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// POST the code: box becomes ready, the response carries the session URL.
+	preq := httptest.NewRequest(http.MethodPost, "/auth/"+sess.Token+"/code", strings.NewReader(`{"code":"THECODE"}`))
+	preq.Header.Set("Content-Type", "application/json")
 	prec := httptest.NewRecorder()
 	h.ServeHTTP(prec, preq)
 	if prec.Code != http.StatusOK {
-		t.Fatalf("POST status %d", prec.Code)
+		t.Fatalf("POST status %d: %s", prec.Code, prec.Body.String())
 	}
 	if f.GotCode != "THECODE" {
 		t.Errorf("code not forwarded: %q", f.GotCode)
 	}
-	if !strings.Contains(prec.Body.String(), "https://claude.ai/code/s/9") {
-		t.Error("session URL missing from success page")
+	var out map[string]any
+	if err := json.Unmarshal(prec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decoding submit response: %v", err)
+	}
+	if out["status"] != "ready" || out["session_url"] != "https://claude.ai/code/s/9" {
+		t.Errorf("submit response = %v, want ready with session URL", out)
 	}
 }
 
-// TestAuthPageShowsBoxAndSpoke checks the activation page names the box and the
-// spoke it runs on, so the user can tell which box they are activating.
+// TestAuthPageShowsBoxAndSpoke checks the activation state names the box and the
+// runner it runs on, so the user can tell which workspace they are activating.
 func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{CreateID: "id1", CreateURL: "https://c", SubmitURL: "https://s"})
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "refactor-auth"})
-	h := s.APIHandler()
 
-	req := httptest.NewRequest(http.MethodGet, "/auth/"+sess.Token, nil)
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-
-	body := rec.Body.String()
-	if !strings.Contains(body, "refactor-auth") {
-		t.Error("box id missing from activation page")
+	code, st := authStateJSON(t, s.APIHandler(), sess.Token)
+	if code != http.StatusOK {
+		t.Fatalf("GET state status %d", code)
 	}
-	if !strings.Contains(body, "runner <b>"+testSpoke+"</b>") {
-		t.Error("runner (spoke) name missing from activation page")
+	if st["box_id"] != "refactor-auth" {
+		t.Errorf("box id missing from state: %v", st)
+	}
+	if st["spoke"] != testSpoke {
+		t.Errorf("runner (spoke) name missing from state: %v", st)
 	}
 }
 
-// TestAuthPageUnknownToken checks the auth page 404s for an unknown token.
-func TestAuthPageUnknownToken(t *testing.T) {
+// TestAuthPageServesShell checks GET /auth/{token} serves the static activation
+// shell (the built web page) rather than any server-rendered state.
+func TestAuthPageServesShell(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{})
 	h := s.APIHandler()
-	req := httptest.NewRequest(http.MethodGet, "/auth/deadbeef", nil)
+	req := httptest.NewRequest(http.MethodGet, "/auth/anytoken", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want 404", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET shell status %d (is the web app built? run `make web`)", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "<!doctype html>") && !strings.Contains(rec.Body.String(), "<!DOCTYPE html>") {
+		t.Error("expected the HTML shell")
+	}
+}
+
+// TestAuthPageUnknownToken checks the state endpoint 404s for an unknown token.
+func TestAuthPageUnknownToken(t *testing.T) {
+	s := newTestServer(&testutils.FakeMgr{})
+	code, _ := authStateJSON(t, s.APIHandler(), "deadbeef")
+	if code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", code)
 	}
 }
 

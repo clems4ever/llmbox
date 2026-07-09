@@ -41,6 +41,12 @@
 			"documentation_hash": "58506f67e92ed6c7b269e2e3e450e518673d48ce2cd324ceddd9108266a2ddca",
 			"definition_hash": "35a3448b35dfa025311f15ecd387bd39304c57ba881a39eee380755056cc3125",
 			"reviewed_at": "2026-07-08T12:57:12.229706568Z"
+		},
+		{
+			"function_name": "TestAssetsServedWithoutAdmin",
+			"documentation_hash": "b4d37adf5e4fa3478fd461c1d9655167006b6c0eb7e50631fefb8b6380c1eee7",
+			"definition_hash": "9a47f865148f5143b87b52fbadaa55bca08ef04e8ce73b98ffaaab104602fe50",
+			"reviewed_at": "2026-07-09T11:37:45.276775243Z"
 		}
 	]
 }

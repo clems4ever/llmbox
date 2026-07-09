@@ -2,21 +2,21 @@
 	"functions": [
 		{
 			"function_name": "newAuthServer",
-			"documentation_hash": "9c3ec3ce829c6bef4c95fd1715e20c7408f74fd64a267c121bf499dcf3894436",
+			"documentation_hash": "29621ad0ded3b9b2cedcfa52cac9e9b9ce6dd14206488ae48f57ea6614405ddd",
 			"definition_hash": "b9798543cfeffb93de625d316f7f636b2b164f431f58963fe0436be309aea3e2",
-			"reviewed_at": "2026-07-07T08:15:52.57602702Z"
+			"reviewed_at": "2026-07-09T11:33:00.220012691Z"
 		},
 		{
 			"function_name": "TestAuthPageRequiresLogin",
-			"documentation_hash": "fbb8971e7c31b6217e7a1dccfc54e364ea92db72f30e8d1641442af558061cee",
-			"definition_hash": "b58494db7c1664577bc89c3defa390aedf884188353b62f2f9b392e0853803ef",
-			"reviewed_at": "2026-06-29T15:39:25.194571588Z"
+			"documentation_hash": "9282ca330201046dba7388894c10cc4a1d6a6c8ee1aecd429180a8b8dbc5954b",
+			"definition_hash": "afd6bc5c2a1992425e9001c35d8a10b175a5521390a9c1b7ed45fa9ffa3c9286",
+			"reviewed_at": "2026-07-09T11:33:00.220366499Z"
 		},
 		{
 			"function_name": "TestActivationGatedByLogin",
-			"documentation_hash": "fa49343c911c73f938e0d5789ca32237e72a340b9e80faf40de09649a58f1c4f",
-			"definition_hash": "4bf57b01d3c55e8368a3247d2c104d384df20d86db8a0af4a838cbb397a2f661",
-			"reviewed_at": "2026-06-29T15:39:25.1947519Z"
+			"documentation_hash": "49847bf84718bc10d41844d4e24cb53ad3fd0dbbb3c5fd7826e7efc8288dd724",
+			"definition_hash": "ae82c1c1efcdc0a94b65fb8be21cb560a6ffa9b646ba54c9191347467990a20e",
+			"reviewed_at": "2026-07-09T11:33:00.220598723Z"
 		}
 	]
 }

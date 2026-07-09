@@ -3,8 +3,9 @@ package hub
 import (
 	"crypto/subtle"
 	_ "embed"
+	"encoding/json"
 	"fmt"
-	"html/template"
+	"log/slog"
 	"net/http"
 
 	"github.com/clems4ever/llmbox/internal/hub/auth"
@@ -45,9 +46,11 @@ func (s *Server) APIHandler() http.Handler {
 	})
 }
 
-// registerAppRoutes mounts the UI/API routes on mux: the auth web pages, the
-// optional provider sign-in, spoke connect, and admin routes, plus the health
-// probe and favicon.
+// registerAppRoutes mounts the UI/API routes on mux: the activation page and
+// its JSON state/submit endpoints, the optional provider sign-in, spoke
+// connect, and admin routes, plus the health probe and favicon. Every page is
+// a static shell from the built web app (Vite); live state travels only over
+// JSON endpoints, so the server renders no HTML.
 //
 // @arg mux The mux to register the UI/API routes on.
 //
@@ -57,7 +60,11 @@ func (s *Server) APIHandler() http.Handler {
 // @testcase TestHomeRedirectsToAdmin redirects "/" to /admin when the admin UI is enabled.
 func (s *Server) registerAppRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /auth/{token}", s.handleAuthPage)
-	mux.HandleFunc("POST /auth/{token}", s.handleAuthSubmit)
+	mux.HandleFunc("GET /auth/{token}/state", s.handleAuthState)
+	mux.HandleFunc("POST /auth/{token}/code", s.handleAuthSubmit)
+	// The web app's hashed assets are shared by every page shell (admin, auth,
+	// sign-in), so they are served whether or not the admin UI is enabled.
+	s.registerAssetRoutes(mux)
 
 	// Spoke connection endpoint (only when clustering is enabled): a spoke dials
 	// this to enroll and then serve box verbs over the upgraded WebSocket.
@@ -70,8 +77,10 @@ func (s *Server) registerAppRoutes(mux *http.ServeMux) {
 	if s.auth != nil {
 		mux.HandleFunc("GET /auth/{provider}/login", s.auth.HandleLogin)
 		mux.HandleFunc("GET /auth/{provider}/callback", s.auth.HandleCallback)
-		// Stand-alone sign-in page an unauthenticated proxy visitor is bounced to.
+		// Stand-alone sign-in page an unauthenticated proxy visitor is bounced to,
+		// plus the JSON state it renders from.
 		mux.HandleFunc("GET /signin", s.handleSignIn)
+		mux.HandleFunc("GET /signin/state", s.handleSignInState)
 	}
 
 	// Admin web UI (only when an admin allow-list is configured): manage cluster
@@ -103,216 +112,275 @@ func (s *Server) registerAppRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /favicon.svg", favicon)
 }
 
-// handleAuthPage renders the current state of an auth session, looked up by the
-// {token} path value. It 404s when no session matches the token.
+// handleAuthPage serves the activation page shell — a static, secret-free page
+// from the built web app. All live state (box identity, auth status, sign-in
+// gating) is fetched by the page from GET /auth/{token}/state, so nothing about
+// the session is decided here; even an unknown token serves the shell and the
+// page surfaces the state endpoint's 404.
 //
-// @arg w The response writer the page is rendered to.
+// @arg w The response writer the shell is written to.
+// @arg r The request (its path is ignored; the shell is the same for every token).
+//
+// @testcase TestAuthPageServesShell serves the activation page shell.
+func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
+	s.servePage(w, r, "auth.html")
+}
+
+// handleAuthState reports an auth session's state as JSON — everything the
+// activation page renders. When activation auth is enabled, the response is
+// gated exactly like the old server-rendered page: an unauthenticated visitor
+// (e.g. someone who only has a leaked token) gets the box identity and the
+// sign-in buttons, never the authorize URL, the CSRF token, the status, or the
+// session URL; a signed-in non-activator additionally learns it is not
+// authorized. It 404s when no session matches the token.
+//
+// @arg w The response writer the JSON state is written to.
 // @arg r The request whose {token} path value identifies the auth session.
 //
-// @testcase TestAuthPageRendersAndSubmits renders a pending session's page.
+// @testcase TestAuthPageRendersAndSubmits reads a pending session's state.
+// @testcase TestAuthPageShowsBoxAndSpoke carries the box ID and runner name.
 // @testcase TestAuthPageUnknownToken 404s for an unknown token.
-func (s *Server) handleAuthPage(w http.ResponseWriter, r *http.Request) {
+// @testcase TestAuthPageRequiresLogin hides the authorize URL and CSRF from an unauthenticated visitor.
+func (s *Server) handleAuthState(w http.ResponseWriter, r *http.Request) {
 	sess := s.lookup(r.PathValue("token"))
 	if sess == nil {
-		http.Error(w, "Unknown or expired authentication session.", http.StatusNotFound)
+		writeJSONError(w, http.StatusNotFound, "unknown or expired authentication session")
 		return
 	}
-	status, sessionURL, errMsg := sess.snapshot()
-	data := authPageData{
-		Token:        sess.Token,
-		AuthorizeURL: template.URL(sess.AuthorizeURL),
-		Status:       status,
-		SessionURL:   sessionURL,
-		Error:        errMsg,
-		BoxID:        sess.BoxID,
-		Spoke:        sess.SpokeName,
+	writeNoStoreJSON(w, s.authStateFor(sess, r))
+}
+
+// authStateFor builds the activation page's JSON state for one session,
+// applying the sign-in gating: the sensitive fields (authorize URL, CSRF,
+// status, session URL, error) are included only when the visitor may activate —
+// either activation auth is disabled, or the request carries a login session
+// allowed to activate. Everyone else gets the box identity plus the sign-in
+// buttons (and, for a signed-in non-activator, the not-authorized flag).
+//
+// @arg sess The auth session to describe.
+// @arg r The request whose login cookie decides the gating.
+// @return authState The gated JSON state.
+//
+// @testcase TestAuthPageRendersAndSubmits returns the full state when auth is disabled.
+// @testcase TestAuthPageRequiresLogin returns only identity and sign-in buttons when not signed in.
+func (s *Server) authStateFor(sess *session, r *http.Request) authState {
+	st := authState{
+		BoxID: sess.BoxID,
+		Spoke: sess.SpokeName,
 	}
-	// When activation auth is enabled, gate the whole page behind sign-in: an
-	// unauthenticated visitor (e.g. someone who only has the leaked token) sees
-	// only the sign-in buttons, never the activation form or the session URL.
+	allowed := true
 	if s.auth != nil {
-		data.AuthEnabled = true
-		// Only a session authorized to activate boxes unlocks the activation form;
-		// a signed-in admin who isn't a box-activator is told so rather than shown
-		// the form (and an unauthenticated visitor sees only the sign-in buttons).
+		st.AuthEnabled = true
+		allowed = false
 		if ls, ok := s.auth.CurrentLogin(r); ok && ls.Activate {
-			data.LoggedIn = true
-			data.Email = ls.Email
-			data.CSRF = ls.CSRF
+			st.LoggedIn = true
+			st.Email = ls.Email
+			st.CSRF = ls.CSRF
+			allowed = true
 		} else if ok {
-			data.Email = ls.Email
-			data.NotAuthorized = true
-			data.Providers = s.auth.Buttons(sess.Token)
+			st.Email = ls.Email
+			st.NotAuthorized = true
+			st.Providers = providerButtons(s.auth.Buttons(sess.Token))
 		} else {
-			data.Providers = s.auth.Buttons(sess.Token)
+			st.Providers = providerButtons(s.auth.Buttons(sess.Token))
 		}
 	}
-	s.render(w, data)
+	if allowed {
+		status, sessionURL, errMsg := sess.snapshot()
+		st.Status = status
+		st.SessionURL = sessionURL
+		st.Error = errMsg
+		st.AuthorizeURL = sess.AuthorizeURL
+	}
+	return st
 }
 
 // handleAuthSubmit feeds the pasted code to the box (blocking until login
-// completes or fails), then re-renders the page with the result. The code is
-// never logged. It 404s when no session matches the {token} path value.
+// completes or fails), then responds with the session's fresh JSON state. The
+// body is JSON ({"code", "csrf"}); the code is never logged. It 404s when no
+// session matches the {token} path value, 401s when activation auth is enabled
+// and the visitor is not signed in, and 403s for a non-activator identity or a
+// CSRF mismatch. A submit error the session does not record (e.g. an empty
+// code) is surfaced in the response's error field.
 //
-// @arg w The response writer the result page is rendered to.
-// @arg r The request carrying the {token} path value and the posted code form field.
+// @arg w The response writer the JSON result state is written to.
+// @arg r The request carrying the {token} path value and the JSON code/csrf body.
 //
-// @testcase TestAuthPageRendersAndSubmits submits a code and renders the session URL.
+// @testcase TestAuthPageRendersAndSubmits submits a code and returns the session URL.
+// @testcase TestActivationGatedByLogin rejects missing logins and CSRF mismatches, and records the activator.
 func (s *Server) handleAuthSubmit(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	sess := s.lookup(token)
 	if sess == nil {
-		http.Error(w, "Unknown or expired authentication session.", http.StatusNotFound)
+		writeJSONError(w, http.StatusNotFound, "unknown or expired authentication session")
 		return
 	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad form.", http.StatusBadRequest)
+	var req struct {
+		Code string `json:"code"`
+		CSRF string `json:"csrf"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request body")
 		return
 	}
 
 	// When activation auth is enabled, require a valid login session and a matching
 	// CSRF token before accepting the code, and record who activated the box.
-	var email string
 	if s.auth != nil {
 		ls, ok := s.auth.CurrentLogin(r)
 		if !ok {
-			http.Error(w, "Please sign in to activate this workspace.", http.StatusUnauthorized)
+			writeJSONError(w, http.StatusUnauthorized, "Please sign in to activate this workspace.")
 			return
 		}
 		if !ls.Activate {
-			http.Error(w, fmt.Sprintf("Signed in as %s, but that account is not authorized to activate workspaces here.", ls.Email), http.StatusForbidden)
+			writeJSONError(w, http.StatusForbidden, fmt.Sprintf("Signed in as %s, but that account is not authorized to activate workspaces here.", ls.Email))
 			return
 		}
-		if subtle.ConstantTimeCompare([]byte(r.PostFormValue("csrf")), []byte(ls.CSRF)) != 1 {
-			http.Error(w, "Invalid or missing form token; reload the page and try again.", http.StatusForbidden)
+		if subtle.ConstantTimeCompare([]byte(req.CSRF), []byte(ls.CSRF)) != 1 {
+			writeJSONError(w, http.StatusForbidden, "Invalid or missing form token; reload the page and try again.")
 			return
 		}
-		email = ls.Email
 		sess.mu.Lock()
-		sess.ActivatedBy = email
+		sess.ActivatedBy = ls.Email
 		sess.mu.Unlock()
 	}
 
 	// SubmitCode blocks until login completes (or fails); it records the result
-	// (including any error) on the session, which we then render — so the returned
-	// error needs no separate handling here. The code itself is never logged.
-	_ = s.submitCode(r.Context(), token, r.PostFormValue("code"))
-
-	status, sessionURL, errMsg := sess.snapshot()
-	s.render(w, authPageData{
-		Token:        sess.Token,
-		AuthorizeURL: template.URL(sess.AuthorizeURL),
-		Status:       status,
-		SessionURL:   sessionURL,
-		Error:        errMsg,
-		BoxID:        sess.BoxID,
-		Spoke:        sess.SpokeName,
-		AuthEnabled:  s.auth != nil,
-		LoggedIn:     s.auth == nil || email != "",
-		Email:        email,
-	})
+	// (including any error) on the session, which the state below reflects. The
+	// code itself is never logged. An error the session does not record (e.g. an
+	// empty code never submitted to the box) is patched into the response so the
+	// page always has something to show.
+	err := s.submitCode(r.Context(), token, req.Code)
+	st := s.authStateFor(sess, r)
+	if err != nil && st.Error == "" {
+		st.Error = err.Error()
+	}
+	writeNoStoreJSON(w, st)
 }
 
-type authPageData struct {
-	Token        string
-	AuthorizeURL template.URL
-	Status       string
-	SessionURL   string
-	Error        string
-
-	// BoxID and Spoke identify which box (and which cluster spoke it runs on)
-	// this activation page is for, shown so the user can tell boxes apart.
-	BoxID string
-	Spoke string
+// authState is the JSON the activation page renders from — the box identity,
+// the sign-in gating, and (only when the visitor may activate) the live auth
+// status and URLs. It is the SPA-era successor of the old server-rendered
+// template's data.
+type authState struct {
+	// BoxID and Spoke identify which box (and which runner it runs on) this
+	// activation page is for, shown so the user can tell workspaces apart.
+	BoxID string `json:"box_id,omitempty"`
+	Spoke string `json:"spoke,omitempty"`
 
 	// Activation-auth fields. AuthEnabled is true when a provider is configured;
-	// when so and LoggedIn is false, the template shows only the sign-in buttons.
+	// when so and LoggedIn is false, the page shows only the sign-in buttons.
 	// NotAuthorized is true when the visitor is signed in but not allowed to
-	// activate boxes (e.g. an admin-only identity), so the page explains that
-	// instead of offering the activation form.
-	AuthEnabled   bool
-	LoggedIn      bool
-	NotAuthorized bool
-	Email         string
-	CSRF          string
-	Providers     []auth.ProviderButton
+	// activate workspaces (e.g. an admin-only identity).
+	AuthEnabled   bool             `json:"auth_enabled"`
+	LoggedIn      bool             `json:"logged_in"`
+	NotAuthorized bool             `json:"not_authorized,omitempty"`
+	Email         string           `json:"email,omitempty"`
+	Providers     []providerButton `json:"providers,omitempty"`
+
+	// Gated fields, present only when the visitor may activate (auth disabled,
+	// or signed in with the activate capability): the auth lifecycle status
+	// (pending/ready/error), the session URL once ready, the error detail, the
+	// provider authorize URL for step 1, and the CSRF token the submit needs.
+	Status       string `json:"status,omitempty"`
+	SessionURL   string `json:"session_url,omitempty"`
+	Error        string `json:"error,omitempty"`
+	AuthorizeURL string `json:"authorize_url,omitempty"`
+	CSRF         string `json:"csrf,omitempty"`
 }
 
-// render writes the auth page for data, with no-store caching since the page
-// carries live session state. A template-execution failure is logged (the
-// response is already partway written, so it can't be turned into an error page).
+// providerButton is one sign-in button in the JSON state: the provider's
+// human label and the login path that starts its OIDC flow.
+type providerButton struct {
+	Label     string `json:"label"`
+	LoginPath string `json:"login_path"`
+}
+
+// providerButtons converts the auth layer's buttons to their JSON wire form.
 //
-// @arg w The response writer the page is written to.
-// @arg data The auth page state to render.
+// @arg in The auth layer's provider buttons.
+// @return []providerButton The same buttons with JSON field tags.
 //
-// @testcase TestAuthPageRendersAndSubmits renders pages via this helper.
-func (s *Server) render(w http.ResponseWriter, data authPageData) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// Don't let intermediaries cache an auth page (it contains live state).
+// @testcase TestAuthPageRequiresLogin reads sign-in buttons converted by this helper.
+// @testcase TestSignInPageRendersButtons reads return buttons converted by this helper.
+func providerButtons(in []auth.ProviderButton) []providerButton {
+	out := make([]providerButton, 0, len(in))
+	for _, b := range in {
+		out = append(out, providerButton{Label: b.Label, LoginPath: b.LoginPath})
+	}
+	return out
+}
+
+// writeNoStoreJSON writes v as a JSON response marked uncacheable — the shape
+// used by the activation and sign-in state endpoints, whose payloads carry live
+// per-visitor session state no intermediary may cache.
+//
+// @arg w The response writer.
+// @arg v The value to encode.
+//
+// @testcase TestAuthPageRendersAndSubmits reads state responses written by this helper.
+func writeNoStoreJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	if data.Status == "ready" {
-		w.WriteHeader(http.StatusOK)
-	}
-	if err := authTmpl.Execute(w, data); err != nil {
-		s.logger().Warn("failed to render auth page", "err", err)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		slog.Default().Warn("failed to encode JSON state", "err", err)
 	}
 }
 
-// authTmplSrc is the auth page template, embedded into the binary at build time
-// from auth.html.tmpl so the server ships as a single self-contained executable.
-//
-//go:embed templates/auth.html.tmpl
-var authTmplSrc string
-
-// authTmpl is the parsed auth page template.
-var authTmpl = template.Must(template.New("auth").Parse(authTmplSrc))
-
-// signInData is the state rendered by the stand-alone sign-in page.
-type signInData struct {
-	// Providers is one sign-in button per configured provider, each returning to
-	// the sanitized destination after login; empty when the return target is
-	// missing or unsafe, in which case the page shows an explanatory notice.
-	Providers []auth.ProviderButton
+// signInState is the JSON the stand-alone sign-in page renders from: whether
+// the visitor is already signed in, the sanitized return target, and one
+// sign-in button per configured provider. Providers is empty when the return
+// target is missing or unsafe, in which case the page shows an explanatory
+// notice — never an open redirect.
+type signInState struct {
+	SignedIn  bool             `json:"signed_in"`
+	ReturnTo  string           `json:"return_to,omitempty"`
+	Providers []providerButton `json:"providers,omitempty"`
 }
 
-// handleSignIn renders the stand-alone sign-in page an unauthenticated proxy
-// visitor is bounced to: it lists each provider's sign-in button, all returning
-// to the ?return= target once the shared login cookie is set. A visitor who is
-// already signed in is redirected straight to the return target. The return
-// target is sanitized via SafeReturnURL; a missing or unsafe one yields a page
-// with no buttons (and no redirect), never an open redirect.
+// handleSignIn serves the stand-alone sign-in page an unauthenticated proxy
+// visitor is bounced to. A visitor who is already signed in (with a safe
+// ?return= target) is redirected straight to the target, exactly as before;
+// everyone else gets the static page shell from the built web app, which
+// fetches its buttons from GET /signin/state. The return target is sanitized
+// via SafeReturnURL, so an unsafe one never redirects.
 //
-// @arg w The response writer the page is rendered to.
+// @arg w The response writer the shell (or redirect) is written to.
 // @arg r The request whose ?return= names where to go after sign-in.
 //
-// @testcase TestSignInPageRendersButtons renders a provider button carrying the return target.
+// @testcase TestSignInPageRendersButtons serves the shell and its state carries the return target.
 // @testcase TestSignInPageRedirectsWhenSignedIn bounces an already-signed-in visitor to the return target.
-// @testcase TestSignInPageRejectsUnsafeReturn renders no buttons for an unsafe return target.
+// @testcase TestSignInPageRejectsUnsafeReturn returns no buttons for an unsafe return target.
 func (s *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 	returnTo := s.auth.SafeReturnURL(r.URL.Query().Get("return"))
 	if _, ok := s.auth.CurrentLogin(r); ok && returnTo != "" {
 		http.Redirect(w, r, returnTo, http.StatusFound)
 		return
 	}
-	var buttons []auth.ProviderButton
-	if returnTo != "" {
-		buttons = s.auth.ReturnButtons(returnTo)
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	if err := signInTmpl.Execute(w, signInData{Providers: buttons}); err != nil {
-		s.logger().Warn("failed to render sign-in page", "err", err)
-	}
+	s.servePage(w, r, "signin.html")
 }
 
-// signInTmplSrc is the sign-in page template, embedded at build time from
-// signin.html.tmpl so the server ships as a single self-contained executable.
+// handleSignInState reports the sign-in page's JSON state: the sanitized
+// ?return= target, whether the visitor is already signed in, and the provider
+// buttons returning there after login. An unsafe or missing return target
+// yields no buttons, mirroring the redirect handler's open-redirect guard.
 //
-//go:embed templates/signin.html.tmpl
-var signInTmplSrc string
-
-// signInTmpl is the parsed sign-in page template.
-var signInTmpl = template.Must(template.New("signin").Parse(signInTmplSrc))
+// @arg w The response writer the JSON state is written to.
+// @arg r The request whose ?return= names where to go after sign-in.
+//
+// @testcase TestSignInPageRendersButtons carries a provider button with the return target.
+// @testcase TestSignInPageRejectsUnsafeReturn returns no buttons for an unsafe return target.
+func (s *Server) handleSignInState(w http.ResponseWriter, r *http.Request) {
+	returnTo := s.auth.SafeReturnURL(r.URL.Query().Get("return"))
+	st := signInState{ReturnTo: returnTo}
+	if _, ok := s.auth.CurrentLogin(r); ok {
+		st.SignedIn = true
+	}
+	if returnTo != "" {
+		st.Providers = providerButtons(s.auth.ReturnButtons(returnTo))
+	}
+	writeNoStoreJSON(w, st)
+}
 
 // faviconSVG is the server favicon, embedded into the binary at build time from
 // favicon.svg and served at /favicon.ico and /favicon.svg.
