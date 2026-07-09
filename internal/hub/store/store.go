@@ -40,6 +40,21 @@ type LoginFlow struct {
 	ExpiresAt   time.Time `json:"expires_at"`
 }
 
+// Box runtime states persisted per session. The hub's record of a box is either
+// alive as far as anyone knows (running) or confirmed gone from its spoke
+// (terminated — a tombstone kept so the UI can show what happened until the
+// record is removed). "Unreachable" is deliberately NOT a stored state: it is a
+// live property (is the box's spoke connected right now?) computed at read time,
+// so it can never go stale in the store.
+const (
+	// BoxStateRunning marks a box believed to exist on its spoke. Legacy rows
+	// persisted before this field existed decode as running.
+	BoxStateRunning = "running"
+	// BoxStateTerminated marks a box confirmed absent from its (reachable) spoke:
+	// it exited or was removed out of band. The record is kept as a tombstone.
+	BoxStateTerminated = "terminated"
+)
+
 // PersistedSession is the on-disk form of a box's auth session. It mirrors the
 // durable fields of the server's live session so the registry survives a restart.
 type PersistedSession struct {
@@ -55,6 +70,23 @@ type PersistedSession struct {
 	SessionURL   string            `json:"session_url,omitempty"`
 	Err          string            `json:"err,omitempty"`
 	ActivatedBy  string            `json:"activated_by,omitempty"`
+
+	// BoxState is the box's observed runtime state: BoxStateRunning or
+	// BoxStateTerminated. An empty value (a row written by an older build)
+	// means running.
+	BoxState string `json:"box_state,omitempty"`
+	// LastSeen is when the box was last observed on its spoke by the hub's sync
+	// pass (zero when never observed since this field was introduced). It lets
+	// the UI say "last seen 5m ago" for a box whose spoke is offline.
+	LastSeen time.Time `json:"last_seen,omitempty"`
+	// Name, Image, and InstanceState mirror the box's backend metadata (the
+	// instance name, the image or rootfs it runs, and the backend state such as
+	// "running" or "exited") as last observed by the sync pass. They are stored
+	// so the record can be rendered in full — including in the UI — while the
+	// box's spoke is offline.
+	Name          string `json:"name,omitempty"`
+	Image         string `json:"image,omitempty"`
+	InstanceState string `json:"instance_state,omitempty"`
 }
 
 // ProxyRecord is the on-disk form of an enabled HTTP proxy: a stable, unguessable

@@ -9,8 +9,8 @@
 		{
 			"function_name": "openSQLite",
 			"documentation_hash": "583d95e813dd18e9cb4e25521c06eab8412b58add6865be51aab34c5a54ccc00",
-			"definition_hash": "646c637575e40ac402f8488ced8ff59fccfb4ddb51522e45ce6e5640d94f27ea",
-			"reviewed_at": "2026-06-30T21:45:26.199880515Z"
+			"definition_hash": "78e6d56d1905c89795544e43b3da7b2237a1b25fde50259fb037abeb4fc8a38e",
+			"reviewed_at": "2026-07-09T10:09:05.420884149Z"
 		},
 		{
 			"function_name": "encodeTime",
@@ -34,8 +34,8 @@
 			"function_name": "Save",
 			"receiver": "sqliteStore",
 			"documentation_hash": "25a135089be55cc8edfd10ff654eb5ce7c6be5ac4924803ec9af573ce164990c",
-			"definition_hash": "de26b27d6ae2036c20d7c7b3f2cfa5681a8add0d835fc3e9592e8410d49e514f",
-			"reviewed_at": "2026-06-30T21:45:32.615435336Z"
+			"definition_hash": "1c0de3676bfbfe2b16dfa949d8209866a9a5a1a0a53885b7e33e79ea7874b2d7",
+			"reviewed_at": "2026-07-09T10:09:05.640873593Z"
 		},
 		{
 			"function_name": "Delete",
@@ -48,8 +48,8 @@
 			"function_name": "LoadAll",
 			"receiver": "sqliteStore",
 			"documentation_hash": "9735bb5eebcb71635ed81d409bf8793606014c57644af98c4526c3e11848affc",
-			"definition_hash": "49a47456507b8be6ab1f4ef2146c4ac6f8b5e133084cf5badabb4badf748a8d0",
-			"reviewed_at": "2026-06-30T21:45:32.628078663Z"
+			"definition_hash": "4fad929fef588fad40d10a6e2503a3387727654560ca7dd8fd09d18197ae693f",
+			"reviewed_at": "2026-07-09T10:09:05.642161207Z"
 		},
 		{
 			"function_name": "Close",
@@ -225,6 +225,12 @@
 			"documentation_hash": "38e076e8876a046af3d6e10a7541ce40faeee25a656ba2dc323d487399a2afc1",
 			"definition_hash": "eca70ef09275c4bd96a1dfe4f22986cbcac8f725d4ae1d6aebabe8a69de46fe9",
 			"reviewed_at": "2026-07-08T12:57:12.251008749Z"
+		},
+		{
+			"function_name": "migrateSessions",
+			"documentation_hash": "3081e7039fe092e3bfd0aa1726568cefdfcfedfdc85b81ec0c63a8c6511f7378",
+			"definition_hash": "9043f1e3b6d29463bc83d442a4cea5748767207b175e2cf30ac061fc1371f5f2",
+			"reviewed_at": "2026-07-09T10:09:05.422117655Z"
 		}
 	]
 }

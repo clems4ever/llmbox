@@ -168,6 +168,18 @@
 			"documentation_hash": "c1d2472842370babfcd7725f6fb073d79455cd6a355aae65a4fffff455f49615",
 			"definition_hash": "7eaaf10bfebef1579c057aa6ecdca5dcc735f1edb578a1d69da5253f07c13b38",
 			"reviewed_at": "2026-07-08T21:06:08.470296993Z"
+		},
+		{
+			"function_name": "TestSyncReconcilesProxies",
+			"documentation_hash": "ee7a8ac13bbbfda28d75fe4aec07e2a57484716ee18eb711eda491902cf0f1f1",
+			"definition_hash": "1b4966a9f964d00e2c55fbecaba2076799816b3ea66c8d7b3f18ff40001f1259",
+			"reviewed_at": "2026-07-09T10:09:04.936872157Z"
+		},
+		{
+			"function_name": "TestCreateProxyRefusesTerminatedBox",
+			"documentation_hash": "0a7e95ee40056edfc8c0b11839ad670776182f87113d611a202e9914a433c8d6",
+			"definition_hash": "575be0e75f179964b0a9931b55413cc61075bffe5113c6c6ebe9f88c44b62035",
+			"reviewed_at": "2026-07-09T10:10:25.815386053Z"
 		}
 	]
 }

@@ -134,11 +134,12 @@ func (s *Server) signInURL(r *http.Request) string {
 // @arg createdBy The identity enabling the proxy, or "" when unknown (API caller).
 // @arg description An optional human-readable note for the proxy, or "" for none.
 // @return store.ProxyRecord The new (or pre-existing) proxy record.
-// @error error if proxying is disabled, the port is invalid, no box has that box ID, or persistence fails.
+// @error error if proxying is disabled, the port is invalid, no box has that box ID, the box is terminated, or persistence fails.
 //
 // @testcase TestCreateProxyRegistersAndBuildsURL registers a proxy for a known box and stamps the description.
 // @testcase TestCreateProxyDisabled errors when proxying is not enabled.
 // @testcase TestCreateProxyUnknownBox errors when no box has the given box ID.
+// @testcase TestCreateProxyRefusesTerminatedBox errors when the box is a terminated tombstone.
 // @testcase TestCreateProxyRejectsBadPort rejects an out-of-range port.
 // @testcase TestCreateProxyIdempotent returns the existing proxy for a repeated box/port on the same container.
 // @testcase TestCreateProxyIdempotentKeepsDescription keeps the original description when a repeat create supplies a new one.
@@ -153,6 +154,11 @@ func (s *Server) createProxy(boxID string, port int, createdBy, description stri
 	sess := s.lookupByBoxID(boxID)
 	if sess == nil {
 		return store.ProxyRecord{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
+	}
+	// A tombstone's container is gone; a proxy to it could never route, and
+	// minting one would only reserve a slug a future same-id box would replace.
+	if sess.terminated() {
+		return store.ProxyRecord{}, fmt.Errorf("box %q is terminated (it no longer exists on its spoke); recreate the box before enabling a proxy", boxID)
 	}
 	existing, err := s.findProxy(boxID, port)
 	if err != nil {

@@ -21,8 +21,8 @@
 		{
 			"function_name": "TestSQLiteStoreRoundTrip",
 			"documentation_hash": "9bb4a2425d331fdda89bbaa8d3030d31b8c7fa2914535ab11f31e1448ae654b4",
-			"definition_hash": "aef2c1bfa5d6c7ee5cf86c73310293988f552c3f05850cc5b2a08f745d261bcd",
-			"reviewed_at": "2026-06-30T21:45:26.18788501Z"
+			"definition_hash": "6ec6062477498d069b05e06ba653a54dd6f8f2d629aacebae8ae0ad7c30afbaa",
+			"reviewed_at": "2026-07-09T10:09:05.643283853Z"
 		},
 		{
 			"function_name": "TestSQLiteStoreDelete",

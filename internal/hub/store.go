@@ -17,6 +17,14 @@ type (
 	persistedSession = store.PersistedSession
 )
 
+// Box runtime states, re-exported from the store package (see its doc for the
+// model: running/terminated are persisted; "unreachable" is computed at read
+// time from live spoke connectivity and never stored).
+const (
+	boxStateRunning    = store.BoxStateRunning
+	boxStateTerminated = store.BoxStateTerminated
+)
+
 // OpenStore opens (creating if needed) a SQLite-backed Store at path.
 //
 // @arg path The filesystem path to the store's database file.

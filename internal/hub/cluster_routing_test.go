@@ -101,25 +101,79 @@ func TestCreateBoxNoDefaultSpoke(t *testing.T) {
 	}
 }
 
-// TestListFansOutAcrossSpokes checks list aggregates boxes from every spoke, each tagged.
-func TestListFansOutAcrossSpokes(t *testing.T) {
-	one := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "1", BoxID: "onebox"}}}
-	edge := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "E", BoxID: "ebox"}}}
+// TestListBoxesFromRecords checks the box list is rendered from the hub's
+// records — one entry per tracked box, tagged with its spoke and carrying the
+// observed metadata — without any live spoke fan-out at read time.
+func TestListBoxesFromRecords(t *testing.T) {
+	one := &testutils.FakeMgr{CreateID: "aaaaaaaaaaaa1111"}
+	edge := &testutils.FakeMgr{CreateID: "eeeeeeeeeeee2222"}
 	s := serverWithSpokes(map[string]boxManager{"one": one, "edge": edge})
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "onebox", SpokeName: "one"}); err != nil {
+		t.Fatalf("CreateBox one: %v", err)
+	}
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "ebox", SpokeName: "edge"}); err != nil {
+		t.Fatalf("CreateBox edge: %v", err)
+	}
+
+	oneLists, edgeLists := one.ListCalls(), edge.ListCalls()
+	boxes, err := s.listBoxes(context.Background())
+	if err != nil {
+		t.Fatalf("ListBoxes: %v", err)
+	}
+	bySpoke := map[string]sandbox.Box{}
+	for _, b := range boxes {
+		bySpoke[b.Spoke] = b
+	}
+	if bySpoke["one"].BoxID != "onebox" {
+		t.Errorf("box missing or mistagged: %v", bySpoke)
+	}
+	if bySpoke["edge"].BoxID != "ebox" {
+		t.Errorf("edge box missing or mistagged: %v", bySpoke)
+	}
+	if got := bySpoke["one"].InstanceID; got != "aaaaaaaaaaaa" {
+		t.Errorf("instance ID = %q, want the short 12-char form", got)
+	}
+	if bySpoke["one"].State != "running" || bySpoke["edge"].State != "running" {
+		t.Errorf("connected spokes' boxes should list as running: %v", bySpoke)
+	}
+	// The listing itself must not have fanned out to the spokes.
+	if one.ListCalls() != oneLists || edge.ListCalls() != edgeLists {
+		t.Error("listBoxes contacted a spoke; the records are the source of truth")
+	}
+}
+
+// TestListBoxesMarksUnreachable checks a box whose spoke has no live connection
+// stays listed, rendered as unreachable rather than dropped.
+func TestListBoxesMarksUnreachable(t *testing.T) {
+	edge := &testutils.FakeMgr{CreateID: "eeeeeeeeeeee2222"}
+	s := serverWithSpokes(map[string]boxManager{"edge": edge})
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "ebox", SpokeName: "edge"}); err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+
+	// The spoke disconnects: the hub no longer holds a live connection to it.
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
 
 	boxes, err := s.listBoxes(context.Background())
 	if err != nil {
 		t.Fatalf("ListBoxes: %v", err)
 	}
-	bySpoke := map[string]string{} // spoke -> box id
-	for _, b := range boxes {
-		bySpoke[b.Spoke] = b.BoxID
+	if len(boxes) != 1 {
+		t.Fatalf("got %d boxes, want the offline spoke's box to stay listed", len(boxes))
 	}
-	if bySpoke["one"] != "onebox" {
-		t.Errorf("box missing or mistagged: %v", bySpoke)
+	if boxes[0].State != sandbox.StateUnreachable {
+		t.Errorf("state = %q, want unreachable", boxes[0].State)
 	}
-	if bySpoke["edge"] != "ebox" {
-		t.Errorf("edge box missing or mistagged: %v", bySpoke)
+	if boxes[0].LastSeen == 0 {
+		t.Error("an unreachable box should carry its last-seen timestamp")
+	}
+
+	// The spoke reconnects: the same record renders running again, instantly —
+	// reachability is computed at read time, never stored.
+	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
+	boxes, _ = s.listBoxes(context.Background())
+	if len(boxes) != 1 || boxes[0].State == sandbox.StateUnreachable {
+		t.Errorf("reconnected spoke's box should not be unreachable: %+v", boxes)
 	}
 }
 
@@ -331,8 +385,10 @@ func TestListSpokesTool(t *testing.T) {
 	}
 }
 
-// TestRestoreKeepsDisconnectedSpokeSessions checks a session on an offline spoke is
-// kept while a dead session on a connected spoke is dropped.
+// TestRestoreKeepsDisconnectedSpokeSessions checks every record survives a
+// restart — restore never contacts a spoke — and the subsequent sync pass only
+// draws conclusions about reachable spokes: a box gone from a connected spoke is
+// tombstoned while a record on a disconnected spoke is left untouched.
 func TestRestoreKeepsDisconnectedSpokeSessions(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
 	if err != nil {
@@ -354,22 +410,27 @@ func TestRestoreKeepsDisconnectedSpokeSessions(t *testing.T) {
 	}
 
 	// The edge spoke lists no boxes (so its session is dead); the "offline" spoke is
-	// not connected, so its session must be kept.
+	// not connected, so its session must be left untouched.
 	edge := &testutils.FakeMgr{ListResult: nil}
 	s := New(nil, "https://boxes.example.com", time.Minute, store, nil)
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{"edge": edge}})
 
-	n, err := s.Restore(context.Background())
+	n, err := s.Restore()
 	if err != nil {
 		t.Fatalf("Restore: %v", err)
 	}
-	if n != 1 {
-		t.Errorf("restored %d sessions, want 1", n)
+	if n != 2 {
+		t.Errorf("restored %d sessions, want 2 (restore drops nothing)", n)
 	}
-	if s.lookup("dead-edge") != nil {
-		t.Error("dead session on a connected spoke should have been dropped")
+
+	s.syncSpokes(context.Background())
+
+	if sess := s.lookup("dead-edge"); sess == nil {
+		t.Error("dead session should be kept as a tombstone, not dropped")
+	} else if !sess.terminated() {
+		t.Error("dead session on a connected spoke should be marked terminated")
 	}
-	if s.lookup("off-sess") == nil {
-		t.Error("session on a disconnected spoke should have been kept")
+	if sess := s.lookup("off-sess"); sess == nil || sess.terminated() {
+		t.Error("session on a disconnected spoke should be kept untouched")
 	}
 }

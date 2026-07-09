@@ -241,10 +241,26 @@ func TestDestroySessionlessBoxRemovesProxies(t *testing.T) {
 	}
 }
 
-// TestRestoreReconcilesProxies checks Restore drops a proxy whose box generation
-// no longer exists on its spoke while keeping a proxy whose box is still alive —
-// closing the reuse window where a box vanishes out of band before a restart.
-func TestRestoreReconcilesProxies(t *testing.T) {
+// TestCreateProxyRefusesTerminatedBox checks a proxy cannot be enabled for a
+// terminated tombstone: the container is gone, so the proxy could never route.
+func TestCreateProxyRefusesTerminatedBox(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
+	s.mu.Lock()
+	s.byToken["tok"] = &session{
+		Token: "tok", BoxID: "dead-box", ContainerID: "cccccccccccc1111", SpokeName: testSpoke,
+		Status: "pending", BoxState: boxStateTerminated,
+	}
+	s.mu.Unlock()
+
+	if _, err := s.createProxy("dead-box", 8000, "", ""); err == nil {
+		t.Fatal("creating a proxy for a terminated box should be refused")
+	}
+}
+
+// TestSyncReconcilesProxies checks the sync pass drops a proxy whose box
+// generation no longer exists on its spoke while keeping a proxy whose box is
+// still alive — closing the reuse window where a box vanishes out of band.
+func TestSyncReconcilesProxies(t *testing.T) {
 	mgr := &testutils.FakeMgr{ListResult: []sandbox.Box{
 		{InstanceID: "live123", BoxID: "live-box", State: "running", Phase: "ready"},
 	}}
@@ -257,15 +273,13 @@ func TestRestoreReconcilesProxies(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := s.Restore(context.Background()); err != nil {
-		t.Fatalf("Restore: %v", err)
-	}
+	s.syncSpokes(context.Background())
 
 	if _, ok, _ := st.GetProxy("live"); !ok {
 		t.Error("live box's proxy was wrongly dropped")
 	}
 	if _, ok, _ := st.GetProxy("dead"); ok {
-		t.Error("stale proxy for a gone box survived Restore")
+		t.Error("stale proxy for a gone box survived the sync pass")
 	}
 }
 

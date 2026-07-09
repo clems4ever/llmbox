@@ -31,9 +31,9 @@
 		{
 			"function_name": "ListBoxes",
 			"receiver": "apiBackend",
-			"documentation_hash": "7c5003744a17fadfd3a52a7ea4413e24354299dfc08fa1a24f0e7d9172edbd1e",
-			"definition_hash": "3aa3b0d5905c2b24d51ade77c0dbb4f05e6bbdb50ea87b5f5d7a932eeb514152",
-			"reviewed_at": "2026-07-08T12:57:12.230400105Z"
+			"documentation_hash": "9c5c6f542f8cc81f981ec2d1da41e3d001cbc4ce38b06e45d9dafe525f5912e1",
+			"definition_hash": "e180d4e56d9373a2ccf53e6d701d71aa5f52adbb05669d0329c670c5d0564cf3",
+			"reviewed_at": "2026-07-09T10:08:38.03384028Z"
 		},
 		{
 			"function_name": "SpokeStatuses",

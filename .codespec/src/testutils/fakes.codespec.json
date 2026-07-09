@@ -53,8 +53,8 @@
 			"function_name": "List",
 			"receiver": "FakeMgr",
 			"documentation_hash": "51452cffe6d84162113510a14b440fbac11c98b0f50a5fba27d01d9c42839059",
-			"definition_hash": "5aeb782c978f79d7ac0a24d3eeac79605554bacbe6268b1572f71a99f33ef895",
-			"reviewed_at": "2026-07-07T18:59:22.423499571Z"
+			"definition_hash": "5f78c485dcfd0201164635c247dfec1bc5f7c956a2411db2c6d72ebaa0c360bc",
+			"reviewed_at": "2026-07-09T10:09:05.645798849Z"
 		},
 		{
 			"function_name": "Logs",
@@ -76,6 +76,13 @@
 			"documentation_hash": "2fdd92a35ddf57e0de882500f830ea7475e81c842d1f92cda3ce5043f423d9ae",
 			"definition_hash": "6c16304495ff4ec1b4c8c99e16bc1d5706498bb433a772fb9c986e6b80d0e20f",
 			"reviewed_at": "2026-06-27T09:42:16.318217589Z"
+		},
+		{
+			"function_name": "ListCalls",
+			"receiver": "FakeMgr",
+			"documentation_hash": "5194dd6374688a7ffb232b0dd4026fec0cc9a853a505bbbc69abc94b7229ab28",
+			"definition_hash": "711e2b91970eed4895615525a0f452c15f0e1094cac7d86dfad0b508cf2847d5",
+			"reviewed_at": "2026-07-09T10:09:05.856420484Z"
 		}
 	]
 }

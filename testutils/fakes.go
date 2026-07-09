@@ -33,6 +33,7 @@ type FakeMgr struct {
 	// returns these on top of ListResult — so a box created through the fake shows
 	// up in the box list, like a real spoke.
 	created    []sandbox.Box
+	listCalls  int
 	Destroyed  []string
 	DestroyErr error
 	Reaped     []string
@@ -97,8 +98,21 @@ func (f *FakeMgr) SubmitCode(ctx context.Context, idOrName, code string) (string
 func (f *FakeMgr) List(ctx context.Context) ([]sandbox.Box, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.listCalls++
 	out := append([]sandbox.Box{}, f.ListResult...)
 	return append(out, f.created...), nil
+}
+
+// ListCalls reports how many times List was called, so a test can assert a code
+// path did (or did not) consult the spoke's live inventory.
+//
+// @return int The number of List calls received so far.
+//
+// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
+func (f *FakeMgr) ListCalls() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.listCalls
 }
 
 // Destroy records the destroyed ID and returns the canned DestroyErr (nil by

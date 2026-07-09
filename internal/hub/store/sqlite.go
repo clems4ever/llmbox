@@ -18,18 +18,23 @@ import (
 // as JSON text, the only value without a natural columnar shape.
 const schema = `
 CREATE TABLE IF NOT EXISTS sessions (
-	token         TEXT PRIMARY KEY,
-	container_id  TEXT NOT NULL,
-	authorize_url TEXT NOT NULL,
-	created_at    TEXT NOT NULL,
-	hook_state    TEXT,
-	box_id        TEXT NOT NULL,
-	description   TEXT NOT NULL,
-	spoke_name    TEXT NOT NULL,
-	status        TEXT NOT NULL,
-	session_url   TEXT NOT NULL,
-	err           TEXT NOT NULL,
-	activated_by  TEXT NOT NULL
+	token          TEXT PRIMARY KEY,
+	container_id   TEXT NOT NULL,
+	authorize_url  TEXT NOT NULL,
+	created_at     TEXT NOT NULL,
+	hook_state     TEXT,
+	box_id         TEXT NOT NULL,
+	description    TEXT NOT NULL,
+	spoke_name     TEXT NOT NULL,
+	status         TEXT NOT NULL,
+	session_url    TEXT NOT NULL,
+	err            TEXT NOT NULL,
+	activated_by   TEXT NOT NULL,
+	box_state      TEXT NOT NULL DEFAULT '',
+	last_seen      TEXT NOT NULL DEFAULT '',
+	name           TEXT NOT NULL DEFAULT '',
+	image          TEXT NOT NULL DEFAULT '',
+	instance_state TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS login_sessions (
 	id         TEXT PRIMARY KEY,
@@ -120,7 +125,50 @@ func openSQLite(path string) (*sqliteStore, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("initializing session store %q: %w", path, err)
 	}
+	if err := migrateSessions(db); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("migrating session store %q: %w", path, err)
+	}
 	return &sqliteStore{db: db}, nil
+}
+
+// migrateSessions applies the additive sessions-table changes to a database
+// created by an older build (CREATE TABLE IF NOT EXISTS does not alter an
+// existing table). Each missing column is added with the same default the
+// schema declares; a column that already exists is left untouched, so the
+// migration is idempotent.
+//
+// @arg db The open database to migrate.
+// @error error if the existing columns cannot be read or a column cannot be added.
+//
+// @testcase TestSQLiteMigratesLegacySessions adds the new columns to a pre-existing sessions table.
+func migrateSessions(db *sql.DB) error {
+	rows, err := db.Query(`SELECT name FROM pragma_table_info('sessions')`)
+	if err != nil {
+		return fmt.Errorf("reading sessions columns: %w", err)
+	}
+	existing := map[string]bool{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			rows.Close()
+			return fmt.Errorf("scanning sessions column: %w", err)
+		}
+		existing[name] = true
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, col := range []string{"box_state", "last_seen", "name", "image", "instance_state"} {
+		if existing[col] {
+			continue
+		}
+		if _, err := db.Exec(fmt.Sprintf(`ALTER TABLE sessions ADD COLUMN %s TEXT NOT NULL DEFAULT ''`, col)); err != nil {
+			return fmt.Errorf("adding sessions column %s: %w", col, err)
+		}
+	}
+	return nil
 }
 
 // encodeTime renders a time as a string the same way encoding/json does
@@ -166,19 +214,29 @@ func (s *sqliteStore) Save(ps PersistedSession) error {
 		}
 		hookState = string(data)
 	}
+	// A zero LastSeen (never observed) is stored as the empty string so the
+	// round-trip stays exact.
+	lastSeen := ""
+	if !ps.LastSeen.IsZero() {
+		lastSeen = encodeTime(ps.LastSeen)
+	}
 	_, err := s.db.Exec(`
 		INSERT INTO sessions (token, container_id, authorize_url, created_at, hook_state,
-			box_id, description, spoke_name, status, session_url, err, activated_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			box_id, description, spoke_name, status, session_url, err, activated_by,
+			box_state, last_seen, name, image, instance_state)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(token) DO UPDATE SET
 			container_id=excluded.container_id, authorize_url=excluded.authorize_url,
 			created_at=excluded.created_at, hook_state=excluded.hook_state,
 			box_id=excluded.box_id, description=excluded.description,
 			spoke_name=excluded.spoke_name, status=excluded.status,
 			session_url=excluded.session_url, err=excluded.err,
-			activated_by=excluded.activated_by`,
+			activated_by=excluded.activated_by, box_state=excluded.box_state,
+			last_seen=excluded.last_seen, name=excluded.name,
+			image=excluded.image, instance_state=excluded.instance_state`,
 		ps.Token, ps.ContainerID, ps.AuthorizeURL, encodeTime(ps.CreatedAt), hookState,
-		ps.BoxID, ps.Description, ps.SpokeName, ps.Status, ps.SessionURL, ps.Err, ps.ActivatedBy)
+		ps.BoxID, ps.Description, ps.SpokeName, ps.Status, ps.SessionURL, ps.Err, ps.ActivatedBy,
+		ps.BoxState, lastSeen, ps.Name, ps.Image, ps.InstanceState)
 	if err != nil {
 		return fmt.Errorf("saving session: %w", err)
 	}
@@ -207,7 +265,8 @@ func (s *sqliteStore) Delete(token string) error {
 func (s *sqliteStore) LoadAll() ([]PersistedSession, error) {
 	rows, err := s.db.Query(`
 		SELECT token, container_id, authorize_url, created_at, hook_state,
-			box_id, description, spoke_name, status, session_url, err, activated_by
+			box_id, description, spoke_name, status, session_url, err, activated_by,
+			box_state, last_seen, name, image, instance_state
 		FROM sessions`)
 	if err != nil {
 		return nil, fmt.Errorf("loading sessions: %w", err)
@@ -218,14 +277,21 @@ func (s *sqliteStore) LoadAll() ([]PersistedSession, error) {
 		var (
 			ps        PersistedSession
 			createdAt string
+			lastSeen  string
 			hookState sql.NullString
 		)
 		if err := rows.Scan(&ps.Token, &ps.ContainerID, &ps.AuthorizeURL, &createdAt, &hookState,
-			&ps.BoxID, &ps.Description, &ps.SpokeName, &ps.Status, &ps.SessionURL, &ps.Err, &ps.ActivatedBy); err != nil {
+			&ps.BoxID, &ps.Description, &ps.SpokeName, &ps.Status, &ps.SessionURL, &ps.Err, &ps.ActivatedBy,
+			&ps.BoxState, &lastSeen, &ps.Name, &ps.Image, &ps.InstanceState); err != nil {
 			return nil, fmt.Errorf("scanning session: %w", err)
 		}
 		if ps.CreatedAt, err = decodeTime(createdAt); err != nil {
 			return nil, err
+		}
+		if lastSeen != "" {
+			if ps.LastSeen, err = decodeTime(lastSeen); err != nil {
+				return nil, err
+			}
 		}
 		if hookState.Valid {
 			if err := json.Unmarshal([]byte(hookState.String), &ps.HookState); err != nil {

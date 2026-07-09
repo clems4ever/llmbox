@@ -29,10 +29,14 @@ export interface BoxView {
   description?: string;
   spoke?: string;
   image: string;
+  // The backend state (running, exited, …), or the hub-derived "unreachable"
+  // (spoke offline right now) / "terminated" (confirmed gone; tombstone).
   state: string;
   status: string;
   phase: string;
   created: number;
+  // When the hub last observed the box on its spoke (Unix seconds, 0 = never).
+  last_seen?: number;
   auth_url?: string;
   session_url?: string;
 }

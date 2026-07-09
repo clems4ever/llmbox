@@ -8,7 +8,6 @@ import { useState } from "react";
 import {
   ActionIcon,
   Anchor,
-  Badge,
   Box,
   Button,
   Card,
@@ -33,9 +32,9 @@ import {
 } from "@tabler/icons-react";
 import type { Api, BoxView } from "../api";
 import type { DashboardData } from "../lib/data";
-import { boxId, createdAt } from "../lib/format";
+import { boxId, createdAt, lastSeenAt, stateTone } from "../lib/format";
 import { confirmDestroy } from "../lib/confirm";
-import { StatusBadge } from "./StatusBadge";
+import { StateBadge, StatusBadge } from "./StatusBadge";
 import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
 
 export type WorkspaceLayout = "table" | "grid";
@@ -182,7 +181,12 @@ function WorkspaceTable({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
                   </Table.Td>
                   <Table.Td className="mono-wrap" data-box-spoke={id}>{b.spoke ?? ""}</Table.Td>
                   <Table.Td className="mono-wrap">{b.image}</Table.Td>
-                  <Table.Td><Text size="sm">{b.state}</Text></Table.Td>
+                  <Table.Td>
+                    <StateBadge state={b.state} lastSeen={b.last_seen} />
+                    {stateTone(b.state) === "unreachable" && lastSeenAt(b.last_seen) && (
+                      <Text c="dimmed" size="xs">last seen {lastSeenAt(b.last_seen)}</Text>
+                    )}
+                  </Table.Td>
                   <Table.Td><StatusBadge phase={b.phase} /></Table.Td>
                   <Table.Td onClick={(e) => e.stopPropagation()}><WorkspaceLink box={b} /></Table.Td>
                   <Table.Td onClick={(e) => e.stopPropagation()} ta="right">
@@ -233,11 +237,14 @@ function WorkspaceGrid({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
             )}
             <Stack gap={4} mb="sm">
               <Group gap="xs">
-                <Badge variant="light" color="gray" size="sm">{b.state}</Badge>
+                <StateBadge state={b.state} lastSeen={b.last_seen} />
                 {b.spoke && <Text size="xs" c="dimmed" data-box-spoke={id}>on {b.spoke}</Text>}
               </Group>
               {b.created > 0 && (
                 <Text size="xs" c="dimmed">created {createdAt(b.created)}</Text>
+              )}
+              {stateTone(b.state) === "unreachable" && lastSeenAt(b.last_seen) && (
+                <Text size="xs" c="dimmed">last seen {lastSeenAt(b.last_seen)}</Text>
               )}
             </Stack>
             <Group justify="space-between" onClick={(e) => e.stopPropagation()}>

@@ -37,13 +37,15 @@ export function createdAt(created: number): string {
 }
 
 /** boxId returns the stable identifier the UI uses for a workspace: its box_id
- * when set, else its display name — the same value the destroy/proxy calls key on.
+ * when set, else its display name, else its instance ID (a record observed
+ * before its first sync may carry no name yet) — the same value the
+ * destroy/proxy calls key on.
  *
  * @arg b The box to identify.
- * @return string The box_id, falling back to name.
+ * @return string The box_id, falling back to name, then instance_id.
  */
 export function boxId(b: BoxView): string {
-  return b.box_id || b.name;
+  return b.box_id || b.name || b.instance_id;
 }
 
 export type PhaseTone = "ready" | "pending" | "error";
@@ -59,4 +61,32 @@ export function phaseTone(phase: string): PhaseTone {
   if (p === "ready" || p === "running") return "ready";
   if (p.includes("error") || p.includes("fail")) return "error";
   return "pending";
+}
+
+export type StateTone = "running" | "unreachable" | "terminated" | "stopped";
+
+/** stateTone classifies a box state for its badge colour: running is healthy,
+ * unreachable means the box's spoke is offline (the box itself may be fine),
+ * terminated is a tombstone for a box confirmed gone, and anything else
+ * (exited, paused, …) is a stopped-ish backend state.
+ *
+ * @arg state The box's state string.
+ * @return StateTone The tone the state badge should use.
+ */
+export function stateTone(state: string): StateTone {
+  const s = state.toLowerCase();
+  if (s === "running") return "running";
+  if (s === "unreachable") return "unreachable";
+  if (s === "terminated") return "terminated";
+  return "stopped";
+}
+
+/** lastSeenAt renders a box's last_seen field (Unix seconds) as a short local
+ * timestamp, or "" when the hub never observed the box.
+ *
+ * @arg lastSeen The box's last_seen field, in Unix seconds (0 or undefined when unknown).
+ * @return string The "YYYY-MM-DD HH:MM" local time, or "" when unknown.
+ */
+export function lastSeenAt(lastSeen?: number): string {
+  return createdAt(lastSeen ?? 0);
 }
