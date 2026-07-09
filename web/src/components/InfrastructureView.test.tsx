@@ -9,9 +9,9 @@ describe("InfrastructureView", () => {
     expect(container.querySelector(".mantine-Skeleton-root")).toBeTruthy();
   });
 
-  it("shows the empty spokes hint", () => {
+  it("shows the empty runners hint", () => {
     render(<InfrastructureView api={mockApi()} data={dashboardData()} refresh={vi.fn()} />);
-    expect(screen.getByText(/No spokes enrolled yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/No runners enrolled yet/i)).toBeInTheDocument();
   });
 
   it("renders spoke status and the default marker", () => {
@@ -31,7 +31,7 @@ describe("InfrastructureView", () => {
     const { user } = render(<InfrastructureView api={api} data={data} refresh={refresh} />);
     await user.click(screen.getByRole("button", { name: "Make edge-2 default" }));
     await waitFor(() => expect(api.setDefaultSpoke).toHaveBeenCalledWith("edge-2"));
-    expect(await screen.findByText("default spoke is now edge-2")).toBeInTheDocument();
+    expect(await screen.findByText("default runner is now edge-2")).toBeInTheDocument();
   });
 
   it("confirms and drops a spoke", async () => {
@@ -40,7 +40,7 @@ describe("InfrastructureView", () => {
     const data = dashboardData({ spokes: [spoke({ name: "edge-2" })] });
     const { user } = render(<InfrastructureView api={api} data={data} refresh={refresh} />);
     await user.click(screen.getByRole("button", { name: "Drop edge-2" }));
-    const dialog = await screen.findByRole("dialog", { name: "Drop spoke" });
+    const dialog = await screen.findByRole("dialog", { name: "Drop runner" });
     await user.click(within(dialog).getByRole("button", { name: "Drop" }));
     await waitFor(() => expect(api.dropSpoke).toHaveBeenCalledWith("edge-2"));
   });
@@ -61,9 +61,9 @@ describe("InfrastructureView", () => {
     await waitFor(() => expect(api.revokeJoinToken).toHaveBeenCalledWith("abcdef012345xyz"));
   });
 
-  it("opens the create-spoke modal", async () => {
+  it("opens the create-runner modal", async () => {
     const { user } = render(<InfrastructureView api={mockApi()} data={dashboardData()} refresh={vi.fn()} />);
-    await user.click(screen.getByRole("button", { name: "New spoke" }));
-    expect(await screen.findByRole("dialog", { name: "New spoke" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "New runner" }));
+    expect(await screen.findByRole("dialog", { name: "New runner" })).toBeInTheDocument();
   });
 });

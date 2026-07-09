@@ -1,5 +1,5 @@
-// CreateWorkspaceModal is the "New workspace" form. On submit it creates the box
-// and resolves its one-time activation link, then swaps to a result panel that
+// CreateWorkspaceModal is the "New workspace" form. On submit it creates the
+// workspace and resolves its one-time activation link, then swaps to a result panel that
 // shows the link with copy/open affordances — the link is the whole point, since
 // a freshly created workspace stays pending until someone opens it. Closing the
 // result refreshes the dashboard so the new (pending) workspace appears.
@@ -146,7 +146,7 @@ export function CreateWorkspaceModal({
               onChange={(e) => setDescription(e.currentTarget.value)}
             />
             <NativeSelect
-              label="Spoke"
+              label="Runner"
               name="spoke"
               data={spokeOptions}
               value={spoke}

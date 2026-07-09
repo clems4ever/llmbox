@@ -149,8 +149,8 @@
 		{
 			"function_name": "TestAuthPageShowsBoxAndSpoke",
 			"documentation_hash": "01c007d008dc96c06d63dfc4db0c607f833d52160aeed95f522318f03f25c725",
-			"definition_hash": "8da29af95a602b48ccb120e202700fb7093acd36064a12fef79546f763e6e714",
-			"reviewed_at": "2026-07-07T08:15:52.628490599Z"
+			"definition_hash": "2118e599d8c24c4638b4ad0ef8b17e198ebfda5e1b26de0dacef4e466dbccb46",
+			"reviewed_at": "2026-07-09T10:34:01.597963021Z"
 		},
 		{
 			"function_name": "TestAPIHandlerServesUIAndAPI",

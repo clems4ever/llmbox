@@ -1,7 +1,8 @@
-// CreateSpokeModal is the "New spoke" form. On submit it enrolls the spoke and
-// swaps to a result panel showing the one-time enrollment command to run on the
-// spoke host — the token is shown only once, so copy-to-clipboard is front and
-// centre. Closing refreshes so the pending (offline) spoke appears in the list.
+// CreateSpokeModal is the "New runner" form (a runner is the UI name for a
+// spoke). On submit it enrolls the spoke and swaps to a result panel showing
+// the one-time enrollment command to run on the runner host — the token is
+// shown only once, so copy-to-clipboard is front and centre. Closing refreshes
+// so the pending (offline) runner appears in the list.
 import { useState } from "react";
 import {
   Button,
@@ -66,7 +67,7 @@ export function CreateSpokeModal({
   };
 
   return (
-    <Modal opened={opened} onClose={close} title="New spoke" centered>
+    <Modal opened={opened} onClose={close} title="New runner" centered>
       {created ? (
         <Stack gap="sm">
           <Text size="sm">
@@ -75,7 +76,7 @@ export function CreateSpokeModal({
           </Text>
           <Code block>{created.command}</Code>
           <Text c="dimmed" size="xs">
-            After first enrollment the spoke reconnects from its saved credential; the
+            After first enrollment the runner reconnects from its saved credential; the
             token is one-time.
           </Text>
           <Group justify="flex-end">
@@ -128,7 +129,7 @@ export function CreateSpokeModal({
             <Group justify="flex-end" mt="xs">
               <Button variant="subtle" onClick={close}>Cancel</Button>
               <Button type="submit" loading={submitting} disabled={!name.trim()}>
-                Create spoke
+                Create runner
               </Button>
             </Group>
           </Stack>

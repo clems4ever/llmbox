@@ -62,13 +62,13 @@
   <div class="brand"><img class="logo" src="/favicon.svg" width="27" height="27" alt=""><b>llmbox</b></div>
   <h1>Sign in</h1>
   {{if .Providers}}
-  <p class="lead">Sign in to continue to this box.</p>
+  <p class="lead">Sign in to continue to this workspace.</p>
   {{range .Providers}}
   <a class="btn-link" href="{{.LoginPath}}">Sign in with {{.Label}}</a>
   {{end}}
   <p class="note">You'll be returned to the page you were visiting once you're signed in.</p>
   {{else}}
-  <div class="banner err">No valid destination to sign in for. Open the box's link directly.</div>
+  <div class="banner err">No valid destination to sign in for. Open the workspace's link directly.</div>
   {{end}}
 </main>
 </body>

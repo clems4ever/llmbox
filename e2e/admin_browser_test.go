@@ -36,7 +36,7 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 	// Seed one box through the box-control API so the hub holds a record for it
 	// (the dashboard renders from the hub's records, not from a live spoke
 	// listing); the fake manager's Destroy just records the id, so a confirmed
-	// removal shows a "removed box foo" success notification.
+	// removal shows a "removed workspace foo" success notification.
 	createReq, err := http.NewRequest(http.MethodPost, httpSrv.URL+"/api/v1/create-box",
 		strings.NewReader(`{"opts":{"BoxID":"foo"}}`))
 	if err != nil {
@@ -88,11 +88,11 @@ func TestAdminRemoveBoxInBrowser(t *testing.T) {
 		t.Fatalf("confirming Remove: %v", err)
 	}
 
-	// On success the SPA shows a "removed box foo" notification and refreshes the
+	// On success the SPA shows a "removed workspace foo" notification and refreshes the
 	// list in place; a broken CSRF path would show the server's error instead, so
 	// waiting for the success notification is what distinguishes fixed from broken.
 	b.waitFor(t, selenium.ByXPATH,
-		`//*[contains(normalize-space(text()),'removed box foo')]`)
+		`//*[contains(normalize-space(text()),'removed workspace foo')]`)
 
 	src, _ := b.wd.PageSource()
 	if strings.Contains(src, "invalid or missing X-CSRF-Token") {

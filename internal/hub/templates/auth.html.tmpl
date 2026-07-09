@@ -123,20 +123,20 @@
 <main class="card">
   <div class="brand"><img class="logo" src="/favicon.svg" width="27" height="27" alt=""><b>llmbox</b></div>
 
-{{if .BoxID}}<p class="boxmeta">Box <b>{{.BoxID}}</b>{{if .Spoke}} · spoke <b>{{.Spoke}}</b>{{end}}</p>{{end}}
+{{if .BoxID}}<p class="boxmeta">Workspace <b>{{.BoxID}}</b>{{if .Spoke}} · runner <b>{{.Spoke}}</b>{{end}}</p>{{end}}
 
 {{if and .AuthEnabled (not .LoggedIn)}}
   {{if .NotAuthorized}}
   <h1>Not authorized to activate</h1>
-  <div class="banner err">You're signed in as {{.Email}}, but that account isn't authorized to activate boxes here.</div>
+  <div class="banner err">You're signed in as {{.Email}}, but that account isn't authorized to activate workspaces here.</div>
   <p class="note">If this is a mistake, ask an administrator to add your address to the activation allow-list.</p>
   {{else}}
   <h1>Sign in to activate</h1>
-  <p class="lead">Activating this box requires signing in first, so only you — the person who requested it — can connect it to a Claude account.</p>
+  <p class="lead">Activating this workspace requires signing in first, so only you — the person who requested it — can connect it to a Claude account.</p>
   {{range .Providers}}
     <a class="btn-link" style="display:block;text-align:center;margin-bottom:.6rem" href="{{.LoginPath}}">Sign in with {{.Label}}</a>
   {{else}}
-    <div class="banner err">No sign-in providers are configured, so this box cannot be activated.</div>
+    <div class="banner err">No sign-in providers are configured, so this workspace cannot be activated.</div>
   {{end}}
   <p class="note">You'll be returned here once you're signed in.</p>
   {{end}}
@@ -145,15 +145,15 @@
   <div class="banner ok"><strong>Your llmbox is ready.</strong></div>
   {{if .SessionURL}}
     <div class="result">
-      <p class="lead">Drive your sandbox from here:</p>
+      <p class="lead">Drive your workspace from here:</p>
       <p class="url"><a href="{{.SessionURL}}" target="_blank" rel="noopener noreferrer">{{.SessionURL}}</a></p>
     </div>
   {{else}}
-    <p class="lead">Authentication succeeded — your sandbox is now active.</p>
+    <p class="lead">Authentication succeeded — your workspace is now active.</p>
   {{end}}
 {{else}}
   <h1>Activate your llmbox</h1>
-  <p class="lead">Connect your sandbox to your own Claude account. Two quick steps.</p>
+  <p class="lead">Connect your workspace to your own Claude account. Two quick steps.</p>
 
   {{if eq .Status "error"}}
     <div class="banner err"><strong>That didn't work:</strong> {{.Error}}<br>The code may have been mistyped or expired — get a fresh one and try again.</div>
@@ -176,7 +176,7 @@
       <h2>Paste the code</h2>
     </div>
     <div class="step-body">
-      <p>Paste the code from the previous step to activate your sandbox.</p>
+      <p>Paste the code from the previous step to activate your workspace.</p>
       <form id="auth-form" method="post" action="/auth/{{.Token}}" autocomplete="off">
         {{if .AuthEnabled}}<input type="hidden" name="csrf" value="{{.CSRF}}">{{end}}
         <input type="text" name="code" placeholder="Paste your code here" autofocus
@@ -188,9 +188,9 @@
       </form>
       <div class="activating" aria-live="polite">
         <span class="spinner" aria-hidden="true"></span>
-        Contacting Claude and starting your box — this can take up to a minute.
+        Contacting Claude and starting your workspace — this can take up to a minute.
       </div>
-      <p class="callout">Your code goes straight to this server and into your private sandbox — it is never sent to the chatbot.</p>
+      <p class="callout">Your code goes straight to this server and into your private workspace — it is never sent to the chatbot.</p>
     </div>
   </div>
 {{end}}

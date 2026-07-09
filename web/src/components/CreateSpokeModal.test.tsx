@@ -18,7 +18,7 @@ describe("CreateSpokeModal", () => {
       <CreateSpokeModal api={api} opened onClose={vi.fn()} refresh={refresh} />,
     );
     await user.type(screen.getByPlaceholderText("edge-1"), "edge-9");
-    await user.click(screen.getByRole("button", { name: "Create spoke" }));
+    await user.click(screen.getByRole("button", { name: "Create runner" }));
 
     await waitFor(() => expect(api.createSpoke).toHaveBeenCalledWith("edge-9", "docker", ""));
     expect(await screen.findByText("llmbox-spoke join --token tk")).toBeInTheDocument();

@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestAdminRemoveBoxInBrowser",
 			"documentation_hash": "5480870697b039d202a005717b41584ebc809f0f5e4eb4b7e09e241facb859c5",
-			"definition_hash": "3b0ab9a7f5f06d52ae2768aac9ec8bea8cffe99cd4d2c85bc3d0660c4548bae3",
-			"reviewed_at": "2026-07-09T10:08:19.242020632Z"
+			"definition_hash": "ad5520025e4bf85ae43541b6e8d95e11d34a2bbdabee1a0bc9743ae721a8996e",
+			"reviewed_at": "2026-07-09T10:33:39.889885219Z"
 		}
 	]
 }

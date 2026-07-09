@@ -55,7 +55,7 @@ export function StateBadge({ state, lastSeen }: StateBadgeProps): JSX.Element {
   const seen = lastSeenAt(lastSeen);
   const explain =
     tone === "unreachable"
-      ? "This workspace's spoke is offline; the box may still be running."
-      : "This box no longer exists on its spoke.";
+      ? "This workspace's runner is offline; the workspace may still be running."
+      : "This workspace no longer exists on its runner.";
   return <Tooltip label={seen ? `${explain} Last seen ${seen}.` : explain}>{badge}</Tooltip>;
 }

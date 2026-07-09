@@ -368,8 +368,8 @@ func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
 	if !strings.Contains(body, "refactor-auth") {
 		t.Error("box id missing from activation page")
 	}
-	if !strings.Contains(body, "spoke <b>"+testSpoke+"</b>") {
-		t.Error("spoke name missing from activation page")
+	if !strings.Contains(body, "runner <b>"+testSpoke+"</b>") {
+		t.Error("runner (spoke) name missing from activation page")
 	}
 }
 
