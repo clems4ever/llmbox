@@ -50,9 +50,9 @@
 		{
 			"function_name": "DestroyBox",
 			"receiver": "Client",
-			"documentation_hash": "6c2b78ed8c7f69f901ee2dbaaa29793184319e80bdfb3e6b526acb5dcb3bf713",
-			"definition_hash": "63f90377ce9606d2a3623c0743022c108135d80c164031fcc8955b4b9e7a13ae",
-			"reviewed_at": "2026-07-01T10:31:18.815137242Z"
+			"documentation_hash": "3057fad6ae5934990a42aee652a45dfbf94aef8385e68879dd382889fc5799a2",
+			"definition_hash": "d2a8c9e3d2fa12df8c9fdbc3a890eba9036326efd342ab59da239206a978a973",
+			"reviewed_at": "2026-07-09T21:42:06.887693953Z"
 		},
 		{
 			"function_name": "BoxLogs",

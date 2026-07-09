@@ -3,14 +3,14 @@
 		{
 			"function_name": "seedSession",
 			"documentation_hash": "c3dcb0fd6bff7c489537ab099342fa97826965b39571ced14b6dbe09212c639a",
-			"definition_hash": "542b00910bb089a2e51d32bb2a178fbe211b6473497178c615b8b1cd4922f2ca",
-			"reviewed_at": "2026-07-09T18:10:52.598206243Z"
+			"definition_hash": "96b9d6a58bcbfddd7f5767d3d6c114f86bf5daf759f5658e07884966b6c4b822",
+			"reviewed_at": "2026-07-09T21:42:06.881934437Z"
 		},
 		{
 			"function_name": "mustSaveProxy",
 			"documentation_hash": "61a918705245bf8f723f8f9f443101f8d136668eff583084d729f41ffa824722",
-			"definition_hash": "081901d33dad25cf53207975033ea39dcd760202e4831278e405abf253e1435f",
-			"reviewed_at": "2026-07-09T18:10:52.59883475Z"
+			"definition_hash": "c2221884833dfca3a330630a13486cca5940ffbfb1b502c288b0575002d25553",
+			"reviewed_at": "2026-07-09T21:42:06.882269642Z"
 		},
 		{
 			"function_name": "TestCreateBoxRejectsDuplicateBoxIDSameSpoke",
@@ -33,8 +33,8 @@
 		{
 			"function_name": "TestLookupByBoxIDPrefersReachableSpoke",
 			"documentation_hash": "34858629d436766638bd220f0cfb6eb485ba525aa241138697b82ce32728e47f",
-			"definition_hash": "9246ea4b348dfff2683774dd1c085147dd506a0f11b4d348581510a53e0c419d",
-			"reviewed_at": "2026-06-29T15:39:25.644214814Z"
+			"definition_hash": "3442ead3bdd6547be2750802ed5528a54dd7f48a6d6855dff8034354a9d90b4f",
+			"reviewed_at": "2026-07-09T21:42:06.882577351Z"
 		},
 		{
 			"function_name": "TestPruneDepartedSpokesRemovesStaleObjects",

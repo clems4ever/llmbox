@@ -14,7 +14,9 @@ import (
 // runtime files; on startup it reloads them so List/Find/reap see boxes created by
 // a previous run, and Destroy can clean up a box whose VM is already gone.
 type boxMeta struct {
-	// Token is the box's instance ID and the name of its state subdirectory.
+	// Token is the box's opaque generation token (exposed to the hub as its
+	// InstanceID) and the name of its state subdirectory. It is spoke-owned and
+	// never a native VM handle — the microVM has no daemon-assigned id.
 	Token string `json:"token"`
 	// BoxID is the caller-assigned alias, if any.
 	BoxID string `json:"box_id,omitempty"`

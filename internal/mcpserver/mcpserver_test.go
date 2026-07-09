@@ -227,9 +227,9 @@ func TestToolListProxies(t *testing.T) {
 }
 
 // TestToolCreate checks create_llmbox forwards its inputs, returns the auth page
-// URL and token, shortens the container ID, and starts the box pending.
+// URL and token, surfaces the opaque generation token, and starts the box pending.
 func TestToolCreate(t *testing.T) {
-	f := &fakeBackend{createSess: BoxSession{BoxID: "web-box", ContainerID: "abcdef0123456789", Token: "tok-123"}}
+	f := &fakeBackend{createSess: BoxSession{BoxID: "web-box", Generation: "abcdef0123456789", Token: "tok-123"}}
 	h := &handlers{b: f}
 
 	_, out, err := h.toolCreate(context.Background(), nil, createInput{
@@ -240,8 +240,8 @@ func TestToolCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("toolCreate: %v", err)
 	}
-	if out.BoxID != "web-box" || out.InstanceID != "abcdef012345" {
-		t.Errorf("box/container = %q/%q, want web-box/abcdef012345", out.BoxID, out.InstanceID)
+	if out.BoxID != "web-box" || out.InstanceID != "abcdef0123456789" {
+		t.Errorf("box/generation = %q/%q, want web-box/abcdef0123456789", out.BoxID, out.InstanceID)
 	}
 	if out.AuthURL != "https://boxes.example.com/auth/tok-123" || out.AuthToken != "tok-123" {
 		t.Errorf("auth url/token = %q/%q", out.AuthURL, out.AuthToken)
@@ -346,7 +346,7 @@ func TestToolListSpokes(t *testing.T) {
 // by container ID, and errors on an empty/unknown box ID and a destroy failure.
 func TestToolDestroy(t *testing.T) {
 	f := &fakeBackend{sessions: map[string]BoxSession{
-		"web-box": {BoxID: "web-box", ContainerID: "abcdef0123456789"},
+		"web-box": {BoxID: "web-box", Generation: "abcdef0123456789"},
 	}}
 	h := &handlers{b: f}
 
@@ -357,8 +357,8 @@ func TestToolDestroy(t *testing.T) {
 	if out.Destroyed != "WEB-BOX" {
 		t.Errorf("destroyed = %q, want WEB-BOX", out.Destroyed)
 	}
-	if f.destroyedID != "abcdef0123456789" {
-		t.Errorf("backend destroyed %q, want the container ID", f.destroyedID)
+	if f.destroyedID != "WEB-BOX" {
+		t.Errorf("backend destroyed %q, want the box ID WEB-BOX", f.destroyedID)
 	}
 
 	if _, _, err := h.toolDestroy(context.Background(), nil, destroyInput{BoxID: ""}); err == nil {
@@ -369,7 +369,7 @@ func TestToolDestroy(t *testing.T) {
 	}
 
 	failing := &fakeBackend{
-		sessions:   map[string]BoxSession{"web-box": {ContainerID: "cid"}},
+		sessions:   map[string]BoxSession{"web-box": {Generation: "cid"}},
 		destroyErr: errors.New("x"),
 	}
 	if _, _, err := (&handlers{b: failing}).toolDestroy(context.Background(), nil, destroyInput{BoxID: "web-box"}); err == nil {
@@ -461,7 +461,7 @@ func TestToolsRegistered(t *testing.T) {
 // TestCreateReturnsSafeAuthURL checks create_llmbox returns only the public auth
 // page URL, never the box's raw OAuth authorize URL or any other secret.
 func TestCreateReturnsSafeAuthURL(t *testing.T) {
-	f := &fakeBackend{createSess: BoxSession{BoxID: "web-box", ContainerID: "abcdef0123456789", Token: "tok-123"}}
+	f := &fakeBackend{createSess: BoxSession{BoxID: "web-box", Generation: "abcdef0123456789", Token: "tok-123"}}
 	cs := connectMCP(t, f)
 
 	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "create_llmbox", Arguments: map[string]any{"box_id": "web-box"}})

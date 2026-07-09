@@ -14,7 +14,7 @@ import (
 func TestServerWithoutStore(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
-	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -118,8 +118,8 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 		t.Fatalf("Save dead: %v", err)
 	}
 
-	// The spoke reports only the live box (short 12-char ID).
-	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa", Name: "n1", Image: "img:1", State: "running"}}}
+	// The spoke reports only the live box (by its generation token).
+	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa1111", Name: "n1", Image: "img:1", State: "running"}}}
 	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, nil), f)
 	if _, err := s.Restore(); err != nil {
 		t.Fatalf("Restore: %v", err)
@@ -157,7 +157,7 @@ func TestSyncGraceKeepsFreshRecord(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: nil}
 	s := newTestServer(f)
 	s.mu.Lock()
-	s.byToken["fresh"] = &session{Token: "fresh", ContainerID: "cccccccccccc3333", CreatedAt: time.Now(), SpokeName: testSpoke, Status: "pending"}
+	s.byToken["fresh"] = &session{Token: "fresh", Generation: "cccccccccccc3333", CreatedAt: time.Now(), SpokeName: testSpoke, Status: "pending"}
 	s.mu.Unlock()
 
 	s.syncSpokes(context.Background())
@@ -171,10 +171,10 @@ func TestSyncGraceKeepsFreshRecord(t *testing.T) {
 // observed name, image, backend state, and last-seen on its record, and that
 // the listing then renders the backend state.
 func TestSyncRefreshesObservedMetadata(t *testing.T) {
-	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa", Name: "n1", Image: "img:2", State: "exited"}}}
+	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa1111", Name: "n1", Image: "img:2", State: "exited"}}}
 	s := newTestServer(f)
 	s.mu.Lock()
-	s.byToken["tok"] = &session{Token: "tok", ContainerID: "aaaaaaaaaaaa1111", SpokeName: testSpoke, Status: "pending"}
+	s.byToken["tok"] = &session{Token: "tok", Generation: "aaaaaaaaaaaa1111", SpokeName: testSpoke, Status: "pending"}
 	s.mu.Unlock()
 
 	s.syncSpokes(context.Background())
@@ -198,7 +198,7 @@ func TestSyncSkipsUnreachableSpoke(t *testing.T) {
 	f := &testutils.FakeMgr{} // the connected spoke (testSpoke) reports no boxes
 	s := newTestServer(f)
 	s.mu.Lock()
-	s.byToken["tok"] = &session{Token: "tok", ContainerID: "aaaaaaaaaaaa1111", SpokeName: "offline-spoke", Status: "pending"}
+	s.byToken["tok"] = &session{Token: "tok", Generation: "aaaaaaaaaaaa1111", SpokeName: "offline-spoke", Status: "pending"}
 	s.mu.Unlock()
 
 	s.syncSpokes(context.Background())
@@ -211,10 +211,10 @@ func TestSyncSkipsUnreachableSpoke(t *testing.T) {
 // TestSyncRevivesReappearedBox checks a tombstone whose box shows up again on
 // its spoke is re-marked running (the spoke is the authority on what exists).
 func TestSyncRevivesReappearedBox(t *testing.T) {
-	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "dddddddddddd", State: "running"}}}
+	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "dddddddddddd4444", State: "running"}}}
 	s := newTestServer(f)
 	s.mu.Lock()
-	s.byToken["back"] = &session{Token: "back", ContainerID: "dddddddddddd4444", SpokeName: testSpoke, Status: "pending", BoxState: boxStateTerminated}
+	s.byToken["back"] = &session{Token: "back", Generation: "dddddddddddd4444", SpokeName: testSpoke, Status: "pending", BoxState: boxStateTerminated}
 	s.mu.Unlock()
 
 	s.syncSpokes(context.Background())

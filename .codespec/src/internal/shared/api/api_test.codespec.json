@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestBackendAPIRoundTrip",
 			"documentation_hash": "c07e66b0f5701d550d273bd81136a2713fb52b00e84989ec4aeb8c8d9a056465",
-			"definition_hash": "ada157e45d6ee5948934ba620ca3fa950ef0938084d35d28507263aa33a11898",
-			"reviewed_at": "2026-07-08T12:57:12.259158085Z"
+			"definition_hash": "d7fca6c869c32636ad504c20b4d0e126330c2a0a126dc1b59d4566e5f527ee67",
+			"reviewed_at": "2026-07-09T21:42:06.886995669Z"
 		},
 		{
 			"function_name": "TestClientSurfacesServerError",
@@ -21,8 +21,8 @@
 		{
 			"function_name": "TestMCPToolsOverHTTP",
 			"documentation_hash": "b0005e7a6586e2f32a9f96aa0d3de8e13cd8eabb9b80441ce38147024b963a69",
-			"definition_hash": "4f8f4bb10f87e229cd8a14b12d316507b6eceb61bdbdf68d2820b89a93796180",
-			"reviewed_at": "2026-07-01T13:11:49.924372996Z"
+			"definition_hash": "7e00f837e25642f2a22947d02e4d0d5eeb54bbddcbc84fcf57d75b68acbfd6ae",
+			"reviewed_at": "2026-07-09T21:42:06.887292357Z"
 		},
 		{
 			"function_name": "TestClientSendsAPIKey",

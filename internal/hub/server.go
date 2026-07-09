@@ -71,8 +71,12 @@ type boxHooks interface {
 
 // session tracks one box through the auth handshake.
 type session struct {
-	Token        string
-	ContainerID  string
+	Token string
+	// Generation is the box's opaque backend generation token (its current
+	// incarnation). It is used only as a staleness/reap equality key — never
+	// parsed, prefix-matched, or used to address the box (addressing is by BoxID).
+	// A box recreated with the same BoxID gets a new Generation.
+	Generation   string
 	AuthorizeURL string
 	CreatedAt    time.Time
 
@@ -146,7 +150,7 @@ func (s *session) snapshot() (status, sessionURL, errMsg string) {
 func (s *session) persistLocked() boxRecord {
 	return boxRecord{
 		Token:         s.Token,
-		InstanceID:    s.ContainerID,
+		InstanceID:    s.Generation,
 		AuthorizeURL:  s.AuthorizeURL,
 		CreatedAt:     s.CreatedAt,
 		HookState:     s.HookState,
@@ -185,7 +189,7 @@ func (s *session) persist() boxRecord {
 func sessionFromPersisted(ps boxRecord) *session {
 	return &session{
 		Token:         ps.Token,
-		ContainerID:   ps.InstanceID,
+		Generation:    ps.InstanceID,
 		AuthorizeURL:  ps.AuthorizeURL,
 		CreatedAt:     ps.CreatedAt,
 		HookState:     ps.HookState,
@@ -711,7 +715,7 @@ func (s *Server) syncSpokeInventory(spokeName string, boxes []sandbox.Box) {
 	for _, sess := range sessions {
 		var live *sandbox.Box
 		for i := range boxes {
-			if boxes[i].InstanceID != "" && strings.HasPrefix(sess.ContainerID, boxes[i].InstanceID) {
+			if boxes[i].InstanceID != "" && sess.Generation == boxes[i].InstanceID {
 				live = &boxes[i]
 				matched[boxes[i].InstanceID] = true
 				break
@@ -848,6 +852,16 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 // @testcase TestCreateBoxDefaultsToDefaultSpoke creates on the default spoke when the request names none.
 // @testcase TestCreateBoxNoDefaultSpoke errors when the request names no spoke and no default is set.
 func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*session, error) {
+	// A box ID is mandatory: it is the box's address for every later verb
+	// (get/logs/exec/destroy/proxy). The hub addresses boxes by (spoke, box ID)
+	// only and never by a backend handle, so a box with no ID would be
+	// unaddressable. Reject it up front rather than create an orphan.
+	if opts.BoxID == "" {
+		return nil, fmt.Errorf("a box ID is required")
+	}
+	if !sandbox.ValidBoxID(opts.BoxID) {
+		return nil, fmt.Errorf("invalid box ID %q: must be a valid hostname (lowercase letters, digits, and hyphens)", opts.BoxID)
+	}
 	// Resolve an unqualified create to the admin-chosen default spoke, and pin the
 	// box to that concrete spoke name so its later verbs route there even if the
 	// default changes afterwards.
@@ -913,7 +927,7 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	}
 	sess := &session{
 		Token:        tok,
-		ContainerID:  id,
+		Generation:   id,
 		AuthorizeURL: authorizeURL,
 		CreatedAt:    time.Now(),
 		HookState:    hookState,
@@ -1126,7 +1140,7 @@ func (s *Server) submitCode(ctx context.Context, tok, code string) error {
 		return err
 	}
 
-	url, err := mgr.SubmitCode(ctx, sess.ContainerID, code)
+	url, err := mgr.SubmitCode(ctx, sess.BoxID, code)
 	sess.mu.Lock()
 	if err != nil {
 		sess.Status = "error"
@@ -1303,7 +1317,7 @@ func (s *Server) boxLogs(ctx context.Context, boxID string, tail int) (string, e
 	if err != nil {
 		return "", err
 	}
-	return mgr.Logs(ctx, sess.ContainerID, tail)
+	return mgr.Logs(ctx, sess.BoxID, tail)
 }
 
 // boxExec runs a shell command inside the box with the given box ID and returns
@@ -1333,45 +1347,45 @@ func (s *Server) boxExec(ctx context.Context, boxID, command string) (sandbox.Ex
 	if err != nil {
 		return sandbox.ExecResult{}, err
 	}
-	return mgr.Exec(ctx, sess.ContainerID, []string{"/bin/sh", "-c", command})
+	return mgr.Exec(ctx, sess.BoxID, []string{"/bin/sh", "-c", command})
 }
 
 // idMatchesBox reports whether idOrName identifies a box with the given box ID
-// and container ID — by exact box ID (what the admin UI sends) or by container-ID
-// prefix in either direction (so a short ID matches the full one, and vice
-// versa). It is the shared predicate used to match both tracked sessions and
-// live box listings when routing or cleaning up a destroy.
+// and generation token — by exact box ID (the caller's usual handle, what the
+// admin UI sends) or by exact generation token. Both are matched exactly: the
+// generation token is an opaque incarnation identity, never prefix-matched. It is
+// the shared predicate used to match both tracked sessions and live box listings
+// when routing or cleaning up a destroy.
 //
 // @arg boxID The box's box ID (the caller-assigned identifier), if any.
-// @arg containerID The box's container ID, if known.
-// @arg idOrName The box ID or container ID to match against.
+// @arg generation The box's opaque generation token, if known.
+// @arg idOrName The box ID or generation token to match against.
 // @return bool Whether the identifier names that box.
 //
 // @testcase TestDestroyBoxByBoxIDRoutesToSpoke routes a box-ID destroy to the box's spoke.
-// @testcase TestDestroyRoutesToSpoke routes a container-ID destroy to the box's spoke.
-func idMatchesBox(boxID, containerID, idOrName string) bool {
+// @testcase TestDestroyRoutesToSpoke routes a generation-token destroy to the box's spoke.
+func idMatchesBox(boxID, generation, idOrName string) bool {
 	if idOrName == "" {
 		return false
 	}
 	if boxID != "" && boxID == idOrName {
 		return true
 	}
-	return containerID != "" &&
-		(strings.HasPrefix(containerID, idOrName) || strings.HasPrefix(idOrName, containerID))
+	return generation != "" && generation == idOrName
 }
 
 // boxMatchesSession reports whether idOrName identifies sess's box, matching on
-// its box ID or container ID. Used to route and clean up a destroy regardless of
-// which identifier the caller has.
+// its box ID or generation token. Used to route and clean up a destroy regardless
+// of which identifier the caller has.
 //
 // @arg sess The session to test.
-// @arg idOrName The box ID or container ID to match against.
+// @arg idOrName The box ID or generation token to match against.
 // @return bool Whether the identifier names this session's box.
 //
 // @testcase TestDestroyBoxByBoxIDRoutesToSpoke routes a box-ID destroy to the box's spoke.
-// @testcase TestDestroyRoutesToSpoke routes a container-ID destroy to the box's spoke.
+// @testcase TestDestroyRoutesToSpoke routes a generation-token destroy to the box's spoke.
 func boxMatchesSession(sess *session, idOrName string) bool {
-	return idMatchesBox(sess.BoxID, sess.ContainerID, idOrName)
+	return idMatchesBox(sess.BoxID, sess.Generation, idOrName)
 }
 
 // destroyBox destroys a box and forgets any session pointing at it. Removal is
@@ -1601,14 +1615,13 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 	var dropped []string
 	var torn []tornBox
 	for tok, sess := range s.byToken {
-		// reaped IDs are short (12 char); ContainerID is the full ID.
-		for id := range reaped {
-			if strings.HasPrefix(sess.ContainerID, id) {
-				delete(s.byToken, tok)
-				dropped = append(dropped, tok)
-				torn = append(torn, tornBox{boxID: sess.BoxID, state: sess.HookState})
-				break
-			}
+		// Reaped IDs are opaque generation tokens; match a session's current
+		// generation by exact equality (a recreated box has a new generation, so a
+		// stale reap never drops the new incarnation).
+		if sess.Generation != "" && reaped[sess.Generation] {
+			delete(s.byToken, tok)
+			dropped = append(dropped, tok)
+			torn = append(torn, tornBox{boxID: sess.BoxID, state: sess.HookState})
 		}
 	}
 	s.mu.Unlock()

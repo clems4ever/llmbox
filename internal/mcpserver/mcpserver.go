@@ -113,7 +113,7 @@ type createInput struct {
 
 type createOutput struct {
 	BoxID        string `json:"box_id" jsonschema:"the box ID you assigned; pass it to get/destroy/logs/exec to reference this box"`
-	InstanceID   string `json:"instance_id" jsonschema:"the backend instance ID of the new box (e.g. a short container ID or microVM ID)"`
+	InstanceID   string `json:"instance_id" jsonschema:"an opaque backend generation token identifying this incarnation of the box; informational only — always reference the box by its box_id"`
 	AuthURL      string `json:"auth_url" jsonschema:"URL the user opens to authenticate the box in their browser"`
 	AuthToken    string `json:"auth_token" jsonschema:"token identifying this box's auth session (already embedded in auth_url); to poll status, call get_llmbox with the box's box ID"`
 	Status       string `json:"status" jsonschema:"current status; starts as 'pending' until the user authenticates"`
@@ -148,7 +148,7 @@ func (h *handlers) toolCreate(ctx context.Context, _ *mcp.CallToolRequest, in cr
 	}
 	return nil, createOutput{
 		BoxID:      sess.BoxID,
-		InstanceID: shortID(sess.ContainerID),
+		InstanceID: sess.Generation,
 		AuthURL:    h.b.AuthPageURL(sess.Token),
 		AuthToken:  sess.Token,
 		Status:     "pending",
@@ -266,11 +266,10 @@ func (h *handlers) toolDestroy(ctx context.Context, _ *mcp.CallToolRequest, in d
 	if in.BoxID == "" {
 		return nil, destroyOutput{}, fmt.Errorf("box_id is required")
 	}
-	sess, ok := h.b.LookupByBoxID(in.BoxID)
-	if !ok {
+	if _, ok := h.b.LookupByBoxID(in.BoxID); !ok {
 		return nil, destroyOutput{}, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", in.BoxID)
 	}
-	if err := h.b.DestroyBox(ctx, sess.ContainerID); err != nil {
+	if err := h.b.DestroyBox(ctx, in.BoxID); err != nil {
 		return nil, destroyOutput{}, err
 	}
 	return nil, destroyOutput{Destroyed: in.BoxID}, nil

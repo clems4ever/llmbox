@@ -165,11 +165,11 @@ func (s *Server) createProxy(boxID string, port int, createdBy, description stri
 		return store.ProxyRecord{}, err
 	}
 	if existing != nil {
-		// Reuse the slug only when it belongs to the *same* container. A proxy left
-		// over from an earlier box that happened to share this box ID points at a
-		// destroyed container, so it must not be handed back for the new box —
+		// Reuse the slug only when it belongs to the *same* box incarnation. A proxy
+		// left over from an earlier box that happened to share this box ID points at
+		// a destroyed incarnation, so it must not be handed back for the new box —
 		// delete it and mint a fresh slug instead.
-		if existing.InstanceID == sess.ContainerID {
+		if existing.InstanceID == sess.Generation {
 			return *existing, nil
 		}
 		if derr := s.store.DeleteProxy(existing.Slug); derr != nil {
@@ -183,7 +183,7 @@ func (s *Server) createProxy(boxID string, port int, createdBy, description stri
 	rec := store.ProxyRecord{
 		Slug:        slug,
 		BoxID:       boxID,
-		InstanceID:  sess.ContainerID,
+		InstanceID:  sess.Generation,
 		Port:        port,
 		Spoke:       sess.SpokeName,
 		CreatedAt:   time.Now(),
@@ -433,7 +433,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, slug string
 // @return bool True when the spoke supports proxying.
 //
 // @testcase TestHandleProxyForwards uses the streaming transport.
-// @testcase TestHandleProxyDialsByContainerID dials the box by container ID, not box ID.
+// @testcase TestHandleProxyDialsByBoxID dials the box by its box ID.
 // @testcase TestHandleProxyUnsupportedSpoke returns false when the spoke cannot dial boxes.
 func (s *Server) boxTransport(mgr boxManager, rec store.ProxyRecord) (http.RoundTripper, bool) {
 	dialer, ok := mgr.(boxDialer)
@@ -445,14 +445,14 @@ func (s *Server) boxTransport(mgr boxManager, rec store.ProxyRecord) (http.Round
 	// spoke's box dialer (a live tunnel over the cluster transport). This keeps the
 	// connection streaming, so WebSocket and SSE work.
 	//
-	// Dial by ContainerID, not BoxID: the docker manager resolves boxes through
-	// findManaged, which matches the container ID/name — never the user-facing
-	// box-id label. A box whose box ID differs from its container ID (any box
-	// created with a custom box ID) would otherwise fail with "no managed box
-	// matches <box-id>".
+	// Dial by box ID: the hub addresses boxes only by (spoke, box ID), and the
+	// spoke's Find resolves the box ID to its current incarnation. A proxy only
+	// ever exists for a box created with a box ID (createProxy requires a tracked
+	// box), so rec.BoxID is always set. The generation token stamped on the record
+	// is an opaque staleness key, never an address.
 	return &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return dialer.DialBox(ctx, rec.InstanceID, rec.Port)
+			return dialer.DialBox(ctx, rec.BoxID, rec.Port)
 		},
 		ResponseHeaderTimeout: 60 * time.Second,
 	}, true

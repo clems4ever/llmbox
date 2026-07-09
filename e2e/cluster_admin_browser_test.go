@@ -64,7 +64,7 @@ func newBrowserSpokeMgr(name string) *browserSpokeMgr {
 func (m *browserSpokeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (string, string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	id := randContainerID()
+	id := randGeneration()
 	m.boxes[id] = opts.BoxID
 	return id, "https://auth.example/", nil
 }
@@ -472,10 +472,10 @@ func boxCellXPath(boxID string) string {
 	return fmt.Sprintf(`//*[@data-box-row=%q]`, boxID)
 }
 
-// randContainerID returns a random hex string for a fake container ID.
+// randGeneration returns a random hex string for a fake container ID.
 //
 // @return string A 40-character hex string.
-func randContainerID() string {
+func randGeneration() string {
 	b := make([]byte, 20)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)

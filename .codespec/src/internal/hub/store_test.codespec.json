@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestServerWithoutStore",
 			"documentation_hash": "6bc7733415b602d67a13b3ec8211b33e778734eab341ec31b66dd1bd1e6fc240",
-			"definition_hash": "2307a7bcbc8650796df3b2d967b21d43d3b30afe157deb6f599fefd40e06b78f",
-			"reviewed_at": "2026-07-07T08:15:52.628922596Z"
+			"definition_hash": "d65235fd0c7d1eea37d5f9edd24a320677457858258098f6e78af21c4ab256de",
+			"reviewed_at": "2026-07-09T21:42:06.879838411Z"
 		},
 		{
 			"function_name": "TestCreateBoxPersistsSession",
@@ -21,32 +21,32 @@
 		{
 			"function_name": "TestSyncMarksVanishedBoxTerminated",
 			"documentation_hash": "289b887e6c0befaec84d8f323a26b2760177afb898694e53b7c94c59eca56603",
-			"definition_hash": "d674d41840a2d70ace5a2008e4e58c721a7adf5c9eb2427d4923cafc0d568ce5",
-			"reviewed_at": "2026-07-09T18:10:52.59671981Z"
+			"definition_hash": "093ea87c1950ee67f1e7f9580fc5a6a8f0d4ff4ed8d2b870d44d975744f5d41a",
+			"reviewed_at": "2026-07-09T21:42:06.880341135Z"
 		},
 		{
 			"function_name": "TestSyncGraceKeepsFreshRecord",
 			"documentation_hash": "64ddb470143322cc8e616a4741a8642f85e8d84e726cd0f013f8f77430066dc2",
-			"definition_hash": "5399d7d72a3ff49478f3fea5a70f6307ea58bc7aaaf910eca823745a93a3b8b6",
-			"reviewed_at": "2026-07-09T10:09:05.644475946Z"
+			"definition_hash": "efa94ecb2eec44fe970a64d6fbd6e7dd932c789becfa81a7a2c9694274518c98",
+			"reviewed_at": "2026-07-09T21:42:06.880689154Z"
 		},
 		{
 			"function_name": "TestSyncRefreshesObservedMetadata",
 			"documentation_hash": "e460cef18b19b013d1c88770f195924866c4c04a60ed7af7d6a6a682c50b11da",
-			"definition_hash": "5ba9c429647bb685150a9e7f92dffda9612753768591156193585d64928e04b1",
-			"reviewed_at": "2026-07-09T18:10:52.597576115Z"
+			"definition_hash": "dfec84597e64b8a00281456776c0723c79c922d57379b073d54fe8634105518d",
+			"reviewed_at": "2026-07-09T21:42:06.881012305Z"
 		},
 		{
 			"function_name": "TestSyncSkipsUnreachableSpoke",
 			"documentation_hash": "0a5d234391bb580842485cabd9c4c436640c9c871132baae6d54dac6d7033b86",
-			"definition_hash": "67a655df48ff931e131cf346c209b6020748f23e78f8a74cd957643ad015af21",
-			"reviewed_at": "2026-07-09T10:09:05.645205335Z"
+			"definition_hash": "1c19bb74457f8f4c199a8ae6356952c1e6ac9463ce2226a991108fdd7fb245e8",
+			"reviewed_at": "2026-07-09T21:42:06.88132948Z"
 		},
 		{
 			"function_name": "TestSyncRevivesReappearedBox",
 			"documentation_hash": "20ae3d0ccab7977fe3efcd400dcc05c46582e50d1c30bfdd8f0c23ea18a539c3",
-			"definition_hash": "8e31d851c3e79d20887175cf77cb9118af7c68155580f40a098cc1972041fdd1",
-			"reviewed_at": "2026-07-09T10:09:05.645520057Z"
+			"definition_hash": "e66f95587cfad828fd6f4a73e0a28dbde5c3947da9fcce1c75f7a24b5d1eb287",
+			"reviewed_at": "2026-07-09T21:42:06.881648923Z"
 		}
 	]
 }

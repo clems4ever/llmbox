@@ -235,16 +235,16 @@ func (c *Client) RevokeJoinToken(ctx context.Context, id string) error {
 	return err
 }
 
-// DestroyBox stops and removes the box with the given container ID on the upstream
+// DestroyBox stops and removes the box with the given box ID on the upstream
 // server.
 //
 // @arg ctx Context for the request.
-// @arg containerID The container ID of the box to destroy.
+// @arg boxID The box ID of the box to destroy.
 // @error error if the box cannot be destroyed.
 //
 // @testcase TestBackendAPIRoundTrip destroys a box through the client.
-func (c *Client) DestroyBox(ctx context.Context, containerID string) error {
-	_, err := post[destroyBoxRequest, emptyResponse](ctx, c, PathDestroyBox, destroyBoxRequest{ContainerID: containerID})
+func (c *Client) DestroyBox(ctx context.Context, boxID string) error {
+	_, err := post[destroyBoxRequest, emptyResponse](ctx, c, PathDestroyBox, destroyBoxRequest{BoxID: boxID})
 	return err
 }
 

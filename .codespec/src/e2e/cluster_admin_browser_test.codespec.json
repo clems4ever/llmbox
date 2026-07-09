@@ -4,8 +4,8 @@
 			"function_name": "Create",
 			"receiver": "browserSpokeMgr",
 			"documentation_hash": "5158ba468ff665ac9ad5a4ec9fe3a36cf8b606be785c81fc07c6b09e65379f41",
-			"definition_hash": "ed3357b61922f7e419f30f82d04dacb46f9fae10d94ea22022c88acf2ffe282e",
-			"reviewed_at": "2026-06-29T15:39:24.963872702Z"
+			"definition_hash": "47d7b585d58ada18fe1927b983059f802cd001aa145660c63e81c9e84b2a9b94",
+			"reviewed_at": "2026-07-09T21:42:06.821157174Z"
 		},
 		{
 			"function_name": "Destroy",
@@ -170,17 +170,17 @@
 			"reviewed_at": "2026-07-08T22:15:15.147308681Z"
 		},
 		{
-			"function_name": "randContainerID",
-			"documentation_hash": "f132ff2b99213bfe565cf2816fdb04a50f0b0383d6d00fe4c8a505be280b8f9c",
-			"definition_hash": "f9002c47f97cc8b843d7c2d6d380f797c6753b75fa0d83de98eb08e8702609aa",
-			"reviewed_at": "2026-06-27T10:01:11.202660391Z"
-		},
-		{
 			"function_name": "showView",
 			"receiver": "clusterBrowserEnv",
 			"documentation_hash": "b1078ae2b80b15a9981ad66388565512baf5a8230e79a0160ac8422eb5453db0",
 			"definition_hash": "59da5d139f4a4455acd4844267c6efa4d49ee4e28eee49e4346f89763b58519f",
 			"reviewed_at": "2026-07-08T22:15:15.137206755Z"
+		},
+		{
+			"function_name": "randGeneration",
+			"documentation_hash": "bc52f5a8a359e8642eddff8a52e2f661299b1134e5decc5948ecf253479f656f",
+			"definition_hash": "1268a7ba0d58fbeafc97448ae374abf06420b96ad33f10236044b6d6e28cf12e",
+			"reviewed_at": "2026-07-09T21:42:06.822171221Z"
 		}
 	]
 }

@@ -116,9 +116,9 @@
 		},
 		{
 			"function_name": "TestToolCreate",
-			"documentation_hash": "d2401e32158cf44466b23e3adbecab4e5c0b7b3a3799ea4ea3c18f51a3a17786",
-			"definition_hash": "17b456e51467b6688574cdc26753103dedb011c9f3f6f13b9b410833472d073b",
-			"reviewed_at": "2026-07-08T09:43:14.703140642Z"
+			"documentation_hash": "e9f2599c25e56a75c2ecef673d12f7493fe67c6913e9c0e0dad19b32db030b16",
+			"definition_hash": "6f8d30f35e4e110919870354842256afc1d893f88383c5ff83b646a5a2cadc57",
+			"reviewed_at": "2026-07-09T21:42:06.884710764Z"
 		},
 		{
 			"function_name": "TestToolCreateRequiresBoxID",
@@ -153,8 +153,8 @@
 		{
 			"function_name": "TestToolDestroy",
 			"documentation_hash": "86c93750414d0453206d3d6bc6edb6ba40387c58c5fe4d80af615c340e0d3217",
-			"definition_hash": "2e1238829a2934e2089fca2925e334ad4acc3b400a89e061c5f75a502640c28f",
-			"reviewed_at": "2026-06-27T17:12:53.686373702Z"
+			"definition_hash": "165a1b79d0957986f2fa23e0f4570973ddb040400c426885b28426b5f844fc40",
+			"reviewed_at": "2026-07-09T21:42:06.885555976Z"
 		},
 		{
 			"function_name": "TestToolLogs",
@@ -183,8 +183,8 @@
 		{
 			"function_name": "TestCreateReturnsSafeAuthURL",
 			"documentation_hash": "c565d0cb3acf9ac275dd4ffc5a1e1d623c4255ff0601aa49adabaa01e0dc6199",
-			"definition_hash": "ffe7c2ae5a80ce4afcf0a0798aed99a8c984983ed10975987bc29e37365a3eb6",
-			"reviewed_at": "2026-06-27T17:12:53.690717028Z"
+			"definition_hash": "69cb7dc0e66cee308b26077cafade8d8fec54f4b2c9579748548266bdb12765e",
+			"reviewed_at": "2026-07-09T21:42:06.886635499Z"
 		},
 		{
 			"function_name": "connectMCP",

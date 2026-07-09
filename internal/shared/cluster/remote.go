@@ -285,7 +285,7 @@ func (r *remoteSpoke) call(ctx context.Context, method string, req, resp any) er
 //
 // @arg ctx Context for the call.
 // @arg opts The box creation options.
-// @return id The new container ID on the spoke.
+// @return id The new box's opaque generation token on the spoke.
 // @return authorizeURL The OAuth authorize URL captured on the spoke.
 // @error error if the call fails or the spoke returns an error.
 //
@@ -301,7 +301,7 @@ func (r *remoteSpoke) Create(ctx context.Context, opts sandbox.CreateOptions) (i
 // SubmitCode forwards an OAuth code submission to the spoke.
 //
 // @arg ctx Context for the call.
-// @arg id The container ID on the spoke.
+// @arg id The box ID identifying the box on the spoke.
 // @arg code The OAuth code.
 // @return sessionURL The remote-control session URL.
 // @error error if the call fails or the spoke returns an error.
@@ -432,7 +432,7 @@ func (r *remoteSpoke) unregisterStream(id uint64) {
 //
 // @arg ctx Context for the call.
 // @arg ttl How long a box may stay un-authenticated before being reaped.
-// @return []string The short IDs of reaped boxes.
+// @return []string The opaque generation tokens of reaped boxes (compared by the hub by equality).
 // @error error if the call fails or the spoke returns an error.
 //
 // @testcase TestRemoteSpokeRoundTrip reaps orphans through the remote spoke.

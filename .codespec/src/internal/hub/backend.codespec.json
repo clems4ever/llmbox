@@ -11,8 +11,8 @@
 			"function_name": "CreateBox",
 			"receiver": "apiBackend",
 			"documentation_hash": "f3b51d4bc954b39b93476829630b1d42f12f7967986a283cdddd5443534447a0",
-			"definition_hash": "eab098048386e89651f30247d0ae8c524a98948f49016f23ad5afb7ae74782ef",
-			"reviewed_at": "2026-07-01T13:12:00.984489772Z"
+			"definition_hash": "d13cfe5762b9459d41c88d93783c9e655b5bdf3d7e7aab62e04425064bb7af9d",
+			"reviewed_at": "2026-07-09T21:42:06.831284804Z"
 		},
 		{
 			"function_name": "AuthPageURL",
@@ -25,8 +25,8 @@
 			"function_name": "LookupByBoxID",
 			"receiver": "apiBackend",
 			"documentation_hash": "cbd19ddf1c2a666e756f03251f8d7e1da193bc5e821e7acaa81467047ec013a4",
-			"definition_hash": "0bddbdb522c918aefd4bf91b30dcd5e2977fb86ec021b0c0ed04f9b17a13ba9d",
-			"reviewed_at": "2026-07-01T13:12:00.985258637Z"
+			"definition_hash": "860b89e71247a081390b1cd951c0140e26a299a97a1c3d8cfb263b861c948730",
+			"reviewed_at": "2026-07-09T21:42:06.831932214Z"
 		},
 		{
 			"function_name": "ListBoxes",
@@ -45,9 +45,9 @@
 		{
 			"function_name": "DestroyBox",
 			"receiver": "apiBackend",
-			"documentation_hash": "659c9f22ec8b57c5504aebb52ee38545c2155f11be18bb04b132e1a98e8d4e79",
-			"definition_hash": "7976a7f22f9efe5b4459c2265f5d46e3e360c0b6c043f970b9185b2ddf10da1d",
-			"reviewed_at": "2026-07-01T13:12:00.986404035Z"
+			"documentation_hash": "20cb5c6c4a257c32f141937f88d7f69295e2725469db12aada9138daea8cd5ab",
+			"definition_hash": "09214bfc3483356f16361f65a6c5660138ee23539d64ab8774f67112d91bb608",
+			"reviewed_at": "2026-07-09T21:42:06.83259765Z"
 		},
 		{
 			"function_name": "BoxLogs",

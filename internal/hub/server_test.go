@@ -125,7 +125,7 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if sess.ContainerID != "abcdef0123456789" || sess.Status != "pending" {
+	if sess.Generation != "abcdef0123456789" || sess.Status != "pending" {
 		t.Errorf("unexpected session %+v", sess)
 	}
 	// BoxID/description are recorded on the session and forwarded to the manager.
@@ -151,7 +151,7 @@ func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 	// Hard to force token failure; instead verify create error propagates.
 	f := &testutils.FakeMgr{CreateErr: errors.New("no image")}
 	s := newTestServer(f)
-	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{}); err == nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"}); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -170,7 +170,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 	}
 	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
 
-	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -209,7 +209,7 @@ func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-doomed"}}
 	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
 
-	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{}); err == nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"}); err == nil {
 		t.Fatal("expected error")
 	}
 	if len(h.destroyed) != 1 || h.destroyed[0]["granular-hook"] != "subj-doomed" {
@@ -224,11 +224,11 @@ func TestDestroyRunsDestroyHooks(t *testing.T) {
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-live"}}
 	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
 
-	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if err := s.destroyBox(context.Background(), sess.ContainerID); err != nil {
+	if err := s.destroyBox(context.Background(), sess.Generation); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
 	}
 	if len(h.destroyed) != 1 || h.destroyed[0]["granular-hook"] != "subj-live" {
@@ -240,7 +240,7 @@ func TestDestroyRunsDestroyHooks(t *testing.T) {
 func TestSubmitCodeSuccess(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 
 	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
@@ -258,7 +258,7 @@ func TestSubmitCodeSuccess(t *testing.T) {
 func TestSubmitCodeFailureRecorded(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u", SubmitErr: errors.New("invalid code")}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 
 	if err := s.submitCode(context.Background(), sess.Token, "BAD"); err == nil {
 		t.Fatal("expected error")
@@ -281,7 +281,7 @@ func TestSubmitCodeUnknownToken(t *testing.T) {
 func TestSubmitCodeEmpty(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err := s.submitCode(context.Background(), sess.Token, "   "); err == nil {
 		t.Fatal("expected error for empty code")
 	}
@@ -291,7 +291,7 @@ func TestSubmitCodeEmpty(t *testing.T) {
 func TestDestroyForgetsSession(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 
 	if err := s.destroyBox(context.Background(), "abcdef0123456789"); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
@@ -305,8 +305,8 @@ func TestDestroyForgetsSession(t *testing.T) {
 func TestPruneSessionsAfterReap(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
-	s.pruneSessions([]string{"abcdef012345"}) // short ID prefix, as the reaper returns
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
+	s.pruneSessions([]string{"abcdef0123456789"}) // the box's generation token, as the reaper returns
 	if s.lookup(sess.Token) != nil {
 		t.Error("session for reaped box should be pruned")
 	}
@@ -334,7 +334,7 @@ func authStateJSON(t *testing.T, h http.Handler, token string) (int, map[string]
 func TestAuthPageRendersAndSubmits(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "https://claude.com/cai/oauth/authorize?a=b", SubmitURL: "https://claude.ai/code/s/9"}
 	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	h := s.APIHandler()
 
 	// GET the state: with auth disabled, the full state (authorize URL) is open.
@@ -527,8 +527,8 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 		t.Fatalf("CreateBox: %v", err)
 	}
 	f.CreateID = "0123456789abcdef"
-	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{}); err != nil {
-		t.Fatalf("CreateBox unnamed: %v", err)
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "api-box"}); err != nil {
+		t.Fatalf("CreateBox second box: %v", err)
 	}
 
 	boxes, err := s.boxBackend().ListBoxes(context.Background())
@@ -545,8 +545,8 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 			t.Errorf("web-box description = %q, want front-end work", b.Description)
 		}
 	}
-	if !byID["web-box"] || !byID[""] {
-		t.Errorf("expected web-box and one unnamed box, got %+v", boxes)
+	if !byID["web-box"] || !byID["api-box"] {
+		t.Errorf("expected web-box and api-box, got %+v", boxes)
 	}
 }
 
@@ -568,8 +568,8 @@ func TestBoxLogsByBoxID(t *testing.T) {
 	if logs != "Ready\nlistening\n" {
 		t.Errorf("unexpected logs: %q", logs)
 	}
-	if f.GotLogsID != "abcdef0123456789" || f.GotLogsN != 25 {
-		t.Errorf("manager got id=%q tail=%d, want abcdef0123456789/25", f.GotLogsID, f.GotLogsN)
+	if f.GotLogsID != "web-box" || f.GotLogsN != 25 {
+		t.Errorf("manager got id=%q tail=%d, want web-box/25 (the hub addresses boxes by box ID)", f.GotLogsID, f.GotLogsN)
 	}
 
 	// Unknown box IDs error.
@@ -601,8 +601,8 @@ func TestBoxExecByBoxID(t *testing.T) {
 	if res.Stdout != "hi\n" || res.ExitCode != 0 {
 		t.Errorf("unexpected exec result: %+v", res)
 	}
-	if f.GotExecID != "abcdef0123456789" {
-		t.Errorf("manager got box ID %q, want abcdef0123456789", f.GotExecID)
+	if f.GotExecID != "web-box" {
+		t.Errorf("manager got box ID %q, want web-box (the hub addresses boxes by box ID)", f.GotExecID)
 	}
 	want := []string{"/bin/sh", "-c", "echo hi"}
 	if len(f.GotExecCmd) != 3 || f.GotExecCmd[0] != want[0] || f.GotExecCmd[1] != want[1] || f.GotExecCmd[2] != want[2] {

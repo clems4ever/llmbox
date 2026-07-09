@@ -38,9 +38,9 @@
 		{
 			"function_name": "DestroyBox",
 			"receiver": "FakeBackend",
-			"documentation_hash": "36857bc9d6ea4e65d2b91938b1d888547901299d651bf5834e3faa7226247914",
-			"definition_hash": "509efb7194e94ba1adc9c596e74de3e7cc7ab3ae3b7b278e0b09987b255f20fc",
-			"reviewed_at": "2026-07-01T11:56:15.206038793Z"
+			"documentation_hash": "934c61f3cba163f6644e61930e6e7e1fe7e649845419f531f4194108e76c18d0",
+			"definition_hash": "026289e06cf2bfe7e8ea231711780ee64de84bbd94b1952155175c0e22753c7a",
+			"reviewed_at": "2026-07-09T21:42:06.91304059Z"
 		},
 		{
 			"function_name": "BoxLogs",

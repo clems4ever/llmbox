@@ -9,14 +9,14 @@
 		{
 			"function_name": "TestAuthPageRequiresLogin",
 			"documentation_hash": "9282ca330201046dba7388894c10cc4a1d6a6c8ee1aecd429180a8b8dbc5954b",
-			"definition_hash": "afd6bc5c2a1992425e9001c35d8a10b175a5521390a9c1b7ed45fa9ffa3c9286",
-			"reviewed_at": "2026-07-09T11:33:00.220366499Z"
+			"definition_hash": "6ca09da9b600cdb24e4f9bc6281d5beee11a2593904af209c9f5870c9080b2a4",
+			"reviewed_at": "2026-07-09T21:42:06.830522663Z"
 		},
 		{
 			"function_name": "TestActivationGatedByLogin",
 			"documentation_hash": "49847bf84718bc10d41844d4e24cb53ad3fd0dbbb3c5fd7826e7efc8288dd724",
-			"definition_hash": "1ae096a11f12710ebb2b40b09fbb9094b502841c724ae878ad26e8e41c28d2ef",
-			"reviewed_at": "2026-07-09T18:10:52.503047493Z"
+			"definition_hash": "828bcf3c359b942afda7044a4bd30601eb9afa4aa9bdda4c7bde99b574862e24",
+			"reviewed_at": "2026-07-09T21:42:06.830835889Z"
 		}
 	]
 }

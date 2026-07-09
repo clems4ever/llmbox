@@ -20,7 +20,7 @@ func TestDestroyTerminatedRecordSkipsSpoke(t *testing.T) {
 	s := wireSpoke(New(fh, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
 	s.mu.Lock()
 	s.byToken["tok"] = &session{
-		Token: "tok", BoxID: "dead-box", ContainerID: "cccccccccccc1111", SpokeName: testSpoke,
+		Token: "tok", BoxID: "dead-box", Generation: "cccccccccccc1111", SpokeName: testSpoke,
 		Status: "pending", BoxState: boxStateTerminated, HookState: map[string]string{"hook": "state"},
 	}
 	s.mu.Unlock()
@@ -75,7 +75,7 @@ func TestCreateBoxReplacesTerminatedTombstone(t *testing.T) {
 	s := newTestServer(f)
 	s.mu.Lock()
 	s.byToken["old"] = &session{
-		Token: "old", BoxID: "web", ContainerID: "000000000000aaaa", SpokeName: testSpoke,
+		Token: "old", BoxID: "web", Generation: "000000000000aaaa", SpokeName: testSpoke,
 		Status: "pending", BoxState: boxStateTerminated,
 	}
 	s.mu.Unlock()
@@ -99,7 +99,7 @@ func TestCreateBoxSyncsObservedMetadata(t *testing.T) {
 	f := &testutils.FakeMgr{
 		CreateID: "abcdef0123456789",
 		ListResult: []sandbox.Box{{
-			InstanceID: "abcdef012345", Name: "cname", Image: "img:9", State: "running",
+			InstanceID: "abcdef0123456789", Name: "cname", Image: "img:9", State: "running",
 		}},
 	}
 	s := newTestServer(f)
@@ -125,8 +125,8 @@ func TestLookupByBoxIDPrefersAliveOverTerminated(t *testing.T) {
 	s := newTestServer(f)
 	// alive is OLDER and on an unreachable spoke; the tombstone is newer and on
 	// the connected spoke. Alive must still win.
-	alive := &session{Token: "tok-alive", BoxID: "dup", SpokeName: "ghost", ContainerID: "ca", CreatedAt: time.Unix(100, 0), Status: "ready"}
-	tomb := &session{Token: "tok-tomb", BoxID: "dup", SpokeName: testSpoke, ContainerID: "ct", CreatedAt: time.Unix(200, 0), Status: "ready", BoxState: boxStateTerminated}
+	alive := &session{Token: "tok-alive", BoxID: "dup", SpokeName: "ghost", Generation: "ca", CreatedAt: time.Unix(100, 0), Status: "ready"}
+	tomb := &session{Token: "tok-tomb", BoxID: "dup", SpokeName: testSpoke, Generation: "ct", CreatedAt: time.Unix(200, 0), Status: "ready", BoxState: boxStateTerminated}
 	s.mu.Lock()
 	s.byToken["tok-alive"] = alive
 	s.byToken["tok-tomb"] = tomb

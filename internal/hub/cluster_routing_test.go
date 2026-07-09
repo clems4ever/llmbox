@@ -30,8 +30,8 @@ func TestCreateBoxRoutesToSpoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if sess.ContainerID != "edge-id" {
-		t.Errorf("box created on wrong spoke: container = %q", sess.ContainerID)
+	if sess.Generation != "edge-id" {
+		t.Errorf("box created on wrong spoke: container = %q", sess.Generation)
 	}
 	if sess.SpokeName != "edge" {
 		t.Errorf("session spoke = %q, want edge", sess.SpokeName)
@@ -202,7 +202,7 @@ func TestDestroyRoutesToSpoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if err := s.destroyBox(context.Background(), sess.ContainerID); err != nil {
+	if err := s.destroyBox(context.Background(), sess.Generation); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
 	}
 	if len(edge.Destroyed) != 1 || edge.Destroyed[0] != "edge-id" {

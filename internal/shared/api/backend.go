@@ -21,7 +21,7 @@ import (
 // server's internals and tests can construct one directly.
 type BoxSession struct {
 	BoxID       string
-	ContainerID string
+	Generation  string
 	Token       string
 	Description string
 	Status      string // "pending" | "ready" | "error"
@@ -113,8 +113,8 @@ type Backend interface {
 	ListJoinTokens(ctx context.Context) ([]JoinTokenInfo, error)
 	// RevokeJoinToken deletes one outstanding join token by its ID.
 	RevokeJoinToken(ctx context.Context, id string) error
-	// DestroyBox stops and removes the box with the given container ID.
-	DestroyBox(ctx context.Context, containerID string) error
+	// DestroyBox stops and removes the box with the given box ID.
+	DestroyBox(ctx context.Context, boxID string) error
 	// BoxLogs returns the recent console output of the box with the given box ID.
 	BoxLogs(ctx context.Context, boxID string, tail int) (string, error)
 	// BoxExec runs a shell command inside the box with the given box ID.

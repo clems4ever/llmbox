@@ -23,44 +23,44 @@
 		{
 			"function_name": "TestCreateBoxRegistersSession",
 			"documentation_hash": "6e14e71244c1b2476f4760d50aeec0d29cc414aeb2d54c87084a65b1d682a819",
-			"definition_hash": "f8be0964a406528148c398fafb8da6c70f4a7bd764c25af40d4c3c5375b2de88",
-			"reviewed_at": "2026-06-29T15:39:25.436693245Z"
+			"definition_hash": "155f03b418c64bd19aa6b3a52547a8610e708e138b9cc8f29ba58234562c9bf9",
+			"reviewed_at": "2026-07-09T21:42:06.864479588Z"
 		},
 		{
 			"function_name": "TestCreateBoxDestroysOnTokenFailure",
 			"documentation_hash": "d0485ca9a339f70cf0031cce1b0c60e937d92ad285daefd4abd5a5910d52f9fb",
-			"definition_hash": "c9a9b3c1523bb68912fb258c38b514825b45191bacde1bed8cb5dd9c2fd7288d",
-			"reviewed_at": "2026-06-29T15:39:25.440030853Z"
+			"definition_hash": "25e3b7478c44ba7bce0fa828e96a28600c7a7221b7cd8142f02b221244e95d23",
+			"reviewed_at": "2026-07-09T21:42:06.865524719Z"
 		},
 		{
 			"function_name": "TestCreateBoxRunsCreateHooks",
 			"documentation_hash": "f22604637599cb59cf5d44bca26647a56210ce7f2e242ae4da6bbd7c0cbd8083",
-			"definition_hash": "a40ad6661a763e58c835d982b35bc7325d0be18c0eb51790d761b485298e9704",
-			"reviewed_at": "2026-07-07T08:15:52.625138042Z"
+			"definition_hash": "4533a738fc109b85052880b068aa212c4f2521795a79d3d678d48d7f1b053031",
+			"reviewed_at": "2026-07-09T21:42:06.866836546Z"
 		},
 		{
 			"function_name": "TestCreateBoxRunsDestroyHooksOnCreateFailure",
 			"documentation_hash": "643249a258db8abc292800aabfaba6a8f246667f9e6c914dd39ae4bc1804a616",
-			"definition_hash": "2faee3adb4f3a12c0ecd08f14a1b8721f7011acd6df718cb3ea7f56c601c7ec8",
-			"reviewed_at": "2026-07-07T08:15:52.626405804Z"
+			"definition_hash": "df9f5d9e336a6fd4d3b11bb59a5c8ec91fcf6aff2fc68f9d64661daf89e76486",
+			"reviewed_at": "2026-07-09T21:42:06.867988466Z"
 		},
 		{
 			"function_name": "TestDestroyRunsDestroyHooks",
 			"documentation_hash": "b42b79a67dd4a2c96f0af324f0afe3e2fc2361a7ee66fb981be1c24e1bfa7629",
-			"definition_hash": "fc793d1737192929d9fffb19f1e6ee06c2604b54347b96238d017a9aa738d9fd",
-			"reviewed_at": "2026-07-07T08:15:52.627538616Z"
+			"definition_hash": "e21b6b3c12954ae7a0c4ae25c54d2d77feb949341196a0d2d1cc8d1ee0bf5f33",
+			"reviewed_at": "2026-07-09T21:42:06.869037124Z"
 		},
 		{
 			"function_name": "TestSubmitCodeSuccess",
 			"documentation_hash": "a6e1c2a2ba3c5b1a4c68b3c2fa3fe27dac2c320237180ed12bafa3e513aac1b7",
-			"definition_hash": "301c34cf7db691c04d93fb5020550b35327128a5901ad9628171a5793268859d",
-			"reviewed_at": "2026-06-29T15:39:25.481150506Z"
+			"definition_hash": "7620e9169f99e647266008c8b1a697388d0142754be8df9f642ac7beaeae3dcb",
+			"reviewed_at": "2026-07-09T21:42:06.870320305Z"
 		},
 		{
 			"function_name": "TestSubmitCodeFailureRecorded",
 			"documentation_hash": "c265a275f814f5b4c703c1131179466707820acc4193f65874fe60b5a31b6c1b",
-			"definition_hash": "8244be0b7ea08c6e785de1fa42deef860309cf22db06555668b5f51d7da59327",
-			"reviewed_at": "2026-06-29T15:39:25.48216425Z"
+			"definition_hash": "452c0b713afc8e953097d53a6043b00120aeab428091704d794c3a0f8e34c1bd",
+			"reviewed_at": "2026-07-09T21:42:06.871434727Z"
 		},
 		{
 			"function_name": "TestSubmitCodeUnknownToken",
@@ -71,26 +71,26 @@
 		{
 			"function_name": "TestSubmitCodeEmpty",
 			"documentation_hash": "9ef36e9ee5b5176505f1e31f6056f0fe2a32df92552387f3f2423c68a58fcef1",
-			"definition_hash": "1dbd581ccbbb237942149a63bc8abeb94831407f69da8f3b9373ab70656c3d5f",
-			"reviewed_at": "2026-06-29T15:39:25.520112569Z"
+			"definition_hash": "c98c3824c81c8411c4f96ae9ffeeebfbfe40c86b0d0fa6284dd3df305fe67f59",
+			"reviewed_at": "2026-07-09T21:42:06.872633438Z"
 		},
 		{
 			"function_name": "TestDestroyForgetsSession",
 			"documentation_hash": "071aa6989edd89849adaba8732e622e0debf992f4dfb7e586487b92d6abc7b39",
-			"definition_hash": "9d33ec666da8fafebad282d63961f56c8dc70b5ccc8e9387941ad00d1aec9cc7",
-			"reviewed_at": "2026-06-29T15:39:25.52138744Z"
+			"definition_hash": "bb810a66f3855bcbe640def39214cf12832e762d23e2c9351f2e3205ee08d3cf",
+			"reviewed_at": "2026-07-09T21:42:06.873806249Z"
 		},
 		{
 			"function_name": "TestPruneSessionsAfterReap",
 			"documentation_hash": "8936278199a7db60b10f8c28a56c6483263e8262ab68a99ab1610f7169a60169",
-			"definition_hash": "6fa216a4561f09574a10736a5b24274ae4946a13c1bf0d7db72fbadfd80df262",
-			"reviewed_at": "2026-06-29T15:39:25.522332657Z"
+			"definition_hash": "e8a11403cb256fa1044540b891c1d29682b4266e82e262642868bf2aa2dbc8d8",
+			"reviewed_at": "2026-07-09T21:42:06.874886664Z"
 		},
 		{
 			"function_name": "TestAuthPageRendersAndSubmits",
 			"documentation_hash": "b5893bc0a0686615e7a020f01591e082fce0bfe703b6fa6148cf577a20e688f6",
-			"definition_hash": "d4d3af704fe973e5398550133c06cd2555e4e20896aa1884df82def81ee92f42",
-			"reviewed_at": "2026-07-09T11:33:00.460111126Z"
+			"definition_hash": "3f38b72bca037b4770098bcbcdfd7632ea7f5e50a60e7ef86fa751e5b3239c95",
+			"reviewed_at": "2026-07-09T21:42:06.875963676Z"
 		},
 		{
 			"function_name": "TestAuthPageUnknownToken",
@@ -125,20 +125,20 @@
 		{
 			"function_name": "TestBoxLogsByBoxID",
 			"documentation_hash": "57e433d88328d1a1907a3eb6c6926fa617072fbd64dc1b835b3a293ae5eab8c8",
-			"definition_hash": "dcb289ee95db5589f0b23873a5cc479d5bc7bd5eb0573563d8f7e35711dea752",
-			"reviewed_at": "2026-07-01T13:13:04.543556525Z"
+			"definition_hash": "c63c5520f459343322b894d0209956d42407e32d360614b98898cf4b26159fc3",
+			"reviewed_at": "2026-07-09T21:42:06.878441926Z"
 		},
 		{
 			"function_name": "TestBoxExecByBoxID",
 			"documentation_hash": "4df6f07a06c76fa65334bf7f0133ee5e92a28b53108032a4ddedf769b8eb8129",
-			"definition_hash": "c0d751b7d68a07c8d5f22a30d18d249e4a226b0d7a239198801742b68562ff1f",
-			"reviewed_at": "2026-07-01T13:13:04.544775434Z"
+			"definition_hash": "3ee6616ad6e9311c5d70e9b104119aea2d9919b606021019e7e4349154173b03",
+			"reviewed_at": "2026-07-09T21:42:06.879478865Z"
 		},
 		{
 			"function_name": "TestListLlmboxesReturnsBoxID",
 			"documentation_hash": "5574c05c0782a6523d7e2560de4a9c5c04c04806cdb9727b56324a3a0f28e974",
-			"definition_hash": "161e8406512042fb6837b4159a378007aeb282b21d626a3bb742d327fec910ed",
-			"reviewed_at": "2026-07-09T10:09:05.420104086Z"
+			"definition_hash": "1bc60d0dd19f663f4f6bb0cdfb66581f951812ec56bb6ca2da4fb5d7dab18e39",
+			"reviewed_at": "2026-07-09T21:42:06.877206049Z"
 		},
 		{
 			"function_name": "TestCreateRequiresBoxID",

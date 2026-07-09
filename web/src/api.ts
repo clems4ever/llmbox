@@ -152,8 +152,8 @@ export class Api {
     return r.url;
   }
 
-  destroyBox(idOrBoxId: string): Promise<unknown> {
-    return this.call("/api/v1/destroy-box", { container_id: idOrBoxId });
+  destroyBox(boxId: string): Promise<unknown> {
+    return this.call("/api/v1/destroy-box", { box_id: boxId });
   }
 
   async createProxy(boxId: string, port: number, description: string): Promise<ProxyInfo> {
