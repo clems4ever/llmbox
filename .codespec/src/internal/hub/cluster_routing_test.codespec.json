@@ -19,12 +19,6 @@
 			"reviewed_at": "2026-07-07T08:15:52.578756526Z"
 		},
 		{
-			"function_name": "TestListFansOutAcrossSpokes",
-			"documentation_hash": "8393a920927eb5095fe21ac621cd1c38e3695579cd8345ae209262554d97b8a9",
-			"definition_hash": "fbb27fac094970d992dcde7f2a952994776b3cf361b20abf9267d80b24b2c524",
-			"reviewed_at": "2026-07-07T08:15:52.580500745Z"
-		},
-		{
 			"function_name": "TestReapFansOutAcrossSpokes",
 			"documentation_hash": "5172c099ac0e0238d9d8e7e22627cb95dcd1333fae462901949e5794374357a4",
 			"definition_hash": "6e37756a0bc4af67e5459129df1d923a90e91920f781f2a8ebfbaf4170f856e7",
