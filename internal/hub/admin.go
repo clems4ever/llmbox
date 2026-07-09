@@ -21,30 +21,66 @@ const defaultAdminTokenTTL = time.Hour
 //go:embed all:webdist
 var webDist embed.FS
 
-// registerAdminRoutes mounts the admin web app onto mux: the SPA shell at
-// /admin and its hashed assets under /admin/assets/. It is only called when the
-// admin UI is enabled. The shell is a secret-free static page — the app itself
-// bootstraps its session from GET /api/v1/me and drives every read and action
-// through the authenticated box-control API, so no admin data or operation is
-// served outside that single API.
+// uiAssets returns the built web app's file tree (the embedded webdist).
 //
-// @arg mux The mux the admin routes are added to.
+// @return fs.FS The embedded web dist filesystem.
 //
-// @testcase TestAdminSPAServed serves the SPA shell at /admin and its assets.
-func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
+// @testcase TestAdminSPAServed serves shells and assets resolved through this helper.
+func uiAssets() fs.FS {
 	assets, err := fs.Sub(webDist, "webdist")
 	if err != nil {
 		// The embedded tree always contains webdist; failing here is a build defect.
 		panic("webdist embed missing: " + err.Error())
 	}
-	fileServer := http.FileServer(http.FS(assets))
+	return assets
+}
+
+// servePage writes one built page shell (e.g. auth.html) from the web dist.
+// Every shell is a secret-free static page whose live state travels over JSON
+// endpoints; the shell references content-hashed assets, so it is served
+// no-cache while the assets themselves are immutable (see registerAssetRoutes).
+//
+// @arg w The response writer the shell is written to.
+// @arg r The request (used only for content negotiation by the file server).
+// @arg page The shell file name inside the web dist.
+//
+// @testcase TestAuthPageServesShell serves the activation page shell via this helper.
+func (s *Server) servePage(w http.ResponseWriter, r *http.Request, page string) {
+	w.Header().Set("Cache-Control", "no-cache")
+	http.ServeFileFS(w, r, uiAssets(), page)
+}
+
+// registerAssetRoutes mounts the web app's content-hashed assets under
+// /admin/assets/ (the bundler's base path, shared by every page shell — admin,
+// activation, sign-in). They are registered unconditionally: the activation
+// page must render even when the admin UI is disabled, and the assets are
+// public static files carrying no data.
+//
+// @arg mux The mux the asset route is added to.
+//
+// @testcase TestAdminSPAServed serves a hashed asset with the immutable cache header.
+// @testcase TestAssetsServedWithoutAdmin serves assets when the admin UI is disabled.
+func (s *Server) registerAssetRoutes(mux *http.ServeMux) {
+	fileServer := http.FileServer(http.FS(uiAssets()))
+	mux.Handle("GET /admin/assets/", http.StripPrefix("/admin/", cacheForever(fileServer)))
+}
+
+// registerAdminRoutes mounts the admin web app's shell at /admin. It is only
+// called when the admin UI is enabled (the shared assets are mounted separately
+// by registerAssetRoutes). The shell is a secret-free static page — the app
+// itself bootstraps its session from GET /api/v1/me and drives every read and
+// action through the authenticated box-control API, so no admin data or
+// operation is served outside that single API.
+//
+// @arg mux The mux the admin routes are added to.
+//
+// @testcase TestAdminSPAServed serves the SPA shell at /admin and its assets.
+func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
 		// Serve the SPA shell. Its asset URLs are content-hashed, so the shell
 		// itself must not be cached hard or a stale page would 404 on new assets.
-		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeFileFS(w, r, assets, "index.html")
+		s.servePage(w, r, "index.html")
 	})
-	mux.Handle("GET /admin/assets/", http.StripPrefix("/admin/", cacheForever(fileServer)))
 }
 
 // cacheForever marks a response as immutable for HTTP caches. The SPA's assets

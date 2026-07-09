@@ -77,6 +77,48 @@ func TestAdminSPAServed(t *testing.T) {
 	}
 }
 
+// TestAssetsServedWithoutAdmin checks the web assets are mounted even when the
+// admin UI is disabled: the public activation page is served from the same
+// built app, so its hashed bundle must resolve for a server with no admin
+// allow-list.
+func TestAssetsServedWithoutAdmin(t *testing.T) {
+	s := newTestServer(&testutils.FakeMgr{}) // nil auth: admin UI disabled
+	h := s.APIHandler()
+
+	// Discover a hashed asset path from the activation shell.
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/sometoken", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /auth/{token} = %d, want 200 (is the web app built? run `make web`)", rec.Code)
+	}
+	body := rec.Body.String()
+	start := strings.Index(body, "/admin/assets/")
+	if start < 0 {
+		t.Fatalf("activation shell does not reference /admin/assets/: %q", body)
+	}
+	end := start
+	for end < len(body) && body[end] != '"' {
+		end++
+	}
+	assetPath := body[start:end]
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, assetPath, nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET %s = %d, want 200 without the admin UI", assetPath, rec.Code)
+	}
+	if cc := rec.Header().Get("Cache-Control"); !strings.Contains(cc, "immutable") {
+		t.Errorf("asset Cache-Control = %q, want immutable", cc)
+	}
+
+	// The admin shell itself stays absent without an admin allow-list.
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/admin", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("GET /admin = %d, want 404 with the admin UI disabled", rec.Code)
+	}
+}
+
 // TestHomeRedirectsToAdmin checks the bare home page redirects to /admin when the
 // admin UI is enabled, and stays a 404 when it is not (nowhere to land).
 func TestHomeRedirectsToAdmin(t *testing.T) {

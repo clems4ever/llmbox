@@ -26,9 +26,9 @@
 		},
 		{
 			"function_name": "TestSignInPageRendersButtons",
-			"documentation_hash": "d0022cae244469ec555052294aa6e168fbccbc0a97ee0f7c89c81d0e1156e63c",
-			"definition_hash": "27a74f04f349e6509fcdc54d73dfe1c21200f34171292a6901e617625fb6a5fb",
-			"reviewed_at": "2026-06-27T21:48:34.813648502Z"
+			"documentation_hash": "5a99a574e9b857801c7932d045f3d6f113ecc525a5045ca482a31c6b81ab241c",
+			"definition_hash": "b6702c4e24dd1484284c34e7e8c724b775031de0337ae1103a52d4a8093a3b48",
+			"reviewed_at": "2026-07-09T11:33:00.679055163Z"
 		},
 		{
 			"function_name": "TestSignInPageRedirectsWhenSignedIn",
@@ -38,9 +38,15 @@
 		},
 		{
 			"function_name": "TestSignInPageRejectsUnsafeReturn",
-			"documentation_hash": "bb0f1a8599f4b4bd1063a27eb345a2358ad48e6ce5a6297a2878411afa4514ed",
-			"definition_hash": "2fbc92e2927de0c7fd8589a01ad175308d02ecd7d6d2d7dff3eed01bdc5de0c9",
-			"reviewed_at": "2026-06-27T21:48:34.814219679Z"
+			"documentation_hash": "57c0492a2ce252e8ea73df6a900c60b7ee1a265e9186be2ff294fa2f69f01544",
+			"definition_hash": "cc1f2aa8b01fee66bd29201064935a1bf8ceadc630984472267b03943c098132",
+			"reviewed_at": "2026-07-09T11:33:00.679318535Z"
+		},
+		{
+			"function_name": "signInStateJSON",
+			"documentation_hash": "105c5717f55fa0266d8a4673954b11de4b94cf28d7027945acbc6f08b005b5a3",
+			"definition_hash": "4c2025a7176a4e3ed19c107fcf087856ab502960c3b89f4700c1b986b749903e",
+			"reviewed_at": "2026-07-09T11:33:00.678780439Z"
 		}
 	]
 }

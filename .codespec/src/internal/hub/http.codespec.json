@@ -3,16 +3,16 @@
 		{
 			"function_name": "handleAuthPage",
 			"receiver": "Server",
-			"documentation_hash": "47b4e80bb483527e9e00167d9e18b3a5f20ccb5e433430b13e09c5cc7d22a821",
-			"definition_hash": "54aed0562e39ee6b486dd13dd7bc2d431dcde179eb111cf45a5521f1657df878",
-			"reviewed_at": "2026-06-27T11:23:49.722618145Z"
+			"documentation_hash": "617689da5095860f4e22ebd03ada9cae07c431375890064a0bd9ad71f9acc540",
+			"definition_hash": "27d1a8287b1819c5678f806401ae8bc9a5701dc0b9fb4dde7b270f9b17b234ff",
+			"reviewed_at": "2026-07-09T11:33:00.44536573Z"
 		},
 		{
 			"function_name": "handleAuthSubmit",
 			"receiver": "Server",
-			"documentation_hash": "f45e9f0d45ebd585cefa5df03feee1bf0a9a1c1c4621657abf03b9fd4661ff1e",
-			"definition_hash": "1faa9f34fae1d4f17f2286f9a377c569f11f713c9c54623a00e9560bb274ad51",
-			"reviewed_at": "2026-07-09T10:33:39.891117989Z"
+			"documentation_hash": "40e09e0aeb47e4bf82920dbcad3fcbba27cbd720ceda68bf23e5fedb324138fa",
+			"definition_hash": "576c0d16f53716b1c6fa6422f3643a71d665f775e0c1f6da8249b34abfb778ca",
+			"reviewed_at": "2026-07-09T11:33:00.455739865Z"
 		},
 		{
 			"function_name": "render",
@@ -31,16 +31,49 @@
 		{
 			"function_name": "registerAppRoutes",
 			"receiver": "Server",
-			"documentation_hash": "f50de86f467852c05648a45e190f66bd66cab708f3ed9f157c54a4407d2dec5a",
-			"definition_hash": "16f8e6c4364e82796c779b1a9a544945424fb0622b2782ee1472767b368fdd95",
-			"reviewed_at": "2026-07-01T14:27:14.866568121Z"
+			"documentation_hash": "5900c1b117d5ae3f1661d5692bc89d6ae5c79de52ac55074b03eb352ea41efc2",
+			"definition_hash": "604924530ea2578a1c27f5e1122f6d5d032e6b961b75ff8a03e4c3902c281233",
+			"reviewed_at": "2026-07-09T11:33:00.220959841Z"
 		},
 		{
 			"function_name": "handleSignIn",
 			"receiver": "Server",
-			"documentation_hash": "4acb4be21c0b3bfda6c9a4a1f2eac52d36ed646d76a6c4372bf79161315d4c0c",
-			"definition_hash": "6589270a19d06695a5cb721c16d4ae928fc78f3f1e7e20b78288a36a8cdefaed",
-			"reviewed_at": "2026-06-27T21:48:18.775189027Z"
+			"documentation_hash": "58257044e6cf56a96e09d29e0596516b6fc2458ae70fdf8f0d20a08abd5e2923",
+			"definition_hash": "95cb6cc56ddebb6b4d0284f9ecebe5977de9148684e25ee27440397de2611d5e",
+			"reviewed_at": "2026-07-09T11:33:00.457183214Z"
+		},
+		{
+			"function_name": "handleAuthState",
+			"receiver": "Server",
+			"documentation_hash": "ae19f5da2224219e9c3a8d6e1ebe6d52fbfca705d293a07472687badcb9c2425",
+			"definition_hash": "80915c2fd877ad58b02187acca5467699e268f405c73cc42f18393126bd9f694",
+			"reviewed_at": "2026-07-09T11:33:00.445947908Z"
+		},
+		{
+			"function_name": "authStateFor",
+			"receiver": "Server",
+			"documentation_hash": "041c3e85d7f418b878c10ea96084205c619bafa6a3e2fdd117bf8459db51ca75",
+			"definition_hash": "020771517b9985a5d4a33a367fd29d04f5ff0c0200b117277060ed51e216a928",
+			"reviewed_at": "2026-07-09T11:33:00.455241935Z"
+		},
+		{
+			"function_name": "providerButtons",
+			"documentation_hash": "0dd5e3ac362a4cd4dcd61ba8324de36f0809abe5a1b58c91d75c736d4b1119e1",
+			"definition_hash": "23b65643d25f00004d78ce156a9380ba50c4b117a3c3aba8055bdf92a32481d6",
+			"reviewed_at": "2026-07-09T11:33:00.456227809Z"
+		},
+		{
+			"function_name": "writeNoStoreJSON",
+			"documentation_hash": "7584bf9d43fbf50c37d0d7962cce92e8b91164be4a9cef9431c2bc00493365f6",
+			"definition_hash": "b20111a8c217e230f24b045eb85673e3d800a1671d6e60fc836e753a1a1a9ec5",
+			"reviewed_at": "2026-07-09T11:33:00.456710379Z"
+		},
+		{
+			"function_name": "handleSignInState",
+			"receiver": "Server",
+			"documentation_hash": "926bb99204b3ca381063c83249159b90aba9009efdde3108092495e3e95c78e7",
+			"definition_hash": "ebe124cc0c0f19eb7e1446191b2a1e0e285069c502f5dd089a6d1b3e724654cb",
+			"reviewed_at": "2026-07-09T11:33:00.457666014Z"
 		}
 	]
 }
