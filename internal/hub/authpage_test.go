@@ -42,7 +42,7 @@ func TestAuthPageRequiresLogin(t *testing.T) {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
-	code, st := authStateJSON(t, s.APIHandler(), sess.Token)
+	code, st := authStateJSON(t, s.APIHandler(), sess.plainToken)
 	if code != http.StatusOK {
 		t.Fatalf("GET state status %d", code)
 	}
@@ -77,7 +77,7 @@ func TestActivationGatedByLogin(t *testing.T) {
 
 	post := func(cookie *http.Cookie, body map[string]string) *httptest.ResponseRecorder {
 		payload, _ := json.Marshal(body)
-		req := httptest.NewRequest(http.MethodPost, "/auth/"+sess.Token+"/code", strings.NewReader(string(payload)))
+		req := httptest.NewRequest(http.MethodPost, "/auth/"+sess.plainToken+"/code", strings.NewReader(string(payload)))
 		req.Header.Set("Content-Type", "application/json")
 		if cookie != nil {
 			req.AddCookie(cookie)
@@ -96,7 +96,7 @@ func TestActivationGatedByLogin(t *testing.T) {
 	}
 
 	// Seed a login session (authorized to activate) and post with the right CSRF.
-	if err := st.PutIdentitySession("SID", IdentitySession{Email: "alice@corp.com", CSRFToken: "CSRF", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true}); err != nil {
+	if err := st.PutIdentitySession(hashTok("SID"), IdentitySession{Email: "alice@corp.com", CSRFToken: "CSRF", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true}); err != nil {
 		t.Fatal(err)
 	}
 	cookie := &http.Cookie{Name: auth.LoginCookie, Value: "SID"}
@@ -116,7 +116,7 @@ func TestActivationGatedByLogin(t *testing.T) {
 	if f.GotCode != "THECODE" {
 		t.Errorf("submitted code = %q, want THECODE", f.GotCode)
 	}
-	got := s.lookup(sess.Token)
+	got := s.lookup(sess.plainToken)
 	got.mu.Lock()
 	activatedBy := got.ActivatedBy
 	got.mu.Unlock()

@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestRestoreKeepsDisconnectedSpokeSessions",
 			"documentation_hash": "de012c8a4e829a474817e59ab3f72534d7d924eebb0ec9315c7553a50a3388fd",
-			"definition_hash": "d8e648d8bbc48f1685fa7a19ef615c5f9d85ecf821a5bc7ca8dcc8970491653d",
-			"reviewed_at": "2026-07-09T18:10:52.505128722Z"
+			"definition_hash": "6af0994ee79ce74c7e50f2c9a94ad0c9328077a508dd372e462e6fcd9b961b8b",
+			"reviewed_at": "2026-07-10T10:16:08.279072109Z"
 		},
 		{
 			"function_name": "TestCreateBoxRoutesToSpoke",
@@ -45,8 +45,8 @@
 		{
 			"function_name": "TestDestroyBoxByBoxIDRoutesToSpoke",
 			"documentation_hash": "6f0b0e3f71532118a29a4ef201b20dc8f54399385b21b888545d8b38c83e19f2",
-			"definition_hash": "8de96e8d0312c738094a3251cd11b1106b198aba035ee440b7407fd5f1bee9ec",
-			"reviewed_at": "2026-07-07T08:15:52.582359881Z"
+			"definition_hash": "3a6e188216d8a7ad93d7277f1e3fd5d39ee2b44f3178157b6677322e47df346f",
+			"reviewed_at": "2026-07-10T10:16:08.268698014Z"
 		},
 		{
 			"function_name": "TestDestroySessionlessBoxFindsSpoke",
@@ -57,8 +57,8 @@
 		{
 			"function_name": "TestDestroyAlreadyGoneBoxSucceeds",
 			"documentation_hash": "fd4fa562940c9bc689e4c6e4df7466a2418f4ef31f7dcf03105a0a193768ce03",
-			"definition_hash": "1b61166f25276ff528f39234177d3f1a2228fe8a827b315928dbf8274dcbe4c8",
-			"reviewed_at": "2026-07-07T08:15:52.583402994Z"
+			"definition_hash": "6e976cafad52138dc90ee48b3d143c04fe18b774f1a1c9a02369d9b41ccf2152",
+			"reviewed_at": "2026-07-10T10:16:08.269538641Z"
 		},
 		{
 			"function_name": "serverWithSpokes",

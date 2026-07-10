@@ -18,7 +18,7 @@ func TestServerWithoutStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if s.lookup(sess.Token) == nil {
+	if s.lookup(sess.plainToken) == nil {
 		t.Error("session not registered with no-op store")
 	}
 }
@@ -52,7 +52,7 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 		t.Errorf("box ID/description not persisted: %+v", saved[0])
 	}
 
-	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
+	if err := s.submitCode(context.Background(), sess.plainToken, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
 	saved, _ = st.ListBoxes()
@@ -73,10 +73,10 @@ func TestRestoreLoadsWithoutSpokes(t *testing.T) {
 	defer st.Close()
 
 	// Two saved sessions: one box still exists, one is gone from its spoke.
-	if err := st.PutBox(boxRecord{Token: "live", InstanceID: "aaaaaaaaaaaa1111", Status: "pending"}); err != nil {
+	if err := st.PutBox(boxRecord{Token: hashTok("live"), InstanceID: "aaaaaaaaaaaa1111", Status: "pending"}); err != nil {
 		t.Fatalf("Save live: %v", err)
 	}
-	if err := st.PutBox(boxRecord{Token: "dead", InstanceID: "bbbbbbbbbbbb2222", Status: "pending"}); err != nil {
+	if err := st.PutBox(boxRecord{Token: hashTok("dead"), InstanceID: "bbbbbbbbbbbb2222", Status: "pending"}); err != nil {
 		t.Fatalf("Save dead: %v", err)
 	}
 
@@ -111,10 +111,10 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 	}
 	defer st.Close()
 
-	if err := st.PutBox(boxRecord{Token: "live", InstanceID: "aaaaaaaaaaaa1111", Status: "pending", BoxID: "live-box"}); err != nil {
+	if err := st.PutBox(boxRecord{Token: hashTok("live"), InstanceID: "aaaaaaaaaaaa1111", Status: "pending", BoxID: "live-box"}); err != nil {
 		t.Fatalf("Save live: %v", err)
 	}
-	if err := st.PutBox(boxRecord{Token: "dead", InstanceID: "bbbbbbbbbbbb2222", Status: "pending", BoxID: "dead-box"}); err != nil {
+	if err := st.PutBox(boxRecord{Token: hashTok("dead"), InstanceID: "bbbbbbbbbbbb2222", Status: "pending", BoxID: "dead-box"}); err != nil {
 		t.Fatalf("Save dead: %v", err)
 	}
 
@@ -142,10 +142,10 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 	for _, ps := range saved {
 		byToken[ps.Token] = ps
 	}
-	if got := string(byToken["dead"].Lifecycle); got != boxStateTerminated {
+	if got := string(byToken[hashTok("dead")].Lifecycle); got != boxStateTerminated {
 		t.Errorf("dead record box state = %q, want terminated", got)
 	}
-	live := byToken["live"]
+	live := byToken[hashTok("live")]
 	if live.ObservedName != "n1" || live.ObservedImage != "img:1" || live.ObservedState != "running" || live.ObservedAt.IsZero() {
 		t.Errorf("live record metadata not synced: %+v", live)
 	}
@@ -156,9 +156,7 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 func TestSyncGraceKeepsFreshRecord(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: nil}
 	s := newTestServer(f)
-	s.mu.Lock()
-	s.byToken["fresh"] = &session{Token: "fresh", Generation: "cccccccccccc3333", CreatedAt: time.Now(), SpokeName: testSpoke, Status: "pending"}
-	s.mu.Unlock()
+	s.regSession("fresh", &session{Generation: "cccccccccccc3333", CreatedAt: time.Now(), SpokeName: testSpoke, Status: "pending"})
 
 	s.syncSpokes(context.Background())
 
@@ -173,9 +171,7 @@ func TestSyncGraceKeepsFreshRecord(t *testing.T) {
 func TestSyncRefreshesObservedMetadata(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa1111", Name: "n1", Image: "img:2", State: "exited"}}}
 	s := newTestServer(f)
-	s.mu.Lock()
-	s.byToken["tok"] = &session{Token: "tok", Generation: "aaaaaaaaaaaa1111", SpokeName: testSpoke, Status: "pending"}
-	s.mu.Unlock()
+	s.regSession("tok", &session{Generation: "aaaaaaaaaaaa1111", SpokeName: testSpoke, Status: "pending"})
 
 	s.syncSpokes(context.Background())
 
@@ -197,9 +193,7 @@ func TestSyncRefreshesObservedMetadata(t *testing.T) {
 func TestSyncSkipsUnreachableSpoke(t *testing.T) {
 	f := &testutils.FakeMgr{} // the connected spoke (testSpoke) reports no boxes
 	s := newTestServer(f)
-	s.mu.Lock()
-	s.byToken["tok"] = &session{Token: "tok", Generation: "aaaaaaaaaaaa1111", SpokeName: "offline-spoke", Status: "pending"}
-	s.mu.Unlock()
+	s.regSession("tok", &session{Generation: "aaaaaaaaaaaa1111", SpokeName: "offline-spoke", Status: "pending"})
 
 	s.syncSpokes(context.Background())
 
@@ -213,9 +207,7 @@ func TestSyncSkipsUnreachableSpoke(t *testing.T) {
 func TestSyncRevivesReappearedBox(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "dddddddddddd4444", State: "running"}}}
 	s := newTestServer(f)
-	s.mu.Lock()
-	s.byToken["back"] = &session{Token: "back", Generation: "dddddddddddd4444", SpokeName: testSpoke, Status: "pending", BoxState: boxStateTerminated}
-	s.mu.Unlock()
+	s.regSession("back", &session{Generation: "dddddddddddd4444", SpokeName: testSpoke, Status: "pending", BoxState: boxStateTerminated})
 
 	s.syncSpokes(context.Background())
 

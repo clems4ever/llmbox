@@ -9,8 +9,8 @@
 		{
 			"function_name": "signIn",
 			"documentation_hash": "06dbe717776b9276b78682cdb90dd421479f1c0c3c1b3e50c05763dd8ce15008",
-			"definition_hash": "8d436210a6de7580669c2bf8d73445a1ee03b5ce3c7c12094258a64b2bd615a1",
-			"reviewed_at": "2026-07-09T18:10:52.494723318Z"
+			"definition_hash": "cf2d58888f2780cf812cc729fdfeb8070f0b6f696dedfcc865bdc2493d78a534",
+			"reviewed_at": "2026-07-10T10:15:11.410543875Z"
 		},
 		{
 			"function_name": "TestSpokeConnectURL",

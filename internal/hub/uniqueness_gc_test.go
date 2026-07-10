@@ -19,16 +19,13 @@ import (
 func seedSession(t *testing.T, s *Server, token, boxID, spoke string) {
 	t.Helper()
 	sess := &session{
-		Token:      token,
 		BoxID:      boxID,
 		SpokeName:  spoke,
 		Generation: "container-" + token,
 		CreatedAt:  time.Now(),
 		Status:     "ready",
 	}
-	s.mu.Lock()
-	s.byToken[token] = sess
-	s.mu.Unlock()
+	s.regSession(token, sess)
 	if err := s.store.PutBox(sess.persist()); err != nil {
 		t.Fatalf("seed session %q: %v", boxID, err)
 	}
@@ -114,10 +111,8 @@ func TestLookupByBoxIDPrefersReachableSpoke(t *testing.T) {
 	live := &session{Token: "tok-live", BoxID: "dup", SpokeName: "remote1", Generation: "cl", CreatedAt: time.Unix(100, 0), Status: "ready"}
 	// dead is on a disconnected spoke and is NEWER — reachability must still win.
 	dead := &session{Token: "tok-dead", BoxID: "dup", SpokeName: "ghost", Generation: "cd", CreatedAt: time.Unix(200, 0), Status: "ready"}
-	s.mu.Lock()
-	s.byToken["tok-live"] = live
-	s.byToken["tok-dead"] = dead
-	s.mu.Unlock()
+	s.regSession("tok-live", live)
+	s.regSession("tok-dead", dead)
 
 	for i := 0; i < 50; i++ {
 		got := s.lookupByBoxID("dup")

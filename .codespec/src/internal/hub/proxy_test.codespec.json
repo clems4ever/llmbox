@@ -106,8 +106,8 @@
 		{
 			"function_name": "TestHandleProxyAuthorizedForwards",
 			"documentation_hash": "78b241e38dd89a80100b11f102b4c020d8431b483a02349f191c62eaf0e45459",
-			"definition_hash": "fb1c27986ee114dce2d9f2d10f89f9c498598bb30917751f7b0f0f203ca95274",
-			"reviewed_at": "2026-07-09T18:10:52.515382328Z"
+			"definition_hash": "c4f028f0e14274003519b2df975acacf1a42593ab267224436154b36a787e86d",
+			"reviewed_at": "2026-07-10T10:16:08.284120413Z"
 		},
 		{
 			"function_name": "TestHandleProxyUnsupportedSpoke",
@@ -166,8 +166,8 @@
 		{
 			"function_name": "TestCreateProxyRefusesTerminatedBox",
 			"documentation_hash": "0a7e95ee40056edfc8c0b11839ad670776182f87113d611a202e9914a433c8d6",
-			"definition_hash": "0c5d9345817edf8d6f0bf097e7482096cf81bfc41a6eebef3eafc33063e327c4",
-			"reviewed_at": "2026-07-09T21:42:06.837811704Z"
+			"definition_hash": "d89c2e1b05f4f9802e7d11e18deb1021dba508e8355da856bd2fa426678dc8d7",
+			"reviewed_at": "2026-07-10T10:16:08.282689494Z"
 		},
 		{
 			"function_name": "TestHandleProxyDialsByBoxID",

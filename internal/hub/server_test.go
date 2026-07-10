@@ -25,6 +25,25 @@ import (
 // spoke a box created with no explicit spoke routes to.
 const testSpoke = "spoke-1"
 
+// hashTok is store.HashToken — the key the registry and store hold a box token
+// under. Tests that seed the store or registry with a readable label (e.g.
+// "live") use it so the label hashes to the same key production computes, and
+// lookup(label) then resolves it.
+func hashTok(plain string) string { return store.HashToken(plain) }
+
+// regSession registers sess in the registry under the readable plaintext token,
+// keying by the token's hash exactly as createBox does (Token is the hash,
+// plainToken the plaintext), and returns sess. It replaces the old direct
+// s.byToken[token] = sess seeding, which predated hashing the token at rest.
+func (s *Server) regSession(plain string, sess *session) *session {
+	sess.Token = hashTok(plain)
+	sess.plainToken = plain
+	s.mu.Lock()
+	s.byToken[sess.Token] = sess
+	s.mu.Unlock()
+	return sess
+}
+
 // testStore is a NoopStore that additionally keeps settings and API keys in
 // memory, so a server under test can persist its default spoke and authenticate
 // API-key requests.
@@ -138,10 +157,10 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	if len(sess.Token) != 64 {
 		t.Errorf("token not 32 random bytes hex: len %d", len(sess.Token))
 	}
-	if got := s.AuthPageURL(sess.Token); got != "https://boxes.example.com/auth/"+sess.Token {
+	if got := s.AuthPageURL(sess.plainToken); got != "https://boxes.example.com/auth/"+sess.plainToken {
 		t.Errorf("AuthPageURL = %q", got)
 	}
-	if s.lookup(sess.Token) == nil {
+	if s.lookup(sess.plainToken) == nil {
 		t.Error("session not registered")
 	}
 }
@@ -242,7 +261,7 @@ func TestSubmitCodeSuccess(t *testing.T) {
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 
-	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
+	if err := s.submitCode(context.Background(), sess.plainToken, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
 	if f.GotCode != "CODE" {
@@ -260,7 +279,7 @@ func TestSubmitCodeFailureRecorded(t *testing.T) {
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 
-	if err := s.submitCode(context.Background(), sess.Token, "BAD"); err == nil {
+	if err := s.submitCode(context.Background(), sess.plainToken, "BAD"); err == nil {
 		t.Fatal("expected error")
 	}
 	status, _, errMsg := sess.snapshot()
@@ -282,7 +301,7 @@ func TestSubmitCodeEmpty(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
-	if err := s.submitCode(context.Background(), sess.Token, "   "); err == nil {
+	if err := s.submitCode(context.Background(), sess.plainToken, "   "); err == nil {
 		t.Fatal("expected error for empty code")
 	}
 }
@@ -296,7 +315,7 @@ func TestDestroyForgetsSession(t *testing.T) {
 	if err := s.destroyBox(context.Background(), "abcdef0123456789"); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
 	}
-	if s.lookup(sess.Token) != nil {
+	if s.lookup(sess.plainToken) != nil {
 		t.Error("session should be forgotten after destroy")
 	}
 }
@@ -307,7 +326,7 @@ func TestPruneSessionsAfterReap(t *testing.T) {
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	s.pruneSessions([]string{"abcdef0123456789"}) // the box's generation token, as the reaper returns
-	if s.lookup(sess.Token) != nil {
+	if s.lookup(sess.plainToken) != nil {
 		t.Error("session for reaped box should be pruned")
 	}
 }
@@ -338,7 +357,7 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 	h := s.APIHandler()
 
 	// GET the state: with auth disabled, the full state (authorize URL) is open.
-	code, st := authStateJSON(t, h, sess.Token)
+	code, st := authStateJSON(t, h, sess.plainToken)
 	if code != http.StatusOK {
 		t.Fatalf("GET state status %d", code)
 	}
@@ -350,7 +369,7 @@ func TestAuthPageRendersAndSubmits(t *testing.T) {
 	}
 
 	// POST the code: box becomes ready, the response carries the session URL.
-	preq := httptest.NewRequest(http.MethodPost, "/auth/"+sess.Token+"/code", strings.NewReader(`{"code":"THECODE"}`))
+	preq := httptest.NewRequest(http.MethodPost, "/auth/"+sess.plainToken+"/code", strings.NewReader(`{"code":"THECODE"}`))
 	preq.Header.Set("Content-Type", "application/json")
 	prec := httptest.NewRecorder()
 	h.ServeHTTP(prec, preq)
@@ -375,7 +394,7 @@ func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
 	s := newTestServer(&testutils.FakeMgr{CreateID: "id1", CreateURL: "https://c", SubmitURL: "https://s"})
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "refactor-auth"})
 
-	code, st := authStateJSON(t, s.APIHandler(), sess.Token)
+	code, st := authStateJSON(t, s.APIHandler(), sess.plainToken)
 	if code != http.StatusOK {
 		t.Fatalf("GET state status %d", code)
 	}
@@ -505,7 +524,7 @@ func TestGetByBoxID(t *testing.T) {
 	}
 
 	// Reflects status changes via snapshot.
-	if err := s.submitCode(context.Background(), sess.Token, "CODE"); err != nil {
+	if err := s.submitCode(context.Background(), sess.plainToken, "CODE"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
 	if got, _ := b.LookupByBoxID("web-box"); got.Status != "ready" || got.SessionURL != "https://claude.ai/code/s/1" {

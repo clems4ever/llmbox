@@ -44,7 +44,9 @@ func (b apiBackend) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (
 	return api.BoxSession{
 		BoxID:      sess.BoxID,
 		Generation: sess.Generation,
-		Token:      sess.Token,
+		// The plaintext token, so the caller can build the auth URL; the stored
+		// session keys itself by the token's hash (sess.Token).
+		Token: sess.plainToken,
 	}, nil
 }
 
@@ -108,7 +110,10 @@ func (b apiBackend) ListBoxes(_ context.Context) ([]api.BoxView, error) {
 		case ps.Status == "ready":
 			view.SessionURL = ps.SessionURL
 		default:
-			view.AuthURL = b.s.AuthPageURL(ps.Token)
+			// A pending box's auth URL needs the plaintext token, which lives only
+			// in memory; it is "" for a box rehydrated from the store after a
+			// restart (still activatable via the link its creator holds).
+			view.AuthURL = b.s.authURLForRecord(ps)
 		}
 		out = append(out, view)
 	}

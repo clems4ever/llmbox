@@ -57,9 +57,9 @@
 		{
 			"function_name": "lookup",
 			"receiver": "Server",
-			"documentation_hash": "1849d40940fb1433b5a8f9848d8f17523a6175a9707ef3b8f71d212b4fc928fa",
-			"definition_hash": "deb96e63e560386d542abb3aae0a0031dfbc0ece56b30bff9936dd03fce835e2",
-			"reviewed_at": "2026-06-18T13:16:38.724375266Z"
+			"documentation_hash": "9fa67f1ae17605374038a4efa8ffc47e0897333ce98b2e4e0c9d9938721a292d",
+			"definition_hash": "2a24734de1454da2a0255620b2d0500ddef704b683e34b0807e6a50a4df59a4f",
+			"reviewed_at": "2026-07-10T10:15:11.420373483Z"
 		},
 		{
 			"function_name": "ReapLoop",
@@ -140,8 +140,8 @@
 			"function_name": "createBox",
 			"receiver": "Server",
 			"documentation_hash": "7ec83815bb971e39fa83fb7ca1aed21a12941313cd362548079d2e5b069431c8",
-			"definition_hash": "bf9365526f209c50d4a105f9141fb9a4f58636697d31b9324cc26c6573c7a5b7",
-			"reviewed_at": "2026-07-09T21:42:06.849134136Z"
+			"definition_hash": "bebea468a2c9eecee4f3089f28fe87ea1d9d6b39ffdd14dd4b64274b90735755",
+			"reviewed_at": "2026-07-10T10:16:08.503783451Z"
 		},
 		{
 			"function_name": "submitCode",
@@ -342,6 +342,13 @@
 			"documentation_hash": "3653b38fafb0ae9c07c2030539577c38ef62c8fe9259de51c736a62dacddacd3",
 			"definition_hash": "b68b7f23c9cdc371d8dfd5ae3b1971fa6f1e9a76a1794942e9b7612db1246241",
 			"reviewed_at": "2026-07-09T10:09:05.400048146Z"
+		},
+		{
+			"function_name": "authURLForRecord",
+			"receiver": "Server",
+			"documentation_hash": "28ed1ea7d89b95cc1cb9651afe046ee051358ab75bbe843b433071089feb7d05",
+			"definition_hash": "4ce281adc0b917f4a4bb755f9e886a20cafe1866a8ac9f0588a5adaed1268e00",
+			"reviewed_at": "2026-07-10T10:15:11.417082054Z"
 		}
 	]
 }

@@ -31,7 +31,7 @@ func newAdminServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 // the session's capabilities.
 func signIn(t *testing.T, st Store, admin, activate bool) *http.Cookie {
 	t.Helper()
-	if err := st.PutIdentitySession("SID", IdentitySession{
+	if err := st.PutIdentitySession(hashTok("SID"), IdentitySession{
 		Email: "admin@corp.com", CSRFToken: "CSRF", ExpiresAt: time.Now().Add(time.Hour),
 		CanAdmin: admin, CanActivate: activate,
 	}); err != nil {

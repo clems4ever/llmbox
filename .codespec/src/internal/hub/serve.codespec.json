@@ -3,8 +3,8 @@
 		{
 			"function_name": "Serve",
 			"documentation_hash": "4ecfe35a209415543bbeb80ccccb5ad9a0da02db0642510b139c257fd94acc57",
-			"definition_hash": "bfd3d649fd186d9436fd996743926f4537b2f94969c84d0eba1cea315b9abd10",
-			"reviewed_at": "2026-07-09T10:09:04.937745546Z"
+			"definition_hash": "555d3dbde4e5de8dbba148ad8e5d4b4acd538d4412c3f167bf23eb8362aa39a7",
+			"reviewed_at": "2026-07-10T10:16:08.501095357Z"
 		},
 		{
 			"function_name": "insecureTransportWarning",

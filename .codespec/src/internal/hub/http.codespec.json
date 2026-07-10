@@ -46,8 +46,8 @@
 			"function_name": "authStateFor",
 			"receiver": "Server",
 			"documentation_hash": "041c3e85d7f418b878c10ea96084205c619bafa6a3e2fdd117bf8459db51ca75",
-			"definition_hash": "7061943f065255f051dc4abb00a6ff321173dd624f1e042c37582d77de744a66",
-			"reviewed_at": "2026-07-09T18:10:52.505825924Z"
+			"definition_hash": "d3edd1f54ed2c4305787d6fcb41ae3b911cc6d37d8714b1ee10411ef570e5566",
+			"reviewed_at": "2026-07-10T10:16:08.279649662Z"
 		},
 		{
 			"function_name": "providerButtons",

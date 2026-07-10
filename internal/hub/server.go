@@ -71,7 +71,17 @@ type boxHooks interface {
 
 // session tracks one box through the auth handshake.
 type session struct {
+	// Token is the box's stable identity: the SHA-256 hash of the activation
+	// token, used as the registry key and persisted, so a stolen state file holds
+	// no usable token. It is never the value handed to a user.
 	Token string
+	// plainToken is the plaintext activation token, held in memory only (never
+	// persisted). It is set when this process mints the box and is what builds the
+	// auth-page URL. It is empty for a session rehydrated from the store after a
+	// restart — such a box is still activatable via the link its creator already
+	// holds (lookup hashes the incoming token), but its auth URL cannot be
+	// re-emitted (e.g. in list views).
+	plainToken string
 	// Generation is the box's opaque backend generation token (its current
 	// incarnation). It is used only as a staleness/reap equality key — never
 	// parsed, prefix-matched, or used to address the box (addressing is by BoxID).
@@ -925,8 +935,12 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 		s.runDestroyHooks(box, hookState)
 		return nil, fmt.Errorf("generating session token: %w", err)
 	}
+	// The registry and store key a box by the hash of its token; the plaintext is
+	// kept only in memory (plainToken) to build the auth-page URL handed back now.
+	hash := store.HashToken(tok)
 	sess := &session{
-		Token:        tok,
+		Token:        hash,
+		plainToken:   tok,
 		Generation:   id,
 		AuthorizeURL: authorizeURL,
 		CreatedAt:    time.Now(),
@@ -940,7 +954,7 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 		LastSeen: time.Now(),
 	}
 	s.mu.Lock()
-	s.byToken[tok] = sess
+	s.byToken[hash] = sess
 	s.mu.Unlock()
 	// Best-effort persist: a disk hiccup shouldn't fail an otherwise-good box.
 	if err := s.store.PutBox(sess.persist()); err != nil {
@@ -949,7 +963,7 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	// Recreating a dead box under its old ID replaces its tombstone: the
 	// terminated record's hooks already ran and its proxies are gone, so only the
 	// record itself remains to clear.
-	s.dropTerminatedRecords(opts.BoxID, tok)
+	s.dropTerminatedRecords(opts.BoxID, hash)
 	// Fold the spoke's inventory in right away so the record carries the box's
 	// observed name/image/state without waiting for the next periodic sync.
 	s.syncSpoke(ctx, spokeName, mgr)
@@ -1014,16 +1028,39 @@ func (s *Server) AuthPageURL(tok string) string {
 	return s.publicURL + "/auth/" + tok
 }
 
-// lookup returns the session for a token, or nil.
+// authURLForRecord returns the auth-page URL for a box record when this process
+// still holds the box's plaintext token, or "" when it does not. Only the live
+// session carries the plaintext (the record's Token is the hash), so a box
+// rehydrated from the store after a restart has no plaintext to build a fresh
+// URL — its creator reaches it via the link they already hold.
 //
-// @arg tok The session token to look up.
+// @arg rec The box record whose auth URL to build.
+// @return string The auth-page URL, or "" when the plaintext token is not held.
+//
+// @testcase TestListBoxesOmitsAuthURLForRestoredBox omits the URL for a rehydrated pending box.
+func (s *Server) authURLForRecord(rec boxRecord) string {
+	s.mu.Lock()
+	sess := s.byToken[rec.Token]
+	s.mu.Unlock()
+	if sess == nil || sess.plainToken == "" {
+		return ""
+	}
+	return s.AuthPageURL(sess.plainToken)
+}
+
+// lookup returns the session for a plaintext activation token, or nil. The
+// registry is keyed by the token's hash (so the store holds no usable token), so
+// the presented token is hashed before the lookup — a box created this run and
+// one rehydrated from the store after a restart both resolve the same way.
+//
+// @arg tok The plaintext session token to look up.
 // @return *session The matching session, or nil if none is registered.
 //
 // @testcase TestCreateBoxRegistersSession checks a created session is found by lookup.
 func (s *Server) lookup(tok string) *session {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.byToken[tok]
+	return s.byToken[store.HashToken(tok)]
 }
 
 // lookupByBoxID returns the session for a box's caller-assigned box ID
