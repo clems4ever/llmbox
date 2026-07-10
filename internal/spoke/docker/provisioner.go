@@ -54,6 +54,15 @@ const (
 	BoxIDLabel       = "com.llmbox.box-id"
 	DescriptionLabel = "com.llmbox.description"
 
+	// GenerationLabel persists the box's opaque generation token: the per-box
+	// incarnation identity exposed to the hub as the box's InstanceID. It is a
+	// spoke-minted random token (never the Docker container id), stored on the
+	// container so List can recover it after a spoke restart. The hub uses it only
+	// for staleness/reap equality — it is never parsed, prefix-matched, or used to
+	// address the box (addressing is by box ID). Keeping it distinct from the real
+	// container id is what prevents any Docker-native handle from reaching the hub.
+	GenerationLabel = "com.llmbox.generation"
+
 	// socketLabel persists the per-box socket token (the subdirectory under the
 	// provisioner's socket dir holding the box's control socket), so List/Find can
 	// reconstruct the socket path from a container summary alone.
@@ -153,9 +162,9 @@ type Provisioner struct {
 	ports boxapi.PortService
 	// apiMu guards apiSrvs.
 	apiMu sync.Mutex
-	// apiSrvs are the live per-box box-port API servers, keyed by the 12-char
-	// instance ID. Each serves boxapi.SocketName inside that box's private host
-	// socket dir, so the listener — not anything the box sends — decides which
+	// apiSrvs are the live per-box box-port API servers, keyed by the box's
+	// generation token. Each serves boxapi.SocketName inside that box's private
+	// host socket dir, so the listener — not anything the box sends — decides which
 	// box a request acts on.
 	apiSrvs map[string]*boxapi.Server
 }
@@ -308,7 +317,7 @@ func boxFromSummary(c container.Summary) sandbox.Box {
 		name = strings.TrimPrefix(c.Names[0], "/")
 	}
 	return sandbox.Box{
-		InstanceID:  c.ID[:12],
+		InstanceID:  c.Labels[GenerationLabel],
 		Name:        name,
 		BoxID:       c.Labels[BoxIDLabel],
 		Description: c.Labels[DescriptionLabel],
@@ -334,7 +343,7 @@ func (p *Provisioner) List(ctx context.Context) ([]box.Instance, error) {
 	}
 	out := make([]box.Instance, 0, len(cs))
 	for _, c := range cs {
-		out = append(out, &dockerInstance{prov: p, box: boxFromSummary(c), socketToken: c.Labels[socketLabel]})
+		out = append(out, &dockerInstance{prov: p, box: boxFromSummary(c), socketToken: c.Labels[socketLabel], containerID: c.ID})
 	}
 	return out, nil
 }
@@ -342,11 +351,11 @@ func (p *Provisioner) List(ctx context.Context) ([]box.Instance, error) {
 // Find resolves an ID or name to the single managed box it identifies.
 //
 // @arg ctx Context for the underlying list.
-// @arg idOrName The container ID or caller-assigned box ID/name to resolve.
+// @arg idOrName The caller-assigned box ID (the usual handle), the box's generation token, or its container name.
 // @return box.Instance The matched box.
 // @error error wrapping sandbox.ErrBoxNotFound if no managed box matches.
 //
-// @testcase TestFindResolvesByIDAndBoxID resolves a box by its short id and by its box id.
+// @testcase TestFindResolvesByIDAndBoxID resolves a box by its generation token and by its box id.
 // @testcase TestFindUnknownBox errors when no managed box matches.
 func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, error) {
 	insts, err := p.List(ctx)
@@ -355,10 +364,12 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 	}
 	for _, inst := range insts {
 		b := inst.Meta()
-		if b.Name == idOrName ||
-			(b.BoxID != "" && b.BoxID == idOrName) ||
-			strings.HasPrefix(b.InstanceID, idOrName) ||
-			strings.HasPrefix(idOrName, b.InstanceID) ||
+		// Resolve by exact box ID (the hub's usual handle), exact generation token,
+		// or exact container name. No prefix matching: the generation token is an
+		// opaque incarnation identity, not a Docker short/full container id.
+		if (b.BoxID != "" && b.BoxID == idOrName) ||
+			(b.InstanceID != "" && b.InstanceID == idOrName) ||
+			b.Name == idOrName ||
 			b.Name == pendingPrefix+idOrName ||
 			b.Name == readyPrefix+idOrName {
 			return inst, nil
@@ -367,8 +378,8 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 	return nil, fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
-// Provision creates and starts a box: a container whose entrypoint is the guest
-// guest, with the box's host socket directory bind-mounted in so the host can
+// Provision creates and starts a box: a container whose entrypoint is the guest,
+// with the box's host socket directory bind-mounted in so the host can
 // reach the guest. The box is created on its own network (peers wired in,
 // isolated from other boxes), named with the pending prefix, and run as root with
 // no-new-privileges, the configured resource caps and GPUs, and a restart policy
@@ -402,12 +413,19 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	if err != nil {
 		return nil, err
 	}
+	// The generation token is the box's opaque incarnation identity exposed to the
+	// hub as its InstanceID; it is distinct from the socket token and never the
+	// Docker container id.
+	generation, err := newGenerationToken()
+	if err != nil {
+		return nil, err
+	}
 	hostBoxDir := filepath.Join(p.socketDir, token)
 	if err := os.MkdirAll(hostBoxDir, 0o700); err != nil {
 		return nil, fmt.Errorf("creating box socket dir: %w", err)
 	}
 
-	labels := map[string]string{ManagedLabel: "true", socketLabel: token}
+	labels := map[string]string{ManagedLabel: "true", socketLabel: token, GenerationLabel: generation}
 	if p.namespace != "" {
 		labels[NamespaceLabel] = p.namespace
 	}
@@ -466,7 +484,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	id := resp.ID
 
 	cleanup := func() {
-		p.stopBoxAPI(id[:12])
+		p.stopBoxAPI(generation)
 		if rerr := p.cli.ContainerRemove(context.Background(), id, container.RemoveOptions{Force: true}); rerr != nil {
 			p.logger().Warn("failed to remove box during cleanup", "container", id, "err", rerr)
 		}
@@ -476,7 +494,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 
 	// Serve the box-port API in the box's socket dir before the container
 	// starts, so /run/llmbox/boxapi.sock exists from the box's first instant.
-	if err := p.startBoxAPI(id[:12], opts.BoxID, hostBoxDir); err != nil {
+	if err := p.startBoxAPI(generation, opts.BoxID, hostBoxDir); err != nil {
 		cleanup()
 		return nil, err
 	}
@@ -485,7 +503,10 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		cleanup()
 		return nil, err
 	}
-	if err := p.cli.ContainerRename(ctx, id, pendingPrefix+id[:12]); err != nil {
+	// The container name encodes the auth phase (for reaping) and the generation
+	// token (for uniqueness) — never the container id, so nothing about the Docker
+	// handle leaks through the box's name.
+	if err := p.cli.ContainerRename(ctx, id, pendingPrefix+generation); err != nil {
 		cleanup()
 		return nil, fmt.Errorf("naming box: %w", err)
 	}
@@ -505,8 +526,8 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	return &dockerInstance{
 		prov: p,
 		box: sandbox.Box{
-			InstanceID:  id[:12],
-			Name:        pendingPrefix + id[:12],
+			InstanceID:  generation,
+			Name:        pendingPrefix + generation,
 			BoxID:       opts.BoxID,
 			Description: opts.Description,
 			Image:       image,
@@ -514,6 +535,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 			Phase:       "pending",
 			Created:     time.Now().Unix(),
 		},
+		containerID: id,
 		socketToken: token,
 	}, nil
 }
@@ -560,6 +582,22 @@ func newSocketToken() (string, error) {
 	return hex.EncodeToString(b[:]), nil
 }
 
+// newGenerationToken returns a random hex token used as a box's opaque generation
+// token (the GenerationLabel value and the box's hub-facing InstanceID). It is
+// independent of the socket token and never derived from the Docker container id.
+//
+// @return string A 16-char random hex token.
+// @error error if the system random source fails.
+//
+// @testcase TestProvisionCreatesGuestBox stamps a box's generation token from this.
+func newGenerationToken() (string, error) {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", fmt.Errorf("generating generation token: %w", err)
+	}
+	return hex.EncodeToString(b[:]), nil
+}
+
 // startBoxAPI serves the box-port API socket inside a box's private host
 // socket dir, bound to that box's identity. Through the existing bind mount the
 // socket appears in-box at /run/llmbox/boxapi.sock. The per-box listener is the
@@ -567,14 +605,14 @@ func newSocketToken() (string, error) {
 // box it acts on, so nothing inside a box can address another box. A no-op
 // when the provisioner has no port service.
 //
-// @arg instanceID The box's 12-char instance ID (the apiSrvs key).
+// @arg generation The box's generation token (the apiSrvs key).
 // @arg boxID The box's caller-assigned box ID stamped onto every request ("" serves only an explanatory error).
 // @arg hostBoxDir The box's private host socket directory.
 // @error error if the socket cannot be created.
 //
 // @testcase TestProvisionStartsBoxAPIListener serves the box API for a provisioned box.
 // @testcase TestRecoverBoxAPIsRestartsListeners restarts listeners for recovered boxes.
-func (p *Provisioner) startBoxAPI(instanceID, boxID, hostBoxDir string) error {
+func (p *Provisioner) startBoxAPI(generation, boxID, hostBoxDir string) error {
 	if p.ports == nil {
 		return nil
 	}
@@ -583,24 +621,24 @@ func (p *Provisioner) startBoxAPI(instanceID, boxID, hostBoxDir string) error {
 		return fmt.Errorf("serving box-port API: %w", err)
 	}
 	p.apiMu.Lock()
-	if old := p.apiSrvs[instanceID]; old != nil {
+	if old := p.apiSrvs[generation]; old != nil {
 		_ = old.Close()
 	}
-	p.apiSrvs[instanceID] = srv
+	p.apiSrvs[generation] = srv
 	p.apiMu.Unlock()
 	return nil
 }
 
-// stopBoxAPI closes and forgets a box's box-port API server; unknown instance
-// IDs are a no-op.
+// stopBoxAPI closes and forgets a box's box-port API server; unknown generation
+// tokens are a no-op.
 //
-// @arg instanceID The box's 12-char instance ID.
+// @arg generation The box's generation token.
 //
 // @testcase TestDestroyStopsBoxAPIListener stops the listener when a box is destroyed.
-func (p *Provisioner) stopBoxAPI(instanceID string) {
+func (p *Provisioner) stopBoxAPI(generation string) {
 	p.apiMu.Lock()
-	srv := p.apiSrvs[instanceID]
-	delete(p.apiSrvs, instanceID)
+	srv := p.apiSrvs[generation]
+	delete(p.apiSrvs, generation)
 	p.apiMu.Unlock()
 	if srv != nil {
 		_ = srv.Close()
@@ -829,8 +867,13 @@ func IsNotFound(err error) bool {
 
 // dockerInstance is a handle to one managed Docker box.
 type dockerInstance struct {
-	prov        *Provisioner
-	box         sandbox.Box
+	prov *Provisioner
+	box  sandbox.Box
+	// containerID is the real Docker container id, kept private to the spoke and
+	// used for every Docker API call (stop/remove/rename/network). It never
+	// crosses to the hub; the hub-facing handle is box.InstanceID (the generation
+	// token).
+	containerID string
 	socketToken string
 }
 
@@ -871,9 +914,8 @@ func (i *dockerInstance) Control(ctx context.Context) (net.Conn, error) {
 //
 // @testcase TestMarkReadyRenamesContainer renames the box to the ready prefix.
 func (i *dockerInstance) MarkReady(ctx context.Context) error {
-	id := i.box.InstanceID
-	if err := i.prov.cli.ContainerRename(ctx, id, readyPrefix+id); err != nil {
-		return fmt.Errorf("marking box %s ready: %w", id, err)
+	if err := i.prov.cli.ContainerRename(ctx, i.containerID, readyPrefix+i.box.InstanceID); err != nil {
+		return fmt.Errorf("marking box %s ready: %w", i.box.BoxID, err)
 	}
 	return nil
 }
@@ -888,22 +930,22 @@ func (i *dockerInstance) MarkReady(ctx context.Context) error {
 // @testcase TestDestroyRemovesNetworkAndSocket stops the box, removes its network, and deletes its socket dir.
 // @testcase TestDestroyAlreadyGone reports ErrBoxNotFound when the container is missing.
 func (i *dockerInstance) Destroy(ctx context.Context) error {
-	id := i.box.InstanceID
+	id := i.containerID
 	timeout := int(stopTimeout.Seconds())
 	if err := i.prov.cli.ContainerStop(ctx, id, container.StopOptions{Timeout: &timeout}); err != nil {
 		if errdefs.IsNotFound(err) {
-			return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, id)
+			return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.box.BoxID)
 		}
-		return fmt.Errorf("stopping box %s: %w", id, err)
+		return fmt.Errorf("stopping box %s: %w", i.box.BoxID, err)
 	}
 	if err := i.prov.cli.ContainerRemove(ctx, id, container.RemoveOptions{RemoveVolumes: true}); err != nil {
 		if errdefs.IsNotFound(err) {
-			return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, id)
+			return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.box.BoxID)
 		}
-		return fmt.Errorf("removing box %s: %w", id, err)
+		return fmt.Errorf("removing box %s: %w", i.box.BoxID, err)
 	}
 	i.prov.removeBoxNetwork(ctx, id)
-	i.prov.stopBoxAPI(id)
+	i.prov.stopBoxAPI(i.box.InstanceID)
 	if i.socketToken != "" {
 		_ = os.RemoveAll(filepath.Join(i.prov.socketDir, i.socketToken))
 	}

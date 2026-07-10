@@ -98,7 +98,7 @@ type revokeJoinTokenRequest struct {
 }
 
 type destroyBoxRequest struct {
-	ContainerID string `json:"container_id"`
+	BoxID string `json:"box_id"`
 }
 
 type boxLogsRequest struct {

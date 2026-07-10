@@ -42,9 +42,9 @@ func (b apiBackend) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (
 		return api.BoxSession{}, err
 	}
 	return api.BoxSession{
-		BoxID:       sess.BoxID,
-		ContainerID: sess.ContainerID,
-		Token:       sess.Token,
+		BoxID:      sess.BoxID,
+		Generation: sess.Generation,
+		Token:      sess.Token,
 	}, nil
 }
 
@@ -74,7 +74,7 @@ func (b apiBackend) LookupByBoxID(boxID string) (api.BoxSession, bool) {
 	status, url, errMsg := sess.snapshot()
 	return api.BoxSession{
 		BoxID:       sess.BoxID,
-		ContainerID: sess.ContainerID,
+		Generation:  sess.Generation,
 		Description: sess.Description,
 		Status:      status,
 		SessionURL:  url,
@@ -225,15 +225,15 @@ func (b apiBackend) SpokeStatuses(ctx context.Context) ([]api.SpokeStatus, error
 	return out, nil
 }
 
-// DestroyBox stops and removes the box with the given container ID.
+// DestroyBox stops and removes the box with the given box ID.
 //
 // @arg ctx Context for the destroy request.
-// @arg containerID The container ID of the box to destroy.
+// @arg boxID The box ID of the box to destroy.
 // @error error if the box cannot be destroyed.
 //
 // @testcase TestDestroyForgetsSession destroys a box through the backend.
-func (b apiBackend) DestroyBox(ctx context.Context, containerID string) error {
-	return b.s.destroyBox(ctx, containerID)
+func (b apiBackend) DestroyBox(ctx context.Context, boxID string) error {
+	return b.s.destroyBox(ctx, boxID)
 }
 
 // BoxLogs returns the recent console output of the box with the given box ID.

@@ -35,7 +35,7 @@ const (
 
 // Box is a view of a managed box returned to callers.
 type Box struct {
-	InstanceID  string `json:"instance_id" jsonschema:"the backend instance ID identifying the box (e.g. a short container ID or microVM ID)"`
+	InstanceID  string `json:"instance_id" jsonschema:"an opaque backend generation token for the box's current incarnation; informational only — reference the box by its box_id, never parse or address by this"`
 	Name        string `json:"name" jsonschema:"the backend instance name"`
 	BoxID       string `json:"box_id,omitempty" jsonschema:"the box ID the caller assigned, if any (also set as the box hostname)"`
 	Description string `json:"description,omitempty" jsonschema:"the caller-supplied description label, if any"`

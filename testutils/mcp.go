@@ -219,16 +219,16 @@ func (f *FakeBackend) RevokeJoinToken(ctx context.Context, id string) error {
 	return f.RevokeTokenErr
 }
 
-// DestroyBox records the container ID and returns the canned DestroyErr.
+// DestroyBox records the box ID and returns the canned DestroyErr.
 //
 // @arg ctx Context (unused by the fake).
-// @arg containerID The container ID to destroy, recorded into GotDestroyID.
+// @arg boxID The box ID to destroy, recorded into GotDestroyID.
 // @error error The canned DestroyErr, if any.
 //
 // @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
-func (f *FakeBackend) DestroyBox(ctx context.Context, containerID string) error {
+func (f *FakeBackend) DestroyBox(ctx context.Context, boxID string) error {
 	f.mu.Lock()
-	f.GotDestroyID = containerID
+	f.GotDestroyID = boxID
 	f.mu.Unlock()
 	return f.DestroyErr
 }

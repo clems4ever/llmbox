@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestDestroyTerminatedRecordSkipsSpoke",
 			"documentation_hash": "e151943b94fb2c8e77c81f2a48a6ac717a150403bdb25e7f8a58de275f3e2a3e",
-			"definition_hash": "bfad193b96b0327b202d9d31249895715a775a71beb2f6b5cbe8ad0097271521",
-			"reviewed_at": "2026-07-09T10:18:24.933348412Z"
+			"definition_hash": "d9b1969a9f193fe1486212ac5925ae484fda7cfef95ba6408e6c65a62f12a203",
+			"reviewed_at": "2026-07-09T21:42:06.834953477Z"
 		},
 		{
 			"function_name": "TestDestroyUnreachableSpokeRefused",
@@ -15,20 +15,20 @@
 		{
 			"function_name": "TestCreateBoxReplacesTerminatedTombstone",
 			"documentation_hash": "c6b0dcf6a951c58bc563129be9f8d448d615f8007a39d5a8385a939f8205089b",
-			"definition_hash": "a61b9ea5a1cc29e467816bcea34583e5d2c010973517b19f1b4d05cebd937226",
-			"reviewed_at": "2026-07-09T10:18:24.93444678Z"
+			"definition_hash": "e1a5553b97665a4934de2916d3fa0a52a138f65bcfcbf7721c2079e81c01f1e6",
+			"reviewed_at": "2026-07-09T21:42:06.835162369Z"
 		},
 		{
 			"function_name": "TestCreateBoxSyncsObservedMetadata",
 			"documentation_hash": "4ffa90ea1c562af75f745c2ae9637a13c43804c7befea370ef8924b835a93089",
-			"definition_hash": "fedfceb851406f1cf9124eb191df527f49a88327bf23d08a814168e35d643acd",
-			"reviewed_at": "2026-07-09T18:10:52.506625837Z"
+			"definition_hash": "59f23b4fe0e7bf054eba1b35b5178685f860e54d2dd2b6ffe3d3e8dbb15110f6",
+			"reviewed_at": "2026-07-09T21:42:06.835352024Z"
 		},
 		{
 			"function_name": "TestLookupByBoxIDPrefersAliveOverTerminated",
 			"documentation_hash": "285e52f6b3ebc88964841b935677449a371eac805433e0347341c21fdefe5deb",
-			"definition_hash": "cc17a8abd984ca81d2899c68458b5338340477da2bf7b4081aea1f73c5615e48",
-			"reviewed_at": "2026-07-09T10:18:24.935301276Z"
+			"definition_hash": "7b742abe532fa1c74023dc3f8846d615d2899336cff3503b7ad30b62ae599190",
+			"reviewed_at": "2026-07-09T21:42:06.835540696Z"
 		}
 	]
 }

@@ -66,7 +66,7 @@ func (m *Manager) client(inst Instance) *guest.Client {
 //
 // @arg ctx Context for the provision and login handshake.
 // @arg opts The caller-controlled inputs for the box.
-// @return id The new box's container/instance ID.
+// @return id The new box's opaque generation token.
 // @return authorizeURL The OAuth authorize URL to complete login with.
 // @error error if the box id is invalid, already in use, the cap is reached, or provisioning/login fails.
 //

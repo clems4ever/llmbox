@@ -19,12 +19,12 @@ import (
 func seedSession(t *testing.T, s *Server, token, boxID, spoke string) {
 	t.Helper()
 	sess := &session{
-		Token:       token,
-		BoxID:       boxID,
-		SpokeName:   spoke,
-		ContainerID: "container-" + token,
-		CreatedAt:   time.Now(),
-		Status:      "ready",
+		Token:      token,
+		BoxID:      boxID,
+		SpokeName:  spoke,
+		Generation: "container-" + token,
+		CreatedAt:  time.Now(),
+		Status:     "ready",
 	}
 	s.mu.Lock()
 	s.byToken[token] = sess
@@ -38,11 +38,11 @@ func seedSession(t *testing.T, s *Server, token, boxID, spoke string) {
 func mustSaveProxy(t *testing.T, st Store, slug, boxID, spoke string) {
 	t.Helper()
 	if err := st.SaveProxy(store.ProxyRecord{
-		Slug:        slug,
-		BoxID:       boxID,
-		InstanceID:  "container-" + boxID,
-		Port:        8000,
-		Spoke:       spoke,
+		Slug:       slug,
+		BoxID:      boxID,
+		InstanceID: "container-" + boxID,
+		Port:       8000,
+		Spoke:      spoke,
 	}); err != nil {
 		t.Fatalf("save proxy %q: %v", slug, err)
 	}
@@ -111,9 +111,9 @@ func TestLookupByBoxIDPrefersReachableSpoke(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
 	s.SetHub(hub)
 
-	live := &session{Token: "tok-live", BoxID: "dup", SpokeName: "remote1", ContainerID: "cl", CreatedAt: time.Unix(100, 0), Status: "ready"}
+	live := &session{Token: "tok-live", BoxID: "dup", SpokeName: "remote1", Generation: "cl", CreatedAt: time.Unix(100, 0), Status: "ready"}
 	// dead is on a disconnected spoke and is NEWER — reachability must still win.
-	dead := &session{Token: "tok-dead", BoxID: "dup", SpokeName: "ghost", ContainerID: "cd", CreatedAt: time.Unix(200, 0), Status: "ready"}
+	dead := &session{Token: "tok-dead", BoxID: "dup", SpokeName: "ghost", Generation: "cd", CreatedAt: time.Unix(200, 0), Status: "ready"}
 	s.mu.Lock()
 	s.byToken["tok-live"] = live
 	s.byToken["tok-dead"] = dead

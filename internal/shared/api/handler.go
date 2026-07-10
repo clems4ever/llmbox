@@ -69,7 +69,7 @@ func NewHandler(b Backend) http.Handler {
 		return emptyResponse{}, b.RevokeJoinToken(ctx, req.ID)
 	}))
 	mux.Handle("POST "+PathDestroyBox, jsonHandler(func(ctx context.Context, req destroyBoxRequest) (emptyResponse, error) {
-		return emptyResponse{}, b.DestroyBox(ctx, req.ContainerID)
+		return emptyResponse{}, b.DestroyBox(ctx, req.BoxID)
 	}))
 	mux.Handle("POST "+PathBoxLogs, jsonHandler(func(ctx context.Context, req boxLogsRequest) (boxLogsResponse, error) {
 		logs, err := b.BoxLogs(ctx, req.BoxID, req.Tail)

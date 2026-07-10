@@ -43,9 +43,10 @@ const (
 type Box struct {
 	// Token is the box's bearer credential to the hub and the store key.
 	Token string `json:"token"`
-	// InstanceID is the backend generation the box currently runs as (its
-	// container/microVM id). A box destroyed and recreated with the same BoxID
-	// gets a new InstanceID, so it pins a record to one generation.
+	// InstanceID is the box's opaque backend generation token (its current
+	// incarnation) — spoke-minted, never a native container/VM handle. A box
+	// destroyed and recreated with the same BoxID gets a new InstanceID, so it pins
+	// a record to one generation. It is compared only by equality, never parsed.
 	InstanceID string `json:"instance_id"`
 	// BoxID is the caller-assigned logical id, unique per spoke.
 	BoxID string `json:"box_id,omitempty"`

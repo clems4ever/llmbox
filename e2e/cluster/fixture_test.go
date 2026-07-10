@@ -283,7 +283,7 @@ func (f *clusterFixture) createProxyViaAPI(boxID string, port int) string {
 // @error error The server's error, or nil when the box was removed.
 func (f *clusterFixture) deleteBoxViaAPI(boxID string) error {
 	f.t.Helper()
-	return f.apiCall("/api/v1/destroy-box", map[string]any{"container_id": boxID}, nil)
+	return f.apiCall("/api/v1/destroy-box", map[string]any{"box_id": boxID}, nil)
 }
 
 // spokeConnectedViaAPI reads the spoke's connection status from the box-control

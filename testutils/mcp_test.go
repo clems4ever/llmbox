@@ -13,7 +13,7 @@ import (
 // results across the Backend methods.
 func TestFakeBackend(t *testing.T) {
 	f := &FakeBackend{
-		CreateSess: mcpserver.BoxSession{BoxID: "web", ContainerID: "cid", Token: "tok"},
+		CreateSess: mcpserver.BoxSession{BoxID: "web", Generation: "cid", Token: "tok"},
 		Sessions:   map[string]mcpserver.BoxSession{"web": {BoxID: "web", Status: "ready"}},
 		Boxes:      []api.BoxView{{Box: sandbox.Box{BoxID: "b1"}}},
 		ExecResult: sandbox.ExecResult{ExitCode: 3},

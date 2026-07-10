@@ -140,12 +140,6 @@
 			"reviewed_at": "2026-06-29T15:39:25.269218541Z"
 		},
 		{
-			"function_name": "TestHandleProxyDialsByContainerID",
-			"documentation_hash": "3071b08bc2e665412deacb8f65ad3b11b92d38a1e30b4e0f4ea491dc014d4ca6",
-			"definition_hash": "df1a70c0ae3ccca7703e8481428554bb64ab6065acddded171fcf050575a33e0",
-			"reviewed_at": "2026-07-09T18:10:52.513902112Z"
-		},
-		{
 			"function_name": "TestBackendProxies",
 			"documentation_hash": "0f8e5f75f149f53ed840b60e11fac5800142f62ad703e1388cfa215ac18a3677",
 			"definition_hash": "69af59bfed92003b26989ad2ed2d2b791a24817516e65f4b8b31f4c33cbff3c6",
@@ -154,8 +148,8 @@
 		{
 			"function_name": "TestHandleProxyNamedSpokeForwards",
 			"documentation_hash": "c4461b454f3c17732d89dbe96e5e01ae3ca9c98c2dc27f06e97da1c0b5e52b31",
-			"definition_hash": "2486c91bde58e1546d22efae3e78b533ede804f84582d1071dde91f74d8466ca",
-			"reviewed_at": "2026-07-09T18:10:52.517228851Z"
+			"definition_hash": "4bdda6eb761e05dec3d18dc3e7d8eff5725209f80fcc0a04e233c3ed83a5207a",
+			"reviewed_at": "2026-07-09T21:42:06.840354179Z"
 		},
 		{
 			"function_name": "TestProxyURLCarriesPublicURLPort",
@@ -172,8 +166,14 @@
 		{
 			"function_name": "TestCreateProxyRefusesTerminatedBox",
 			"documentation_hash": "0a7e95ee40056edfc8c0b11839ad670776182f87113d611a202e9914a433c8d6",
-			"definition_hash": "575be0e75f179964b0a9931b55413cc61075bffe5113c6c6ebe9f88c44b62035",
-			"reviewed_at": "2026-07-09T10:10:25.815386053Z"
+			"definition_hash": "0c5d9345817edf8d6f0bf097e7482096cf81bfc41a6eebef3eafc33063e327c4",
+			"reviewed_at": "2026-07-09T21:42:06.837811704Z"
+		},
+		{
+			"function_name": "TestHandleProxyDialsByBoxID",
+			"documentation_hash": "b8ec0c615ea459ad1fa7177218f89e54a6f4144379974b55961bfb550c2e6552",
+			"definition_hash": "5a75ce7cb573bf19eb2e0a08f53b077d6b434f12f99325e1cd84fc71620f5a4d",
+			"reviewed_at": "2026-07-09T21:42:06.838914268Z"
 		}
 	]
 }

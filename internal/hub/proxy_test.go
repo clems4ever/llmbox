@@ -247,7 +247,7 @@ func TestCreateProxyRefusesTerminatedBox(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
 	s.mu.Lock()
 	s.byToken["tok"] = &session{
-		Token: "tok", BoxID: "dead-box", ContainerID: "cccccccccccc1111", SpokeName: testSpoke,
+		Token: "tok", BoxID: "dead-box", Generation: "cccccccccccc1111", SpokeName: testSpoke,
 		Status: "pending", BoxState: boxStateTerminated,
 	}
 	s.mu.Unlock()
@@ -426,20 +426,18 @@ func TestHandleProxyForwards(t *testing.T) {
 	}
 }
 
-// TestHandleProxyDialsByContainerID checks the proxy dials the box by its
-// container ID rather than its user-facing box ID. The docker manager resolves
-// boxes through findManaged, which matches the container ID/name and never the
-// box-id label, so forwarding the box ID fails with "no managed box matches
-// <box-id>" for any box whose box ID differs from its container ID. The box ID
-// and container ID are deliberately distinct here so the wrong identifier is
-// detectable.
-func TestHandleProxyDialsByContainerID(t *testing.T) {
+// TestHandleProxyDialsByBoxID checks the proxy dials the box by its user-facing
+// box ID, not by the opaque generation token stamped on the proxy record. The
+// hub addresses boxes only by (spoke, box ID); the spoke's Find resolves the box
+// ID to its current incarnation. The box ID and generation token are deliberately
+// distinct here so dialing the wrong identifier is detectable.
+func TestHandleProxyDialsByBoxID(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("ok"))
 	}))
 	defer upstream.Close()
 
-	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "container-id-9999"}, target: upstream.Listener.Addr().String()}
+	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "generation-9999"}, target: upstream.Listener.Addr().String()}
 	s, _ := newProxyServer(t, mgr, nil) // auth nil => proxy open
 	registerBox(t, s, "web-box", "")
 	rec, err := s.createProxy("web-box", 8000, "", "")
@@ -447,7 +445,7 @@ func TestHandleProxyDialsByContainerID(t *testing.T) {
 		t.Fatal(err)
 	}
 	if rec.BoxID == rec.InstanceID {
-		t.Fatalf("test setup invalid: box ID and container ID must differ (both %q)", rec.BoxID)
+		t.Fatalf("test setup invalid: box ID and generation token must differ (both %q)", rec.BoxID)
 	}
 
 	srv := httptest.NewServer(s.APIHandler())
@@ -463,8 +461,8 @@ func TestHandleProxyDialsByContainerID(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
-	if mgr.gotBoxID != rec.InstanceID {
-		t.Errorf("DialBox dialed %q, want container ID %q (dialing the box ID never resolves in findManaged)", mgr.gotBoxID, rec.InstanceID)
+	if mgr.gotBoxID != rec.BoxID {
+		t.Errorf("DialBox dialed %q, want box ID %q (the hub addresses boxes by box ID, not the generation token)", mgr.gotBoxID, rec.BoxID)
 	}
 }
 
@@ -588,8 +586,8 @@ func TestHandleProxyNamedSpokeForwards(t *testing.T) {
 	if got := string(body[:n]); got != "remote box at /page?x=1" {
 		t.Errorf("body = %q", got)
 	}
-	if remote.gotBoxID != rec.InstanceID {
-		t.Errorf("remote spoke dialed box id %q, want container ID %q", remote.gotBoxID, rec.InstanceID)
+	if remote.gotBoxID != rec.BoxID {
+		t.Errorf("remote spoke dialed box id %q, want box ID %q", remote.gotBoxID, rec.BoxID)
 	}
 }
 

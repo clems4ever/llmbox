@@ -37,7 +37,7 @@ func newAuthServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 // (authorize URL, CSRF, status) — the JSON analogue of hiding the code form.
 func TestAuthPageRequiresLogin(t *testing.T) {
 	s, _, _ := newAuthServer(t)
-	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestAuthPageRequiresLogin(t *testing.T) {
 // both are present.
 func TestActivationGatedByLogin(t *testing.T) {
 	s, f, st := newAuthServer(t)
-	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}

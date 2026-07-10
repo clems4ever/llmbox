@@ -24,8 +24,8 @@ var errStubFailure = errors.New("stub failure")
 // argument reaches the backend and that each result comes back intact.
 func TestBackendAPIRoundTrip(t *testing.T) {
 	fb := &testutils.FakeBackend{
-		CreateSess:        api.BoxSession{BoxID: "web", ContainerID: "cid123", Token: "tok"},
-		Sessions:          map[string]api.BoxSession{"web": {BoxID: "web", ContainerID: "cid123", Status: "ready"}},
+		CreateSess:        api.BoxSession{BoxID: "web", Generation: "cid123", Token: "tok"},
+		Sessions:          map[string]api.BoxSession{"web": {BoxID: "web", Generation: "cid123", Status: "ready"}},
 		Boxes:             []api.BoxView{{Box: sandbox.Box{BoxID: "b1"}}, {Box: sandbox.Box{BoxID: "b2"}}},
 		Spokes:            []api.SpokeStatus{{Name: "edge", Connected: true, Default: true}},
 		CreateSpokeResult: api.SpokeEnrollment{Name: "edge", Token: "tok-1", Command: "llmbox-spoke firecracker --hub wss://x --token tok-1"},
@@ -45,7 +45,7 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if sess.ContainerID != "cid123" || sess.Token != "tok" || sess.BoxID != "web" {
+	if sess.Generation != "cid123" || sess.Token != "tok" || sess.BoxID != "web" {
 		t.Fatalf("CreateBox session = %+v", sess)
 	}
 	if fb.GotCreate.BoxID != "web" || fb.GotCreate.Description != "d" || fb.GotCreate.SpokeName != "local" {
@@ -136,7 +136,7 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 // the split works end to end and never leaks a secret into MCP output.
 func TestMCPToolsOverHTTP(t *testing.T) {
 	fb := &testutils.FakeBackend{
-		CreateSess: api.BoxSession{BoxID: "web", ContainerID: "abcdef012345", Token: "tok"},
+		CreateSess: api.BoxSession{BoxID: "web", Generation: "abcdef012345", Token: "tok"},
 	}
 	ts := httptest.NewServer(api.NewHandler(fb))
 	defer ts.Close()

@@ -16,8 +16,8 @@
 			"function_name": "toolCreate",
 			"receiver": "handlers",
 			"documentation_hash": "db652525a225e774e37c424f2470e92e20218573c11406ce4362a313c18336be",
-			"definition_hash": "a54b39adea37cf1cb807310c39590e0da9518d066ab3c775ab664bce1340799c",
-			"reviewed_at": "2026-07-08T09:43:14.701983352Z"
+			"definition_hash": "157fe82d1a14d0bb139594347b9f752271f029f1ea5d40d429afdcc45d6ad2c7",
+			"reviewed_at": "2026-07-09T21:42:06.882977658Z"
 		},
 		{
 			"function_name": "toolGet",
@@ -44,8 +44,8 @@
 			"function_name": "toolDestroy",
 			"receiver": "handlers",
 			"documentation_hash": "c03c22424604a1c229a1c962a2a34da722b3da3e914defc2669ab8269a2e4afd",
-			"definition_hash": "3094aa47502786b8809f32ef26dfefe39cc764b304cdf7fbda63dc841c14ec98",
-			"reviewed_at": "2026-06-25T11:48:57.874067644Z"
+			"definition_hash": "055aa1793dfd04bef6b7f6797ad232cebfb7ff4f0c220006e56feb6184de3cab",
+			"reviewed_at": "2026-07-09T21:42:06.883526037Z"
 		},
 		{
 			"function_name": "toolLogs",

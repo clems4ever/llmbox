@@ -66,8 +66,8 @@
 			"function_name": "deleteBoxViaAPI",
 			"receiver": "clusterFixture",
 			"documentation_hash": "3211216d93224bd7863f3a4e220921d4a720a010d0abc823abdfb401ba19bdc8",
-			"definition_hash": "1ab128fc276246848e0ec252ed0b56f1b1a4d12235f173e7dcaf104ba3100004",
-			"reviewed_at": "2026-07-08T12:57:12.216997661Z"
+			"definition_hash": "8ff4ec41435256ae2e54d62899ad5e0498f6d8281fb037f9353fcd106a9cc0c9",
+			"reviewed_at": "2026-07-09T21:42:06.820477924Z"
 		},
 		{
 			"function_name": "spokeConnectedViaAPI",

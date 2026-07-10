@@ -437,8 +437,8 @@ func TestProvisionConnectsPeers(t *testing.T) {
 func TestListMapsManagedContainers(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{{
 		ID:     "abcdef0123456789",
-		Names:  []string{"/" + readyPrefix + "abcdef012345"},
-		Labels: map[string]string{ManagedLabel: "true", BoxIDLabel: "b1", socketLabel: "tok1"},
+		Names:  []string{"/" + readyPrefix + "gen1"},
+		Labels: map[string]string{ManagedLabel: "true", BoxIDLabel: "b1", socketLabel: "tok1", GenerationLabel: "gen1"},
 		Image:  "img",
 		State:  "running",
 	}}}
@@ -448,24 +448,31 @@ func TestListMapsManagedContainers(t *testing.T) {
 		t.Fatalf("List = %v, %v", insts, err)
 	}
 	b := insts[0].Meta()
-	if b.BoxID != "b1" || b.Phase != "ready" || b.InstanceID != "abcdef012345" {
+	// The exposed InstanceID is the opaque generation token from the label, never
+	// the Docker container id.
+	if b.BoxID != "b1" || b.Phase != "ready" || b.InstanceID != "gen1" {
 		t.Fatalf("meta = %+v", b)
 	}
 }
 
-// TestFindResolvesByIDAndBoxID resolves a box by its short id and by its box id.
+// TestFindResolvesByIDAndBoxID resolves a box by its generation token and by its
+// box id.
 func TestFindResolvesByIDAndBoxID(t *testing.T) {
 	f := &fakeDocker{listResult: []container.Summary{{
 		ID:     "abcdef0123456789",
-		Names:  []string{"/" + pendingPrefix + "abcdef012345"},
-		Labels: map[string]string{ManagedLabel: "true", BoxIDLabel: "mybox", socketLabel: "tok"},
+		Names:  []string{"/" + pendingPrefix + "gen-tok"},
+		Labels: map[string]string{ManagedLabel: "true", BoxIDLabel: "mybox", socketLabel: "tok", GenerationLabel: "gen-tok"},
 	}}}
 	p := newTestProvisioner(t, f)
-	if _, err := p.Find(context.Background(), "abcdef012345"); err != nil {
-		t.Fatalf("Find by id: %v", err)
+	if _, err := p.Find(context.Background(), "gen-tok"); err != nil {
+		t.Fatalf("Find by generation token: %v", err)
 	}
 	if _, err := p.Find(context.Background(), "mybox"); err != nil {
 		t.Fatalf("Find by box id: %v", err)
+	}
+	// The Docker container id is not a resolution key — it must never leak as one.
+	if _, err := p.Find(context.Background(), "abcdef0123456789"); !errors.Is(err, sandbox.ErrBoxNotFound) {
+		t.Fatalf("Find by container id = %v, want ErrBoxNotFound", err)
 	}
 }
 
@@ -497,12 +504,14 @@ func TestSetBoxGPUsParsesSpec(t *testing.T) {
 func TestMarkReadyRenamesContainer(t *testing.T) {
 	f := &fakeDocker{}
 	p := newTestProvisioner(t, f)
-	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen-abc"}, containerID: "abcdef0123456789"}
 	if err := inst.MarkReady(context.Background()); err != nil {
 		t.Fatalf("MarkReady: %v", err)
 	}
-	if len(f.renames) != 1 || f.renames[0][1] != readyPrefix+"abcdef012345" {
-		t.Fatalf("renames = %v, want rename to ready prefix", f.renames)
+	// The Docker rename references the real container id; the new name carries the
+	// generation token, never the container id.
+	if len(f.renames) != 1 || f.renames[0][0] != "abcdef0123456789" || f.renames[0][1] != readyPrefix+"gen-abc" {
+		t.Fatalf("renames = %v, want rename of the container id to the ready+generation name", f.renames)
 	}
 }
 
@@ -515,7 +524,7 @@ func TestDestroyRemovesNetworkAndSocket(t *testing.T) {
 	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}, socketToken: "tok9"}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen-abc"}, containerID: "abcdef0123456789", socketToken: "tok9"}
 	if err := inst.Destroy(context.Background()); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
@@ -534,7 +543,7 @@ func TestDestroyRemovesNetworkAndSocket(t *testing.T) {
 func TestDestroyAlreadyGone(t *testing.T) {
 	f := &fakeDocker{stopMissing: true}
 	p := newTestProvisioner(t, f)
-	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen-abc"}, containerID: "abcdef0123456789"}
 	if err := inst.Destroy(context.Background()); !errors.Is(err, sandbox.ErrBoxNotFound) {
 		t.Fatalf("err = %v, want sandbox.ErrBoxNotFound", err)
 	}
@@ -634,7 +643,7 @@ func TestProvisionPullFailure(t *testing.T) {
 func TestDestroyRemoveError(t *testing.T) {
 	f := &fakeDocker{removeErr: errors.New("remove boom")}
 	p := newTestProvisioner(t, f)
-	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen-abc"}, containerID: "abcdef0123456789"}
 	if err := inst.Destroy(context.Background()); err == nil {
 		t.Fatal("Destroy should surface a remove error")
 	}
@@ -650,7 +659,7 @@ func TestDestroyToleratesNetworkErrors(t *testing.T) {
 	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}, socketToken: "tokX"}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen-abc"}, containerID: "abcdef0123456789", socketToken: "tokX"}
 	if err := inst.Destroy(context.Background()); err != nil {
 		t.Fatalf("Destroy should tolerate network errors, got %v", err)
 	}
@@ -663,7 +672,7 @@ func TestDestroyToleratesNetworkErrors(t *testing.T) {
 func TestMarkReadyError(t *testing.T) {
 	f := &fakeDocker{renameErr: errors.New("rename boom")}
 	p := newTestProvisioner(t, f)
-	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "abcdef012345"}}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen-abc"}, containerID: "abcdef0123456789"}
 	if err := inst.MarkReady(context.Background()); err == nil {
 		t.Fatal("MarkReady should surface a rename error")
 	}
