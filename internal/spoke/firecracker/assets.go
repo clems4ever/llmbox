@@ -12,6 +12,7 @@ import (
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/sys/unix"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -212,8 +213,9 @@ func orasPull(ctx context.Context, ref, destDir string, cred auth.CredentialFunc
 	defer func() { _ = fs.Close() }()
 	// Wrap the destination so each carried file (the layers with a title) streams
 	// through a progress bar as it is written — a first-run multi-GiB download is
-	// visibly moving rather than a single frozen "downloading…" line.
-	if _, err := oras.Copy(ctx, repo, tag, &progressTarget{Store: fs}, tag, oras.DefaultCopyOptions); err != nil {
+	// visibly moving rather than a single frozen "downloading…" line — and so a
+	// layer larger than the free space fails up front instead of half-written.
+	if _, err := oras.Copy(ctx, repo, tag, &progressTarget{Store: fs, dir: destDir}, tag, oras.DefaultCopyOptions); err != nil {
 		return err
 	}
 	log.Printf("firecracker: %s ready", ref)
@@ -223,26 +225,58 @@ func orasPull(ctx context.Context, ref, destDir string, cred auth.CredentialFunc
 
 // progressTarget wraps an oras file store so that pushing a titled layer (a guest
 // image file, as opposed to the small manifest/config blobs) renders a download
-// progress bar as the bytes are written.
+// progress bar as the bytes are written, and so a layer that cannot fit in the
+// cache's free space fails before any bytes are streamed.
 type progressTarget struct {
 	*file.Store
+	dir string // the cache directory the store writes into, for the free-space check
 }
 
 // Push writes desc's content to the underlying store, streaming a titled layer
-// through a progress bar so a large download is visibly in progress.
+// through a progress bar so a large download is visibly in progress. Before a
+// titled layer streams it checks that dir has room for it, so a too-small cache
+// (e.g. the tmpfs run-dir) fails in a second with an actionable error rather
+// than downloading gigabytes only to hit "no space left on device" — which, on
+// a restart-on-failure service, re-downloads on every retry.
 //
 // @arg ctx Context for the push.
 // @arg desc The descriptor being written; a title annotation marks a guest image file.
 // @arg content The content reader.
-// @error error if the underlying store push fails.
+// @error error if the cache lacks room for the layer or the underlying store push fails.
 //
 // @testcase TestProgressTargetPush writes a titled blob through the progress wrapper.
+// @testcase TestProgressTargetPushRejectsTooLarge fails a titled layer larger than the free space.
 func (t *progressTarget) Push(ctx context.Context, desc ocispec.Descriptor, content io.Reader) error {
 	if title := desc.Annotations[ocispec.AnnotationTitle]; title != "" && desc.Size > 0 {
+		if free, err := freeBytes(t.dir); err == nil && free < uint64(desc.Size) {
+			return fmt.Errorf("cannot cache %s (%s) in %s: only %s free — point --state-dir or LLMBOX_FC_ASSET_CACHE at a larger disk (the default run-dir is a small in-memory tmpfs)",
+				title, humanBytes(desc.Size), t.dir, humanBytes(int64(free)))
+		}
 		log.Printf("firecracker: downloading %s (%s)...", title, humanBytes(desc.Size))
 		content = newProgressReader(content, desc.Size)
 	}
 	return t.Store.Push(ctx, desc, content)
+}
+
+// freeBytes returns the bytes available for a new file under dir. A root process
+// may use the filesystem-reserved blocks (Bfree); an unprivileged one may not
+// (Bavail), so the check never rejects space the caller could actually use.
+//
+// @arg dir An existing directory on the target filesystem.
+// @return uint64 The bytes available to this process on that filesystem.
+// @error error if the filesystem cannot be stat'd.
+//
+// @testcase TestProgressTargetPushRejectsTooLarge relies on freeBytes to size the cache filesystem.
+func freeBytes(dir string) (uint64, error) {
+	var st unix.Statfs_t
+	if err := unix.Statfs(dir, &st); err != nil {
+		return 0, err
+	}
+	avail := st.Bavail
+	if os.Geteuid() == 0 {
+		avail = st.Bfree
+	}
+	return avail * uint64(st.Bsize), nil
 }
 
 // progressReader counts bytes read from an underlying reader and renders download
@@ -333,19 +367,54 @@ func humanBytes(n int64) string {
 	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
 }
 
-// assetCacheDir is where auto-resolved guest images are cached. It must survive
-// reboots (the base rootfs is multi-GiB), so it defaults under the user cache dir
-// rather than the tmpfs-backed run-state dir; override with LLMBOX_FC_ASSET_CACHE.
+// assetCacheDir is where auto-resolved guest images are cached. The base rootfs
+// is multi-GiB and the cache must survive reboots, so it must never land on the
+// tmpfs-backed run-state dir (RAM: typically too small — the download dies
+// half-way with "no space left on device" — and wiped on reboot). In priority:
+// an explicit LLMBOX_FC_ASSET_CACHE; then an explicit --state-dir (stateDir),
+// since an operator who pointed that at a disk location to move a spoke's files
+// off the run-dir means the images too; then the user cache dir; then, only when
+// no home resolves (the normal state of a root systemd service, which gets no
+// $HOME), a disk path under /var/lib for a root process. A non-root process with
+// no home and no explicit dir has nowhere better than the run-dir default.
 //
+// @arg stateDir The operator's explicit --state-dir, or empty for the default.
 // @return string The directory pulled images are cached under.
 //
-// @testcase TestAssetCacheDirHonoursEnv honours LLMBOX_FC_ASSET_CACHE when set.
-func assetCacheDir() string {
-	if v := os.Getenv("LLMBOX_FC_ASSET_CACHE"); v != "" {
-		return v
+// @testcase TestAssetCacheDirHonoursEnv honours LLMBOX_FC_ASSET_CACHE end to end.
+func assetCacheDir(stateDir string) string {
+	cache, cacheErr := os.UserCacheDir()
+	return chooseAssetCacheDir(os.Getenv("LLMBOX_FC_ASSET_CACHE"), stateDir, cache, cacheErr, os.Geteuid())
+}
+
+// chooseAssetCacheDir is the pure policy behind assetCacheDir, with its inputs
+// injected so every branch is testable. It never returns the tmpfs run-dir when
+// a better location exists, in priority order: the env override; an explicit
+// --state-dir; the user cache dir; and, only when no home resolves (a root
+// systemd service has no $HOME) for a root process, a disk path under /var/lib.
+// The run-dir default remains only the last resort for an unprivileged process
+// with no home and no explicit dir.
+//
+// @arg envOverride The LLMBOX_FC_ASSET_CACHE value, or empty.
+// @arg stateDir The operator's explicit --state-dir, or empty.
+// @arg userCache The os.UserCacheDir result (used only when userCacheErr is nil).
+// @arg userCacheErr The error from os.UserCacheDir (non-nil when no home resolves).
+// @arg euid The effective user ID (0 selects the /var/lib fallback).
+// @return string The chosen cache directory.
+//
+// @testcase TestChooseAssetCacheDir covers the override, state-dir, user-cache, root, and run-dir branches.
+func chooseAssetCacheDir(envOverride, stateDir, userCache string, userCacheErr error, euid int) string {
+	if envOverride != "" {
+		return envOverride
 	}
-	if base, err := os.UserCacheDir(); err == nil {
-		return filepath.Join(base, "llmbox", "firecracker")
+	if stateDir != "" {
+		return filepath.Join(stateDir, "assets")
+	}
+	if userCacheErr == nil {
+		return filepath.Join(userCache, "llmbox", "firecracker")
+	}
+	if euid == 0 {
+		return "/var/lib/llmbox/firecracker/assets"
 	}
 	return filepath.Join(defaultStateDir, "assets")
 }

@@ -83,8 +83,14 @@ images) and published by `.github/workflows/firecracker-assets.yml`. Overrides:
 - `LLMBOX_FC_REGISTRY` — the OCI namespace to pull from (default
   `ghcr.io/clems4ever`); point it at a fork's packages.
 - `LLMBOX_FC_TAG` — the tag to pull (default `latest`); pin a specific build.
-- `LLMBOX_FC_ASSET_CACHE` — where pulled images are cached (default under the user
-  cache dir; must survive reboots since the base rootfs is multi-GiB).
+- `LLMBOX_FC_ASSET_CACHE` — where pulled images are cached. The base rootfs is
+  multi-GiB and the cache must survive reboots, so it never uses the tmpfs run-dir.
+  The default is the user cache dir; a `--state-dir` you set is used instead (its
+  `assets/` subdir), so pointing `--state-dir` at a disk moves the images too; and
+  a root service with no `$HOME` falls back to `/var/lib/llmbox/firecracker/assets`.
+  Running as a **systemd service, set `--state-dir /var/lib/llmbox/firecracker`** so
+  both the images and per-box state stay on disk (the generated setup script does
+  this for you).
 
 Pulls are anonymous for public packages; a registry credential configured for the
 host (see the registry section) is used automatically when present. Supplying any

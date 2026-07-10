@@ -3,12 +3,15 @@ package firecracker
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/iotest"
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/opencontainers/go-digest"
@@ -184,7 +187,7 @@ func TestProgressTargetPush(t *testing.T) {
 		Size:        int64(len(data)),
 		Annotations: map[string]string{ocispec.AnnotationTitle: "thing.ext4"},
 	}
-	pt := &progressTarget{Store: fs}
+	pt := &progressTarget{Store: fs, dir: dir}
 	if err := pt.Push(context.Background(), desc, bytes.NewReader(data)); err != nil {
 		t.Fatalf("Push: %v", err)
 	}
@@ -194,6 +197,65 @@ func TestProgressTargetPush(t *testing.T) {
 	}
 	if !bytes.Equal(got, data) {
 		t.Errorf("pushed content = %q, want %q", got, data)
+	}
+}
+
+// TestProgressTargetPushRejectsTooLarge checks a titled layer bigger than the
+// free space fails before any bytes stream (the content reader is never read),
+// with an actionable error — so a too-small cache dir (e.g. the tmpfs run-dir)
+// costs a second, not a multi-GiB download that a restart-on-failure service
+// then repeats every retry.
+func TestProgressTargetPushRejectsTooLarge(t *testing.T) {
+	dir := t.TempDir()
+	fs, err := file.New(dir)
+	if err != nil {
+		t.Fatalf("file.New: %v", err)
+	}
+	defer func() { _ = fs.Close() }()
+
+	// A layer claiming more bytes than any real filesystem has free. The reader
+	// panics if read, proving the check short-circuits before streaming.
+	desc := ocispec.Descriptor{
+		MediaType:   "application/octet-stream",
+		Digest:      digest.FromString("huge"),
+		Size:        math.MaxInt64,
+		Annotations: map[string]string{ocispec.AnnotationTitle: "base-rootfs.ext4"},
+	}
+	pt := &progressTarget{Store: fs, dir: dir}
+	err = pt.Push(context.Background(), desc, iotest.ErrReader(errors.New("must not read")))
+	if err == nil {
+		t.Fatal("Push accepted a layer larger than free space")
+	}
+	if !strings.Contains(err.Error(), "base-rootfs.ext4") || !strings.Contains(err.Error(), "free") {
+		t.Errorf("error = %q, want it to name the layer and the free-space shortfall", err)
+	}
+}
+
+// TestChooseAssetCacheDir checks the cache-dir policy for each branch: the env
+// override wins first, then an explicit --state-dir, then the user cache dir,
+// then (no home) a disk path under /var/lib for root, and only the tmpfs run-dir
+// as an unprivileged last resort.
+func TestChooseAssetCacheDir(t *testing.T) {
+	noHome := errors.New("$HOME is not defined")
+	for _, c := range []struct {
+		name       string
+		env, state string
+		cache      string
+		cacheErr   error
+		euid       int
+		want       string
+	}{
+		{"env override wins", "/override", "/st", "/home/.cache", nil, 0, "/override"},
+		{"explicit state-dir", "", "/data/llmbox", "/home/.cache", nil, 1000, "/data/llmbox/assets"},
+		{"user cache dir", "", "", "/home/u/.cache", nil, 1000, "/home/u/.cache/llmbox/firecracker"},
+		{"root no home", "", "", "", noHome, 0, "/var/lib/llmbox/firecracker/assets"},
+		{"nonroot no home last resort", "", "", "", noHome, 1000, filepath.Join(defaultStateDir, "assets")},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if got := chooseAssetCacheDir(c.env, c.state, c.cache, c.cacheErr, c.euid); got != c.want {
+				t.Errorf("chooseAssetCacheDir = %q, want %q", got, c.want)
+			}
+		})
 	}
 }
 
@@ -215,10 +277,11 @@ func TestHumanBytes(t *testing.T) {
 	}
 }
 
-// TestAssetCacheDirHonoursEnv checks the cache dir honours the override env var.
+// TestAssetCacheDirHonoursEnv checks the cache dir honours the override env var
+// end to end (an explicit state-dir does not override it).
 func TestAssetCacheDirHonoursEnv(t *testing.T) {
 	t.Setenv("LLMBOX_FC_ASSET_CACHE", "/custom/cache")
-	if got := assetCacheDir(); got != "/custom/cache" {
+	if got := assetCacheDir("/some/state-dir"); got != "/custom/cache" {
 		t.Errorf("assetCacheDir = %q, want /custom/cache", got)
 	}
 }

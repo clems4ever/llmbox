@@ -31,4 +31,22 @@ describe("systemdSetupScript", () => {
     const script = systemdSetupScript(command.replace("SECRET", tokenPlaceholder));
     expect(script).toContain(`--token ${tokenPlaceholder}`);
   });
+
+  it("does not pin a firecracker state dir for a docker spoke", () => {
+    expect(systemdSetupScript(command)).not.toContain("--state-dir");
+  });
+
+  it("pins the firecracker state dir off tmpfs for a firecracker spoke", () => {
+    const fc = "llmbox-spoke firecracker --hub wss://hub.example.com/spoke/connect --token SECRET";
+    const script = systemdSetupScript(fc);
+    expect(script).toContain("--state-dir /var/lib/llmbox/firecracker");
+  });
+
+  it("replaces an explicit firecracker --state-dir with the service location", () => {
+    const fc =
+      "llmbox-spoke firecracker --hub wss://h/spoke/connect --token SECRET --state-dir /run/llmbox/firecracker";
+    const script = systemdSetupScript(fc);
+    expect(script).toContain("--state-dir /var/lib/llmbox/firecracker");
+    expect(script).not.toContain("--state-dir /run/llmbox/firecracker");
+  });
 });
