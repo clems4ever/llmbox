@@ -136,7 +136,9 @@ changelog:
       - "Merge pull request"
 
 release:
-  # Publish as a draft so the maintainer can review the notes and assets before
-  # making the release public. Flip to false to publish immediately.
-  draft: true
+  # Publish the release immediately when a v* tag is pushed. Set draft: true to
+  # instead create a draft for review before it goes public.
+  draft: false
+  # Tags with a prerelease suffix (e.g. v1.2.0-rc1) are marked as pre-releases;
+  # plain vX.Y.Z tags publish as full releases.
   prerelease: auto
