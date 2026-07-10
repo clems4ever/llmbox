@@ -28,9 +28,9 @@
 		},
 		{
 			"function_name": "orasPull",
-			"documentation_hash": "367630ba01c65fa230e22a8daaac5a2b802f4c245cbca7fa17c5fdab26cc39e9",
-			"definition_hash": "86dca9ee3d51f48f7537e10b7bb4961a342e8ec4f7c215124505324b7c868bbb",
-			"reviewed_at": "2026-07-10T16:42:08.150132431Z"
+			"documentation_hash": "e01e3ad5e83882696381a7565a569a8ba9ceb34102011b3f91ef77ffad72b96b",
+			"definition_hash": "1bd174988f01b407d3a5abdb728862403bf3e9f126d59935ec9101b8f79a982a",
+			"reviewed_at": "2026-07-10T19:57:54.644806949Z"
 		},
 		{
 			"function_name": "assetCacheDir",
@@ -53,9 +53,9 @@
 		},
 		{
 			"function_name": "newProgressReader",
-			"documentation_hash": "64e4ffa72f0fc73ca58c71c44ce68124b8ea43d08d02218fe21d1d6c588a1921",
-			"definition_hash": "d3ddc14daa736ae23354b6295da485ec5316802253b43fa9f5f142e6c98db7bb",
-			"reviewed_at": "2026-07-07T12:08:14.350417466Z"
+			"documentation_hash": "5b12298b4aa3c1ca3a20b1f1202c80321f3cb6a7c7c72e1524ffb2fcd7c9258c",
+			"definition_hash": "0f64c717a722aece69726626517ed79502d935088acbc32fc4b88a5109bff7ae",
+			"reviewed_at": "2026-07-10T19:57:54.659924869Z"
 		},
 		{
 			"function_name": "Read",
@@ -75,6 +75,42 @@
 			"documentation_hash": "7615365a09f99596297df524904e8002232a55314945f9883d772f5af8386f50",
 			"definition_hash": "f45916e9261521c47414e0c796720a8f1fb9e24b043f34b56be098743bb2272b",
 			"reviewed_at": "2026-07-10T16:42:08.174873796Z"
+		},
+		{
+			"function_name": "fetchLayer",
+			"documentation_hash": "23ee9ef8f8dce83a18e1ff1a1c28a79316e20d2a546fa51b954e66897abf4691",
+			"definition_hash": "f0aa000196a22298d0af02aa9a8d717128b2e7151612d6e950ff5af0ebba69c5",
+			"reviewed_at": "2026-07-10T19:57:54.645872555Z"
+		},
+		{
+			"function_name": "ensureRoom",
+			"documentation_hash": "0dadf8d27a420f479f697678d55a177506c00e042beb0e81105c2ed044f7e3d5",
+			"definition_hash": "1d33321124ce708460b030cfbb40c808e96a20079076b8ede8a76d58aef6a665",
+			"reviewed_at": "2026-07-10T19:57:54.655174564Z"
+		},
+		{
+			"function_name": "download",
+			"documentation_hash": "cfc9d3ff4514ac320099d2a104d78a87ec96d86965a638cdcb63951156f973e0",
+			"definition_hash": "5643ce2f87c1140befd450332195531b64a4236fdd22f835a4d8eeb5f9d6deed",
+			"reviewed_at": "2026-07-10T19:57:54.656118696Z"
+		},
+		{
+			"function_name": "downloadRange",
+			"documentation_hash": "10ab7987cf85b26b93c1ba567d7f7761456ba8d51a156e220b547bb8c526cde5",
+			"definition_hash": "882807105d279158ec636697c9c274d2b60bc500b50328e59940ccc644ca401e",
+			"reviewed_at": "2026-07-10T19:57:54.657121899Z"
+		},
+		{
+			"function_name": "verifyDigest",
+			"documentation_hash": "0f468f6fee9cfd2eb07885af3d94e629a5e5daecd06e31328936b943d94bf6b7",
+			"definition_hash": "68225b6d2c22941bffbb142659e3aba1bd873519191d0e06e5a0c04a369d21f6",
+			"reviewed_at": "2026-07-10T19:57:54.658182479Z"
+		},
+		{
+			"function_name": "backoff",
+			"documentation_hash": "d769294d7dcd4b0876a796c4948db6828635d4cf991cd91946c91760a4e726e8",
+			"definition_hash": "680d7efdd6fe680e6e5848e128d608fbe934478fb966c6a335ce8c7aaad72066",
+			"reviewed_at": "2026-07-10T19:57:54.659242669Z"
 		}
 	]
 }

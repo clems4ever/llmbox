@@ -7,16 +7,19 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
-	"testing/iotest"
+	"time"
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"oras.land/oras-go/v2/content/file"
+	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
@@ -157,7 +160,7 @@ func TestOrasPullRejectsBadReference(t *testing.T) {
 // exactly the underlying bytes and tracks the full total.
 func TestProgressReader(t *testing.T) {
 	data := bytes.Repeat([]byte("llmbox"), 5000) // ~30 KiB, several Read calls
-	pr := newProgressReader(bytes.NewReader(data), int64(len(data)))
+	pr := newProgressReader(bytes.NewReader(data), int64(len(data)), 0)
 	got, err := io.ReadAll(pr)
 	if err != nil {
 		t.Fatalf("ReadAll: %v", err)
@@ -170,64 +173,186 @@ func TestProgressReader(t *testing.T) {
 	}
 }
 
-// TestProgressTargetPush checks the wrapping target still writes the blob to the
-// underlying file store (the progress wrapper does not corrupt the content).
-func TestProgressTargetPush(t *testing.T) {
-	dir := t.TempDir()
-	fs, err := file.New(dir)
-	if err != nil {
-		t.Fatalf("file.New: %v", err)
-	}
-	defer func() { _ = fs.Close() }()
+// rangeServer serves data over HTTP with Range support, optionally aborting the
+// first response part-way through to simulate a peer reset on a flaky link. It
+// records how many requests it received so a test can assert a resume happened.
+type rangeServer struct {
+	data     []byte
+	abortsAt int   // if >0, abort the first response after this many body bytes
+	requests int32 // total requests served (atomic via mutex below)
+	mu       sync.Mutex
+}
 
-	data := []byte("a guest image blob")
-	desc := ocispec.Descriptor{
-		MediaType:   "application/octet-stream",
+// handler serves the data with Range support, resetting the connection part-way
+// through the first response when abortsAt is set to simulate a flaky link.
+func (s *rangeServer) handler(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	s.requests++
+	first := s.requests == 1
+	s.mu.Unlock()
+
+	var start int64
+	if rg := r.Header.Get("Range"); rg != "" {
+		fmt.Sscanf(rg, "bytes=%d-", &start)
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, len(s.data)-1, len(s.data)))
+		w.WriteHeader(http.StatusPartialContent)
+	}
+	body := s.data[start:]
+	if first && s.abortsAt > 0 && s.abortsAt < len(body) {
+		_, _ = w.Write(body[:s.abortsAt])
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		panic(http.ErrAbortHandler) // reset the connection mid-stream
+	}
+	_, _ = w.Write(body)
+}
+
+// blobRepo builds a remote.Repository pointing at a test server so fetchLayer's
+// URL construction and ranged download run against it over plain HTTP.
+func blobRepo(t *testing.T, srv *httptest.Server) *remote.Repository {
+	t.Helper()
+	host := strings.TrimPrefix(srv.URL, "http://")
+	repo, err := remote.NewRepository(host + "/owner/img")
+	if err != nil {
+		t.Fatalf("NewRepository: %v", err)
+	}
+	repo.PlainHTTP = true
+	repo.Client = srv.Client()
+	return repo
+}
+
+// TestFetchLayerResumesAndVerifies checks that a titled layer whose first transfer
+// is cut off mid-stream is resumed from the bytes already written, ends up complete
+// and digest-verified on disk, and leaves no ".part" behind.
+func TestFetchLayerResumesAndVerifies(t *testing.T) {
+	t.Cleanup(func(orig time.Duration) func() {
+		return func() { resumeBackoffBase = orig }
+	}(resumeBackoffBase))
+	resumeBackoffBase = time.Millisecond
+
+	data := bytes.Repeat([]byte("firecracker-rootfs"), 4096) // ~72 KiB, several reads
+	s := &rangeServer{data: data, abortsAt: len(data) / 3}
+	srv := httptest.NewServer(http.HandlerFunc(s.handler))
+	defer srv.Close()
+
+	repo := blobRepo(t, srv)
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "base-rootfs.ext4")
+	layer := ocispec.Descriptor{
 		Digest:      digest.FromBytes(data),
 		Size:        int64(len(data)),
-		Annotations: map[string]string{ocispec.AnnotationTitle: "thing.ext4"},
+		Annotations: map[string]string{ocispec.AnnotationTitle: "base-rootfs.ext4"},
 	}
-	pt := &progressTarget{Store: fs, dir: dir}
-	if err := pt.Push(context.Background(), desc, bytes.NewReader(data)); err != nil {
-		t.Fatalf("Push: %v", err)
+	if err := fetchLayer(context.Background(), repo, layer, dest); err != nil {
+		t.Fatalf("fetchLayer: %v", err)
 	}
-	got, err := os.ReadFile(filepath.Join(dir, "thing.ext4"))
+	got, err := os.ReadFile(dest)
 	if err != nil {
-		t.Fatalf("read pushed file: %v", err)
+		t.Fatalf("read result: %v", err)
 	}
 	if !bytes.Equal(got, data) {
-		t.Errorf("pushed content = %q, want %q", got, data)
+		t.Errorf("downloaded content differs (%d bytes vs %d)", len(got), len(data))
+	}
+	if s.requests < 2 {
+		t.Errorf("server saw %d requests, want >=2 (the transfer should have resumed)", s.requests)
+	}
+	if _, err := os.Stat(dest + ".part"); !os.IsNotExist(err) {
+		t.Errorf(".part file should be gone after a successful download, stat err = %v", err)
 	}
 }
 
-// TestProgressTargetPushRejectsTooLarge checks a titled layer bigger than the
-// free space fails before any bytes stream (the content reader is never read),
-// with an actionable error — so a too-small cache dir (e.g. the tmpfs run-dir)
-// costs a second, not a multi-GiB download that a restart-on-failure service
-// then repeats every retry.
-func TestProgressTargetPushRejectsTooLarge(t *testing.T) {
-	dir := t.TempDir()
-	fs, err := file.New(dir)
+// TestFetchLayerRejectsTooLarge checks a layer that cannot fit in the cache fails
+// with an actionable error before any download, naming the layer.
+func TestFetchLayerRejectsTooLarge(t *testing.T) {
+	repo, err := remote.NewRepository("example.com/owner/img")
 	if err != nil {
-		t.Fatalf("file.New: %v", err)
+		t.Fatalf("NewRepository: %v", err)
 	}
-	defer func() { _ = fs.Close() }()
-
-	// A layer claiming more bytes than any real filesystem has free. The reader
-	// panics if read, proving the check short-circuits before streaming.
-	desc := ocispec.Descriptor{
-		MediaType:   "application/octet-stream",
+	dest := filepath.Join(t.TempDir(), "base-rootfs.ext4")
+	layer := ocispec.Descriptor{
 		Digest:      digest.FromString("huge"),
 		Size:        math.MaxInt64,
 		Annotations: map[string]string{ocispec.AnnotationTitle: "base-rootfs.ext4"},
 	}
-	pt := &progressTarget{Store: fs, dir: dir}
-	err = pt.Push(context.Background(), desc, iotest.ErrReader(errors.New("must not read")))
+	err = fetchLayer(context.Background(), repo, layer, dest)
 	if err == nil {
-		t.Fatal("Push accepted a layer larger than free space")
+		t.Fatal("fetchLayer accepted a layer larger than free space")
 	}
 	if !strings.Contains(err.Error(), "base-rootfs.ext4") || !strings.Contains(err.Error(), "free") {
 		t.Errorf("error = %q, want it to name the layer and the free-space shortfall", err)
+	}
+}
+
+// TestEnsureRoom checks the free-space guard rejects an impossible need (naming the
+// layer) and admits one that fits.
+func TestEnsureRoom(t *testing.T) {
+	dir := t.TempDir()
+	if err := ensureRoom(dir, math.MaxInt64, "base-rootfs.ext4"); err == nil {
+		t.Error("ensureRoom admitted a need larger than any filesystem")
+	} else if !strings.Contains(err.Error(), "base-rootfs.ext4") || !strings.Contains(err.Error(), "free") {
+		t.Errorf("error = %q, want it to name the layer and the free-space shortfall", err)
+	}
+	if err := ensureRoom(dir, 0, "tiny"); err != nil {
+		t.Errorf("ensureRoom rejected a zero-byte need: %v", err)
+	}
+}
+
+// TestDownloadStalls checks download gives up with a clear error when repeated
+// attempts transfer no bytes at all.
+func TestDownloadStalls(t *testing.T) {
+	t.Cleanup(func(orig time.Duration) func() {
+		return func() { resumeBackoffBase = orig }
+	}(resumeBackoffBase))
+	resumeBackoffBase = time.Millisecond
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	err := download(context.Background(), srv.Client(), srv.URL+"/blob", io.Discard, 0, 100)
+	if err == nil {
+		t.Fatal("download should fail when no bytes can be transferred")
+	}
+	if !strings.Contains(err.Error(), "stalled") {
+		t.Errorf("error = %q, want it to mention the stall", err)
+	}
+}
+
+// TestVerifyDigest checks a matching file passes and a corrupted one is rejected.
+func TestVerifyDigest(t *testing.T) {
+	data := []byte("guest image bytes")
+	path := filepath.Join(t.TempDir(), "blob")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := verifyDigest(path, digest.FromBytes(data)); err != nil {
+		t.Errorf("verifyDigest rejected a matching file: %v", err)
+	}
+	if err := verifyDigest(path, digest.FromString("something else")); err == nil {
+		t.Error("verifyDigest accepted a file whose digest does not match")
+	}
+}
+
+// TestBackoff checks the resume delay grows with consecutive failures and caps out.
+func TestBackoff(t *testing.T) {
+	t.Cleanup(func(orig time.Duration) func() {
+		return func() { resumeBackoffBase = orig }
+	}(resumeBackoffBase))
+	resumeBackoffBase = time.Second
+
+	if got := backoff(0); got != time.Second {
+		t.Errorf("backoff(0) = %v, want 1s", got)
+	}
+	if got := backoff(3); got != 8*time.Second {
+		t.Errorf("backoff(3) = %v, want 8s", got)
+	}
+	if got := backoff(100); got != 30*time.Second {
+		t.Errorf("backoff(100) = %v, want the 30s cap", got)
+	}
+	if got := backoff(-1); got != time.Second {
+		t.Errorf("backoff(-1) = %v, want 1s (floored at 0)", got)
 	}
 }
 
