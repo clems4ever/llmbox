@@ -11,6 +11,7 @@ import {
   Box,
   Button,
   Card,
+  Center,
   Group,
   Paper,
   SegmentedControl,
@@ -86,8 +87,24 @@ export function WorkspacesView({
             onChange={(v) => setLayout(v as WorkspaceLayout)}
             aria-label="View layout"
             data={[
-              { value: "table", label: <IconLayoutList size={16} aria-label="Table view" /> },
-              { value: "grid", label: <IconLayoutGrid size={16} aria-label="Grid view" /> },
+              // Icon-only labels must be wrapped in <Center>: a bare inline SVG
+              // sits on the text baseline and renders off-center in the segment.
+              {
+                value: "table",
+                label: (
+                  <Center>
+                    <IconLayoutList size={16} aria-label="Table view" />
+                  </Center>
+                ),
+              },
+              {
+                value: "grid",
+                label: (
+                  <Center>
+                    <IconLayoutGrid size={16} aria-label="Grid view" />
+                  </Center>
+                ),
+              },
             ]}
           />
           <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateOpen(true)}>
