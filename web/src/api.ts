@@ -145,6 +145,14 @@ export class Api {
     return this.call("/api/v1/revoke-join-token", { id });
   }
 
+  /** regenerateJoinToken swaps an outstanding join token for a freshly minted
+   * one for the same spoke; the old token stops working and the new secret is
+   * shown once, like a create. */
+  async regenerateJoinToken(id: string): Promise<SpokeEnrollment> {
+    const r = await this.call<{ spoke: SpokeEnrollment }>("/api/v1/regenerate-join-token", { id });
+    return r.spoke;
+  }
+
   async createBox(boxId: string, description: string, spoke: string): Promise<{ box_id: string; token: string }> {
     const r = await this.call<{ session: { BoxID: string; Token: string } }>("/api/v1/create-box", {
       opts: { BoxID: boxId, Description: description, SpokeName: spoke },

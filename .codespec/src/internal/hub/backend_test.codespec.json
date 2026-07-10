@@ -47,6 +47,12 @@
 			"documentation_hash": "dafbc99c04b5e033ea59082799c704785f40f2d418d115267839c3bc4671bda6",
 			"definition_hash": "82bfc6e34a6036bb7816e5c81bf2d31b2023b74d4670a3a5667681dbb84c864e",
 			"reviewed_at": "2026-07-10T10:15:43.536865998Z"
+		},
+		{
+			"function_name": "TestBackendRegenerateJoinToken",
+			"documentation_hash": "3c40b2bb26f099b08f5943baa0655a26001972d4050efef8b0fa4c4cdf893bf1",
+			"definition_hash": "71a6b6dc7f7d97ae2ec2aa018934208c71510d86e4813c3d6f519a202d7cbfd5",
+			"reviewed_at": "2026-07-10T15:19:22.215529945Z"
 		}
 	]
 }

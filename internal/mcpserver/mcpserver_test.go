@@ -106,6 +106,11 @@ func (f *fakeBackend) ListJoinTokens(context.Context) ([]api.JoinTokenInfo, erro
 // RevokeJoinToken is a no-op for the tool tests.
 func (f *fakeBackend) RevokeJoinToken(context.Context, string) error { return nil }
 
+// RegenerateJoinToken is a no-op for the tool tests.
+func (f *fakeBackend) RegenerateJoinToken(context.Context, string) (api.SpokeEnrollment, error) {
+	return api.SpokeEnrollment{}, nil
+}
+
 // DestroyBox records the destroyed container ID and returns the canned error.
 func (f *fakeBackend) DestroyBox(_ context.Context, containerID string) error {
 	f.destroyedID = containerID

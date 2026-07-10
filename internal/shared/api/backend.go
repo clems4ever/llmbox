@@ -121,6 +121,10 @@ type Backend interface {
 	ListJoinTokens(ctx context.Context) ([]JoinTokenInfo, error)
 	// RevokeJoinToken deletes one outstanding join token by its ID.
 	RevokeJoinToken(ctx context.Context, id string) error
+	// RegenerateJoinToken replaces an outstanding join token with a freshly
+	// minted one for the same spoke (same name and backend), returning the new
+	// enrollment. The old token stops working; the new secret is shown once.
+	RegenerateJoinToken(ctx context.Context, id string) (SpokeEnrollment, error)
 	// DestroyBox stops and removes the box with the given box ID.
 	DestroyBox(ctx context.Context, boxID string) error
 	// BoxLogs returns the recent console output of the box with the given box ID.

@@ -201,6 +201,49 @@ func TestBackendJoinTokens(t *testing.T) {
 	}
 }
 
+// TestBackendRegenerateJoinToken checks regenerating a join token swaps it for
+// a fresh one preserving the spoke name and recorded backend (the old ID is
+// gone, the new command carries the new token), and that an unknown ID errors.
+func TestBackendRegenerateJoinToken(t *testing.T) {
+	s, _, _ := newAdminServer(t)
+	b := s.boxBackend()
+
+	old, err := b.CreateSpoke(context.Background(), "edge", "firecracker", time.Hour)
+	if err != nil {
+		t.Fatalf("CreateSpoke: %v", err)
+	}
+	tokens, _ := b.ListJoinTokens(context.Background())
+	if len(tokens) != 1 {
+		t.Fatalf("tokens = %+v, want 1", tokens)
+	}
+	oldID := tokens[0].ID
+
+	sp, err := b.RegenerateJoinToken(context.Background(), oldID)
+	if err != nil {
+		t.Fatalf("RegenerateJoinToken: %v", err)
+	}
+	if sp.Name != "edge" || sp.Token == "" || sp.Token == old.Token {
+		t.Errorf("regenerated enrollment = %+v, want a fresh token for edge", sp)
+	}
+	if !strings.Contains(sp.Command, "llmbox-spoke firecracker --hub") || !strings.Contains(sp.Command, "--token "+sp.Token) {
+		t.Errorf("command = %q, want a firecracker command carrying the new token", sp.Command)
+	}
+
+	// The old token is gone; exactly one (the new one) remains, still firecracker.
+	tokens, _ = b.ListJoinTokens(context.Background())
+	if len(tokens) != 1 || tokens[0].ID == oldID || tokens[0].Name != "edge" || tokens[0].Backend != "firecracker" {
+		t.Errorf("tokens after regenerate = %+v, want one fresh firecracker token for edge", tokens)
+	}
+
+	// The old token cannot be re-regenerated, and unknown IDs error.
+	if _, err := b.RegenerateJoinToken(context.Background(), oldID); err == nil {
+		t.Error("regenerating a consumed ID should error")
+	}
+	if _, err := b.RegenerateJoinToken(context.Background(), ""); err == nil {
+		t.Error("regenerating an empty ID should error")
+	}
+}
+
 // TestCreateProxyRecordsPrincipal checks the backend stamps the request's
 // authenticated principal (from the API auth middleware) as the proxy creator.
 func TestCreateProxyRecordsPrincipal(t *testing.T) {

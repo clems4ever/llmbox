@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewHandler",
 			"documentation_hash": "3acc7dc809eccbcfd2cffbf8ba33063aaa1064182b147d67f3ba797adaa77a46",
-			"definition_hash": "777a7b654df634d1eaa3394a3bafd8ec3a94744b4a845b50bc5aead4252035d5",
-			"reviewed_at": "2026-07-09T21:42:06.887984757Z"
+			"definition_hash": "404e32ac214c8fda87ae6ce2fbe5dfd801e832429e552413c3aebcc2f2b9dce6",
+			"reviewed_at": "2026-07-10T15:19:22.262221191Z"
 		},
 		{
 			"function_name": "jsonHandler",

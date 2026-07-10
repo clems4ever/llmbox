@@ -222,6 +222,30 @@ func (b apiBackend) RevokeJoinToken(_ context.Context, id string) error {
 	return b.s.revokeJoinToken(id)
 }
 
+// RegenerateJoinToken replaces an outstanding join token with a freshly minted
+// one for the same spoke name and recorded backend, returning the new
+// enrollment with its ready-to-run start command. The old token stops working;
+// the fresh secret is shown once, like a create.
+//
+// @arg _ Context (unused; the store swap is synchronous).
+// @arg id The token ID to regenerate.
+// @return api.SpokeEnrollment The fresh enrollment: name, one-time token, and start command.
+// @error error if the id is empty or unknown, or the swap fails.
+//
+// @testcase TestBackendRegenerateJoinToken regenerates a token and rejects an unknown ID.
+func (b apiBackend) RegenerateJoinToken(_ context.Context, id string) (api.SpokeEnrollment, error) {
+	name, backend, token, err := b.s.regenerateJoinToken(id)
+	if err != nil {
+		return api.SpokeEnrollment{}, err
+	}
+	if backend == "" {
+		// Tokens minted before the backend was recorded default to docker,
+		// matching what CreateSpoke defaulted to when they were created.
+		backend = "docker"
+	}
+	return api.SpokeEnrollment{Name: name, Token: token, Command: b.s.spokeRunCommand(token, backend)}, nil
+}
+
 // SpokeStatuses returns every spoke and its connection status, translated to the
 // api.SpokeStatus shape the tool reports.
 //

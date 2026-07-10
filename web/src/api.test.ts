@@ -71,6 +71,17 @@ describe("Api.call", () => {
     expect(await new Api("t").listProxies()).toEqual([]);
   });
 
+  it("unwraps the fresh enrollment from regenerate-join-token", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ spoke: { name: "edge", token: "t2", command: "llmbox-spoke docker --token t2" } }),
+    );
+    const sp = await new Api("t").regenerateJoinToken("tid");
+    expect(sp.token).toBe("t2");
+    const [path, opts] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/v1/regenerate-join-token");
+    expect(JSON.parse(opts.body)).toEqual({ id: "tid" });
+  });
+
   it("posts logout to the session endpoint", async () => {
     fetchMock.mockResolvedValue(jsonResponse({}));
     await new Api("csrf-token").logout();

@@ -4,13 +4,18 @@
 // the spoke as a service (started now and on every boot). When the command
 // carries the token placeholder (re-shown after creation), a notice explains
 // that the real token appeared only once and cannot be recovered.
-import { Alert, Button, Code, CopyButton, Stack, Tabs, Text } from "@mantine/core";
-import { IconCheck, IconCopy, IconInfoCircle, IconSettingsAutomation, IconTerminal2 } from "@tabler/icons-react";
+import { Alert, Button, Code, CopyButton, Group, Stack, Tabs, Text } from "@mantine/core";
+import { IconCheck, IconCopy, IconInfoCircle, IconRefresh, IconSettingsAutomation, IconTerminal2 } from "@tabler/icons-react";
 import { spokeServiceName, systemdSetupScript, tokenPlaceholder } from "../lib/spokeSetup";
 
 export interface SpokeSetupTabsProps {
   /** The enrollment command as returned by the server (real token or placeholder). */
   command: string;
+  /** When set (and the command carries the placeholder), the notice offers this
+   * action to mint a fresh token in place of the lost one. */
+  onRegenerate?: () => void;
+  /** Disables the regenerate action while the swap is in flight. */
+  regenerating?: boolean;
 }
 
 /** CopyBlock renders a command block with its copy button. */
@@ -42,15 +47,35 @@ function CopyBlock({ value, label }: { value: string; label: string }): JSX.Elem
  * @arg props The enrollment command to render the instructions from.
  * @return JSX.Element The tabbed setup instructions.
  */
-export function SpokeSetupTabs({ command }: SpokeSetupTabsProps): JSX.Element {
+export function SpokeSetupTabs({ command, onRegenerate, regenerating }: SpokeSetupTabsProps): JSX.Element {
   const placeholder = command.includes(tokenPlaceholder);
   return (
     <Stack gap="sm">
       {placeholder && (
         <Alert variant="light" color="yellow" icon={<IconInfoCircle size={18} />}>
-          The one-time token was shown only when the runner was created and cannot be
-          recovered — replace <Code>{tokenPlaceholder}</Code> with it before running. If
-          it's lost, revoke this token and create the runner again.
+          <Stack gap="xs">
+            <Text size="sm">
+              The one-time token was shown only when the runner was created and cannot be
+              recovered — replace <Code>{tokenPlaceholder}</Code> with it before running.
+              {onRegenerate
+                ? " If it's lost, regenerate it: the current token stops working and a fresh one is shown once."
+                : " If it's lost, revoke this token and create the runner again."}
+            </Text>
+            {onRegenerate && (
+              <Group justify="flex-start">
+                <Button
+                  variant="light"
+                  color="yellow"
+                  size="xs"
+                  loading={regenerating}
+                  leftSection={<IconRefresh size={16} />}
+                  onClick={onRegenerate}
+                >
+                  Regenerate token
+                </Button>
+              </Group>
+            )}
+          </Stack>
         </Alert>
       )}
       <Tabs defaultValue="command" keepMounted={false}>

@@ -235,6 +235,21 @@ func (c *Client) RevokeJoinToken(ctx context.Context, id string) error {
 	return err
 }
 
+// RegenerateJoinToken replaces an outstanding join token on the upstream server
+// with a freshly minted one for the same spoke, returning the new enrollment
+// (the old token stops working; the new secret is shown once).
+//
+// @arg ctx Context for the request.
+// @arg id The token ID to regenerate.
+// @return SpokeEnrollment The fresh enrollment: name, one-time token, and start command.
+// @error error if the token is unknown or cannot be regenerated.
+//
+// @testcase TestBackendAPIRoundTrip regenerates a join token through the client.
+func (c *Client) RegenerateJoinToken(ctx context.Context, id string) (SpokeEnrollment, error) {
+	r, err := post[regenerateJoinTokenRequest, regenerateJoinTokenResponse](ctx, c, PathRegenerateJoinToken, regenerateJoinTokenRequest{ID: id})
+	return r.Spoke, err
+}
+
 // DestroyBox stops and removes the box with the given box ID on the upstream
 // server.
 //

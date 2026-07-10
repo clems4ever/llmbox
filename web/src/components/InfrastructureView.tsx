@@ -21,7 +21,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { IconInfoCircle, IconPlus, IconStar, IconTrash } from "@tabler/icons-react";
-import type { Api, JoinTokenInfo, SpokeStatus } from "../api";
+import type { Api, JoinTokenInfo, SpokeEnrollment, SpokeStatus } from "../api";
 import type { DashboardData } from "../lib/data";
 import { isExpired, shortTime } from "../lib/format";
 import { perform } from "../lib/actions";
@@ -188,9 +188,30 @@ interface TokensCardProps {
 }
 
 /** TokensCard renders the outstanding join tokens with per-token setup
- * instructions (re-shown with a token placeholder) and revoke controls. */
+ * instructions (re-shown with a token placeholder, plus a regenerate action
+ * that mints a fresh token when the original was lost) and revoke controls. */
 function TokensCard({ api, data, refresh }: TokensCardProps): JSX.Element {
   const [setupToken, setSetupToken] = useState<JoinTokenInfo | null>(null);
+  // A fresh enrollment minted from the setup modal; its real one-time command
+  // replaces the placeholder one until the modal closes.
+  const [regenerated, setRegenerated] = useState<SpokeEnrollment | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+
+  const openSetup = (tok: JoinTokenInfo) => {
+    setRegenerated(null);
+    setSetupToken(tok);
+  };
+
+  const regenerate = async (tok: JoinTokenInfo) => {
+    setRegenerating(true);
+    await perform(
+      async () => {
+        setRegenerated(await api.regenerateJoinToken(tok.id));
+      },
+      { success: `minted a fresh token for ${tok.name}`, onDone: refresh },
+    );
+    setRegenerating(false);
+  };
 
   const revoke = (id: string) =>
     confirmDestroy({
@@ -237,7 +258,7 @@ function TokensCard({ api, data, refresh }: TokensCardProps): JSX.Element {
                         variant="subtle"
                         data-token-info={tok.id}
                         aria-label={`Setup instructions for ${tok.name}`}
-                        onClick={() => setSetupToken(tok)}
+                        onClick={() => openSetup(tok)}
                       >
                         <IconInfoCircle size={16} />
                       </ActionIcon>
@@ -268,7 +289,20 @@ function TokensCard({ api, data, refresh }: TokensCardProps): JSX.Element {
         centered
         size="lg"
       >
-        {setupToken && <SpokeSetupTabs command={setupToken.command} />}
+        {setupToken && (
+          <Stack gap="sm">
+            {regenerated && (
+              <Text size="sm">
+                Fresh token minted — it is shown only once, save it this time.
+              </Text>
+            )}
+            <SpokeSetupTabs
+              command={regenerated?.command ?? setupToken.command}
+              onRegenerate={() => void regenerate(setupToken)}
+              regenerating={regenerating}
+            />
+          </Stack>
+        )}
       </Modal>
     </Paper>
   );

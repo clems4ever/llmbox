@@ -41,6 +41,12 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
     dropSpoke: vi.fn().mockResolvedValue({}),
     setDefaultSpoke: vi.fn().mockResolvedValue({}),
     revokeJoinToken: vi.fn().mockResolvedValue({}),
+    regenerateJoinToken: vi.fn().mockResolvedValue({
+      name: "edge-1",
+      token: "fresh-token",
+      command:
+        "llmbox-spoke docker --hub wss://hub/spoke/connect --token fresh-token --state llmbox-spoke.json",
+    }),
     createBox: vi.fn().mockResolvedValue({ box_id: "box-1", token: "tok" }),
     authPageURL: vi.fn().mockResolvedValue("https://hub/auth/tok"),
     destroyBox: vi.fn().mockResolvedValue({}),

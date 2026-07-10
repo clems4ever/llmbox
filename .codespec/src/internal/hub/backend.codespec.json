@@ -132,6 +132,13 @@
 			"documentation_hash": "d9f5c96b5ac3f7093995a2da4f465173a0d04246d3f4874a1dc609469cb6a87f",
 			"definition_hash": "bebad02eb659ece8fc0a5c6740947c928cca57efad38b23ff7c5d41ef8791611",
 			"reviewed_at": "2026-07-08T12:57:12.232739712Z"
+		},
+		{
+			"function_name": "RegenerateJoinToken",
+			"receiver": "apiBackend",
+			"documentation_hash": "eb28e4480ea75ddc3ebcbed3e8bf35d9029fa898f24381ee9f1a8424880324e2",
+			"definition_hash": "d8a750235e61d0f714f2056c284cab6251acfb8d59c33637bf184874caf24ae0",
+			"reviewed_at": "2026-07-10T15:19:22.207739356Z"
 		}
 	]
 }
