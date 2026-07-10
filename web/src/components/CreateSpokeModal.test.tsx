@@ -30,7 +30,7 @@ describe("CreateSpokeModal", () => {
       createSpoke: vi.fn().mockResolvedValue({
         name: "edge-9",
         token: "tk",
-        command: "llmbox-spoke docker --hub wss://hub/spoke/connect --token tk --state llmbox-spoke.json",
+        command: "llmbox-spoke docker --hub wss://hub/spoke/connect --token tk",
       }),
     });
     const { user } = render(

@@ -14,14 +14,16 @@ export const tokenPlaceholder = "<one-time-token>";
 /** systemdSetupScript builds the copy-pasteable script that installs the spoke
  * as a systemd service and starts it now and on boot. It rewrites the server's
  * enrollment command for service use: the bare binary name becomes the absolute
- * /usr/local/bin path (systemd does not search $PATH) and the relative state
- * file moves to /var/lib/llmbox so the saved credential persists. Keeping
- * --token in the unit is safe: the spoke only uses it on first enrollment and
+ * /usr/local/bin path (systemd does not search $PATH) and the state file is
+ * pinned to /var/lib/llmbox — the spoke's built-in default lives under the
+ * user's home, which is the wrong place for a system service. Keeping --token
+ * in the unit is safe: the spoke only uses it on first enrollment and
  * reconnects from the saved credential afterwards. */
 export function systemdSetupScript(command: string): string {
-  const exec = command
-    .replace(/^llmbox-spoke\s+/, "/usr/local/bin/llmbox-spoke ")
-    .replace(/--state\s+\S+/, "--state /var/lib/llmbox/llmbox-spoke.json");
+  const exec =
+    command
+      .replace(/^llmbox-spoke\s+/, "/usr/local/bin/llmbox-spoke ")
+      .replace(/\s+--state\s+\S+/, "") + " --state /var/lib/llmbox/llmbox-spoke.json";
   return `sudo tee /etc/systemd/system/${spokeServiceName} >/dev/null <<'UNIT'
 [Unit]
 Description=llmbox spoke runner

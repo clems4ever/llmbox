@@ -44,8 +44,7 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
     regenerateJoinToken: vi.fn().mockResolvedValue({
       name: "edge-1",
       token: "fresh-token",
-      command:
-        "llmbox-spoke docker --hub wss://hub/spoke/connect --token fresh-token --state llmbox-spoke.json",
+      command: "llmbox-spoke docker --hub wss://hub/spoke/connect --token fresh-token",
     }),
     createBox: vi.fn().mockResolvedValue({ box_id: "box-1", token: "tok" }),
     authPageURL: vi.fn().mockResolvedValue("https://hub/auth/tok"),
@@ -84,8 +83,7 @@ export function token(overrides: Partial<JoinTokenInfo> = {}): JoinTokenInfo {
     id: "abcdef012345",
     name: "edge-1",
     backend: "docker",
-    command:
-      "llmbox-spoke docker --hub wss://hub/spoke/connect --token <one-time-token> --state llmbox-spoke.json",
+    command: "llmbox-spoke docker --hub wss://hub/spoke/connect --token <one-time-token>",
     expires_at: "2099-01-01T00:00:00Z",
     ...overrides,
   };

@@ -32,13 +32,38 @@ import (
 )
 
 const (
-	// defaultSpokeStateFile is where a spoke persists the credential it is issued
-	// at first enrollment, so it can reconnect without the (one-time) join token.
-	defaultSpokeStateFile = "llmbox-spoke.json"
+	// spokeStateFileName is the file a spoke persists the credential it is issued
+	// at first enrollment in, so it can reconnect without the (one-time) join
+	// token. It lives in spokeStateDirName under the user's home by default (see
+	// defaultSpokeStatePath); --state overrides the full path.
+	spokeStateFileName = "llmbox-spoke.json"
+
+	// spokeStateDirName is the hidden directory under the user's home holding the
+	// spoke's state by default.
+	spokeStateDirName = ".llmbox"
 
 	// spokeReconnectMax bounds the exponential backoff between reconnect attempts.
 	spokeReconnectMax = 30 * time.Second
 )
+
+// defaultSpokeStatePath is the default credential file location:
+// ~/.llmbox/llmbox-spoke.json, a hidden directory under the user's home, so the
+// enrollment command the hub generates needs no --state flag and the credential
+// lands in a predictable per-user spot regardless of the working directory. When
+// the home directory cannot be resolved (e.g. a bare container user) it falls
+// back to the bare filename in the working directory, the historical default.
+// The --state flag overrides it either way.
+//
+// @return string The default credential file path.
+//
+// @testcase TestDefaultSpokeStatePath puts the default under the home directory and names the state file.
+func defaultSpokeStatePath() string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return spokeStateFileName
+	}
+	return filepath.Join(home, spokeStateDirName, spokeStateFileName)
+}
 
 // spokeOptions holds everything a running spoke needs, sourced entirely from
 // command-line flags. A spoke reads no config file: a spoke host runs a single
@@ -213,7 +238,7 @@ func newSpokeRunCmd(backendName, short string, addBackendFlags func(*pflag.FlagS
 func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.hubURL, "hub", "", "hub spoke-connect URL, e.g. wss://hub.example.com/spoke/connect")
 	f.StringVar(&o.token, "token", "", "one-time join token (only needed for first enrollment)")
-	f.StringVar(&o.statePath, "state", defaultSpokeStateFile, "file storing this spoke's issued credential")
+	f.StringVar(&o.statePath, "state", defaultSpokeStatePath(), "file storing this spoke's issued credential")
 	f.StringVar(&o.tlsCAFile, "tls-ca", "", "PEM CA bundle to trust for a wss:// hub with a private-CA or self-signed certificate")
 	f.BoolVar(&o.tlsInsecure, "tls-insecure", false, "skip TLS certificate verification when dialing a wss:// hub (testing only; prefer --tls-ca)")
 	f.StringVar(&o.box.Namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one host without collapsing each other's boxes; empty is unscoped")

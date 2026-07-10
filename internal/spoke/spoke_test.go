@@ -133,6 +133,20 @@ func TestNewRootCmd(t *testing.T) {
 	}
 }
 
+// TestDefaultSpokeStatePath checks the default credential location is the
+// hidden .llmbox directory under the user's home, so the generated enrollment
+// command needs no --state flag.
+func TestDefaultSpokeStatePath(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		t.Skip("no resolvable home directory in this environment")
+	}
+	want := filepath.Join(home, ".llmbox", "llmbox-spoke.json")
+	if got := defaultSpokeStatePath(); got != want {
+		t.Errorf("defaultSpokeStatePath() = %q, want %q", got, want)
+	}
+}
+
 // TestSpokeCredsRoundTrip checks saved spoke credentials round-trip through the
 // state file and that a missing file reads back as nil.
 func TestSpokeCredsRoundTrip(t *testing.T) {
