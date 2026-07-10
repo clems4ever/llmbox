@@ -1,0 +1,64 @@
+name: Release
+
+# On a `v*` tag push, cross-compile every llmbox binary and publish downloadable
+# archives to a GitHub Release via GoReleaser (see .goreleaser.yaml). This is how
+# a spoke (and the guest) reach a host that has no Docker or Go toolchain — a
+# Firecracker box host just downloads the static llmbox-spoke binary.
+#
+# Tests still run in the CI workflow (ci.yml also fires on `v*` tags), so this
+# workflow focuses on building and publishing the release artifacts.
+on:
+  push:
+    tags: ["v*"]
+  # Allow a dry run (build a snapshot, publish nothing) from the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    name: Build and publish release artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # GoReleaser needs the full history and tags to compute the version
+          # and changelog.
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node
+        # The GoReleaser `before` hook builds the admin SPA (web/) that the hub
+        # binary embeds, so Node must be available.
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          # On a tag push, publish the release. On a manual dispatch (no tag),
+          # build a snapshot and publish nothing.
+          args: >-
+            release --clean
+            ${{ startsWith(github.ref, 'refs/tags/') && ' ' || '--snapshot' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload snapshot artifacts (dry run only)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: llmbox-snapshot
+          path: dist/*.tar.gz
+          if-no-files-found: warn

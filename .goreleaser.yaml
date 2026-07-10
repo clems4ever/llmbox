@@ -1,0 +1,142 @@
+# GoReleaser configuration for llmbox.
+#
+# On a `v*` tag push, .github/workflows/release.yml runs `goreleaser release`,
+# which cross-compiles every binary, packs one archive per binary, and publishes
+# them to a GitHub Release. The point is to let people download a spoke (and the
+# guest) and run it on a plain host — no Docker, no Go toolchain — so a
+# Firecracker box host only needs the static llmbox-spoke binary. All binaries
+# are built with CGO disabled so the artifacts are fully static and portable.
+#
+# Try it locally without publishing:  goreleaser release --snapshot --clean
+version: 2
+
+project_name: llmbox
+
+before:
+  hooks:
+    # The hub (llmbox-server) embeds the admin SPA from internal/hub/webdist,
+    # which is generated (not committed). Build it before compiling so the
+    # go:embed pattern matches. Harmless for the other binaries.
+    - sh -c "cd web && npm ci && npm run build"
+    - go mod download
+
+builds:
+  # The hub server. Runs the central control plane + admin UI; can run anywhere,
+  # so it ships for linux and macOS.
+  - id: llmbox-server
+    main: ./cmd/llmbox-server
+    binary: llmbox-server
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  # The stand-alone MCP adapter. Pure protocol shim, so it ships broadly too.
+  - id: llmbox-mcp
+    main: ./cmd/llmbox-mcp
+    binary: llmbox-mcp
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  # The spoke — the box host agent. This is the primary artifact people download
+  # to run boxes on their own machine (Docker or Firecracker backend). Both
+  # backends are Linux-only, so the spoke ships for Linux only.
+  - id: llmbox-spoke
+    main: ./cmd/llmbox-spoke
+    binary: llmbox-spoke
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  # The in-box guest / microVM init. Normally baked into a box rootfs, but shipped
+  # here so a Firecracker host can assemble a rootfs from a released binary rather
+  # than build it. Linux-only. It has no main.version var, so no -X is injected.
+  - id: llmbox-guest
+    main: ./cmd/llmbox-guest
+    binary: llmbox-guest
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+# One archive per binary so users can grab just the piece they need (e.g. only
+# the spoke). tar.gz on every platform.
+archives:
+  - id: llmbox-server
+    ids: [llmbox-server]
+    name_template: "llmbox-server_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files:
+      - README.md
+      - LICENSE.md
+  - id: llmbox-mcp
+    ids: [llmbox-mcp]
+    name_template: "llmbox-mcp_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files:
+      - README.md
+      - LICENSE.md
+  - id: llmbox-spoke
+    ids: [llmbox-spoke]
+    name_template: "llmbox-spoke_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files:
+      - README.md
+      - LICENSE.md
+      - docs/firecracker.md
+      - docs/hub-and-spoke.md
+  - id: llmbox-guest
+    ids: [llmbox-guest]
+    name_template: "llmbox-guest_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files:
+      - README.md
+      - LICENSE.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "Merge pull request"
+
+release:
+  # Publish as a draft so the maintainer can review the notes and assets before
+  # making the release public. Flip to false to publish immediately.
+  draft: true
+  prerelease: auto
