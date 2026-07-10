@@ -123,7 +123,8 @@ func createJoinToken(out io.Writer, stateFile, spokeName string, ttl time.Durati
 	}
 	defer func() { _ = store.Close() }()
 
-	token, err := cluster.CreateJoinToken(store, spokeName, ttl, time.Now())
+	// The printed start command is the docker one, so record docker on the token.
+	token, err := cluster.CreateJoinToken(store, spokeName, "docker", ttl, time.Now())
 	if err != nil {
 		return err
 	}

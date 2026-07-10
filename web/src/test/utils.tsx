@@ -71,9 +71,18 @@ export function spoke(overrides: Partial<SpokeStatus> = {}): SpokeStatus {
   return { name: "edge-1", connected: true, enrolled_at: "2026-01-02T03:04:05Z", ...overrides };
 }
 
-/** token builds a JoinTokenInfo with defaults (a far-future expiry). */
+/** token builds a JoinTokenInfo with defaults (a far-future expiry, and the
+ * placeholder command the server re-renders for outstanding tokens). */
 export function token(overrides: Partial<JoinTokenInfo> = {}): JoinTokenInfo {
-  return { id: "abcdef012345", name: "edge-1", expires_at: "2099-01-01T00:00:00Z", ...overrides };
+  return {
+    id: "abcdef012345",
+    name: "edge-1",
+    backend: "docker",
+    command:
+      "llmbox-spoke docker --hub wss://hub/spoke/connect --token <one-time-token> --state llmbox-spoke.json",
+    expires_at: "2099-01-01T00:00:00Z",
+    ...overrides,
+  };
 }
 
 /** proxy builds a ProxyInfo with defaults. */

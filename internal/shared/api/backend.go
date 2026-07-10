@@ -73,12 +73,20 @@ type SpokeEnrollment struct {
 	Command string `json:"command" jsonschema:"the copy-pasteable command that starts the spoke and enrolls it"`
 }
 
+// TokenPlaceholder stands in for the join-token secret in commands re-rendered
+// after creation: the secret is stored only hashed, so once the create response
+// is gone it can never be shown again.
+const TokenPlaceholder = "<one-time-token>"
+
 // JoinTokenInfo describes one outstanding spoke join token: an opaque ID to
-// revoke it by, the spoke name it enrolls, and its expiry. The token secret is
-// never recoverable.
+// revoke it by, the spoke name it enrolls, the box backend recorded at
+// creation, the enrollment command with TokenPlaceholder standing in for the
+// secret, and its expiry. The token secret is never recoverable.
 type JoinTokenInfo struct {
 	ID        string    `json:"id" jsonschema:"the opaque token ID used to revoke it"`
 	Name      string    `json:"name" jsonschema:"the spoke name the token enrolls"`
+	Backend   string    `json:"backend" jsonschema:"the box backend recorded when the token was created"`
+	Command   string    `json:"command" jsonschema:"the enrollment command with <one-time-token> in place of the secret (the real token is shown only at creation)"`
 	ExpiresAt time.Time `json:"expires_at" jsonschema:"when the token stops being accepted"`
 }
 

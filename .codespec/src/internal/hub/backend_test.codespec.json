@@ -32,9 +32,9 @@
 		},
 		{
 			"function_name": "TestBackendJoinTokens",
-			"documentation_hash": "b4f2bccff15e480821c7acdada8206302d1fb58d0f9139bdc40c4dd37093de4a",
-			"definition_hash": "62f77db8950517bd9c58c4645ca45a46f9d67ae41e4b535255055f9e158f5cdd",
-			"reviewed_at": "2026-07-08T13:00:47.566719764Z"
+			"documentation_hash": "e444dfcf6c537ee0f67eed3744154d652ae934bbba15d1c66e7b008eb23e4143",
+			"definition_hash": "9f9170c48083ab2ca79b5ef38b87d3aed29b8d685b0f51e03847821bcbda25ad",
+			"reviewed_at": "2026-07-10T15:05:33.259892585Z"
 		},
 		{
 			"function_name": "TestCreateProxyRecordsPrincipal",

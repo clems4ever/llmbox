@@ -122,8 +122,9 @@ func (b apiBackend) ListBoxes(_ context.Context) ([]api.BoxView, error) {
 
 // CreateSpoke mints a one-time join token enrolling a new spoke and returns it
 // with the ready-to-run start command. backend picks the command's box backend
-// and is validated here ("docker" or "firecracker"; empty means docker); ttl<=0
-// uses the admin default.
+// and is validated here ("docker" or "firecracker"; empty means docker); it is
+// also recorded on the stored token so setup instructions can be re-rendered
+// later. ttl<=0 uses the admin default.
 //
 // @arg _ Context (unused; the store write is synchronous).
 // @arg name The spoke name to enroll.
@@ -144,7 +145,7 @@ func (b apiBackend) CreateSpoke(_ context.Context, name, backend string, ttl tim
 	if ttl <= 0 {
 		ttl = defaultAdminTokenTTL
 	}
-	token, err := b.s.createSpoke(name, ttl)
+	token, err := b.s.createSpoke(name, backend, ttl)
 	if err != nil {
 		return api.SpokeEnrollment{}, err
 	}
@@ -175,13 +176,17 @@ func (b apiBackend) SetDefaultSpoke(_ context.Context, name string) error {
 	return b.s.chooseDefaultSpoke(name)
 }
 
-// ListJoinTokens returns every outstanding spoke join token.
+// ListJoinTokens returns every outstanding spoke join token, each carrying its
+// recorded backend and the enrollment command with TokenPlaceholder standing in
+// for the secret — the token itself is stored only hashed and is never
+// recoverable, so the placeholder command is all that can be re-shown after
+// creation.
 //
 // @arg _ Context (unused; the store read is synchronous).
 // @return []api.JoinTokenInfo The outstanding join tokens.
 // @error error if the tokens cannot be read.
 //
-// @testcase TestBackendJoinTokens lists tokens through the backend.
+// @testcase TestBackendJoinTokens lists tokens with their backend and placeholder command.
 func (b apiBackend) ListJoinTokens(_ context.Context) ([]api.JoinTokenInfo, error) {
 	tokens, err := b.s.store.ListJoinTokens()
 	if err != nil {
@@ -189,7 +194,19 @@ func (b apiBackend) ListJoinTokens(_ context.Context) ([]api.JoinTokenInfo, erro
 	}
 	out := make([]api.JoinTokenInfo, len(tokens))
 	for i, t := range tokens {
-		out[i] = api.JoinTokenInfo{ID: t.ID, Name: t.Name, ExpiresAt: t.ExpiresAt}
+		backend := t.Backend
+		if backend == "" {
+			// Tokens minted before the backend was recorded default to docker,
+			// matching what CreateSpoke defaulted to when they were created.
+			backend = "docker"
+		}
+		out[i] = api.JoinTokenInfo{
+			ID:        t.ID,
+			Name:      t.Name,
+			Backend:   backend,
+			Command:   b.s.spokeRunCommand(api.TokenPlaceholder, backend),
+			ExpiresAt: t.ExpiresAt,
+		}
 	}
 	return out, nil
 }

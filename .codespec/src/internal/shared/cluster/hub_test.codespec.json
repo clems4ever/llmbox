@@ -9,8 +9,8 @@
 		{
 			"function_name": "TestHubEnrollAndRoute",
 			"documentation_hash": "558dabc7f7337c0fa491def90d3b5bdd90a75d8d403227877323f1be61723d48",
-			"definition_hash": "bbbc38116bd2fd69ff0eb94f8c79775694ade5790e962a678007aadac6f1b1ca",
-			"reviewed_at": "2026-07-08T14:50:26.47683578Z"
+			"definition_hash": "368ee8c7a1408dbe3cd083288cf32d7e97f780ba43f49ea4dc56b130023d67dc",
+			"reviewed_at": "2026-07-10T15:06:02.92908306Z"
 		},
 		{
 			"function_name": "TestHubRejectsBadEnrollment",

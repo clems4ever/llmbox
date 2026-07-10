@@ -94,8 +94,8 @@
 			"function_name": "connectSpoke",
 			"receiver": "clusterBrowserEnv",
 			"documentation_hash": "f85262433f6217521df25a70a337bb5c6835e51b4c37c6bf257b8a695d90147f",
-			"definition_hash": "43e72a243770251b46146c1ab255188e2ed434de09d2a1b8024c83b0cd2a342d",
-			"reviewed_at": "2026-06-27T10:01:08.713390308Z"
+			"definition_hash": "0a0b014325616ee1f51194961556d87487d57dda08c708036e8c0a48de080c65",
+			"reviewed_at": "2026-07-10T15:05:33.236046297Z"
 		},
 		{
 			"function_name": "createBox",

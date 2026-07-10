@@ -4,8 +4,8 @@
 			"function_name": "connectSpoke",
 			"receiver": "clusterFixture",
 			"documentation_hash": "a308e5419168b6de8d0fab3b59f1532b9a7f018dfcef57ef6b4b6e1ec8125ffd",
-			"definition_hash": "7225bb1cafc5e5d915bc6bd8066705677f82105307792f428ac39c58e6f2ac96",
-			"reviewed_at": "2026-07-08T09:43:14.64431253Z"
+			"definition_hash": "0bd51577e9561199671dc7f53249b640f4750a67d1410b71c3660d2c3423c47e",
+			"reviewed_at": "2026-07-10T15:05:33.230271607Z"
 		},
 		{
 			"function_name": "signInAdmin",

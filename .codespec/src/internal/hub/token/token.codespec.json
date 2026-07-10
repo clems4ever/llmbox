@@ -9,8 +9,8 @@
 		{
 			"function_name": "createJoinToken",
 			"documentation_hash": "584acbb1b3db46c29285f8e8205ce08e91bc80952b38a9d948820bd5008b27b8",
-			"definition_hash": "3df358cfff5eee7110b22d314aad70677ba56dc1a6f863b10165f9cc2435f102",
-			"reviewed_at": "2026-07-07T19:32:17.972212028Z"
+			"definition_hash": "699ae19cacb5bbd3ce92b7a9849b465a0d956b330d97af355bfe4d0264135753",
+			"reviewed_at": "2026-07-10T15:06:02.918767214Z"
 		},
 		{
 			"function_name": "listJoinTokens",

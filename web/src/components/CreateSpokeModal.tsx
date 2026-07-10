@@ -1,13 +1,11 @@
 // CreateSpokeModal is the "New runner" form (a runner is the UI name for a
-// spoke). On submit it enrolls the spoke and swaps to a result panel showing
-// the one-time enrollment command to run on the runner host — the token is
-// shown only once, so copy-to-clipboard is front and centre. Closing refreshes
+// spoke). On submit it enrolls the spoke and swaps to a result panel with the
+// setup instructions (run command, or a systemd service script) — the token is
+// shown only once, so getting it copied is front and centre. Closing refreshes
 // so the pending (offline) runner appears in the list.
 import { useState } from "react";
 import {
   Button,
-  Code,
-  CopyButton,
   Group,
   Modal,
   NativeSelect,
@@ -15,9 +13,9 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { IconCheck, IconCopy } from "@tabler/icons-react";
 import type { Api } from "../api";
 import { perform } from "../lib/actions";
+import { SpokeSetupTabs } from "./SpokeSetupTabs";
 
 export interface CreateSpokeModalProps {
   api: Api;
@@ -67,30 +65,15 @@ export function CreateSpokeModal({
   };
 
   return (
-    <Modal opened={opened} onClose={close} title="New runner" centered>
+    <Modal opened={opened} onClose={close} title="New runner" centered size="lg">
       {created ? (
         <Stack gap="sm">
           <Text size="sm">
-            Run this on the <Text span fw={600}>{created.name}</Text> host — the token is
-            shown only once.
+            Set this up on the <Text span fw={600}>{created.name}</Text> host — the token
+            is shown only once.
           </Text>
-          <Code block>{created.command}</Code>
-          <Text c="dimmed" size="xs">
-            After first enrollment the runner reconnects from its saved credential; the
-            token is one-time.
-          </Text>
+          <SpokeSetupTabs command={created.command} />
           <Group justify="flex-end">
-            <CopyButton value={created.command}>
-              {({ copied, copy }) => (
-                <Button
-                  variant="default"
-                  leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                  onClick={copy}
-                >
-                  {copied ? "Copied" : "Copy command"}
-                </Button>
-              )}
-            </CopyButton>
             <Button variant="subtle" onClick={close}>Done</Button>
           </Group>
         </Stack>

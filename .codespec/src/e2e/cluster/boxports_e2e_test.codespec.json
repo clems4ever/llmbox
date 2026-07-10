@@ -4,8 +4,8 @@
 			"function_name": "connectSpokeWithCaller",
 			"receiver": "clusterFixture",
 			"documentation_hash": "fecfa18393aa3f207e09d9e9a5fe64ca8fb2b7d9280beb0a857a518071ad52eb",
-			"definition_hash": "8592199f17b23b68d09cac055f093c4e11d0647dea39aebde86ed12035663534",
-			"reviewed_at": "2026-07-08T14:54:24.419953456Z"
+			"definition_hash": "6155de34805a2f64fffd6106fc80ea88b6ba63adb5ef174f8acf30aeb210d205",
+			"reviewed_at": "2026-07-10T15:05:33.21924708Z"
 		},
 		{
 			"function_name": "callerOpenPort",

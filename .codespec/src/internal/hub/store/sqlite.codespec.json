@@ -8,9 +8,9 @@
 		},
 		{
 			"function_name": "openSQLite",
-			"documentation_hash": "33fb43945bfcc77558f1cfbf4c3abdcdc692c4512116ed2a2145d8239c4095bb",
-			"definition_hash": "630106115aa4666bc4bdd5fbbd074ac445cc3d51b1ac87cf2e503831c908922b",
-			"reviewed_at": "2026-07-10T10:15:11.421552002Z"
+			"documentation_hash": "8b5f2f376a52534c406e0fe77e947000f58b2383a58d59473c008d37af435aea",
+			"definition_hash": "1fe37d4015da2582d64e4c718aac06066966a212bc8447e0ca07ab83b7e3daea",
+			"reviewed_at": "2026-07-10T15:06:02.889406639Z"
 		},
 		{
 			"function_name": "encodeTime",
@@ -41,22 +41,22 @@
 			"function_name": "PutJoinToken",
 			"receiver": "sqliteStore",
 			"documentation_hash": "684c8bb3e57ad0ea2574f8d7e599d49b06e8fbb485b760c56c2fa737b885b9db",
-			"definition_hash": "011490ca058c66ceb40844557bee8aca0189d47a39bc90a175de549d14a596e8",
-			"reviewed_at": "2026-07-09T18:10:52.574545711Z"
+			"definition_hash": "883421dd474071c107d3166bfb438daca717dd7c8d87c6ad55da0a242d9ac50f",
+			"reviewed_at": "2026-07-10T15:06:02.901427137Z"
 		},
 		{
 			"function_name": "TakeJoinToken",
 			"receiver": "sqliteStore",
 			"documentation_hash": "41a722df794748b83a88addbd7dbc39ebc937ca6635eb956e1965692718851d3",
-			"definition_hash": "63627b9d98168f1770c42ef1e4a451b79ac38aea4e96c9fe0b01db0c111c1932",
-			"reviewed_at": "2026-07-09T18:10:52.576346051Z"
+			"definition_hash": "5b6fc57e20b025999547581e10ad0e6c337d3d0788b5691d631778cc5365a6f7",
+			"reviewed_at": "2026-07-10T15:06:02.907385024Z"
 		},
 		{
 			"function_name": "ListJoinTokens",
 			"receiver": "sqliteStore",
-			"documentation_hash": "a919bee97789d08211e0f4f5558f4ed14fe264e0f5c5cffc16bc8ec54e293385",
-			"definition_hash": "8eba1a35914b278f8df65f8f3a6460d6f0a50caaa0251d3eb1f9019caa218c5c",
-			"reviewed_at": "2026-07-09T18:10:52.577696639Z"
+			"documentation_hash": "c41879e76abc6914f823541d072f52c257d7c2994a884e69a50a6c29863e03e8",
+			"definition_hash": "28d986e7c97905790aa7b3796389b7f475bb496a3f50acf8ec799f6410e21b0a",
+			"reviewed_at": "2026-07-10T15:06:02.913429528Z"
 		},
 		{
 			"function_name": "DeleteJoinToken",
@@ -225,6 +225,12 @@
 			"documentation_hash": "515f3711b338a9f06a97361e6d89b3e730320526de519eb220597360814c6b86",
 			"definition_hash": "15abd97050a8166d618f7c8ec329fef9b7fa0acff8c4c6d95fc44d32191510e2",
 			"reviewed_at": "2026-07-09T18:10:52.573264023Z"
+		},
+		{
+			"function_name": "migrate",
+			"documentation_hash": "3d41d30687c078eaf6866485331384b584913791068162a9a65fa6b1c1a8afee",
+			"definition_hash": "e64c1a25adeaa11aef76d14e7e6a2225132bee8b87eb7a91b54c19a652aa7279",
+			"reviewed_at": "2026-07-10T15:06:02.895397258Z"
 		}
 	]
 }

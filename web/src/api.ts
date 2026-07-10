@@ -19,6 +19,11 @@ export interface SpokeStatus {
 export interface JoinTokenInfo {
   id: string;
   name: string;
+  // The box backend recorded when the token was created (docker/firecracker).
+  backend: string;
+  // The enrollment command with "<one-time-token>" in place of the secret —
+  // the real token is shown only in the create response and never recoverable.
+  command: string;
   expires_at: string;
 }
 

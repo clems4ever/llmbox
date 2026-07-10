@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
@@ -151,12 +152,14 @@ func TestBackendSetDefaultSpoke(t *testing.T) {
 	}
 }
 
-// TestBackendJoinTokens checks the backend lists outstanding join tokens and
-// revokes one by ID.
+// TestBackendJoinTokens checks the backend lists outstanding join tokens —
+// each with its recorded backend and a placeholder enrollment command (never
+// the secret; a token stored without a backend lists as docker) — and revokes
+// one by ID.
 func TestBackendJoinTokens(t *testing.T) {
 	s, _, st := newAdminServer(t)
 	b := s.boxBackend()
-	if _, err := cluster.CreateJoinToken(st, "edge", time.Hour, time.Now()); err != nil {
+	if _, err := cluster.CreateJoinToken(st, "edge", "firecracker", time.Hour, time.Now()); err != nil {
 		t.Fatalf("CreateJoinToken: %v", err)
 	}
 
@@ -164,6 +167,32 @@ func TestBackendJoinTokens(t *testing.T) {
 	if err != nil || len(tokens) != 1 || tokens[0].Name != "edge" || tokens[0].ID == "" {
 		t.Fatalf("ListJoinTokens = %+v (%v), want one for edge", tokens, err)
 	}
+	if tokens[0].Backend != "firecracker" {
+		t.Errorf("backend = %q, want firecracker", tokens[0].Backend)
+	}
+	if !strings.Contains(tokens[0].Command, "llmbox-spoke firecracker --hub") ||
+		!strings.Contains(tokens[0].Command, "--token "+api.TokenPlaceholder) {
+		t.Errorf("command = %q, want a firecracker command carrying the token placeholder", tokens[0].Command)
+	}
+
+	// A token stored before the backend was recorded (empty backend) lists with
+	// the docker default, matching what CreateSpoke defaulted to back then.
+	if err := st.PutJoinToken("legacyhash", cluster.JoinTokenRecord{Name: "old-edge", ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+		t.Fatalf("PutJoinToken: %v", err)
+	}
+	all, err := b.ListJoinTokens(context.Background())
+	if err != nil || len(all) != 2 {
+		t.Fatalf("ListJoinTokens with legacy = %+v (%v), want 2", all, err)
+	}
+	for _, tok := range all {
+		if tok.Name == "old-edge" && (tok.Backend != "docker" || !strings.Contains(tok.Command, "llmbox-spoke docker --hub")) {
+			t.Errorf("legacy token = %+v, want the docker default", tok)
+		}
+	}
+	if err := st.DeleteJoinToken("legacyhash"); err != nil {
+		t.Fatalf("DeleteJoinToken: %v", err)
+	}
+
 	if err := b.RevokeJoinToken(context.Background(), tokens[0].ID); err != nil {
 		t.Fatalf("RevokeJoinToken: %v", err)
 	}

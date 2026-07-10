@@ -10,7 +10,7 @@ import (
 func TestCreateJoinTokenStoresHash(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(1_000, 0)
-	tok, err := CreateJoinToken(store, "edge", time.Hour, now)
+	tok, err := CreateJoinToken(store, "edge", "docker", time.Hour, now)
 	if err != nil {
 		t.Fatalf("CreateJoinToken: %v", err)
 	}
@@ -24,21 +24,21 @@ func TestCreateJoinTokenStoresHash(t *testing.T) {
 	if _, plain := store.join[tok]; plain {
 		t.Error("token stored in plaintext form")
 	}
-	if rec.Name != "edge" || !rec.ExpiresAt.Equal(now.Add(time.Hour)) {
+	if rec.Name != "edge" || rec.Backend != "docker" || !rec.ExpiresAt.Equal(now.Add(time.Hour)) {
 		t.Errorf("stored record = %+v", rec)
 	}
 }
 
 // TestCreateJoinTokenRejectsEmptyName is a package test.
 func TestCreateJoinTokenRejectsEmptyName(t *testing.T) {
-	if _, err := CreateJoinToken(newMemStore(), "", time.Hour, time.Now()); err == nil {
+	if _, err := CreateJoinToken(newMemStore(), "", "docker", time.Hour, time.Now()); err == nil {
 		t.Fatal("expected error for empty name")
 	}
 }
 
 // TestCreateJoinTokenRejectsTTL is a package test.
 func TestCreateJoinTokenRejectsTTL(t *testing.T) {
-	if _, err := CreateJoinToken(newMemStore(), "edge", 0, time.Now()); err == nil {
+	if _, err := CreateJoinToken(newMemStore(), "edge", "docker", 0, time.Now()); err == nil {
 		t.Fatal("expected error for non-positive ttl")
 	}
 }
@@ -47,7 +47,7 @@ func TestCreateJoinTokenRejectsTTL(t *testing.T) {
 func TestEnrollWithJoinTokenMintsCredential(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(2_000, 0)
-	tok, err := CreateJoinToken(store, "edge", time.Hour, now)
+	tok, err := CreateJoinToken(store, "edge", "docker", time.Hour, now)
 	if err != nil {
 		t.Fatalf("CreateJoinToken: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestEnrollWithJoinTokenMintsCredential(t *testing.T) {
 func TestEnrollRejectsExpiredToken(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(3_000, 0)
-	tok, _ := CreateJoinToken(store, "edge", time.Minute, now)
+	tok, _ := CreateJoinToken(store, "edge", "docker", time.Minute, now)
 	_, _, err := authenticateEnroll(store, enrollReq{JoinToken: tok}, now.Add(2*time.Minute))
 	if !errors.Is(err, errEnrollRejected) {
 		t.Fatalf("err = %v, want errEnrollRejected", err)
@@ -100,7 +100,7 @@ func TestEnrollRejectsUnknownToken(t *testing.T) {
 func TestEnrollReusedTokenRejected(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(4_000, 0)
-	tok, _ := CreateJoinToken(store, "edge", time.Hour, now)
+	tok, _ := CreateJoinToken(store, "edge", "docker", time.Hour, now)
 	if _, _, err := authenticateEnroll(store, enrollReq{JoinToken: tok}, now); err != nil {
 		t.Fatalf("first enroll: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestEnrollReusedTokenRejected(t *testing.T) {
 func TestReconnectChecksCredential(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(5_000, 0)
-	tok, _ := CreateJoinToken(store, "edge", time.Hour, now)
+	tok, _ := CreateJoinToken(store, "edge", "docker", time.Hour, now)
 	_, cred, err := authenticateEnroll(store, enrollReq{JoinToken: tok}, now)
 	if err != nil {
 		t.Fatalf("enroll: %v", err)

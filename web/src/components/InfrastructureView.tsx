@@ -11,6 +11,7 @@ import {
   Box,
   Button,
   Group,
+  Modal,
   Paper,
   Skeleton,
   Stack,
@@ -19,13 +20,14 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import { IconPlus, IconStar, IconTrash } from "@tabler/icons-react";
-import type { Api, SpokeStatus } from "../api";
+import { IconInfoCircle, IconPlus, IconStar, IconTrash } from "@tabler/icons-react";
+import type { Api, JoinTokenInfo, SpokeStatus } from "../api";
 import type { DashboardData } from "../lib/data";
 import { isExpired, shortTime } from "../lib/format";
 import { perform } from "../lib/actions";
 import { confirmDestroy } from "../lib/confirm";
 import { CreateSpokeModal } from "./CreateSpokeModal";
+import { SpokeSetupTabs } from "./SpokeSetupTabs";
 
 export interface InfrastructureViewProps {
   api: Api;
@@ -185,8 +187,11 @@ interface TokensCardProps {
   refresh: () => Promise<void>;
 }
 
-/** TokensCard renders the outstanding join tokens with revoke controls. */
+/** TokensCard renders the outstanding join tokens with per-token setup
+ * instructions (re-shown with a token placeholder) and revoke controls. */
 function TokensCard({ api, data, refresh }: TokensCardProps): JSX.Element {
+  const [setupToken, setSetupToken] = useState<JoinTokenInfo | null>(null);
+
   const revoke = (id: string) =>
     confirmDestroy({
       title: "Revoke join token",
@@ -226,23 +231,45 @@ function TokensCard({ api, data, refresh }: TokensCardProps): JSX.Element {
                   </Group>
                 </Table.Td>
                 <Table.Td ta="right">
-                  <Tooltip label="Revoke token">
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      data-token-revoke={tok.id}
-                      aria-label="Revoke token"
-                      onClick={() => revoke(tok.id)}
-                    >
-                      <IconTrash size={16} />
-                    </ActionIcon>
-                  </Tooltip>
+                  <Group gap="xs" justify="flex-end" wrap="nowrap">
+                    <Tooltip label="Setup instructions">
+                      <ActionIcon
+                        variant="subtle"
+                        data-token-info={tok.id}
+                        aria-label={`Setup instructions for ${tok.name}`}
+                        onClick={() => setSetupToken(tok)}
+                      >
+                        <IconInfoCircle size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Revoke token">
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        data-token-revoke={tok.id}
+                        aria-label="Revoke token"
+                        onClick={() => revoke(tok.id)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
                 </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
+
+      <Modal
+        opened={setupToken !== null}
+        onClose={() => setSetupToken(null)}
+        title={setupToken ? `Runner setup — ${setupToken.name}` : ""}
+        centered
+        size="lg"
+      >
+        {setupToken && <SpokeSetupTabs command={setupToken.command} />}
+      </Modal>
     </Paper>
   );
 }

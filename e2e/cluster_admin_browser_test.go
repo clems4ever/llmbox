@@ -244,7 +244,7 @@ type browserRemote struct {
 // @return *browserRemote A handle to the spoke.
 func (e *clusterBrowserEnv) connectSpoke(name string) *browserRemote {
 	e.t.Helper()
-	joinToken, err := cluster.CreateJoinToken(e.store, name, time.Hour, time.Now())
+	joinToken, err := cluster.CreateJoinToken(e.store, name, "docker", time.Hour, time.Now())
 	if err != nil {
 		e.t.Fatalf("create join token: %v", err)
 	}

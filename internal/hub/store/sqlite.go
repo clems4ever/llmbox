@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS oidc_flows (
 CREATE TABLE IF NOT EXISTS spoke_join_tokens (
 	secret_hash TEXT PRIMARY KEY,
 	name        TEXT NOT NULL,
+	backend     TEXT NOT NULL DEFAULT '',
 	expires_at  TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS spokes (
@@ -115,7 +116,8 @@ type sqliteStore struct {
 func Open(path string) (Store, error) { return openSQLite(path) }
 
 // openSQLite opens (creating if needed) a SQLite database at path, applies the
-// pragmas for durable concurrent use, and ensures every table exists.
+// pragmas for durable concurrent use, ensures every table exists, and migrates
+// tables created by earlier builds up to the current schema.
 //
 // @arg path The filesystem path to the SQLite database file.
 // @return *sqliteStore A ready-to-use store backed by the opened database.
@@ -137,6 +139,10 @@ func openSQLite(path string) (*sqliteStore, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("initializing store %q: %w", path, err)
 	}
+	if err := migrate(db); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("migrating store %q: %w", path, err)
+	}
 	// The state file (and its WAL sidecars) holds session data and secret hashes;
 	// restrict it to the owner. Running the schema above has created all three
 	// files by now. chmod on every open also repairs a file left world-readable by
@@ -150,6 +156,31 @@ func openSQLite(path string) (*sqliteStore, error) {
 		}
 	}
 	return &sqliteStore{db: db}, nil
+}
+
+// migrate brings a database created by an earlier build up to the current
+// schema. The schema's CREATE TABLE IF NOT EXISTS statements only cover new
+// databases; columns added later must be retrofitted here. Each step probes the
+// live schema and applies only when missing, so migrate is idempotent.
+//
+// @arg db The opened database to migrate.
+// @error error if probing the schema or applying a migration fails.
+//
+// @testcase TestOpenMigratesJoinTokenBackend opens a pre-backend-column database and finds the column added.
+func migrate(db *sql.DB) error {
+	// spoke_join_tokens.backend was added after the table shipped; older files
+	// lack it ('' means the backend was never recorded — treated as docker).
+	var n int
+	err := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('spoke_join_tokens') WHERE name = 'backend'`).Scan(&n)
+	if err != nil {
+		return fmt.Errorf("probing spoke_join_tokens.backend: %w", err)
+	}
+	if n == 0 {
+		if _, err := db.Exec(`ALTER TABLE spoke_join_tokens ADD COLUMN backend TEXT NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("adding spoke_join_tokens.backend: %w", err)
+		}
+	}
+	return nil
 }
 
 // encodeTime renders a time as a string the same way encoding/json does
@@ -438,9 +469,9 @@ func (s *sqliteStore) PurgeExpiredIdentities(now time.Time) error {
 // @testcase TestClusterStoreJoinTokenRoundTrip stores and takes a join token.
 func (s *sqliteStore) PutJoinToken(hash string, rec cluster.JoinTokenRecord) error {
 	_, err := s.db.Exec(`
-		INSERT INTO spoke_join_tokens (secret_hash, name, expires_at) VALUES (?, ?, ?)
-		ON CONFLICT(secret_hash) DO UPDATE SET name=excluded.name, expires_at=excluded.expires_at`,
-		hash, rec.Name, encodeTime(rec.ExpiresAt))
+		INSERT INTO spoke_join_tokens (secret_hash, name, backend, expires_at) VALUES (?, ?, ?, ?)
+		ON CONFLICT(secret_hash) DO UPDATE SET name=excluded.name, backend=excluded.backend, expires_at=excluded.expires_at`,
+		hash, rec.Name, rec.Backend, encodeTime(rec.ExpiresAt))
 	if err != nil {
 		return fmt.Errorf("saving join token: %w", err)
 	}
@@ -462,8 +493,8 @@ func (s *sqliteStore) TakeJoinToken(hash string) (cluster.JoinTokenRecord, bool,
 		expiresAt string
 	)
 	err := s.db.QueryRow(`
-		DELETE FROM spoke_join_tokens WHERE secret_hash = ? RETURNING name, expires_at`, hash).
-		Scan(&rec.Name, &expiresAt)
+		DELETE FROM spoke_join_tokens WHERE secret_hash = ? RETURNING name, backend, expires_at`, hash).
+		Scan(&rec.Name, &rec.Backend, &expiresAt)
 	if err == sql.ErrNoRows {
 		return cluster.JoinTokenRecord{}, false, nil
 	}
@@ -476,15 +507,15 @@ func (s *sqliteStore) TakeJoinToken(hash string) (cluster.JoinTokenRecord, bool,
 	return rec, true, nil
 }
 
-// ListJoinTokens returns every outstanding join token (hash ID, spoke name, and
-// expiry).
+// ListJoinTokens returns every outstanding join token (hash ID, spoke name,
+// recorded backend, and expiry).
 //
 // @return []cluster.JoinTokenInfo One entry per stored join token.
 // @error error if the query or scanning fails.
 //
 // @testcase TestClusterStoreJoinTokenListAndDelete lists and revokes join tokens.
 func (s *sqliteStore) ListJoinTokens() ([]cluster.JoinTokenInfo, error) {
-	rows, err := s.db.Query(`SELECT secret_hash, name, expires_at FROM spoke_join_tokens`)
+	rows, err := s.db.Query(`SELECT secret_hash, name, backend, expires_at FROM spoke_join_tokens`)
 	if err != nil {
 		return nil, fmt.Errorf("listing join tokens: %w", err)
 	}
@@ -495,7 +526,7 @@ func (s *sqliteStore) ListJoinTokens() ([]cluster.JoinTokenInfo, error) {
 			info      cluster.JoinTokenInfo
 			expiresAt string
 		)
-		if err := rows.Scan(&info.ID, &info.Name, &expiresAt); err != nil {
+		if err := rows.Scan(&info.ID, &info.Name, &info.Backend, &expiresAt); err != nil {
 			return nil, fmt.Errorf("scanning join token: %w", err)
 		}
 		if info.ExpiresAt, err = decodeTime(expiresAt); err != nil {

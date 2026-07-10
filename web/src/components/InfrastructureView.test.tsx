@@ -61,6 +61,28 @@ describe("InfrastructureView", () => {
     await waitFor(() => expect(api.revokeJoinToken).toHaveBeenCalledWith("abcdef012345xyz"));
   });
 
+  it("re-shows setup instructions for a token with a placeholder and notice", async () => {
+    const data = dashboardData({
+      spokes: [spoke()],
+      tokens: [token({ name: "edge-1" })],
+    });
+    const { user } = render(<InfrastructureView api={mockApi()} data={data} refresh={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Setup instructions for edge-1" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Runner setup — edge-1" });
+    // The command is re-rendered with the placeholder, never the secret...
+    expect(within(dialog).getByText(/--token <one-time-token>/)).toBeInTheDocument();
+    // ...and the notice explains the token was shown only at creation.
+    expect(
+      within(dialog).getByText(/shown only when the runner was created/),
+    ).toBeInTheDocument();
+    // The systemd tab is offered here too.
+    await user.click(within(dialog).getByRole("tab", { name: "systemd service" }));
+    expect(
+      await within(dialog).findByText(/sudo systemctl enable --now llmbox-spoke\.service/),
+    ).toBeInTheDocument();
+  });
+
   it("opens the create-runner modal", async () => {
     const { user } = render(<InfrastructureView api={mockApi()} data={dashboardData()} refresh={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "New runner" }));

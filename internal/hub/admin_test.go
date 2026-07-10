@@ -151,7 +151,7 @@ func TestDropSpokeRemovesAndKicks(t *testing.T) {
 	if err := st.PutSpoke("edge", cluster.SpokeRecord{Name: "edge", EnrolledAt: time.Now()}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := cluster.CreateJoinToken(st, "edge", time.Hour, time.Now()); err != nil {
+	if _, err := cluster.CreateJoinToken(st, "edge", "docker", time.Hour, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 

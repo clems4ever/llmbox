@@ -340,22 +340,25 @@ func (s *Server) SetDefaultSpoke(name string) error {
 }
 
 // createSpoke mints a one-time join token that enrolls a new spoke under name,
-// valid for ttl. It is the spoke-creation operation admin (and any future
-// authorized caller) share, sitting alongside createBox/createProxy as the
-// server's single home for the operation; the copy-pasteable run command is
-// presentation the caller builds from the returned token.
+// valid for ttl. backend is recorded on the token (presentation only) so setup
+// instructions can be re-rendered after creation. It is the spoke-creation
+// operation admin (and any future authorized caller) share, sitting alongside
+// createBox/createProxy as the server's single home for the operation; the
+// copy-pasteable run command is presentation the caller builds from the
+// returned token.
 //
 // @arg name The spoke name to enroll; must be non-empty.
+// @arg backend The box backend recorded on the token; empty means docker.
 // @arg ttl How long the minted join token stays valid.
 // @return string The one-time join token.
 // @error error if the name is empty or the token cannot be minted.
 //
 // @testcase TestBackendCreateSpoke mints a token for a named spoke.
-func (s *Server) createSpoke(name string, ttl time.Duration) (string, error) {
+func (s *Server) createSpoke(name, backend string, ttl time.Duration) (string, error) {
 	if name == "" {
 		return "", errors.New("spoke name is required")
 	}
-	return cluster.CreateJoinToken(s.store, name, ttl, time.Now())
+	return cluster.CreateJoinToken(s.store, name, backend, ttl, time.Now())
 }
 
 // dropSpoke removes a spoke entirely: it deletes the enrollment record, revokes

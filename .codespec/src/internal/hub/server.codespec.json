@@ -256,9 +256,9 @@
 		{
 			"function_name": "createSpoke",
 			"receiver": "Server",
-			"documentation_hash": "e060379a88ca7724f9407ad5e62d289c38faa6137018e99706b1ead43bb0232a",
-			"definition_hash": "d2fdace7c0b44c5d62adb3cd5c4ba7c780cd5b958d620ee9fcdf8bfb28eab04d",
-			"reviewed_at": "2026-07-08T12:57:12.235155033Z"
+			"documentation_hash": "a7e281e89bd6c4a4b62da3dcce03f5c24a6d92f8348d7954ae037dd14fffe29a",
+			"definition_hash": "01f7d1c79699798d44c1a526fb34e6528983388f2f720a1e345e855822fe3210",
+			"reviewed_at": "2026-07-10T15:05:33.268735234Z"
 		},
 		{
 			"function_name": "dropSpoke",

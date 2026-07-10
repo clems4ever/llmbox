@@ -21,7 +21,7 @@ import (
 // @return *cluster.HubCaller The caller attached to the spoke's connection.
 func (f *clusterFixture) connectSpokeWithCaller(name string) (*fakeRemote, *cluster.HubCaller) {
 	f.t.Helper()
-	joinToken, err := cluster.CreateJoinToken(f.store, name, time.Hour, time.Now())
+	joinToken, err := cluster.CreateJoinToken(f.store, name, "docker", time.Hour, time.Now())
 	if err != nil {
 		f.t.Fatalf("create join token: %v", err)
 	}
