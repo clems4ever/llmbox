@@ -54,3 +54,37 @@ serves `llmbox-mcp`, scripts, and the admin web app:
   bootstraps this from `GET /api/v1/me`.
 
 With no sign-in provider configured, only API keys can authenticate API calls.
+
+## Trust model: the box-control API is single-tenant
+
+API authentication proves **who** is calling; it is not per-box
+**authorization**. Every authenticated principal — any valid API key, and any
+signed-in admin — can act on **every** box: `exec_llmbox` runs an arbitrary
+`/bin/sh -c` command in any box, `get_llmbox_logs` reads any box's console, and
+`destroy_llmbox` removes any box. There is deliberately no per-box ownership
+check: a box is not bound to the caller that created it.
+
+This is safe under one assumption, which llmbox **requires**: a single trusted
+tenant sits behind the box-control API. In the intended deployment `llmbox-mcp`
+runs behind an authenticating proxy (e.g. oauth2-proxy) that only lets one
+operator/organization through, so there is only ever one principal and "act on
+any box" means "act on your own boxes". Treat anything that can reach the
+box-control API — an API key, an admin cookie, or the identity the front proxy
+lets through — as **fully privileged over every box on the hub**.
+
+Two consequences follow from this boundary:
+
+- **`exec_llmbox` is credential-equivalent.** A command run in a box can read
+  that box's Claude credentials, so a caller with box-control access can reach
+  every box's secrets. Scope and guard API keys accordingly.
+- **Do not put mutually-distrusting users behind one hub.** Because there is no
+  per-box isolation, sharing a single hub (or a single API key) across several
+  users lets any of them exec into the others' boxes. For a multi-tenant setup,
+  run **one hub per tenant** — or add per-box owner-scoping first (binding each
+  box to the identity, e.g. the proxy's forwarded user, that created it).
+
+The box itself cannot reach the box-control API: each box runs on its own
+isolated network with only the reduced [box-port socket](proxy.md#box-initiated-port-publishing)
+mounted in, so a prompt-injected guest cannot call these verbs against any box,
+its own or another's. The trust boundary above is strictly about **external**
+callers of the box-control API, not the sandboxed guest.

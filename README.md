@@ -87,10 +87,15 @@ arguments and return values.
   the intended model; be deliberate about who you let create boxes.
 - [Activation auth](docs/authentication.md) gates *activation* (closing the
   leaked-token hijack), and every box-control API call (creation included)
-  requires an API key or an admin session, so
-  a caller can create boxes (a DoS bounded by the un-authenticated reaper TTL).
-  Authenticating MCP clients per-user, and binding a box to the specific
-  initiator, are the natural follow-ups.
+  requires an API key or an admin session.
+- The box-control API is **single-tenant by design**: it authenticates the
+  caller but does not authorize per box, so any valid API key or admin can
+  `exec`/`logs`/`destroy` **any** box. This is safe only when a single trusted
+  tenant sits behind the API (typically an authenticating proxy in front of
+  `llmbox-mcp`); do not share one hub across mutually-distrusting users. See
+  [the trust model](docs/authentication.md#trust-model-the-box-control-api-is-single-tenant).
+  Per-user MCP clients and binding a box to its initiator are the natural
+  follow-ups for multi-tenant use.
 - The box wrapper pre-accepts the workspace-trust dialog (writes
   `projects[cwd].hasTrustDialogAccepted` to `~/.claude.json` after login), since
   `claude remote-control` otherwise aborts with "Workspace not trusted" in a
