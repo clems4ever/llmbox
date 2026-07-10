@@ -151,6 +151,52 @@ func (r *assetResolver) resolveImages(ctx context.Context, kernel, rootfs, paylo
 	return kernel, rootfs, payload, nil
 }
 
+// FetchAssets downloads every published guest image (kernel, base rootfs, and
+// payload) into the on-disk cache the Firecracker backend reads from, resuming any
+// partial download left by an interrupted run. It is the entry point for the
+// spoke's `fetch` subcommand: warming or pre-seeding a spoke's images resiliently,
+// separately from running the spoke, so a later run starts with them already
+// cached. The cache directory is resolved from stateDir exactly as a run would, so
+// the images land where the backend then looks for them.
+//
+// @arg ctx Context cancelling the downloads.
+// @arg stateDir The spoke's --state-dir (empty uses the backend default); selects the cache location.
+// @arg auths Image-pull credentials keyed by registry host; used if one matches the registry.
+// @return string The cache directory the images were written under.
+// @return []string The resolved on-disk paths of the fetched images.
+// @error error if any image cannot be resolved or downloaded.
+//
+// @testcase TestFetchAssetsResolvesIntoCacheDir reports the cache dir and surfaces a pull error.
+func FetchAssets(ctx context.Context, stateDir string, auths map[string]dockerregistry.AuthConfig) (string, []string, error) {
+	r := newAssetResolver(assetCacheDir(stateDir), auths)
+	log.Printf("firecracker: fetching guest images from %s (tag %s) into %s", r.registry, r.tag, r.cacheDir)
+	paths, err := r.fetchAll(ctx)
+	return r.cacheDir, paths, err
+}
+
+// fetchAll resolves every published guest image (kernel, base rootfs, payload)
+// into the cache and returns their on-disk paths. Unlike resolveImages it pulls all
+// three unconditionally — the fetch command warms the whole set rather than filling
+// in only the images a run left unset — and, like resolve, uses the injectable
+// puller so it is unit-testable without a registry.
+//
+// @arg ctx Context for the pulls.
+// @return []string The resolved paths of the kernel, base rootfs, and payload.
+// @error error if any pull fails.
+//
+// @testcase TestFetchAllResolvesEveryAsset pulls all three assets and returns their cached paths.
+func (r *assetResolver) fetchAll(ctx context.Context) ([]string, error) {
+	var paths []string
+	for _, a := range []fcAsset{kernelAsset, baseAsset, payloadAsset} {
+		p, err := r.resolve(ctx, a)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, p)
+	}
+	return paths, nil
+}
+
 // credentialFor returns a static credential for the registry's host when auths
 // carries a non-empty entry for it, or nil for an anonymous (public) pull.
 //

@@ -27,8 +27,8 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/internal/spoke/box/backend"
-	_ "github.com/clems4ever/llmbox/internal/spoke/docker"      // registers the "docker" box backend
-	_ "github.com/clems4ever/llmbox/internal/spoke/firecracker" // registers the "firecracker" box backend
+	_ "github.com/clems4ever/llmbox/internal/spoke/docker" // registers the "docker" box backend
+	"github.com/clems4ever/llmbox/internal/spoke/firecracker"
 )
 
 const (
@@ -193,8 +193,73 @@ func NewRootCmd(name, version string) *cobra.Command {
 		Args:          cobra.NoArgs,
 	}
 	root.AddCommand(newSpokeRunCmd("docker", "Run a spoke that runs boxes as Docker containers", addDockerSpokeFlags))
-	root.AddCommand(newSpokeRunCmd("firecracker", "Run a spoke that runs boxes as Firecracker microVMs", addFirecrackerSpokeFlags))
+	fc := newSpokeRunCmd("firecracker", "Run a spoke that runs boxes as Firecracker microVMs", addFirecrackerSpokeFlags)
+	fc.AddCommand(newFirecrackerFetchCmd())
+	root.AddCommand(fc)
 	return root
+}
+
+// newFirecrackerFetchCmd builds the `fetch` subcommand of the firecracker spoke: it
+// downloads the published guest images (kernel, base rootfs, payload) into the
+// on-disk cache the backend reads from and exits, without joining a hub or setting
+// up networking. The download is resumable, so a slow or flaky link that interrupts
+// a multi-GiB transfer picks up where it left off on the next run instead of
+// restarting — letting an operator pre-seed a spoke's images, or warm the cache on
+// a faster host, separately from running the spoke.
+//
+// @return *cobra.Command The configured fetch subcommand.
+//
+// @testcase TestFirecrackerFetchCmd exposes the state-dir and registry flags and no run flags.
+func newFirecrackerFetchCmd() *cobra.Command {
+	var stateDir string
+	var reg registryFlags
+	cmd := &cobra.Command{
+		Use:           "fetch",
+		Short:         "Download the Firecracker guest images into the local cache (resumable), then exit",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runFirecrackerFetch(cmd.Context(), stateDir, reg)
+		},
+	}
+	f := cmd.Flags()
+	f.StringVar(&stateDir, "state-dir", "", "spoke state directory whose assets/ subdir caches the images (empty uses the backend default; LLMBOX_FC_ASSET_CACHE overrides)")
+	f.StringVar(&reg.host, "registry", "", `registry host to authenticate to when pulling the images, e.g. "ghcr.io" (empty pulls anonymously)`)
+	f.StringVar(&reg.username, "registry-username", "", "username for --registry")
+	f.StringVar(&reg.passwordFile, "registry-password-file", "", "file holding the password or token for --registry")
+	return cmd
+}
+
+// runFirecrackerFetch downloads the published Firecracker guest images into the
+// backend's on-disk cache and returns once they are all present, so the fetch
+// completes and exits rather than running a spoke. It resolves the optional
+// registry credential the same way a run does and stops promptly on SIGINT/SIGTERM,
+// leaving the partial downloads on disk for the next invocation to resume.
+//
+// @arg parent Base context; the fetch stops when it (or SIGINT/SIGTERM) fires.
+// @arg stateDir The spoke's --state-dir, selecting the cache location.
+// @arg reg The optional registry credential flags for an authenticated pull.
+// @error error if the registry password file cannot be read or an image cannot be fetched.
+//
+// @testcase TestRunFirecrackerFetchBadRegistry errors when a registry is set without a readable password file.
+func runFirecrackerFetch(parent context.Context, stateDir string, reg registryFlags) error {
+	regs, err := spokeOptions{registry: reg}.registries()
+	if err != nil {
+		return err
+	}
+	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	cacheDir, paths, err := firecracker.FetchAssets(ctx, stateDir, boxconfig.RegistryAuths(regs))
+	if err != nil {
+		return err
+	}
+	for _, p := range paths {
+		log.Printf("fetched %s", p)
+	}
+	log.Printf("firecracker: guest images ready in %s", cacheDir)
+	return nil
 }
 
 // newSpokeRunCmd builds a backend-specific run subcommand: it registers the flags

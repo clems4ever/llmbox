@@ -126,6 +126,18 @@
 			"documentation_hash": "bd55bd8c5dd7c0b78e960d0b8cee171bc7ef455152c1edf0facc5a619b9ee44b",
 			"definition_hash": "0e0532d40102c019bf004f4efc4417f21ee0f09238bd15d1329c699eb59c6498",
 			"reviewed_at": "2026-07-10T19:58:10.223596457Z"
+		},
+		{
+			"function_name": "TestFetchAllResolvesEveryAsset",
+			"documentation_hash": "17d72ec0accaf6af4c739e7093a7b35683c15ee7a6dd931bb12ea246186d3c17",
+			"definition_hash": "faf653f43b83d8ec292485b028ef28d348491d94d9f7688efa84043a7dab7835",
+			"reviewed_at": "2026-07-10T20:17:03.194968276Z"
+		},
+		{
+			"function_name": "TestFetchAssetsResolvesIntoCacheDir",
+			"documentation_hash": "0a94d25f066c8dd33585918d59c013a55c4138a81a93ccc75d2f0e6493ce59b4",
+			"definition_hash": "e962e82c3063489e81a05450f395b4e98c74008d688da2b1d40955a31068c869",
+			"reviewed_at": "2026-07-10T20:17:03.196507462Z"
 		}
 	]
 }

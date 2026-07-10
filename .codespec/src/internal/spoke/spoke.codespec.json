@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewRootCmd",
 			"documentation_hash": "9f6ed680b6ddc2ce5a6e6b501f63472185537161b34aceeafbd6e7423e92d576",
-			"definition_hash": "1d05ef83c231bc0516ecb4eae326f5fb9b37c7762359ac710627cbcd7589b5f9",
-			"reviewed_at": "2026-07-07T19:31:48.492778409Z"
+			"definition_hash": "35597bd3bd9d9ecd2a4e152ce0888a70cb214aacd4b387b7c249f9b371cfb689",
+			"reviewed_at": "2026-07-10T20:17:03.197859362Z"
 		},
 		{
 			"function_name": "runSpoke",
@@ -73,6 +73,18 @@
 			"documentation_hash": "73c508c482404ec661133c6f0ccd9a77136cd12ae15c46fa1d7b57e029bbc4c6",
 			"definition_hash": "54b99ddc6a9930157c68885c5c27392c7ec3e416b56e9e3c6c98ff0505d73162",
 			"reviewed_at": "2026-07-10T15:37:12.824940993Z"
+		},
+		{
+			"function_name": "newFirecrackerFetchCmd",
+			"documentation_hash": "116d3c9e2a6b2726aa5b0b3b51857230498827bbc7a6c8e06a8c6fe053c411e2",
+			"definition_hash": "a0ec2da9141c82a74c668d3d1cb320df18868123f6282279811fc0e98320b682",
+			"reviewed_at": "2026-07-10T20:17:03.199660253Z"
+		},
+		{
+			"function_name": "runFirecrackerFetch",
+			"documentation_hash": "f885bc9e1bc21e696f97aee72e51bea820b74c5ed071f09d3351e022e12ab5ab",
+			"definition_hash": "e54cd6dbe003ab050bb19bcd892ea99cce79df758e9da05e342684783a267423",
+			"reviewed_at": "2026-07-10T20:17:03.200666286Z"
 		}
 	]
 }

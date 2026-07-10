@@ -133,6 +133,37 @@ func TestNewRootCmd(t *testing.T) {
 	}
 }
 
+// TestFirecrackerFetchCmd checks the firecracker `fetch` subcommand exposes the
+// cache/registry flags and none of the spoke-run flags — it fetches images and
+// exits rather than joining a hub.
+func TestFirecrackerFetchCmd(t *testing.T) {
+	cmd := NewRootCmd("llmbox-spoke", "v0.1.0")
+	fc := subcmd(t, cmd, "firecracker")
+	fetch := subcmd(t, fc, "fetch")
+
+	for _, f := range []string{"state-dir", "registry", "registry-username", "registry-password-file"} {
+		if fetch.Flags().Lookup(f) == nil {
+			t.Errorf("fetch subcommand missing --%s flag", f)
+		}
+	}
+	// A fetch-and-exit command carries no hub-join or per-box run flags.
+	for _, f := range []string{"hub", "token", "kernel", "rootfs", "payload", "pool-size", "disable-egress"} {
+		if fetch.Flags().Lookup(f) != nil {
+			t.Errorf("fetch subcommand should not have --%s", f)
+		}
+	}
+}
+
+// TestRunFirecrackerFetchBadRegistry checks the fetch command validates its
+// registry credential before any download: a --registry with no password file is
+// rejected up front.
+func TestRunFirecrackerFetchBadRegistry(t *testing.T) {
+	err := runFirecrackerFetch(context.Background(), "", registryFlags{host: "ghcr.io"})
+	if err == nil {
+		t.Fatal("runFirecrackerFetch should error when --registry is set without a password file")
+	}
+}
+
 // TestDefaultSpokeStatePath checks the default credential location is the
 // hidden .llmbox directory under the user's home, so the generated enrollment
 // command needs no --state flag.

@@ -127,6 +127,48 @@ func TestResolveImagesPropagatesPullError(t *testing.T) {
 	}
 }
 
+// TestFetchAllResolvesEveryAsset checks fetchAll pulls all three published images
+// unconditionally and returns their cached paths.
+func TestFetchAllResolvesEveryAsset(t *testing.T) {
+	var got []string
+	r := testResolver(t, fakePuller(&got))
+
+	paths, err := r.fetchAll(context.Background())
+	if err != nil {
+		t.Fatalf("fetchAll: %v", err)
+	}
+	if len(paths) != 3 {
+		t.Fatalf("got %d paths (%v), want 3", len(paths), paths)
+	}
+	for _, p := range paths {
+		if _, err := os.Stat(p); err != nil {
+			t.Errorf("path %q not on disk: %v", p, err)
+		}
+	}
+	if len(got) != 3 {
+		t.Errorf("pulled %d refs (%v), want 3 (kernel, base, payload)", len(got), got)
+	}
+}
+
+// TestFetchAssetsResolvesIntoCacheDir checks FetchAssets reports the resolved cache
+// directory (honouring the override env) and surfaces a pull failure.
+func TestFetchAssetsResolvesIntoCacheDir(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("LLMBOX_FC_ASSET_CACHE", dir)
+	t.Setenv("LLMBOX_FC_REGISTRY", "example.invalid/x")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancelled up front: the pull fails fast without touching the network
+
+	cacheDir, _, err := FetchAssets(ctx, "", nil)
+	if cacheDir != dir {
+		t.Errorf("cacheDir = %q, want the override %q", cacheDir, dir)
+	}
+	if err == nil {
+		t.Error("FetchAssets should fail when the pull cannot complete")
+	}
+}
+
 // TestCredentialForMatchesHost checks a credential is produced only for a matching
 // registry host and nil otherwise (anonymous pull).
 func TestCredentialForMatchesHost(t *testing.T) {
