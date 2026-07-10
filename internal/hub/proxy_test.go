@@ -245,12 +245,10 @@ func TestDestroySessionlessBoxRemovesProxies(t *testing.T) {
 // terminated tombstone: the container is gone, so the proxy could never route.
 func TestCreateProxyRefusesTerminatedBox(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
-	s.mu.Lock()
-	s.byToken["tok"] = &session{
-		Token: "tok", BoxID: "dead-box", Generation: "cccccccccccc1111", SpokeName: testSpoke,
+	s.regSession("tok", &session{
+		BoxID: "dead-box", Generation: "cccccccccccc1111", SpokeName: testSpoke,
 		Status: "pending", BoxState: boxStateTerminated,
-	}
-	s.mu.Unlock()
+	})
 
 	if _, err := s.createProxy("dead-box", 8000, "", ""); err == nil {
 		t.Fatal("creating a proxy for a terminated box should be refused")
@@ -528,7 +526,7 @@ func TestHandleProxyAuthorizedForwards(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Seed a signed-in box-activator session and present its cookie.
-	if err := st.PutIdentitySession("SID", store.IdentitySession{Email: "dev@corp.com", CanActivate: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+	if err := st.PutIdentitySession(hashTok("SID"), store.IdentitySession{Email: "dev@corp.com", CanActivate: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
 		t.Fatal(err)
 	}
 

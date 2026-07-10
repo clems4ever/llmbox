@@ -41,9 +41,11 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 	// New returns nil (no hooks) when the list is empty.
 	hookRunner := hooks.New(cfg.Hooks)
 
-	// Persist the session registry so auth links survive a server restart.
+	// Persist the session registry so auth links survive a server restart. The
+	// directory is 0700: the state file holds session data and the hashes of
+	// bearer secrets, so no other local user should be able to traverse into it.
 	if dir := filepath.Dir(cfg.StateFile); dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return err
 		}
 	}

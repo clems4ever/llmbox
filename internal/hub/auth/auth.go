@@ -453,7 +453,10 @@ func (a *Authenticator) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		PKCEVerifier: verifier,
 		ExpiresAt:    time.Now().Add(flowTTL),
 	}
-	if err := a.store.PutOIDCFlow(state, flow); err != nil {
+	// Key the flow by the hash of its state so the state file never holds the
+	// plaintext state a callback must present. The plaintext travels only in the
+	// provider redirect; the callback hashes what it gets back to find the flow.
+	if err := a.store.PutOIDCFlow(store.HashToken(state), flow); err != nil {
 		a.logger().Error("saving oidc flow", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -485,7 +488,7 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sign-in was cancelled or failed: "+e, http.StatusBadRequest)
 		return
 	}
-	flow, ok, err := a.store.TakeOIDCFlow(q.Get("state"))
+	flow, ok, err := a.store.TakeOIDCFlow(store.HashToken(q.Get("state")))
 	if err != nil {
 		a.logger().Error("reading oidc flow", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -533,7 +536,9 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	expires := time.Now().Add(a.sessionTTL)
-	if err := a.store.PutIdentitySession(id, store.IdentitySession{
+	// The cookie carries the plaintext id; the store is keyed by its hash, so a
+	// stolen state file yields no replayable session cookie.
+	if err := a.store.PutIdentitySession(store.HashToken(id), store.IdentitySession{
 		Email:       claims.Email,
 		Provider:    p.name,
 		CSRFToken:   csrf,
@@ -578,7 +583,7 @@ func (a *Authenticator) CurrentLogin(r *http.Request) (store.IdentitySession, bo
 	if err != nil {
 		return store.IdentitySession{}, false
 	}
-	ls, ok, err := a.store.GetIdentitySession(c.Value)
+	ls, ok, err := a.store.GetIdentitySession(store.HashToken(c.Value))
 	if err != nil || !ok || time.Now().After(ls.ExpiresAt) {
 		return store.IdentitySession{}, false
 	}

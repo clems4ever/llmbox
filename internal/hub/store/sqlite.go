@@ -3,7 +3,9 @@ package store
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -15,8 +17,16 @@ import (
 // type maps to its own table with a primary-key column and one column per durable
 // field, so the store can query state directly (e.g. purge by expiry) instead of
 // scanning opaque blobs. The one map-shaped field (a box's hook state) is held as
-// JSON text, the only value without a natural columnar shape. Every secret we
-// store is held as its SHA-256 hash in a secret_hash column, never in the clear.
+// JSON text, the only value without a natural columnar shape.
+//
+// No usable bearer secret is stored in the clear. The api-key and spoke-credential
+// hashes live in secret_hash columns; the remaining server-minted secrets — a
+// box's activation token, an identity session's cookie id, and an OIDC flow's
+// state — are keyed by their SHA-256 hash (see store.HashToken), so the primary
+// key holds the hash, not the token. The short-lived flow payload an OIDC
+// handshake must replay verbatim (nonce, pkce_verifier, and the return token it
+// bounces back to) stays reversible by necessity; it is guarded by the file's
+// 0600 mode and a 10-minute expiry rather than hashing.
 const schema = `
 CREATE TABLE IF NOT EXISTS boxes (
 	token          TEXT PRIMARY KEY,
@@ -109,9 +119,10 @@ func Open(path string) (Store, error) { return openSQLite(path) }
 //
 // @arg path The filesystem path to the SQLite database file.
 // @return *sqliteStore A ready-to-use store backed by the opened database.
-// @error error if the database cannot be opened or the schema cannot be created.
+// @error error if the database cannot be opened, the schema cannot be created, or the file permissions cannot be restricted.
 //
 // @testcase TestSQLiteStoreRoundTrip opens a store in a temp dir and round-trips a box.
+// @testcase TestOpenRestrictsFilePermissions checks the state file and its WAL sidecars are 0600.
 func openSQLite(path string) (*sqliteStore, error) {
 	// WAL keeps the file durable across restarts; busy_timeout lets a contended
 	// write wait rather than fail immediately; foreign_keys is the modern default.
@@ -125,6 +136,18 @@ func openSQLite(path string) (*sqliteStore, error) {
 	if _, err := db.Exec(schema); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("initializing store %q: %w", path, err)
+	}
+	// The state file (and its WAL sidecars) holds session data and secret hashes;
+	// restrict it to the owner. Running the schema above has created all three
+	// files by now. chmod on every open also repairs a file left world-readable by
+	// an earlier build. The 0700 state directory is the primary gate; this is
+	// defence in depth, so a chmod failure (e.g. a filesystem without POSIX modes)
+	// is not fatal.
+	for _, suffix := range []string{"", "-wal", "-shm"} {
+		if err := os.Chmod(path+suffix, 0o600); err != nil && !errors.Is(err, os.ErrNotExist) {
+			_ = db.Close()
+			return nil, fmt.Errorf("restricting store permissions on %q: %w", path+suffix, err)
+		}
 	}
 	return &sqliteStore{db: db}, nil
 }

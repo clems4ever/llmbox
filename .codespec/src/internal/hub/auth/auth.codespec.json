@@ -84,22 +84,22 @@
 			"function_name": "HandleLogin",
 			"receiver": "Authenticator",
 			"documentation_hash": "5acbf87aa92fcfb9df27c0bdc377e6c8bffc365e297a3e8433f1861fbee9e745",
-			"definition_hash": "08cb1af64a4688e3e2f6922e4dcb5d5dc4b95c1646479d28855783c20428aaeb",
-			"reviewed_at": "2026-07-09T18:10:52.496973521Z"
+			"definition_hash": "1efc3d6de4b4d1420031d495076fcc37167859adea015d69d9538a3d01b8b786",
+			"reviewed_at": "2026-07-10T10:15:11.411386446Z"
 		},
 		{
 			"function_name": "HandleCallback",
 			"receiver": "Authenticator",
 			"documentation_hash": "22f5d7e0511738c161bd2324386ad2d346b217757252f54e8d6b104a83d2623f",
-			"definition_hash": "c4eaae248e2b7fe6a7de3ca7ca07097f76778a49849ae90042f5db82e641e670",
-			"reviewed_at": "2026-07-09T18:10:52.497794162Z"
+			"definition_hash": "77d972b08ea0bf20c1116690343ff6ca1706459b11942475c1c65d891e74430c",
+			"reviewed_at": "2026-07-10T10:15:11.412652324Z"
 		},
 		{
 			"function_name": "CurrentLogin",
 			"receiver": "Authenticator",
 			"documentation_hash": "9453c214d08a0d7cea4bdeeda5e2e20ee1ad70fabcdf437180adc7174f6ef838",
-			"definition_hash": "febb697aef2d2524398e77ba7c4e11d2d0e6ed86438c916163f5c751caa43075",
-			"reviewed_at": "2026-07-09T18:10:52.498540117Z"
+			"definition_hash": "d72f860d0f734049273622b107b5badc7ed227e4f9b584dcefda7ceffcba972d",
+			"reviewed_at": "2026-07-10T10:15:11.413668914Z"
 		},
 		{
 			"function_name": "randToken",

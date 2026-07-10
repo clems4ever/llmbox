@@ -168,6 +168,10 @@ func (s *Server) authStateFor(sess *session, r *http.Request) authState {
 		BoxID: sess.BoxID,
 		Spoke: sess.SpokeName,
 	}
+	// The sign-in buttons must carry the plaintext token so sign-in returns to
+	// /auth/{token}; sess.Token is only the hash. The plaintext is the {token} path
+	// value on this /auth/{token}/... request.
+	pageToken := r.PathValue("token")
 	allowed := true
 	if s.auth != nil {
 		st.AuthEnabled = true
@@ -180,9 +184,9 @@ func (s *Server) authStateFor(sess *session, r *http.Request) authState {
 		} else if ok {
 			st.Email = ls.Email
 			st.NotAuthorized = true
-			st.Providers = providerButtons(s.auth.Buttons(sess.Token))
+			st.Providers = providerButtons(s.auth.Buttons(pageToken))
 		} else {
-			st.Providers = providerButtons(s.auth.Buttons(sess.Token))
+			st.Providers = providerButtons(s.auth.Buttons(pageToken))
 		}
 	}
 	if allowed {

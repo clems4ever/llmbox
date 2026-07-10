@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"function_name": "TestHashTokenIsDeterministicHex",
+			"documentation_hash": "12733a6e28e70f4aa57d07cf561ed3ff4ca7a94de6f1454a9ee8177314b19c01",
+			"definition_hash": "58db97848a5c9e1c5bb5b9a650e5498fd36bbb3aac199b04e339efc8ffc98b68",
+			"reviewed_at": "2026-07-10T10:16:55.27276037Z"
+		},
+		{
+			"function_name": "TestHashTokenDistinguishesInputs",
+			"documentation_hash": "bd0c1f0275096d27801e44a3dd2407d029ba8096923e0033e61c7e3d4ee65256",
+			"definition_hash": "1e519895fa7e831405559941b6a7a3ec8cb65818e8adda380a6cf28bc0584f4f",
+			"reviewed_at": "2026-07-10T10:16:55.272928483Z"
+		},
+		{
+			"function_name": "TestOpenRestrictsFilePermissions",
+			"documentation_hash": "23188cb03c53ec7c32ecc12cdffb7825f1bbe35c56ff19ab100568d9ce247725",
+			"definition_hash": "f0e89f6f761c3cbed7b6cdfd52be6b44b3171b7ae305388c86c559f27c06460a",
+			"reviewed_at": "2026-07-10T10:16:55.28238519Z"
+		}
+	]
+}

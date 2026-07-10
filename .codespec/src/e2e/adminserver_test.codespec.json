@@ -9,8 +9,8 @@
 		{
 			"function_name": "signIn",
 			"documentation_hash": "64a2fbc641867d549ebc4bdd11729a7d3e8c96db05f8e711b1ca2fe2a416c685",
-			"definition_hash": "be45848273fa6fe099bac1b3d35c9fe527d155a6fb0e892b53aa0b723b5b219c",
-			"reviewed_at": "2026-07-09T18:10:52.49311929Z"
+			"definition_hash": "4d734cffa4501b73fab50398d0cc6a2889c1766f1b28b4a2fe56efe700add572",
+			"reviewed_at": "2026-07-10T10:15:11.409068035Z"
 		},
 		{
 			"function_name": "wireDefaultSpoke",

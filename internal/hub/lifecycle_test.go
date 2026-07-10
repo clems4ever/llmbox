@@ -18,12 +18,10 @@ func TestDestroyTerminatedRecordSkipsSpoke(t *testing.T) {
 	fh := &fakeHooks{}
 	f := &testutils.FakeMgr{}
 	s := wireSpoke(New(fh, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
-	s.mu.Lock()
-	s.byToken["tok"] = &session{
-		Token: "tok", BoxID: "dead-box", Generation: "cccccccccccc1111", SpokeName: testSpoke,
+	s.regSession("tok", &session{
+		BoxID: "dead-box", Generation: "cccccccccccc1111", SpokeName: testSpoke,
 		Status: "pending", BoxState: boxStateTerminated, HookState: map[string]string{"hook": "state"},
-	}
-	s.mu.Unlock()
+	})
 	// The spoke goes offline: a tombstone must still be removable.
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
 
@@ -62,7 +60,7 @@ func TestDestroyUnreachableSpokeRefused(t *testing.T) {
 	if !strings.Contains(err.Error(), "not connected") {
 		t.Errorf("error should explain the spoke is offline, got: %v", err)
 	}
-	if s.lookup(sess.Token) == nil {
+	if s.lookup(sess.plainToken) == nil {
 		t.Error("the refused destroy must keep the box record")
 	}
 }
@@ -73,12 +71,10 @@ func TestDestroyUnreachableSpokeRefused(t *testing.T) {
 func TestCreateBoxReplacesTerminatedTombstone(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
-	s.mu.Lock()
-	s.byToken["old"] = &session{
-		Token: "old", BoxID: "web", Generation: "000000000000aaaa", SpokeName: testSpoke,
+	s.regSession("old", &session{
+		BoxID: "web", Generation: "000000000000aaaa", SpokeName: testSpoke,
 		Status: "pending", BoxState: boxStateTerminated,
-	}
-	s.mu.Unlock()
+	})
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web"})
 	if err != nil {
@@ -127,10 +123,8 @@ func TestLookupByBoxIDPrefersAliveOverTerminated(t *testing.T) {
 	// the connected spoke. Alive must still win.
 	alive := &session{Token: "tok-alive", BoxID: "dup", SpokeName: "ghost", Generation: "ca", CreatedAt: time.Unix(100, 0), Status: "ready"}
 	tomb := &session{Token: "tok-tomb", BoxID: "dup", SpokeName: testSpoke, Generation: "ct", CreatedAt: time.Unix(200, 0), Status: "ready", BoxState: boxStateTerminated}
-	s.mu.Lock()
-	s.byToken["tok-alive"] = alive
-	s.byToken["tok-tomb"] = tomb
-	s.mu.Unlock()
+	s.regSession("tok-alive", alive)
+	s.regSession("tok-tomb", tomb)
 
 	for i := 0; i < 50; i++ {
 		if got := s.lookupByBoxID("dup"); got != alive {

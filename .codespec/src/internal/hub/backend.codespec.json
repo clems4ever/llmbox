@@ -11,8 +11,8 @@
 			"function_name": "CreateBox",
 			"receiver": "apiBackend",
 			"documentation_hash": "f3b51d4bc954b39b93476829630b1d42f12f7967986a283cdddd5443534447a0",
-			"definition_hash": "d13cfe5762b9459d41c88d93783c9e655b5bdf3d7e7aab62e04425064bb7af9d",
-			"reviewed_at": "2026-07-09T21:42:06.831284804Z"
+			"definition_hash": "f963ad17fa88a7218a8c0342575ec583c0f894183a00cdb4acc872b22dbfa602",
+			"reviewed_at": "2026-07-10T10:15:43.535856248Z"
 		},
 		{
 			"function_name": "AuthPageURL",
@@ -32,8 +32,8 @@
 			"function_name": "ListBoxes",
 			"receiver": "apiBackend",
 			"documentation_hash": "9c5c6f542f8cc81f981ec2d1da41e3d001cbc4ce38b06e45d9dafe525f5912e1",
-			"definition_hash": "95ab7bf242dab23ede10e58c817b652ac0d04cf0dd320dfccad7cbbd2801d0cc",
-			"reviewed_at": "2026-07-09T18:10:52.503442048Z"
+			"definition_hash": "4f975787962a005b67e6da8fa3e8b89f8aadfd97af4156ee574c7f136c985927",
+			"reviewed_at": "2026-07-10T10:15:43.536475431Z"
 		},
 		{
 			"function_name": "SpokeStatuses",

@@ -8,9 +8,9 @@
 		},
 		{
 			"function_name": "openSQLite",
-			"documentation_hash": "ce8d800b32e4a891ccd18e4d28d8436de91133cf24296248d27035f8c40da414",
-			"definition_hash": "75fcb5fac76917c4a75d89680318ed146194526142a0c8edfd06a4a7a4d3e3ed",
-			"reviewed_at": "2026-07-09T18:10:52.561205979Z"
+			"documentation_hash": "33fb43945bfcc77558f1cfbf4c3abdcdc692c4512116ed2a2145d8239c4095bb",
+			"definition_hash": "630106115aa4666bc4bdd5fbbd074ac445cc3d51b1ac87cf2e503831c908922b",
+			"reviewed_at": "2026-07-10T10:15:11.421552002Z"
 		},
 		{
 			"function_name": "encodeTime",

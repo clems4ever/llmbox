@@ -1,0 +1,10 @@
+{
+	"functions": [
+		{
+			"function_name": "HashToken",
+			"documentation_hash": "39a20654ed8c0dfbb865daeede395858a8a9108b5072b55acec6a49162bb0e21",
+			"definition_hash": "c5fb67d32d507248be7b6333c0058e43aa958fce05c339dd59bd2500f58cff1a",
+			"reviewed_at": "2026-07-10T10:15:11.415052491Z"
+		}
+	]
+}

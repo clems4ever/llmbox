@@ -23,8 +23,8 @@
 		{
 			"function_name": "TestCreateBoxRegistersSession",
 			"documentation_hash": "6e14e71244c1b2476f4760d50aeec0d29cc414aeb2d54c87084a65b1d682a819",
-			"definition_hash": "155f03b418c64bd19aa6b3a52547a8610e708e138b9cc8f29ba58234562c9bf9",
-			"reviewed_at": "2026-07-09T21:42:06.864479588Z"
+			"definition_hash": "48016540a95053ba205dbd092c4d447c377690278dc7febfad72c38f9b3f1cb1",
+			"reviewed_at": "2026-07-10T10:16:08.5114016Z"
 		},
 		{
 			"function_name": "TestCreateBoxDestroysOnTokenFailure",
@@ -53,14 +53,14 @@
 		{
 			"function_name": "TestSubmitCodeSuccess",
 			"documentation_hash": "a6e1c2a2ba3c5b1a4c68b3c2fa3fe27dac2c320237180ed12bafa3e513aac1b7",
-			"definition_hash": "7620e9169f99e647266008c8b1a697388d0142754be8df9f642ac7beaeae3dcb",
-			"reviewed_at": "2026-07-09T21:42:06.870320305Z"
+			"definition_hash": "0e67fb5283dd8ef0c25e3ea3a4b505bc066ef9ac9ca3557c088b691b48b72795",
+			"reviewed_at": "2026-07-10T10:16:08.512494207Z"
 		},
 		{
 			"function_name": "TestSubmitCodeFailureRecorded",
 			"documentation_hash": "c265a275f814f5b4c703c1131179466707820acc4193f65874fe60b5a31b6c1b",
-			"definition_hash": "452c0b713afc8e953097d53a6043b00120aeab428091704d794c3a0f8e34c1bd",
-			"reviewed_at": "2026-07-09T21:42:06.871434727Z"
+			"definition_hash": "d5f0ad726177ab3f07d6c751366297edce8205206be81cac66078a6b5da599e6",
+			"reviewed_at": "2026-07-10T10:16:08.513864091Z"
 		},
 		{
 			"function_name": "TestSubmitCodeUnknownToken",
@@ -71,26 +71,26 @@
 		{
 			"function_name": "TestSubmitCodeEmpty",
 			"documentation_hash": "9ef36e9ee5b5176505f1e31f6056f0fe2a32df92552387f3f2423c68a58fcef1",
-			"definition_hash": "c98c3824c81c8411c4f96ae9ffeeebfbfe40c86b0d0fa6284dd3df305fe67f59",
-			"reviewed_at": "2026-07-09T21:42:06.872633438Z"
+			"definition_hash": "11e86fc286b2bb0f92b32ce22e5e181879c97146393f140fc66fca24ab007391",
+			"reviewed_at": "2026-07-10T10:16:08.515068175Z"
 		},
 		{
 			"function_name": "TestDestroyForgetsSession",
 			"documentation_hash": "071aa6989edd89849adaba8732e622e0debf992f4dfb7e586487b92d6abc7b39",
-			"definition_hash": "bb810a66f3855bcbe640def39214cf12832e762d23e2c9351f2e3205ee08d3cf",
-			"reviewed_at": "2026-07-09T21:42:06.873806249Z"
+			"definition_hash": "a8a97176dc971a015c10376d0497a9e4fff1c571fec35504897577a33b8ee2bc",
+			"reviewed_at": "2026-07-10T10:16:08.516368707Z"
 		},
 		{
 			"function_name": "TestPruneSessionsAfterReap",
 			"documentation_hash": "8936278199a7db60b10f8c28a56c6483263e8262ab68a99ab1610f7169a60169",
-			"definition_hash": "e8a11403cb256fa1044540b891c1d29682b4266e82e262642868bf2aa2dbc8d8",
-			"reviewed_at": "2026-07-09T21:42:06.874886664Z"
+			"definition_hash": "47eee1ef1df434a6370406824ee2265ee502bac3525df1f7b13bc1c146b3d853",
+			"reviewed_at": "2026-07-10T10:16:08.517761515Z"
 		},
 		{
 			"function_name": "TestAuthPageRendersAndSubmits",
 			"documentation_hash": "b5893bc0a0686615e7a020f01591e082fce0bfe703b6fa6148cf577a20e688f6",
-			"definition_hash": "3f38b72bca037b4770098bcbcdfd7632ea7f5e50a60e7ef86fa751e5b3239c95",
-			"reviewed_at": "2026-07-09T21:42:06.875963676Z"
+			"definition_hash": "15348ee8a728ab670f40f178817aad72f66b150df1e8781fece88402ab2e0c42",
+			"reviewed_at": "2026-07-10T10:16:08.758665655Z"
 		},
 		{
 			"function_name": "TestAuthPageUnknownToken",
@@ -119,8 +119,8 @@
 		{
 			"function_name": "TestGetByBoxID",
 			"documentation_hash": "4a4593adc3bf490febabbfeb36651bb5fcf2b2f7869eb9c681f0dde5dd92bef7",
-			"definition_hash": "707f6efea9e47a0daa1567328b9fccc7f3e0822df71fd11f202cb1e6e01263ac",
-			"reviewed_at": "2026-07-01T13:13:04.540124136Z"
+			"definition_hash": "30370f920e84f11482c0244883368c222738329fdc9f483198c1aff567ec1349",
+			"reviewed_at": "2026-07-10T10:16:08.769657424Z"
 		},
 		{
 			"function_name": "TestBoxLogsByBoxID",
@@ -149,8 +149,8 @@
 		{
 			"function_name": "TestAuthPageShowsBoxAndSpoke",
 			"documentation_hash": "f433f5e1b184be9c52d298331d798d34bfe91dcdeef5543dba86a4e1f9f1ea40",
-			"definition_hash": "8ad3c6bc785b0dab437ac062964c30994caeffc9eb0c4cdd004c08310692fe95",
-			"reviewed_at": "2026-07-09T11:33:00.675358738Z"
+			"definition_hash": "80e06721c603ade694df85da3b070271e74cb4fa18c80aafb2eaa8e537df6000",
+			"reviewed_at": "2026-07-10T10:16:08.760213391Z"
 		},
 		{
 			"function_name": "TestAPIHandlerServesUIAndAPI",
@@ -215,6 +215,19 @@
 			"documentation_hash": "ee96331c68d5d827171349221821ec2c19e2becec1a69b531ef7ef82e1285792",
 			"definition_hash": "ba8bca6e94f532644f9af8a5cd45b314334a38fa3d23664ee65f4a9f7586f6f6",
 			"reviewed_at": "2026-07-09T11:33:00.67673439Z"
+		},
+		{
+			"function_name": "hashTok",
+			"documentation_hash": "a05cd45a417b246c8150980bd1cfe8ec69b3fed1ad20ceadabd2638bd43b35cb",
+			"definition_hash": "06efdef56a0e980f73e8bee88685b16bc2743cd33b54fde7c6b254a7fc885845",
+			"reviewed_at": "2026-07-10T10:16:08.506191342Z"
+		},
+		{
+			"function_name": "regSession",
+			"receiver": "Server",
+			"documentation_hash": "4137bfb5702ae792c71dd05f436f291ac12816ab129b971ef7066c1d5fdec9b5",
+			"definition_hash": "209ad52de8d2abf9ecbd65ad141e94277fcb39417d353078066d3736ca6a2c60",
+			"reviewed_at": "2026-07-10T10:16:08.507333003Z"
 		}
 	]
 }
