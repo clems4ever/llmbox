@@ -514,7 +514,7 @@ func backoff(attempt int) time.Duration {
 // @return uint64 The bytes available to this process on that filesystem.
 // @error error if the filesystem cannot be stat'd.
 //
-// @testcase TestProgressTargetPushRejectsTooLarge relies on freeBytes to size the cache filesystem.
+// @testcase TestEnsureRoom relies on freeBytes to size the cache filesystem.
 func freeBytes(dir string) (uint64, error) {
 	var st unix.Statfs_t
 	if err := unix.Statfs(dir, &st); err != nil {

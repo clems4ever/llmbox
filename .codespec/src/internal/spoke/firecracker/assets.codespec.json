@@ -45,13 +45,6 @@
 			"reviewed_at": "2026-07-07T12:01:55.080438834Z"
 		},
 		{
-			"function_name": "Push",
-			"receiver": "progressTarget",
-			"documentation_hash": "4a10d209b375eeec316ac808434fb146db40dd68a1fb6b7c4f9a6ab19c50a7c5",
-			"definition_hash": "1d67115335e9ae695e4906ed17a7402126c0faaace6a4b4be517d65c95aa6df5",
-			"reviewed_at": "2026-07-10T16:42:08.156408457Z"
-		},
-		{
 			"function_name": "newProgressReader",
 			"documentation_hash": "5b12298b4aa3c1ca3a20b1f1202c80321f3cb6a7c7c72e1524ffb2fcd7c9258c",
 			"definition_hash": "0f64c717a722aece69726626517ed79502d935088acbc32fc4b88a5109bff7ae",
@@ -66,9 +59,9 @@
 		},
 		{
 			"function_name": "freeBytes",
-			"documentation_hash": "094416b3a88b4297b0f173a14ff7baae01303a0a8c68fd4f9f565312501a02e0",
+			"documentation_hash": "ae7b8ff36a381508a094dc67f72e061bd0866274916b2f8df70a952a7efbd4a5",
 			"definition_hash": "bd2aafcd3b42ae2a5209a2826e3d26844aba150f594c76ab1245280403de04d5",
-			"reviewed_at": "2026-07-10T16:42:08.164612195Z"
+			"reviewed_at": "2026-07-10T20:19:14.636905485Z"
 		},
 		{
 			"function_name": "chooseAssetCacheDir",
