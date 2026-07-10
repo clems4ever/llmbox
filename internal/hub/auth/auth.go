@@ -590,6 +590,36 @@ func (a *Authenticator) CurrentLogin(r *http.Request) (store.IdentitySession, bo
 	return ls, true
 }
 
+// Logout terminates the request's login session: it deletes the identity
+// session named by the login cookie from the store and expires the cookie on
+// the response, mirroring the attributes the sign-in callback set so the
+// browser drops the same cookie (including on the shared cookie domain). A
+// request with no login cookie only clears the cookie; that is not an error.
+//
+// @arg w The response writer the expired cookie is written to.
+// @arg r The request whose login cookie names the session to delete.
+// @error error if deleting the identity session from the store fails.
+//
+// @testcase TestLogout signs out and finds the session gone and the cookie expired.
+func (a *Authenticator) Logout(w http.ResponseWriter, r *http.Request) error {
+	if c, err := r.Cookie(LoginCookie); err == nil {
+		if err := a.store.DeleteIdentitySession(store.HashToken(c.Value)); err != nil {
+			return err
+		}
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     LoginCookie,
+		Value:    "",
+		Domain:   a.cookieDomain,
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	return nil
+}
+
 // randToken returns a URL-safe random token of nBytes of entropy.
 //
 // @arg nBytes The number of random bytes to draw.

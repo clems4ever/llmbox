@@ -25,11 +25,15 @@ func (s *Server) APIHandler() http.Handler {
 	mux := http.NewServeMux()
 	s.registerAppRoutes(mux)
 	// The box-control API shares this mux under /api/v1/, gated by the API auth
-	// middleware (bearer API key, or admin login cookie + CSRF header). The one
-	// exception is the session endpoint /api/v1/me, which is cookie-only by
-	// design: it is how the web app turns its login cookie into the CSRF token
-	// the gated calls require. Its more specific pattern wins over the subtree.
+	// middleware (bearer API key, or admin login cookie + CSRF header). Two
+	// session endpoints sit outside that gate, their more specific patterns
+	// winning over the subtree: /api/v1/me is cookie-only by design — it is how
+	// the web app turns its login cookie into the CSRF token the gated calls
+	// require — and /api/v1/logout ends the login session itself.
 	mux.HandleFunc("GET /api/v1/me", s.handleMe)
+	// Logout is likewise cookie-based (plus the CSRF header) rather than gated by
+	// requireAPIAuth: any signed-in session may end itself, admin or not.
+	mux.HandleFunc("POST /api/v1/logout", s.handleLogout)
 	mux.Handle("/api/v1/", s.requireAPIAuth(api.NewHandler(s.boxBackend())))
 	if !s.ProxyEnabled() {
 		return mux

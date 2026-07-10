@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/hub/apikey"
+	"github.com/clems4ever/llmbox/internal/hub/auth"
 	"github.com/clems4ever/llmbox/internal/hub/store"
 )
 
@@ -131,6 +132,65 @@ func TestMeReturnsSession(t *testing.T) {
 	}
 	if me.Email != "admin@corp.com" || !me.Admin || me.CSRF != "CSRF" {
 		t.Errorf("me = %+v", me)
+	}
+}
+
+// TestLogoutClearsSession checks POST /api/v1/logout deletes the login session
+// (so /api/v1/me answers 401 afterwards) and expires the login cookie. It also
+// covers the non-admin path: any signed-in session may end itself.
+func TestLogoutClearsSession(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	c := signIn(t, st, false, true) // non-admin: logout must still be allowed
+	rec := apiPost(t, s, "/api/v1/logout", "", c, "CSRF")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("logout = %d (%s), want 200", rec.Code, rec.Body.String())
+	}
+	cleared := false
+	for _, sc := range rec.Result().Cookies() {
+		if sc.Name == auth.LoginCookie && sc.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	if !cleared {
+		t.Errorf("logout did not expire the %s cookie: %v", auth.LoginCookie, rec.Result().Cookies())
+	}
+	// The session is gone from the store, so the cookie no longer authenticates.
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.AddCookie(c)
+	mrec := httptest.NewRecorder()
+	s.APIHandler().ServeHTTP(mrec, req)
+	if mrec.Code != http.StatusUnauthorized {
+		t.Errorf("me after logout = %d, want 401", mrec.Code)
+	}
+}
+
+// TestLogoutRejectsBadCSRF checks a logout without the session's CSRF token is
+// rejected with 403 and the session survives.
+func TestLogoutRejectsBadCSRF(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	c := signIn(t, st, true, false)
+	if rec := apiPost(t, s, "/api/v1/logout", "", c, "WRONG"); rec.Code != http.StatusForbidden {
+		t.Errorf("wrong CSRF logout = %d, want 403", rec.Code)
+	}
+	if rec := apiPost(t, s, "/api/v1/logout", "", c, ""); rec.Code != http.StatusForbidden {
+		t.Errorf("missing CSRF logout = %d, want 403", rec.Code)
+	}
+	// The session is untouched: the cookie still authenticates.
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.AddCookie(c)
+	rec := httptest.NewRecorder()
+	s.APIHandler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("me after rejected logout = %d, want 200", rec.Code)
+	}
+}
+
+// TestLogoutRejectsAnonymous checks POST /api/v1/logout answers 401 when no one
+// is signed in.
+func TestLogoutRejectsAnonymous(t *testing.T) {
+	s, _, _ := newAdminServer(t)
+	if rec := apiPost(t, s, "/api/v1/logout", "", nil, ""); rec.Code != http.StatusUnauthorized {
+		t.Errorf("anonymous logout = %d, want 401", rec.Code)
 	}
 }
 

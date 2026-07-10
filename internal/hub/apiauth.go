@@ -159,3 +159,38 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(meResponse{Email: ls.Email, Admin: ls.CanAdmin, CSRF: ls.CSRFToken})
 }
+
+// handleLogout answers POST /api/v1/logout for the web app: it terminates the
+// caller's login session (deleting it from the store and expiring the cookie)
+// and returns an empty JSON object. Any signed-in session may log out — admin
+// is not required — but the request must echo the session's CSRF token, since
+// logout mutates state and a cross-site page must not be able to force it.
+//
+// @arg w The response writer the expired cookie and JSON body are written to.
+// @arg r The request whose login cookie names the session to terminate.
+//
+// @testcase TestLogoutClearsSession terminates the session so subsequent API calls answer 401.
+// @testcase TestLogoutRejectsBadCSRF rejects a logout without the session's CSRF token.
+// @testcase TestLogoutRejectsAnonymous answers 401 when no one is signed in.
+func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if s.auth == nil {
+		writeJSONError(w, http.StatusUnauthorized, "sign-in is not configured")
+		return
+	}
+	ls, ok := s.auth.CurrentLogin(r)
+	if !ok {
+		writeJSONError(w, http.StatusUnauthorized, "not signed in")
+		return
+	}
+	if subtle.ConstantTimeCompare([]byte(r.Header.Get(csrfHeader)), []byte(ls.CSRFToken)) != 1 {
+		writeJSONError(w, http.StatusForbidden, "invalid or missing "+csrfHeader+" header")
+		return
+	}
+	if err := s.auth.Logout(w, r); err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "signing out: "+err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(struct{}{})
+}

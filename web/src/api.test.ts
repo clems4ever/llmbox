@@ -71,6 +71,15 @@ describe("Api.call", () => {
     expect(await new Api("t").listProxies()).toEqual([]);
   });
 
+  it("posts logout to the session endpoint", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await new Api("csrf-token").logout();
+    const [path, opts] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/v1/logout");
+    expect(opts.method).toBe("POST");
+    expect(opts.headers["X-CSRF-Token"]).toBe("csrf-token");
+  });
+
   it("extracts the {error} body of a failed call", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ error: "boom" }, { ok: false, status: 500 }));
     await expect(new Api("t").destroyBox("x")).rejects.toMatchObject({ status: 500, message: "boom" });

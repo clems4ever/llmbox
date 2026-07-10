@@ -53,6 +53,24 @@
 			"documentation_hash": "b76aced4bff7d7d2c0aa8ed402d4015dc445c04145f274726583dcdf74444619",
 			"definition_hash": "53ea1aed26aff2b8a2ed950c60214dc7a439a2c2b1fb481bfef290e061c26b4c",
 			"reviewed_at": "2026-07-08T13:00:08.091706812Z"
+		},
+		{
+			"function_name": "TestLogoutClearsSession",
+			"documentation_hash": "9b9c740463de50738a38e64a62c77879e54cde28c23e6e2dfa8cc3ba31928359",
+			"definition_hash": "20f6b8cf6a99279762069f16cd141f2762f04f421cb85bf6b1b9e6d165c13941",
+			"reviewed_at": "2026-07-10T14:28:41.989137909Z"
+		},
+		{
+			"function_name": "TestLogoutRejectsBadCSRF",
+			"documentation_hash": "3cd6dbb47c530653659cd0370c9f2ba20d7779a37f42c078f2da52aa1decdb55",
+			"definition_hash": "538d2824830f3e9628df387a109453d223360d5b3170b7586689334f59a608ce",
+			"reviewed_at": "2026-07-10T14:28:41.994000089Z"
+		},
+		{
+			"function_name": "TestLogoutRejectsAnonymous",
+			"documentation_hash": "11a61b944b25b0522576beb24203a0d982b5860bc0c14642c73d872ba46256ac",
+			"definition_hash": "2141550fc5ea61868baab46354ff649709643b21eabf472916b00684761bbe07",
+			"reviewed_at": "2026-07-10T14:28:42.027490959Z"
 		}
 	]
 }
