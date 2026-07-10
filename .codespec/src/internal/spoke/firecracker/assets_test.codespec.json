@@ -57,8 +57,8 @@
 		{
 			"function_name": "TestProgressReader",
 			"documentation_hash": "988f9cce3177b6109deab5aa5eb08d5d0f71a600b71334e647ba85dc97f664cf",
-			"definition_hash": "108e8ee6ee27d717ab76c0c6fe6d11bfcc4a7753c084d2a0b2f750a6cc87a083",
-			"reviewed_at": "2026-07-07T12:08:14.354285378Z"
+			"definition_hash": "d082d25f8646bfcaec4275e9d8e2035747295aac2b28f626b91bdff513519b69",
+			"reviewed_at": "2026-07-10T19:57:54.660491459Z"
 		},
 		{
 			"function_name": "TestProgressTargetPush",
@@ -77,6 +77,55 @@
 			"documentation_hash": "0a108bc888dc7fc5205981e292979a1507e0ffbc76c1c224e6e23aadebfe5a94",
 			"definition_hash": "9c16213c22840f5a062153def217eee7b9c056cf6a1b2ab714efcee22b811865",
 			"reviewed_at": "2026-07-10T16:42:08.190000643Z"
+		},
+		{
+			"function_name": "handler",
+			"receiver": "rangeServer",
+			"documentation_hash": "937b275e4636f68a3fe455af939517a43c45013fd7a78e971d87818c92fd343a",
+			"definition_hash": "d1297efb972419ef57b5f60bd60efe728b1f6038843a9fbb085fbf3615dcfcaa",
+			"reviewed_at": "2026-07-10T19:58:10.217645811Z"
+		},
+		{
+			"function_name": "blobRepo",
+			"documentation_hash": "26dc56320f62a4b8bc99df47fce2355bbfd2839b4537cb73642ca98b25e90e47",
+			"definition_hash": "e4cff1f9c7367f04dbe52703cca4d765cb504b90cf6fb157f03e54975985d5fc",
+			"reviewed_at": "2026-07-10T19:58:10.219029091Z"
+		},
+		{
+			"function_name": "TestFetchLayerResumesAndVerifies",
+			"documentation_hash": "f3c77b53ccea529fce2a374fbe8356666bd748efc46ad4fdc921f6cb85d6fb9d",
+			"definition_hash": "99fa4f22218e46060fc51aacc5af844130d25dc95b94c2d9e1ce45732c592477",
+			"reviewed_at": "2026-07-10T19:58:10.22009382Z"
+		},
+		{
+			"function_name": "TestFetchLayerRejectsTooLarge",
+			"documentation_hash": "b84b0a3aca65bd4e166a17fb76a686c0f304f3a18131b9a417acae85a7e8cbef",
+			"definition_hash": "af3482da4c3dcc168f2e6ea90104939c93fe6c2dfebcd4ba60ef24bfeeae6420",
+			"reviewed_at": "2026-07-10T19:58:10.220688536Z"
+		},
+		{
+			"function_name": "TestEnsureRoom",
+			"documentation_hash": "c498b218869dcfa713abb7a6275e029a7a8d9de285e407af4ec3a636d8242c6e",
+			"definition_hash": "277779f18676c846eb130fca2b1deefda541c233e9530e66048e03c0acd123b6",
+			"reviewed_at": "2026-07-10T19:58:10.221269328Z"
+		},
+		{
+			"function_name": "TestDownloadStalls",
+			"documentation_hash": "74c4f32fa130aeaafce22386d65bf649cdc8bd1cd08ce327dee063b5f81e532e",
+			"definition_hash": "cdfc11d587eff0b14ee0ef66cf0c2f98fb3fd0cbcaf2e14e1de8605f42a5af11",
+			"reviewed_at": "2026-07-10T19:58:10.221852756Z"
+		},
+		{
+			"function_name": "TestVerifyDigest",
+			"documentation_hash": "e3663a6793ecded43236a6f17e105ae8ed930becbc2ff3f4830bca88f472531b",
+			"definition_hash": "36dcf9155493c4629e75367aca45720563e2c993bf84a58c6033227e8706296b",
+			"reviewed_at": "2026-07-10T19:58:10.22297366Z"
+		},
+		{
+			"function_name": "TestBackoff",
+			"documentation_hash": "bd55bd8c5dd7c0b78e960d0b8cee171bc7ef455152c1edf0facc5a619b9ee44b",
+			"definition_hash": "0e0532d40102c019bf004f4efc4417f21ee0f09238bd15d1329c699eb59c6498",
+			"reviewed_at": "2026-07-10T19:58:10.223596457Z"
 		}
 	]
 }
