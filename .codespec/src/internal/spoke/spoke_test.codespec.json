@@ -53,6 +53,12 @@
 			"documentation_hash": "833fabdb62d5f3616d3a9e6f2e9c52fd447ac0e6ceca0ba3fb19abc9b6cccda1",
 			"definition_hash": "8eba09f4f7b9601fdc98541bae6c7aac47cca43e16f35dfc8ac668b0f395f682",
 			"reviewed_at": "2026-07-07T12:21:36.660267687Z"
+		},
+		{
+			"function_name": "TestDefaultSpokeStatePath",
+			"documentation_hash": "ddacb9bcc0f84d946c910b2a7dda36e18485a68378abeefbdf97ef4eae58173d",
+			"definition_hash": "41555185c9789614d886c57f3fd68d58333f914279e30b70f913738497105867",
+			"reviewed_at": "2026-07-10T15:37:12.833854839Z"
 		}
 	]
 }

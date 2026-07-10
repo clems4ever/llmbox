@@ -104,7 +104,9 @@ Token and credential records live in the hub's SQLite state file
   `llmbox-sessions.db`; point `--state-file` at the running hub's `state_file`).
 - `llmbox-spoke docker --hub wss://hub/spoke/connect --token <join-token>` — runs
   a spoke on the Docker backend; `llmbox-spoke firecracker …` runs the
-  [Firecracker](firecracker.md) backend.
+  [Firecracker](firecracker.md) backend. The credential issued at first
+  enrollment is saved to `~/.llmbox/llmbox-spoke.json` by default (override with
+  `--state`), and the spoke reconnects from it afterwards without the token.
 - The **spoke reads no config file** — every setting is a flag, so a host runs
   the single command the admin UI generates. Because the hub runs no box backend,
   the per-box knobs live entirely on the spoke: `--image`, `--box-memory-mb`,

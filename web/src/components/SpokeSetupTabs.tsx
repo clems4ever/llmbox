@@ -93,7 +93,8 @@ export function SpokeSetupTabs({ command, onRegenerate, regenerating }: SpokeSet
             <CopyBlock value={command} label="Copy command" />
             <Text c="dimmed" size="xs">
               Runs the spoke in the foreground. After first enrollment it reconnects from
-              the credential saved next to it; the token is one-time.
+              the credential saved under <Code>~/.llmbox</Code> (override with{" "}
+              <Code>--state</Code>); the token is one-time.
             </Text>
           </Stack>
         </Tabs.Panel>

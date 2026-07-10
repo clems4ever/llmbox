@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { spokeServiceName, systemdSetupScript, tokenPlaceholder } from "./spokeSetup";
 
 const command =
-  "llmbox-spoke docker --hub wss://hub.example.com/spoke/connect --token SECRET --state llmbox-spoke.json";
+  "llmbox-spoke docker --hub wss://hub.example.com/spoke/connect --token SECRET";
 
 describe("systemdSetupScript", () => {
   it("rewrites the command for service use inside the unit", () => {
@@ -10,7 +10,12 @@ describe("systemdSetupScript", () => {
     expect(script).toContain(
       "ExecStart=/usr/local/bin/llmbox-spoke docker --hub wss://hub.example.com/spoke/connect --token SECRET --state /var/lib/llmbox/llmbox-spoke.json",
     );
-    // The relative state path must not survive anywhere in the script.
+  });
+
+  it("replaces an explicit --state with the service location", () => {
+    const script = systemdSetupScript(`${command} --state llmbox-spoke.json`);
+    expect(script).toContain("--state /var/lib/llmbox/llmbox-spoke.json");
+    // The original state path must not survive anywhere in the script.
     expect(script).not.toContain("--state llmbox-spoke.json");
   });
 
