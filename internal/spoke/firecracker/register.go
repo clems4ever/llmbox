@@ -30,7 +30,7 @@ func init() {
 func newBackend(opts backend.Options) (backend.Provisioner, error) {
 	kernel, rootfs, payload := opts.KernelImagePath, opts.RootfsImagePath, opts.PayloadImagePath
 	if kernel == "" || rootfs == "" || payload == "" {
-		r := newAssetResolver(assetCacheDir(), opts.RegistryAuths)
+		r := newAssetResolver(assetCacheDir(opts.StateDir), opts.RegistryAuths)
 		var err error
 		if kernel, rootfs, payload, err = r.resolveImages(context.Background(), kernel, rootfs, payload); err != nil {
 			return nil, fmt.Errorf("resolving firecracker guest images from %s (set --kernel/--rootfs/--payload to use local files): %w", r.registry, err)

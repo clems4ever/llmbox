@@ -32,9 +32,9 @@
 		},
 		{
 			"function_name": "TestAssetCacheDirHonoursEnv",
-			"documentation_hash": "b38aa6b76370913fc494277073aa8ef891bc2d212296e90b527bae88c8fd5a4a",
-			"definition_hash": "992aa74524a08bb3c6d302de8f920e4efe1aebde96e875c46705f63500d9bbb5",
-			"reviewed_at": "2026-07-07T11:12:35.273501935Z"
+			"documentation_hash": "3afdc65ef992992abf96206e2617e725824fe9474747c7005b26f8abea64c6fa",
+			"definition_hash": "c3edcdf3e5cdd05944ce9d25896210c046d623386e2dd576c6075f0c6612cc78",
+			"reviewed_at": "2026-07-10T16:42:08.195120775Z"
 		},
 		{
 			"function_name": "testResolver",
@@ -63,8 +63,20 @@
 		{
 			"function_name": "TestProgressTargetPush",
 			"documentation_hash": "6ce03f1b2b405eee517206f1c78f5e16aebdab942cb7ab976f3a136e704313c2",
-			"definition_hash": "f08973102873b94dec7038df30aeafabe9770f53df22618d90a40fe9164fca35",
-			"reviewed_at": "2026-07-07T12:08:14.356149326Z"
+			"definition_hash": "e073dde1b6479f0c6632bfbbbfcf5092e30f7ecfe9c43abceb87915a54bf8f65",
+			"reviewed_at": "2026-07-10T16:42:08.18020138Z"
+		},
+		{
+			"function_name": "TestProgressTargetPushRejectsTooLarge",
+			"documentation_hash": "67d8bae03613f24bed2c13193a04dea1f6af25b33e193160d8fa7d25b48c7cd8",
+			"definition_hash": "ff0e107685478f51ba2c32b58570c41f7d93c754bc9ee65b8151e0cdb57294b1",
+			"reviewed_at": "2026-07-10T16:42:08.185121265Z"
+		},
+		{
+			"function_name": "TestChooseAssetCacheDir",
+			"documentation_hash": "0a108bc888dc7fc5205981e292979a1507e0ffbc76c1c224e6e23aadebfe5a94",
+			"definition_hash": "9c16213c22840f5a062153def217eee7b9c056cf6a1b2ab714efcee22b811865",
+			"reviewed_at": "2026-07-10T16:42:08.190000643Z"
 		}
 	]
 }

@@ -16,14 +16,21 @@ export const tokenPlaceholder = "<one-time-token>";
  * enrollment command for service use: the bare binary name becomes the absolute
  * /usr/local/bin path (systemd does not search $PATH) and the state file is
  * pinned to /var/lib/llmbox — the spoke's built-in default lives under the
- * user's home, which is the wrong place for a system service. Keeping --token
- * in the unit is safe: the spoke only uses it on first enrollment and
- * reconnects from the saved credential afterwards. */
+ * user's home, which is the wrong place for a system service. A firecracker
+ * spoke additionally pins --state-dir to /var/lib/llmbox/firecracker so its
+ * multi-GiB guest images and per-box state land on disk, not the default
+ * in-memory tmpfs run-dir (too small, and wiped on reboot). Keeping --token in
+ * the unit is safe: the spoke only uses it on first enrollment and reconnects
+ * from the saved credential afterwards. */
 export function systemdSetupScript(command: string): string {
+  const firecracker = /^llmbox-spoke\s+firecracker\b/.test(command);
   const exec =
     command
       .replace(/^llmbox-spoke\s+/, "/usr/local/bin/llmbox-spoke ")
-      .replace(/\s+--state\s+\S+/, "") + " --state /var/lib/llmbox/llmbox-spoke.json";
+      .replace(/\s+--state\s+\S+/, "")
+      .replace(/\s+--state-dir\s+\S+/, "") +
+    " --state /var/lib/llmbox/llmbox-spoke.json" +
+    (firecracker ? " --state-dir /var/lib/llmbox/firecracker" : "");
   return `sudo tee /etc/systemd/system/${spokeServiceName} >/dev/null <<'UNIT'
 [Unit]
 Description=llmbox spoke runner
