@@ -13,10 +13,12 @@ import (
 	"github.com/clems4ever/llmbox/internal/spoke"
 )
 
-const (
-	name    = "llmbox-spoke"
-	version = "v0.1.0"
-)
+const name = "llmbox-spoke"
+
+// version is the binary's reported version. It defaults to "dev" for local
+// builds and is overridden at release time by GoReleaser via the linker flag
+// -X main.version=<tag> (see .goreleaser.yaml).
+var version = "dev"
 
 // main builds the spoke command tree (from the spoke package) with this binary's
 // name and version, executes it, and exits non-zero on a fatal error.

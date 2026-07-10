@@ -26,10 +26,12 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/api"
 )
 
-const (
-	name    = "llmbox-mcp"
-	version = "v0.1.0"
-)
+const name = "llmbox-mcp"
+
+// version is the binary's reported version. It defaults to "dev" for local
+// builds and is overridden at release time by GoReleaser via the linker flag
+// -X main.version=<tag> (see .goreleaser.yaml).
+var version = "dev"
 
 // main executes the root command and exits non-zero on a fatal error.
 //

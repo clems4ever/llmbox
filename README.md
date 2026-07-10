@@ -56,6 +56,28 @@ session; still run llmbox
 behind an authenticating proxy. Full details — Docker socket permissions,
 `docker compose`, TLS — are in [Running & configuration](docs/configuration.md).
 
+### Prebuilt binaries
+
+Each `v*` tag publishes static, dependency-free binaries to the
+[GitHub Releases](https://github.com/clems4ever/llmbox/releases) page (built by
+[GoReleaser](.goreleaser.yaml)). This lets a box host run a spoke **without
+Docker or a Go toolchain** — for example to host [Firecracker](docs/firecracker.md)
+microVM boxes on a KVM machine:
+
+```bash
+# Download and unpack the spoke for your platform (linux amd64/arm64).
+VERSION=vX.Y.Z
+curl -fsSL -o llmbox-spoke.tar.gz \
+  "https://github.com/clems4ever/llmbox/releases/download/${VERSION}/llmbox-spoke_${VERSION#v}_linux_amd64.tar.gz"
+tar xzf llmbox-spoke.tar.gz llmbox-spoke
+
+# Connect it to a hub and serve Firecracker boxes (see docs/firecracker.md).
+./llmbox-spoke firecracker --hub wss://hub.example.com/spoke/connect --token <join-token>
+```
+
+Archives are also published for `llmbox-server`, `llmbox-mcp`, and the in-box
+`llmbox-guest` init.
+
 ## MCP tools
 
 `create_llmbox`, `get_llmbox`, `list_llmboxes`, `destroy_llmbox`,

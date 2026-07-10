@@ -24,6 +24,9 @@ CLAUDE.md
 # Coverage profile (make cover)
 /coverage.out
 
+# GoReleaser build output (make release / goreleaser release)
+/dist/
+
 # database
 /llmbox-sessions.db*
 

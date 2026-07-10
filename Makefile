@@ -18,9 +18,11 @@ COVERPROFILE := coverage.out
 # committed; targets that need it depend on this file (see its rule below).
 WEBDIST := internal/hub/webdist/index.html
 
-# Build a static binary, matching the Dockerfile.
+# Build a static binary, matching the Dockerfile. The version is injected into
+# main.version (the same variable GoReleaser overrides on a tagged release), so a
+# local `make build` reports the git-described version instead of "dev".
 GO_BUILD_ENV := CGO_ENABLED=0
-GO_BUILD_FLAGS := -trimpath -ldflags="-s -w"
+GO_BUILD_FLAGS := -trimpath -ldflags="-s -w -X main.version=$(VERSION)"
 
 # --- meta --------------------------------------------------------------------
 
@@ -211,6 +213,23 @@ docker-build-box: ## Build the default box base image (tagged $(IMAGE)-box:$(VER
 .PHONY: compose-up
 compose-up: ## Build and start via docker compose (needs llmbox.yaml).
 	docker compose up --build
+
+# --- release -----------------------------------------------------------------
+
+# GoReleaser cross-compiles every binary and publishes downloadable archives to a
+# GitHub Release on a `v*` tag push (see .goreleaser.yaml and the release
+# workflow). These targets exercise it locally; both run goreleaser via `go run`
+# so no separate install is needed. `release-snapshot` builds into ./dist without
+# needing a tag or publishing anything.
+GORELEASER := go run github.com/goreleaser/goreleaser/v2@latest
+
+.PHONY: release-check
+release-check: ## Validate the GoReleaser config (.goreleaser.yaml).
+	$(GORELEASER) check
+
+.PHONY: release-snapshot
+release-snapshot: $(WEBDIST) ## Build a local release snapshot into ./dist (no tag, publishes nothing).
+	$(GORELEASER) release --snapshot --clean
 
 # --- housekeeping ------------------------------------------------------------
 
