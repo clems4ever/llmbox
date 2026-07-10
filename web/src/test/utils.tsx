@@ -41,6 +41,12 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
     dropSpoke: vi.fn().mockResolvedValue({}),
     setDefaultSpoke: vi.fn().mockResolvedValue({}),
     revokeJoinToken: vi.fn().mockResolvedValue({}),
+    regenerateJoinToken: vi.fn().mockResolvedValue({
+      name: "edge-1",
+      token: "fresh-token",
+      command:
+        "llmbox-spoke docker --hub wss://hub/spoke/connect --token fresh-token --state llmbox-spoke.json",
+    }),
     createBox: vi.fn().mockResolvedValue({ box_id: "box-1", token: "tok" }),
     authPageURL: vi.fn().mockResolvedValue("https://hub/auth/tok"),
     destroyBox: vi.fn().mockResolvedValue({}),
@@ -71,9 +77,18 @@ export function spoke(overrides: Partial<SpokeStatus> = {}): SpokeStatus {
   return { name: "edge-1", connected: true, enrolled_at: "2026-01-02T03:04:05Z", ...overrides };
 }
 
-/** token builds a JoinTokenInfo with defaults (a far-future expiry). */
+/** token builds a JoinTokenInfo with defaults (a far-future expiry, and the
+ * placeholder command the server re-renders for outstanding tokens). */
 export function token(overrides: Partial<JoinTokenInfo> = {}): JoinTokenInfo {
-  return { id: "abcdef012345", name: "edge-1", expires_at: "2099-01-01T00:00:00Z", ...overrides };
+  return {
+    id: "abcdef012345",
+    name: "edge-1",
+    backend: "docker",
+    command:
+      "llmbox-spoke docker --hub wss://hub/spoke/connect --token <one-time-token> --state llmbox-spoke.json",
+    expires_at: "2099-01-01T00:00:00Z",
+    ...overrides,
+  };
 }
 
 /** proxy builds a ProxyInfo with defaults. */

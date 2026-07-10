@@ -15,8 +15,9 @@ const (
 	PathCreateSpoke     = "/api/v1/create-spoke"
 	PathDropSpoke       = "/api/v1/drop-spoke"
 	PathSetDefaultSpoke = "/api/v1/set-default-spoke"
-	PathListJoinTokens  = "/api/v1/list-join-tokens"
-	PathRevokeJoinToken = "/api/v1/revoke-join-token"
+	PathListJoinTokens      = "/api/v1/list-join-tokens"
+	PathRevokeJoinToken     = "/api/v1/revoke-join-token"
+	PathRegenerateJoinToken = "/api/v1/regenerate-join-token"
 	PathDestroyBox      = "/api/v1/destroy-box"
 	PathBoxLogs         = "/api/v1/box-logs"
 	PathBoxExec         = "/api/v1/box-exec"
@@ -95,6 +96,13 @@ type listJoinTokensResponse struct {
 
 type revokeJoinTokenRequest struct {
 	ID string `json:"id"`
+}
+
+type regenerateJoinTokenRequest struct {
+	ID string `json:"id"`
+}
+type regenerateJoinTokenResponse struct {
+	Spoke SpokeEnrollment `json:"spoke"`
 }
 
 type destroyBoxRequest struct {

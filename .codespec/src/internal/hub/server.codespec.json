@@ -256,9 +256,9 @@
 		{
 			"function_name": "createSpoke",
 			"receiver": "Server",
-			"documentation_hash": "e060379a88ca7724f9407ad5e62d289c38faa6137018e99706b1ead43bb0232a",
-			"definition_hash": "d2fdace7c0b44c5d62adb3cd5c4ba7c780cd5b958d620ee9fcdf8bfb28eab04d",
-			"reviewed_at": "2026-07-08T12:57:12.235155033Z"
+			"documentation_hash": "a7e281e89bd6c4a4b62da3dcce03f5c24a6d92f8348d7954ae037dd14fffe29a",
+			"definition_hash": "01f7d1c79699798d44c1a526fb34e6528983388f2f720a1e345e855822fe3210",
+			"reviewed_at": "2026-07-10T15:05:33.268735234Z"
 		},
 		{
 			"function_name": "dropSpoke",
@@ -349,6 +349,13 @@
 			"documentation_hash": "28ed1ea7d89b95cc1cb9651afe046ee051358ab75bbe843b433071089feb7d05",
 			"definition_hash": "4ce281adc0b917f4a4bb755f9e886a20cafe1866a8ac9f0588a5adaed1268e00",
 			"reviewed_at": "2026-07-10T10:15:11.417082054Z"
+		},
+		{
+			"function_name": "regenerateJoinToken",
+			"receiver": "Server",
+			"documentation_hash": "5226f5855edc26be7113ad06e28a8fc3cfd8a32829746e0b0cab9bad76c21e2b",
+			"definition_hash": "081c0d4c35196974278a58c0988bdc6af960432747dc0836bd7ea113fcc324b1",
+			"reviewed_at": "2026-07-10T15:19:22.231317195Z"
 		}
 	]
 }

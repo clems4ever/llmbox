@@ -19,6 +19,11 @@ export interface SpokeStatus {
 export interface JoinTokenInfo {
   id: string;
   name: string;
+  // The box backend recorded when the token was created (docker/firecracker).
+  backend: string;
+  // The enrollment command with "<one-time-token>" in place of the secret —
+  // the real token is shown only in the create response and never recoverable.
+  command: string;
   expires_at: string;
 }
 
@@ -138,6 +143,14 @@ export class Api {
 
   revokeJoinToken(id: string): Promise<unknown> {
     return this.call("/api/v1/revoke-join-token", { id });
+  }
+
+  /** regenerateJoinToken swaps an outstanding join token for a freshly minted
+   * one for the same spoke; the old token stops working and the new secret is
+   * shown once, like a create. */
+  async regenerateJoinToken(id: string): Promise<SpokeEnrollment> {
+    const r = await this.call<{ spoke: SpokeEnrollment }>("/api/v1/regenerate-join-token", { id });
+    return r.spoke;
   }
 
   async createBox(boxId: string, description: string, spoke: string): Promise<{ box_id: string; token: string }> {

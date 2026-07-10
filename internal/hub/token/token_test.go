@@ -74,7 +74,7 @@ func seedJoinToken(t *testing.T, stateFile, name string) string {
 		t.Fatalf("OpenStore: %v", err)
 	}
 	defer func() { _ = store.Close() }()
-	if _, err := cluster.CreateJoinToken(store, name, time.Hour, time.Now()); err != nil {
+	if _, err := cluster.CreateJoinToken(store, name, "docker", time.Hour, time.Now()); err != nil {
 		t.Fatalf("CreateJoinToken: %v", err)
 	}
 	infos, err := store.ListJoinTokens()

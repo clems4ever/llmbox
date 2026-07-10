@@ -226,6 +226,13 @@
 			"documentation_hash": "f334d8a9948d9d280e5c949458edb98f52dc69f61b4f7127ef3bc6270c6cfd9e",
 			"definition_hash": "71641b1a53b4cda1bafd579395759b88447952676a8a6609173a670e03326b67",
 			"reviewed_at": "2026-07-08T12:57:12.257049431Z"
+		},
+		{
+			"function_name": "RegenerateJoinToken",
+			"receiver": "fakeBackend",
+			"documentation_hash": "fceef30f90b83591edecd4b44484392532fcb637004dcf707739d5bd87403cc6",
+			"definition_hash": "5ae7ad0ece56e71e67c902dc2b42cd09228cc35fde9777c00e9f47ea362488fc",
+			"reviewed_at": "2026-07-10T15:19:22.242230232Z"
 		}
 	]
 }

@@ -28,7 +28,7 @@ func waitForSpoke(t *testing.T, hub *Hub, name string) BoxManager {
 func TestHubEnrollAndRoute(t *testing.T) {
 	store := newMemStore()
 	now := time.Unix(10_000, 0)
-	tok, err := CreateJoinToken(store, "edge", time.Hour, now)
+	tok, err := CreateJoinToken(store, "edge", "docker", time.Hour, now)
 	if err != nil {
 		t.Fatalf("CreateJoinToken: %v", err)
 	}

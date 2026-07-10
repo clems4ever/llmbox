@@ -20,9 +20,9 @@
 		},
 		{
 			"function_name": "CreateJoinToken",
-			"documentation_hash": "24eda493c3e727ddcb6cae6d52c81f0088b2fe362cb70b6e06cd4a41926de4bf",
-			"definition_hash": "039eec24316b6466aced2aeb7ee4dc5abc00833358952c94ab9e5f2fb0a55f4e",
-			"reviewed_at": "2026-06-19T20:34:04.992057967Z"
+			"documentation_hash": "d2c8ded0bcc315849dd74b7d89a103076d2a6342006f10bbd2dc9b3fe814a5e7",
+			"definition_hash": "6ba3e98bfd193837f3ea9d2be2bdc7d31b2e3dbbeb6c5cd693b6f563c4914e29",
+			"reviewed_at": "2026-07-10T15:06:03.150036186Z"
 		},
 		{
 			"function_name": "authenticateEnroll",

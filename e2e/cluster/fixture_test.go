@@ -139,7 +139,7 @@ type fakeRemote struct {
 // @return *fakeRemote A handle to the connected spoke.
 func (f *clusterFixture) connectSpoke(name string) *fakeRemote {
 	f.t.Helper()
-	joinToken, err := cluster.CreateJoinToken(f.store, name, time.Hour, time.Now())
+	joinToken, err := cluster.CreateJoinToken(f.store, name, "docker", time.Hour, time.Now())
 	if err != nil {
 		f.t.Fatalf("create join token: %v", err)
 	}

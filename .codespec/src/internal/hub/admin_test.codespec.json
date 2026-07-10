@@ -33,8 +33,8 @@
 		{
 			"function_name": "TestDropSpokeRemovesAndKicks",
 			"documentation_hash": "976d2d9934fe6a094e4980d8906c850699c6d211f490c6fd8d3a958c742d5de0",
-			"definition_hash": "644bf95a95df0e595c2b37cb10e572c2d6165d2fd245ccadb94bd3f41405a35e",
-			"reviewed_at": "2026-07-08T12:57:12.229363393Z"
+			"definition_hash": "f990ac61aff67e2f0192495636ce0635b0481a65350b7440cef45389f57d9b21",
+			"reviewed_at": "2026-07-10T15:05:33.24116194Z"
 		},
 		{
 			"function_name": "TestDropDefaultSpokeClearsDefault",

@@ -25,6 +25,27 @@ describe("CreateSpokeModal", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
+  it("offers the systemd setup script in a second tab", async () => {
+    const api = mockApi({
+      createSpoke: vi.fn().mockResolvedValue({
+        name: "edge-9",
+        token: "tk",
+        command: "llmbox-spoke docker --hub wss://hub/spoke/connect --token tk --state llmbox-spoke.json",
+      }),
+    });
+    const { user } = render(
+      <CreateSpokeModal api={api} opened onClose={vi.fn()} refresh={vi.fn()} />,
+    );
+    await user.type(screen.getByPlaceholderText("edge-1"), "edge-9");
+    await user.click(screen.getByRole("button", { name: "Create runner" }));
+
+    await user.click(await screen.findByRole("tab", { name: "systemd service" }));
+    expect(
+      await screen.findByText(/sudo systemctl enable --now llmbox-spoke\.service/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy script" })).toBeInTheDocument();
+  });
+
   it("closes via Cancel", async () => {
     const onClose = vi.fn();
     const { user } = render(<CreateSpokeModal api={mockApi()} opened onClose={onClose} refresh={vi.fn()} />);

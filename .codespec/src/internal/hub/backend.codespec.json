@@ -101,9 +101,9 @@
 		{
 			"function_name": "CreateSpoke",
 			"receiver": "apiBackend",
-			"documentation_hash": "9471fb2c5a0f9b3fb0fb0895b1b41e3fa914b002c6c5a480923c0d7e72f3ad04",
-			"definition_hash": "2ca8f5188a24a1badbc47ddf33c1e655a964b31dc44332b802a9edbc44b27057",
-			"reviewed_at": "2026-07-08T12:57:12.23080609Z"
+			"documentation_hash": "ececc36427694232e291c6072dd1323690c5989063e69b5c456a33d898d26ec2",
+			"definition_hash": "5c2117967dfe435763f2c4c3b26d50b66e30a80cf23ade2621d4b305e16322d8",
+			"reviewed_at": "2026-07-10T15:05:33.244388311Z"
 		},
 		{
 			"function_name": "DropSpoke",
@@ -122,9 +122,9 @@
 		{
 			"function_name": "ListJoinTokens",
 			"receiver": "apiBackend",
-			"documentation_hash": "11f8e364c60b689393c3a754980242096c2b311b932af6d71194b7f4054c6abe",
-			"definition_hash": "2918797cf4ef8287bb96bedb46ea86f9b324fc643bc74e4f5e57466840e081e5",
-			"reviewed_at": "2026-07-08T12:57:12.232052386Z"
+			"documentation_hash": "9e7e03742cf16f5d7e0094b7df69d71f9c9caa5af42e87e95163df23be6e61a9",
+			"definition_hash": "04d7e92db9030aba17453343709893666de201da27432d136bfbee5d99604ab9",
+			"reviewed_at": "2026-07-10T15:05:33.247396049Z"
 		},
 		{
 			"function_name": "RevokeJoinToken",
@@ -132,6 +132,13 @@
 			"documentation_hash": "d9f5c96b5ac3f7093995a2da4f465173a0d04246d3f4874a1dc609469cb6a87f",
 			"definition_hash": "bebad02eb659ece8fc0a5c6740947c928cca57efad38b23ff7c5d41ef8791611",
 			"reviewed_at": "2026-07-08T12:57:12.232739712Z"
+		},
+		{
+			"function_name": "RegenerateJoinToken",
+			"receiver": "apiBackend",
+			"documentation_hash": "eb28e4480ea75ddc3ebcbed3e8bf35d9029fa898f24381ee9f1a8424880324e2",
+			"definition_hash": "d8a750235e61d0f714f2056c284cab6251acfb8d59c33637bf184874caf24ae0",
+			"reviewed_at": "2026-07-10T15:19:22.207739356Z"
 		}
 	]
 }

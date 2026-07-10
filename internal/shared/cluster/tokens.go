@@ -38,19 +38,24 @@ type Store interface {
 }
 
 // JoinTokenRecord is the stored form of a one-time join token: the spoke name
-// baked into it and when it expires. The secret itself is not stored (only its
-// hash, which is the key).
+// baked into it, the box backend the spoke was created for (presentation only —
+// enrollment does not check it; empty on records that predate it means docker),
+// and when it expires. The secret itself is not stored (only its hash, which is
+// the key).
 type JoinTokenRecord struct {
 	Name      string    `json:"name"`
+	Backend   string    `json:"backend,omitempty"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
 // JoinTokenInfo describes an outstanding join token for listing/revocation. ID
 // is the token's hash (an opaque handle the operator can revoke by); the secret
-// is never recoverable.
+// is never recoverable. Backend is the box backend recorded at creation (empty
+// means docker), kept so setup instructions can be re-rendered after creation.
 type JoinTokenInfo struct {
 	ID        string
 	Name      string
+	Backend   string
 	ExpiresAt time.Time
 }
 
@@ -111,19 +116,22 @@ func sameHash(secret, hash string) bool {
 
 // CreateJoinToken mints a one-time join token for a spoke name, stores its hash
 // with the given expiry, and returns the plaintext token to show the operator
-// once. ttl<=0 is rejected so a token always expires.
+// once. backend records the box backend the spoke was created for (presentation
+// only, not validated here; empty means docker) so setup instructions can be
+// re-rendered after creation. ttl<=0 is rejected so a token always expires.
 //
 // @arg store The cluster store to persist the token in.
 // @arg name The spoke name baked into the token; required.
+// @arg backend The box backend recorded on the token; empty means docker.
 // @arg ttl How long the token stays valid; must be positive.
 // @arg now The current time (for the expiry).
 // @return string The plaintext join token (shown once, never recoverable).
 // @error error if the name is empty, ttl is non-positive, the secret cannot be generated, or the store write fails.
 //
-// @testcase TestCreateJoinTokenStoresHash stores the token hash and returns a usable secret.
+// @testcase TestCreateJoinTokenStoresHash stores the token hash (with its backend) and returns a usable secret.
 // @testcase TestCreateJoinTokenRejectsEmptyName rejects an empty spoke name.
 // @testcase TestCreateJoinTokenRejectsTTL rejects a non-positive ttl.
-func CreateJoinToken(store Store, name string, ttl time.Duration, now time.Time) (string, error) {
+func CreateJoinToken(store Store, name, backend string, ttl time.Duration, now time.Time) (string, error) {
 	if name == "" {
 		return "", errors.New("spoke name is required")
 	}
@@ -134,7 +142,7 @@ func CreateJoinToken(store Store, name string, ttl time.Duration, now time.Time)
 	if err != nil {
 		return "", fmt.Errorf("generating join token: %w", err)
 	}
-	rec := JoinTokenRecord{Name: name, ExpiresAt: now.Add(ttl)}
+	rec := JoinTokenRecord{Name: name, Backend: backend, ExpiresAt: now.Add(ttl)}
 	if err := store.PutJoinToken(hashSecret(secret), rec); err != nil {
 		return "", fmt.Errorf("storing join token: %w", err)
 	}

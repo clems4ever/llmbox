@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
@@ -17,7 +18,7 @@ func TestClusterStoreJoinTokenRoundTrip(t *testing.T) {
 	t.Cleanup(func() { _ = st.Close() })
 
 	exp := time.Now().Add(time.Hour).UTC().Round(time.Second)
-	if err := st.PutJoinToken("hash1", cluster.JoinTokenRecord{Name: "edge", ExpiresAt: exp}); err != nil {
+	if err := st.PutJoinToken("hash1", cluster.JoinTokenRecord{Name: "edge", Backend: "firecracker", ExpiresAt: exp}); err != nil {
 		t.Fatalf("PutJoinToken: %v", err)
 	}
 
@@ -25,7 +26,7 @@ func TestClusterStoreJoinTokenRoundTrip(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("TakeJoinToken = (%+v,%v,%v)", rec, found, err)
 	}
-	if rec.Name != "edge" || !rec.ExpiresAt.Equal(exp) {
+	if rec.Name != "edge" || rec.Backend != "firecracker" || !rec.ExpiresAt.Equal(exp) {
 		t.Errorf("record = %+v", rec)
 	}
 	// One-time: a second take finds nothing.
@@ -48,8 +49,8 @@ func TestClusterStoreJoinTokenListAndDelete(t *testing.T) {
 	t.Cleanup(func() { _ = st.Close() })
 
 	exp := time.Now().Add(time.Hour).UTC().Round(time.Second)
-	_ = st.PutJoinToken("hashA", cluster.JoinTokenRecord{Name: "edge-1", ExpiresAt: exp})
-	_ = st.PutJoinToken("hashB", cluster.JoinTokenRecord{Name: "edge-2", ExpiresAt: exp})
+	_ = st.PutJoinToken("hashA", cluster.JoinTokenRecord{Name: "edge-1", Backend: "docker", ExpiresAt: exp})
+	_ = st.PutJoinToken("hashB", cluster.JoinTokenRecord{Name: "edge-2", Backend: "firecracker", ExpiresAt: exp})
 
 	tokens, err := st.ListJoinTokens()
 	if err != nil || len(tokens) != 2 {
@@ -59,8 +60,11 @@ func TestClusterStoreJoinTokenListAndDelete(t *testing.T) {
 	for _, tk := range tokens {
 		byID[tk.ID] = tk
 	}
-	if byID["hashA"].Name != "edge-1" || !byID["hashA"].ExpiresAt.Equal(exp) {
+	if byID["hashA"].Name != "edge-1" || byID["hashA"].Backend != "docker" || !byID["hashA"].ExpiresAt.Equal(exp) {
 		t.Errorf("listing for hashA = %+v", byID["hashA"])
+	}
+	if byID["hashB"].Backend != "firecracker" {
+		t.Errorf("listing for hashB = %+v", byID["hashB"])
 	}
 
 	if err := st.DeleteJoinToken("hashA"); err != nil {
@@ -69,6 +73,49 @@ func TestClusterStoreJoinTokenListAndDelete(t *testing.T) {
 	tokens, _ = st.ListJoinTokens()
 	if len(tokens) != 1 || tokens[0].ID != "hashB" {
 		t.Errorf("after delete, listing = %v, want only hashB", tokens)
+	}
+}
+
+// TestOpenMigratesJoinTokenBackend checks Open retrofits the backend column onto
+// a spoke_join_tokens table created before it existed, keeping the old row
+// readable (empty backend) and the migration idempotent across reopens.
+func TestOpenMigratesJoinTokenBackend(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "s.db")
+
+	// Lay down the pre-backend-column table with one token, as an old build did.
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatalf("sql.Open: %v", err)
+	}
+	exp := time.Now().Add(time.Hour).UTC().Round(time.Second)
+	if _, err := db.Exec(`CREATE TABLE spoke_join_tokens (
+		secret_hash TEXT PRIMARY KEY,
+		name        TEXT NOT NULL,
+		expires_at  TEXT NOT NULL
+	)`); err != nil {
+		t.Fatalf("creating old table: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO spoke_join_tokens VALUES ('oldhash', 'edge', ?)`, encodeTime(exp)); err != nil {
+		t.Fatalf("seeding old row: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("closing seed db: %v", err)
+	}
+
+	// Opening twice proves the ALTER TABLE is guarded, not blindly reapplied.
+	for i := 0; i < 2; i++ {
+		st, err := Open(path)
+		if err != nil {
+			t.Fatalf("Open (pass %d): %v", i+1, err)
+		}
+		tokens, err := st.ListJoinTokens()
+		if err != nil || len(tokens) != 1 {
+			t.Fatalf("ListJoinTokens (pass %d) = (%v,%v), want the migrated row", i+1, tokens, err)
+		}
+		if tokens[0].Name != "edge" || tokens[0].Backend != "" || !tokens[0].ExpiresAt.Equal(exp) {
+			t.Errorf("migrated row = %+v, want empty backend", tokens[0])
+		}
+		_ = st.Close()
 	}
 }
 

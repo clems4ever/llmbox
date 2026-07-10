@@ -30,6 +30,7 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 		Spokes:            []api.SpokeStatus{{Name: "edge", Connected: true, Default: true}},
 		CreateSpokeResult: api.SpokeEnrollment{Name: "edge", Token: "tok-1", Command: "llmbox-spoke firecracker --hub wss://x --token tok-1"},
 		JoinTokens:        []api.JoinTokenInfo{{ID: "tid", Name: "edge", ExpiresAt: time.Now().Add(time.Hour)}},
+		RegenTokenResult:  api.SpokeEnrollment{Name: "edge", Token: "tok-2", Command: "llmbox-spoke docker --hub wss://x --token tok-2"},
 		LogsResult:        "log output",
 		ExecResult:        sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 7},
 		ProxyOn:           true,
@@ -96,6 +97,11 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 
 	if err := c.RevokeJoinToken(ctx, "tid"); err != nil || fb.GotRevokeToken != "tid" {
 		t.Fatalf("RevokeJoinToken err=%v id=%q", err, fb.GotRevokeToken)
+	}
+
+	regen, err := c.RegenerateJoinToken(ctx, "tid")
+	if err != nil || regen.Token != "tok-2" || fb.GotRegenToken != "tid" {
+		t.Fatalf("RegenerateJoinToken = %+v err=%v id=%q", regen, err, fb.GotRegenToken)
 	}
 
 	if err := c.DestroyBox(ctx, "cid123"); err != nil || fb.GotDestroyID != "cid123" {

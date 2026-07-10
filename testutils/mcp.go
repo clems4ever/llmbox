@@ -41,6 +41,8 @@ type FakeBackend struct {
 	JoinTokens        []api.JoinTokenInfo
 	JoinTokensErr     error
 	RevokeTokenErr    error
+	RegenTokenResult  api.SpokeEnrollment
+	RegenTokenErr     error
 	DestroyErr        error
 	LogsResult        string
 	LogsErr           error
@@ -63,6 +65,7 @@ type FakeBackend struct {
 	GotDropSpoke      string
 	GotDefaultSpoke   string
 	GotRevokeToken    string
+	GotRegenToken     string
 	GotDestroyID      string
 	GotLogsID         string
 	GotLogsTail       int
@@ -217,6 +220,21 @@ func (f *FakeBackend) RevokeJoinToken(ctx context.Context, id string) error {
 	f.GotRevokeToken = id
 	f.mu.Unlock()
 	return f.RevokeTokenErr
+}
+
+// RegenerateJoinToken records the id and returns the canned enrollment/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg id The token ID, recorded into GotRegenToken.
+// @return api.SpokeEnrollment The canned RegenTokenResult.
+// @error error The canned RegenTokenErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) RegenerateJoinToken(ctx context.Context, id string) (api.SpokeEnrollment, error) {
+	f.mu.Lock()
+	f.GotRegenToken = id
+	f.mu.Unlock()
+	return f.RegenTokenResult, f.RegenTokenErr
 }
 
 // DestroyBox records the box ID and returns the canned DestroyErr.

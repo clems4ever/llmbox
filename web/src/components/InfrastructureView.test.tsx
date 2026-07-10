@@ -61,6 +61,52 @@ describe("InfrastructureView", () => {
     await waitFor(() => expect(api.revokeJoinToken).toHaveBeenCalledWith("abcdef012345xyz"));
   });
 
+  it("re-shows setup instructions for a token with a placeholder and notice", async () => {
+    const data = dashboardData({
+      spokes: [spoke()],
+      tokens: [token({ name: "edge-1" })],
+    });
+    const { user } = render(<InfrastructureView api={mockApi()} data={data} refresh={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Setup instructions for edge-1" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Runner setup — edge-1" });
+    // The command is re-rendered with the placeholder, never the secret...
+    expect(within(dialog).getByText(/--token <one-time-token>/)).toBeInTheDocument();
+    // ...and the notice explains the token was shown only at creation.
+    expect(
+      within(dialog).getByText(/shown only when the runner was created/),
+    ).toBeInTheDocument();
+    // The systemd tab is offered here too.
+    await user.click(within(dialog).getByRole("tab", { name: "systemd service" }));
+    expect(
+      await within(dialog).findByText(/sudo systemctl enable --now llmbox-spoke\.service/),
+    ).toBeInTheDocument();
+  });
+
+  it("regenerates a lost token and shows the fresh command once", async () => {
+    const api = mockApi();
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    const data = dashboardData({
+      spokes: [spoke()],
+      tokens: [token({ id: "tid-1", name: "edge-1" })],
+    });
+    const { user } = render(<InfrastructureView api={api} data={data} refresh={refresh} />);
+    await user.click(screen.getByRole("button", { name: "Setup instructions for edge-1" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Runner setup — edge-1" });
+    await user.click(within(dialog).getByRole("button", { name: "Regenerate token" }));
+
+    await waitFor(() => expect(api.regenerateJoinToken).toHaveBeenCalledWith("tid-1"));
+    // The fresh real command replaces the placeholder one...
+    expect(await within(dialog).findByText(/--token fresh-token/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/--token <one-time-token>/)).not.toBeInTheDocument();
+    // ...the lost-token notice is gone, a shown-once reminder appears, and the
+    // token list is refreshed (the old ID no longer exists).
+    expect(within(dialog).queryByText(/shown only when the runner was created/)).not.toBeInTheDocument();
+    expect(within(dialog).getByText(/save it this time/)).toBeInTheDocument();
+    expect(refresh).toHaveBeenCalled();
+  });
+
   it("opens the create-runner modal", async () => {
     const { user } = render(<InfrastructureView api={mockApi()} data={dashboardData()} refresh={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "New runner" }));

@@ -53,7 +53,7 @@ func TestClusterEndToEnd(t *testing.T) {
 	t.Cleanup(func() { _ = store.Close() })
 
 	// The operator mints a one-time join token for the spoke named "edge".
-	joinToken, err := cluster.CreateJoinToken(store, "edge", time.Hour, time.Now())
+	joinToken, err := cluster.CreateJoinToken(store, "edge", "docker", time.Hour, time.Now())
 	if err != nil {
 		t.Fatalf("create join token: %v", err)
 	}

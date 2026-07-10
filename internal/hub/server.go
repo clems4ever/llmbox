@@ -340,22 +340,25 @@ func (s *Server) SetDefaultSpoke(name string) error {
 }
 
 // createSpoke mints a one-time join token that enrolls a new spoke under name,
-// valid for ttl. It is the spoke-creation operation admin (and any future
-// authorized caller) share, sitting alongside createBox/createProxy as the
-// server's single home for the operation; the copy-pasteable run command is
-// presentation the caller builds from the returned token.
+// valid for ttl. backend is recorded on the token (presentation only) so setup
+// instructions can be re-rendered after creation. It is the spoke-creation
+// operation admin (and any future authorized caller) share, sitting alongside
+// createBox/createProxy as the server's single home for the operation; the
+// copy-pasteable run command is presentation the caller builds from the
+// returned token.
 //
 // @arg name The spoke name to enroll; must be non-empty.
+// @arg backend The box backend recorded on the token; empty means docker.
 // @arg ttl How long the minted join token stays valid.
 // @return string The one-time join token.
 // @error error if the name is empty or the token cannot be minted.
 //
 // @testcase TestBackendCreateSpoke mints a token for a named spoke.
-func (s *Server) createSpoke(name string, ttl time.Duration) (string, error) {
+func (s *Server) createSpoke(name, backend string, ttl time.Duration) (string, error) {
 	if name == "" {
 		return "", errors.New("spoke name is required")
 	}
-	return cluster.CreateJoinToken(s.store, name, ttl, time.Now())
+	return cluster.CreateJoinToken(s.store, name, backend, ttl, time.Now())
 }
 
 // dropSpoke removes a spoke entirely: it deletes the enrollment record, revokes
@@ -436,6 +439,44 @@ func (s *Server) revokeJoinToken(id string) error {
 		return errors.New("token id is required")
 	}
 	return s.store.DeleteJoinToken(id)
+}
+
+// regenerateJoinToken replaces the outstanding join token with the given ID by
+// a freshly minted one for the same spoke name and recorded backend, valid for
+// the admin default TTL. The old token is deleted first so at no point are two
+// tokens live for the swap; the new plaintext is returned to show once. It
+// exists for the operator who lost the token before saving it — the secret is
+// stored only hashed and can never be re-shown.
+//
+// @arg id The token ID (its hash handle) to replace; must be non-empty.
+// @return string The spoke name the token enrolls.
+// @return string The backend recorded on the token (empty means docker).
+// @return string The fresh plaintext join token (shown once).
+// @error error if the id is empty or unknown, or the store cannot be updated.
+//
+// @testcase TestBackendRegenerateJoinToken swaps a token for a fresh one preserving name and backend.
+func (s *Server) regenerateJoinToken(id string) (name, backend, token string, err error) {
+	if id == "" {
+		return "", "", "", errors.New("token id is required")
+	}
+	tokens, err := s.store.ListJoinTokens()
+	if err != nil {
+		return "", "", "", err
+	}
+	for _, t := range tokens {
+		if t.ID != id {
+			continue
+		}
+		if err := s.store.DeleteJoinToken(id); err != nil {
+			return "", "", "", err
+		}
+		tok, err := cluster.CreateJoinToken(s.store, t.Name, t.Backend, defaultAdminTokenTTL, time.Now())
+		if err != nil {
+			return "", "", "", err
+		}
+		return t.Name, t.Backend, tok, nil
+	}
+	return "", "", "", fmt.Errorf("no join token with id %s", id)
 }
 
 // resolveStoredSpoke maps a persisted spoke name to the spoke it belongs to now,
