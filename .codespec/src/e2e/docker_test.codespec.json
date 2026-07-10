@@ -58,9 +58,9 @@
 		{
 			"function_name": "find",
 			"receiver": "fakeBoxManager",
-			"documentation_hash": "484aae03d3f962625076f968b95816b6e5df8a92dcc25cb9aefcc1ab059c565d",
-			"definition_hash": "8e7645723641311670061b3c82e11cd50c56a984229669c6d53589cc7579eb46",
-			"reviewed_at": "2026-06-25T09:53:56.419322195Z"
+			"documentation_hash": "fcbd36eebfd1d5baee95ad59ab043335e8de1f96f79b816db9c749c21cd44396",
+			"definition_hash": "2f92d9364922edb5440074fd6b1d5bc4200ed10501b73eb8e643b20648be77b1",
+			"reviewed_at": "2026-07-10T09:27:08.931592751Z"
 		},
 		{
 			"function_name": "DialBox",

@@ -238,8 +238,10 @@ func (m *fakeBoxManager) ReapOrphans(_ context.Context, _ time.Duration) ([]stri
 	return nil, nil
 }
 
-// find resolves an ID (full or short) or phase-prefixed name to a box. The
-// caller must hold m.mu.
+// find resolves a box ID, container ID (full or short), or phase-prefixed name
+// to a box, matching the real provisioner's Find (which the hub now addresses by
+// box ID, e.g. SubmitCode/Destroy/Logs/Exec pass sess.BoxID). The caller must
+// hold m.mu.
 //
 // @arg idOrName The identifier to resolve.
 // @return *fakeBox The matching box, or nil.
@@ -247,7 +249,8 @@ func (m *fakeBoxManager) find(idOrName string) *fakeBox {
 	for _, b := range m.boxes {
 		short := b.containerID[:12]
 		switch {
-		case b.containerID == idOrName,
+		case b.boxID != "" && b.boxID == idOrName,
+			b.containerID == idOrName,
 			strings.HasPrefix(b.containerID, idOrName),
 			strings.HasPrefix(idOrName, short),
 			idOrName == "llmbox-pending-"+short,

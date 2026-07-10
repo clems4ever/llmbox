@@ -168,9 +168,9 @@
 		{
 			"function_name": "DialBox",
 			"receiver": "fakeSpokeMgr",
-			"documentation_hash": "011e8cb0da189a3ca6ffe8a64c45efddedb11b2da25e91f859c8b67f5d2e59d3",
-			"definition_hash": "375ee2ff732f647066e211ed2fc3f7751e861b67d84514334b4980a5a437f847",
-			"reviewed_at": "2026-06-29T15:39:24.963033161Z"
+			"documentation_hash": "865e650bfd76b2a2fab6b758b68b0fe9e6b318d910cef43f84b2959a3fab52c3",
+			"definition_hash": "e995d32d324a3021241b77679f4d6e37795249ca65c9dec916d51d1db2e5ffb8",
+			"reviewed_at": "2026-07-10T09:31:01.430147668Z"
 		}
 	]
 }
