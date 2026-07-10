@@ -2,10 +2,10 @@
 # Every field is optional; omitted fields fall back to the defaults shown here.
 
 # Single listen address for the whole server: the box-control API (/api/v1/) and
-# the UI (auth pages, admin UI, health, favicon). The box-control API is
-# unauthenticated by the server itself, so run behind an authenticating reverse
-# proxy (e.g. oauth2-proxy) and never expose this port directly to untrusted
-# networks.
+# the UI (auth pages, admin UI, health, favicon). The box-control API requires an
+# API key (mint with `llmbox-server apikey add`) or an admin login session; the
+# API is single-tenant, so still run behind an authenticating reverse proxy (e.g.
+# oauth2-proxy) and don't share one hub across mutually-distrusting users.
 http_addr: ":8080"
 
 # External base URL the user's browser can reach the UI/API at. MUST be set
@@ -15,7 +15,8 @@ public_url: "http://localhost:8080"
 # How long a box may stay un-authenticated before it is reaped (Go duration).
 auth_ttl: "5m"
 
-# bbolt file persisting the auth-session registry across restarts.
+# SQLite file persisting the box/session registry, API keys, and cluster records
+# across restarts.
 state_file: "llmbox-sessions.db"
 
 # Serve over TLS (HTTPS) directly instead of plaintext HTTP. Leave disabled (the
@@ -33,7 +34,7 @@ state_file: "llmbox-sessions.db"
 # endpoint that remote spokes join over a WebSocket. The hub runs NO box backend of
 # its own — every box runs on a spoke — so even a single-host setup runs one spoke
 # alongside the hub:
-#   1. on the hub:   llmbox-spoke token create --name worker-1   # prints a one-time token
+#   1. on the hub:   llmbox-server token create --name worker-1   # prints a one-time token
 #   2. on the spoke: llmbox-spoke docker --hub wss://<hub>/spoke/connect --token <token>
 # A box created with no "spoke" argument runs on the DEFAULT spoke, which you pick
 # in the admin UI (a stored setting — there is no config field for it). Until a

@@ -37,9 +37,11 @@ which wires up the Docker socket, the docker group, and a persisted session
 volume — see [Session persistence](operations.md#session-persistence) for the
 one-time `chown` the mounted volume needs.
 
-Put it behind TLS in production: the auth page receives the OAuth code, and the
+Serve over TLS in production: the auth page receives the OAuth code, and the
 auth URL — though it carries a 256-bit unguessable token — should not travel in
-clear text.
+clear text. Either terminate TLS at a reverse proxy in front, or set the `tls:`
+block (`enabled`, `cert_file`, `key_file`) to have llmbox serve HTTPS directly.
+A loud warning is logged at startup whenever it serves plaintext.
 
 ## Connecting a chatbot
 
@@ -77,9 +79,11 @@ optional:
 | `http_addr`    | `:8080`                   | Single listen address for the whole server: the box-control API (`/api/v1/`, authenticated by API key or admin session) and the UI (auth pages, admin app, health). |
 | `public_url`   | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
 | `auth_ttl`     | `5m`                      | Destroy un-authenticated boxes after this long (a Go duration string, e.g. `300s`, `5m`). |
-| `state_file`   | `llmbox-sessions.db`      | bbolt file persisting the auth-session registry across restarts (see [Session persistence](operations.md#session-persistence)). |
+| `state_file`   | `llmbox-sessions.db`      | SQLite file persisting the box/session registry, API keys, and cluster records across restarts (see [Session persistence](operations.md#session-persistence)). |
 | `hooks`        | (empty)                   | List of [box lifecycle hook](hooks.md) executables. |
 | `auth`         | (disabled)                | Require sign-in before a box can be activated (see [Authenticating activation](authentication.md)). |
+| `proxy`        | (disabled)                | Expose box HTTP ports at `<slug>.<base_domain>` (see [Proxying box HTTP ports](proxy.md)). |
+| `tls`          | (disabled)                | Serve HTTPS directly (`cert_file`/`key_file`) instead of behind a TLS-terminating proxy. |
 
 Unknown keys in the config file are rejected so typos surface as errors.
 

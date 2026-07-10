@@ -48,11 +48,12 @@ and provide, at your TLS-terminating reverse proxy in front of the hub:
 When activation auth is configured, a proxy request must carry a signed-in
 session allowed to activate boxes — the same gate as box activation. The login
 cookie is host-scoped by default, so to share one sign-in between the main UI and
-the per-proxy sub-domains, set the parent domain both share:
+the per-proxy sub-domains, set the bare parent domain both share (no leading dot,
+no port):
 
 ```yaml
 auth:
-  cookie_domain: ".example.com"
+  cookie_domain: "example.com"
 ```
 
 A signed-out **browser** that opens a proxy URL is redirected to a sign-in page

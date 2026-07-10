@@ -5,10 +5,10 @@ Persistence, box credentials across restarts, and orphan cleanup.
 ## Session persistence
 
 The auth-session registry (which token maps to which box, its authorize URL, and
-status) is persisted to a [bbolt](https://github.com/etcd-io/bbolt) file at
-`state_file`, so a server restart doesn't invalidate in-flight auth links.
-On startup the server reconciles the saved sessions against Docker and drops any
-whose box no longer exists.
+status) is persisted to a [SQLite](https://sqlite.org) file at `state_file`, so a
+server restart doesn't invalidate in-flight auth links. On startup the server
+restores the saved sessions and, as each spoke reconnects, reconciles them against
+that spoke's live boxes — dropping any whose box is gone.
 
 To survive **container recreation**, point `state_file` at a mounted volume:
 
