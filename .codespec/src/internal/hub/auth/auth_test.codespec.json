@@ -102,6 +102,12 @@
 			"documentation_hash": "107ae77b0dc8929def41078f9b7288d03061b255dc1b4da80b5c9ab6877e235c",
 			"definition_hash": "0af61abefdbf0b0b64bad897c584012c812e25e818714e9813b092c5de491b71",
 			"reviewed_at": "2026-06-27T21:48:10.861701222Z"
+		},
+		{
+			"function_name": "TestLogout",
+			"documentation_hash": "10711a2443938d366add7c305e36e096b3aca8039745f43fc2616059f01212d8",
+			"definition_hash": "b4283f63bd10442b43bf85df14c7ff92cd7e6c9683ff696b692e404b391f5b02",
+			"reviewed_at": "2026-07-10T14:30:45.037800611Z"
 		}
 	]
 }

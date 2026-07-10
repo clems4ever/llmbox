@@ -168,6 +168,13 @@ export class Api {
   deleteProxy(boxId: string, port: number): Promise<unknown> {
     return this.call("/api/v1/delete-proxy", { box_id: boxId, port });
   }
+
+  /** logout ends the browser's login session on the hub: the server deletes the
+   * session and expires the login cookie, so the caller must then bounce to the
+   * sign-in page. */
+  logout(): Promise<unknown> {
+    return this.call("/api/v1/logout", {});
+  }
 }
 
 /** errorMessage extracts the {"error": ...} body of a failed API response,

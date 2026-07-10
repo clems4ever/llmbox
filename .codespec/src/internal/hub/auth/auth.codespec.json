@@ -133,6 +133,13 @@
 			"documentation_hash": "b52b0438d7c3c8a89e43159147bd3b636b5e1680194647fb8f437c2628202712",
 			"definition_hash": "d399d3ea98b2c03f0a58f231b540c73f038a46181ab6b63e5c035ccaa25529e4",
 			"reviewed_at": "2026-06-27T22:02:50.865196256Z"
+		},
+		{
+			"function_name": "Logout",
+			"receiver": "Authenticator",
+			"documentation_hash": "65a9dee463efed6b578ea0fa5aaf7c5e1f8f2916ed30a01da6702e98174c0c48",
+			"definition_hash": "e8fa13a6520c1914c47dbd75269d92afbb40c0b71d84571823745d1f4d197cad",
+			"reviewed_at": "2026-07-10T14:30:45.035200269Z"
 		}
 	]
 }

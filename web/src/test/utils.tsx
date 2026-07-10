@@ -46,6 +46,7 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
     destroyBox: vi.fn().mockResolvedValue({}),
     createProxy: vi.fn().mockResolvedValue({ box_id: "box-1", port: 8000, url: "https://p", slug: "s" }),
     deleteProxy: vi.fn().mockResolvedValue({}),
+    logout: vi.fn().mockResolvedValue({}),
   };
   return { ...base, ...overrides } as unknown as Api;
 }

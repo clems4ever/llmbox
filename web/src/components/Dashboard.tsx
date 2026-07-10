@@ -9,13 +9,15 @@ import {
   AppShell,
   Badge,
   Burger,
+  Divider,
   Group,
   NavLink,
   ScrollArea,
+  Text,
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconApps, IconRefresh, IconServer2 } from "@tabler/icons-react";
+import { IconApps, IconLogout, IconRefresh, IconServer2 } from "@tabler/icons-react";
 import { Api, ApiError, type Me } from "../api";
 import { errorMessage } from "../lib/actions";
 import { redirectToSignIn } from "../lib/navigation";
@@ -71,6 +73,19 @@ export function Dashboard({ api, session }: DashboardProps): JSX.Element {
     closeNav();
   };
 
+  const signOut = async () => {
+    try {
+      await api.logout();
+    } catch (err) {
+      // A 401 means the session is already gone — signing out is a success.
+      if (!(err instanceof ApiError && err.status === 401)) {
+        notifications.show({ color: "red", title: "Couldn't sign out", message: errorMessage(err) });
+        return;
+      }
+    }
+    redirectToSignIn();
+  };
+
   const selected = data?.boxes.find((b) => boxId(b) === selectedId) ?? null;
 
   return (
@@ -120,8 +135,27 @@ export function Dashboard({ api, session }: DashboardProps): JSX.Element {
           />
         </AppShell.Section>
         <AppShell.Section>
-          <Group px="xs" py="xs">
-            <Brand email={session.email} />
+          <Divider mb="xs" />
+          <Group gap="xs" wrap="nowrap" px="xs" pb={4}>
+            <Text
+              c="dimmed"
+              size="sm"
+              truncate
+              style={{ flex: 1, minWidth: 0 }}
+              title={session.email}
+            >
+              {session.email}
+            </Text>
+            <Tooltip label="Sign out">
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                aria-label="Sign out"
+                onClick={() => void signOut()}
+              >
+                <IconLogout size={18} />
+              </ActionIcon>
+            </Tooltip>
           </Group>
         </AppShell.Section>
       </AppShell.Navbar>

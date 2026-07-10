@@ -402,3 +402,47 @@ func TestCurrentLogin(t *testing.T) {
 		t.Error("expired session should be not-signed-in")
 	}
 }
+
+// TestLogout checks Logout deletes the cookie's identity session from the store
+// and expires the login cookie on the response, and that a request with no
+// login cookie still clears the cookie without error.
+func TestLogout(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatalf("store.Open: %v", err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	a := &Authenticator{sessionTTL: time.Hour}
+	a.Bind(st, nil)
+
+	if err := st.PutIdentitySession(store.HashToken("SID"), store.IdentitySession{Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.AddCookie(&http.Cookie{Name: LoginCookie, Value: "SID"})
+	rec := httptest.NewRecorder()
+	if err := a.Logout(rec, req); err != nil {
+		t.Fatalf("Logout: %v", err)
+	}
+	if _, ok, _ := st.GetIdentitySession(store.HashToken("SID")); ok {
+		t.Error("Logout left the identity session in the store")
+	}
+	cleared := false
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == LoginCookie && c.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	if !cleared {
+		t.Errorf("Logout did not expire the %s cookie: %v", LoginCookie, rec.Result().Cookies())
+	}
+
+	// No login cookie: still succeeds and clears the cookie.
+	recNone := httptest.NewRecorder()
+	if err := a.Logout(recNone, httptest.NewRequest(http.MethodPost, "/", nil)); err != nil {
+		t.Fatalf("Logout without cookie: %v", err)
+	}
+	if len(recNone.Result().Cookies()) == 0 {
+		t.Error("Logout without cookie should still expire the login cookie")
+	}
+}

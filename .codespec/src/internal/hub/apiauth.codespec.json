@@ -31,6 +31,13 @@
 			"documentation_hash": "3e5b302ffad2bb04cb81e3cd8bb5b2090aaad8984aae9fd31ac4089107c0e794",
 			"definition_hash": "a918435ed563191f042be8d42181a64270a2978e3bed526137cd4320f142568d",
 			"reviewed_at": "2026-07-09T18:10:52.495240328Z"
+		},
+		{
+			"function_name": "handleLogout",
+			"receiver": "Server",
+			"documentation_hash": "6322b5e57953a4d26ba18ee0782418f75081aca93325b707f7626b39fd61cfc7",
+			"definition_hash": "a929254f213e35fa0e101f232bc83d573de5861e85902f165692ae7143a88a4f",
+			"reviewed_at": "2026-07-10T14:28:41.983373667Z"
 		}
 	]
 }

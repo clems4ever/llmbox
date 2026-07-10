@@ -50,4 +50,37 @@ describe("Dashboard", () => {
     render(<Dashboard api={api} session={session} />);
     await waitFor(() => expect(redirect).toHaveBeenCalled());
   });
+
+  it("shows the signed-in email in the sidebar footer", async () => {
+    const api = mockApi();
+    render(<Dashboard api={api} session={session} />);
+    expect(await screen.findByText("admin@b.c")).toBeInTheDocument();
+  });
+
+  it("signs out and bounces to sign-in", async () => {
+    const logout = vi.fn().mockResolvedValue({});
+    const api = mockApi({ logout });
+    const { user } = render(<Dashboard api={api} session={session} />);
+    await screen.findByText("admin@b.c");
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(redirect).toHaveBeenCalled());
+    expect(logout).toHaveBeenCalled();
+  });
+
+  it("still bounces to sign-in when logout answers 401 (session already gone)", async () => {
+    const api = mockApi({ logout: vi.fn().mockRejectedValue(new ApiError(401, "not signed in")) });
+    const { user } = render(<Dashboard api={api} session={session} />);
+    await screen.findByText("admin@b.c");
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(redirect).toHaveBeenCalled());
+  });
+
+  it("stays and reports the error when logout fails", async () => {
+    const api = mockApi({ logout: vi.fn().mockRejectedValue(new ApiError(500, "boom")) });
+    const { user } = render(<Dashboard api={api} session={session} />);
+    await screen.findByText("admin@b.c");
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
+    expect(await screen.findByText("Couldn't sign out")).toBeInTheDocument();
+    expect(redirect).not.toHaveBeenCalled();
+  });
 });
