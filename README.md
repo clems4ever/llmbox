@@ -81,8 +81,9 @@ Archives are also published for `llmbox-server`, `llmbox-mcp`, and the in-box
 ## MCP tools
 
 `create_llmbox`, `get_llmbox`, `list_llmboxes`, `destroy_llmbox`,
-`get_llmbox_logs`, `exec_llmbox`. See [MCP tools](docs/mcp-tools.md) for
-arguments and return values.
+`get_llmbox_logs`, `exec_llmbox`, plus `create_llmbox_proxy` /
+`delete_llmbox_proxy` / `list_llmbox_proxies` for exposing a box's HTTP ports.
+See [MCP tools](docs/mcp-tools.md) for arguments and return values.
 
 ## Documentation
 
@@ -101,9 +102,9 @@ arguments and return values.
 
 - The create → authorize-URL → auth-page path is verified end-to-end (including a
   real container and the live HTTP/MCP stack). The final **code → session URL**
-  exchange needs a human to authorize in a browser; the wrapper that runs
+  exchange needs a human to authorize in a browser; the in-box wrapper that runs
   `claude auth login` then `claude remote-control` is in
-  [`internal/spoke/docker/manager.go`](internal/spoke/docker/manager.go) and is easy to tweak
+  [`internal/guest/guest.go`](internal/guest/guest.go) and is easy to tweak
   if your Claude version's prompts differ.
 - Each box consumes a session on the **end user's** Claude subscription. That is
   the intended model; be deliberate about who you let create boxes.
@@ -118,8 +119,8 @@ arguments and return values.
   [the trust model](docs/authentication.md#trust-model-the-box-control-api-is-single-tenant).
   Per-user MCP clients and binding a box to its initiator are the natural
   follow-ups for multi-tenant use.
-- The box wrapper pre-accepts the workspace-trust dialog (writes
-  `projects[cwd].hasTrustDialogAccepted` to `~/.claude.json` after login), since
-  `claude remote-control` otherwise aborts with "Workspace not trusted" in a
-  fresh box. If a `SubmitCode` fails, the box's actual message (invalid code,
-  trust, eligibility, …) is surfaced on the auth page instead of a bare EOF.
+- The box image bakes in a `~/.claude.json` seed that pre-answers the
+  workspace-trust dialog, since `claude remote-control` otherwise aborts with
+  "Workspace not trusted" in a fresh box. If a `SubmitCode` fails, the box's
+  actual message (invalid code, trust, eligibility, …) is surfaced on the auth
+  page instead of a bare EOF.

@@ -21,13 +21,13 @@ isolated.
   kernel `ip=` boot arg. Each box gets its own `/30` (and an inter-guest `DROP`
   rule), so boxes cannot reach one another — only the host gateway. The guest is
   never in the egress path. The TAPs are a **pool provisioned once at startup**
-  (`pool_size`, default 16), not created per box: creating or destroying a box
+  (`--pool-size`, default 16), not created per box: creating or destroying a box
   assigns/frees a slot without touching the host network. That matters when a
   browser runs on the **same host** as the hypervisor — a network interface
   appearing mid-request makes Chrome abort in-flight requests with
   `ERR_NETWORK_CHANGED`, so the interface set is kept stable across a box's
   lifetime. Egress needs `CAP_NET_ADMIN`; it can be disabled for control-only /
-  air-gapped boxes (`disable_egress`), which also removes the privilege
+  air-gapped boxes (`--disable-egress`), which also removes the privilege
   requirement.
 - **State**: Firecracker has no daemon that tracks boxes, so the provisioner
   persists each box's metadata under a state directory and holds live machine
@@ -37,19 +37,10 @@ isolated.
 
 ## Configuration
 
-Select the backend and point it at the guest kernel and default rootfs.
-
-**Hub (`config.yaml`):**
-
-```yaml
-backend: firecracker
-firecracker:
-  kernel_image: /var/lib/llmbox/vmlinux
-  rootfs_image: /var/lib/llmbox/rootfs.ext4
-  state_dir:    /run/llmbox/firecracker   # optional
-```
-
-**Spoke (flags):**
+The backend is chosen by the spoke subcommand — the hub holds no box-provisioning
+config, so everything here is a `llmbox-spoke firecracker` flag. Point it at the
+guest kernel and default rootfs (leave them empty to pull the published images —
+see below):
 
 ```
 llmbox-spoke firecracker \
@@ -59,8 +50,8 @@ llmbox-spoke firecracker \
   --state-dir /run/llmbox/firecracker
 ```
 
-Per-box CPU/memory caps (`box.cpus`, `box.memory_mb`) map onto the VM's vCPU count
-(rounded to a Firecracker-valid 1-or-even value) and guest memory size.
+Per-box CPU/memory caps (`--box-cpus`, `--box-memory-mb`) map onto the VM's vCPU
+count (rounded to a Firecracker-valid 1-or-even value) and guest memory size.
 
 ## Host requirements
 
@@ -146,16 +137,15 @@ attached read-only and **shared** across all microVMs — one image, mounted
 everywhere — while each box still gets its own writable copy of the base rootfs.
 The base's systemd does all the mounts and reaps the payload's children.
 
-```yaml
-firecracker:
-  kernel_image:  ~/fc-assets/vmlinux-full
-  rootfs_image:  ~/fc-assets/base-rootfs.ext4   # the Debian base (no guest)
-  payload_image: ~/fc-assets/payload.ext4       # guest + claude, shared read-only
-  disable_egress: false          # egress on; run the server as root
+```
+llmbox-spoke firecracker --hub … --token … \
+  --kernel  ~/fc-assets/vmlinux-full \
+  --rootfs  ~/fc-assets/base-rootfs.ext4 \  # the Debian base (no guest)
+  --payload ~/fc-assets/payload.ext4 \      # guest + claude, shared read-only
+  --disable-egress=false                    # egress on; run the spoke as root
 ```
 
-On a spoke, the equivalents are `--rootfs`, `--payload`, and `--kernel`.
-Leave `payload_image` empty to fall back to the all-in-one layout (guest baked into
+Leave `--payload` empty to fall back to the all-in-one layout (guest baked into
 the rootfs).
 
 Verified on boot: systemd reaches its targets, the guest unit is reachable over
@@ -172,8 +162,8 @@ with the guest as PID 1 (no systemd, no Docker):
   conformance test; it proves the plumbing but is not a real Claude.
 
 For real sessions use the full Debian server pair above. A real Claude session
-needs egress enabled (`disable_egress: false`), because the box must reach the
-Anthropic API and OAuth — which means running the server/spoke with
+needs egress enabled (the default, i.e. no `--disable-egress`), because the box
+must reach the Anthropic API and OAuth — which means running the spoke with
 `CAP_NET_ADMIN` (root). With egress disabled (control-only) a box boots and its
 guest is reachable, but `claude` cannot authenticate.
 

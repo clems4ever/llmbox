@@ -53,15 +53,16 @@ they always reflect the current UI and stay reviewable; see
 | Path                 | What it is |
 |----------------------|------------|
 | `cmd/llmbox-server`  | Entry point: opens the session store, runs the HTTP server (box-control API + auth pages) and the reaper. |
-| `internal/spoke/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, login-capture, code-submit, graceful destroy, reap). |
-| `internal/hub`    | Session registry (persisted to bbolt), MCP tools, auth web pages, reaper loop. |
+| `internal/spoke/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, graceful destroy, reap); login/code-submit/exec run in the box's `internal/guest`. |
+| `internal/hub`    | Session registry (persisted to SQLite), MCP tools, auth web pages, reaper loop. |
+| `internal/guest`  | The `llmbox-guest` init that runs **inside** each box: drives `claude auth login` / `remote-control`, captures the OAuth and session URLs, and serves exec/logs to the spoke. |
 | `Dockerfile`         | Image for **this server** (`llmbox`). Carries only the llmbox server binary; it neither runs nor ships Claude. |
 | `Dockerfile.box`     | Default box image (the spoke's `--image`). Bakes in the standalone Claude binary, tini (PID 1), util-linux, Node.js + pm2 (so Claude can run daemons), and a CA bundle. |
 
 Boxes run on the box image (the spoke's `--image` flag, default
 `ghcr.io/clems4ever/llmbox-box`, built by `Dockerfile.box`), which **bakes in**
-the standalone Claude binary along with `tini`. The server injects only a small
-`~/.claude.json` seed into each box at creation, and runs it as root with
+the standalone Claude binary along with `tini`, plus a small `~/.claude.json`
+seed that pre-answers the workspace-trust dialog. Each box runs as root with
 `HOME=/root` and a `/workspace` working directory. The entrypoint runs under
 `tini` as PID 1, so the many short-lived processes Claude's tools spawn are
 reaped instead of accumulating as zombies. The default image also ships Node.js

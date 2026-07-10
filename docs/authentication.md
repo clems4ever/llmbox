@@ -33,7 +33,7 @@ Setup notes:
   written in the YAML. Mount it read-only.
 - Enabling a provider with no `allowed_domains` **and** no `allowed_emails` is a
   hard error — it would otherwise authorize every Google account.
-- Login sessions are persisted server-side (in the `state_file` bbolt DB) so they
+- Login sessions are persisted server-side (in the `state_file` SQLite DB) so they
   survive restarts; `session_ttl` bounds their lifetime.
 
 When `auth` is omitted, activation is unauthenticated (the server logs a warning
