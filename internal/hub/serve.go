@@ -18,10 +18,10 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 )
 
-// Serve assembles and serves the llmbox hub from cfg: it opens the session store,
-// sets up optional lifecycle hooks and activation auth, attaches the cluster hub
+// Serve assembles and serves the llmbox hub from cfg: it opens the box store,
+// sets up optional lifecycle hooks and admin/proxy auth, attaches the cluster hub
 // (spokes join over the cluster transport and run every box), enables HTTP
-// proxying of box ports, restores persisted sessions, starts the orphan reaper,
+// proxying of box ports, restores persisted sessions, starts the spoke-sync loop,
 // and serves the box-control API and the UI on one HTTP port until the parent
 // context is cancelled (SIGINT/SIGTERM) at which point it shuts down gracefully.
 // The hub runs no box backend of its own — boxes run only on remote spokes. name
@@ -35,8 +35,6 @@ import (
 //
 // @testcase TestServe starts the hub, serves the health endpoint, and shuts down on context cancel.
 func Serve(parent context.Context, cfg *config.Config, name, version string) error {
-	authTTL := time.Duration(cfg.AuthTTL)
-
 	// Optional box lifecycle hooks: external programs run at box.create/destroy.
 	// New returns nil (no hooks) when the list is empty.
 	hookRunner := hooks.New(cfg.Hooks)
@@ -59,21 +57,21 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 		}
 	}()
 
-	// Activation auth (OIDC). Returns nil when no provider is configured, which
-	// leaves box activation unauthenticated.
+	// Admin/proxy auth (OIDC). Returns nil when no provider is configured, which
+	// leaves the admin UI and the per-box proxies unauthenticated.
 	authr, err := auth.New(parent, cfg.Auth)
 	if err != nil {
 		return err
 	}
 	if authr == nil {
-		log.Print("activation auth is DISABLED: anyone with a box's auth-page URL can activate it; configure auth.google to require sign-in")
+		log.Print("auth is DISABLED: the admin UI and per-box proxies require no sign-in; configure auth.google and auth.admin.emails to require it")
 	}
 
 	// Cancel background work on signal (or when the parent context fires).
 	ctx, stop := signal.NotifyContext(parent, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := New(hookRunner, cfg.PublicURL, authTTL, store, authr)
+	srv := New(hookRunner, cfg.PublicURL, store, authr)
 	srv.SetProxyBaseDomain(cfg.Proxy.BaseDomain)
 	if cfg.Proxy.BaseDomain != "" {
 		log.Printf("box HTTP proxying enabled at *.%s", cfg.Proxy.BaseDomain)
@@ -89,12 +87,12 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 	log.Printf("spokes may join at %s/spoke/connect", cfg.PublicURL)
 
 	// One HTTP server for everything: the box-control JSON API (under /api/v1/) and
-	// the UI (auth pages, admin, health). The MCP protocol is served by the
+	// the UI (sign-in, admin, health). The MCP protocol is served by the
 	// separate llmbox-mcp binary, which forwards to the box-control API.
 	httpSrv := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: srv.APIHandler(),
-		// SubmitCode blocks while the box logs in, so allow long requests.
+		// Box exec can stream for a while, so allow long requests.
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      90 * time.Second,
 	}
@@ -129,7 +127,7 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 			log.Print(line)
 		}
 	}
-	log.Printf("%s %s listening on %s over %s (public URL %s, auth TTL %s)", name, version, cfg.HTTPAddr, scheme, cfg.PublicURL, authTTL)
+	log.Printf("%s %s listening on %s over %s (public URL %s)", name, version, cfg.HTTPAddr, scheme, cfg.PublicURL)
 
 	return listenAndServe(httpSrv, cfg.TLS)
 }

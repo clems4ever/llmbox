@@ -1,11 +1,9 @@
-// StatusBadge maps a box phase to a coloured Mantine badge — the single place
-// phase colouring is decided, so the table and card views stay consistent.
-// StateBadge does the same for the box's runtime state (running / unreachable /
-// terminated / backend states like exited).
+// StatusBadge renders a broken box's phase as a red Mantine badge — a box whose
+// init script failed. A healthy box has no phase to show, so the badge renders
+// nothing. StateBadge does the same for the box's runtime state (running /
+// unreachable / terminated / backend states like exited).
 import { Badge, Tooltip } from "@mantine/core";
-import { lastSeenAt, phaseTone, stateTone } from "../lib/format";
-
-const TONE_COLOR = { ready: "teal", pending: "blue", error: "red" } as const;
+import { isBroken, lastSeenAt, stateTone } from "../lib/format";
 
 const STATE_COLOR = {
   running: "teal",
@@ -16,19 +14,20 @@ const STATE_COLOR = {
 } as const;
 
 export interface StatusBadgeProps {
-  phase: string;
+  phase?: string;
 }
 
-/** StatusBadge renders a box's phase as a coloured pill.
+/** StatusBadge renders a red "broken" pill for a broken box, or nothing for a
+ * healthy one (whose phase is empty).
  *
  * @arg props The box phase string.
- * @return JSX.Element The badge.
+ * @return JSX.Element | null The badge, or null when the box is not broken.
  */
-export function StatusBadge({ phase }: StatusBadgeProps): JSX.Element {
-  const tone = phaseTone(phase);
+export function StatusBadge({ phase }: StatusBadgeProps): JSX.Element | null {
+  if (!isBroken(phase)) return null;
   return (
-    <Badge color={TONE_COLOR[tone]} variant="light" radius="sm">
-      {phase || "unknown"}
+    <Badge color="red" variant="light" radius="sm">
+      broken
     </Badge>
   );
 }

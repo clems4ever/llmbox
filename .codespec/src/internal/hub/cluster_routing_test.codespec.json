@@ -3,26 +3,20 @@
 		{
 			"function_name": "TestRestoreKeepsDisconnectedSpokeSessions",
 			"documentation_hash": "de012c8a4e829a474817e59ab3f72534d7d924eebb0ec9315c7553a50a3388fd",
-			"definition_hash": "6af0994ee79ce74c7e50f2c9a94ad0c9328077a508dd372e462e6fcd9b961b8b",
-			"reviewed_at": "2026-07-10T10:16:08.279072109Z"
+			"definition_hash": "ec65d155b90e3657c4b2d93ecb79b303c133234dbb9d74d382a1d47f0ba8d50a",
+			"reviewed_at": "2026-07-11T21:34:27.125248395Z"
 		},
 		{
 			"function_name": "TestCreateBoxRoutesToSpoke",
 			"documentation_hash": "d5b8cea56d2d2130e04d06918e5fa580e3ee6c99db3f6e02ee454c8c255d20c6",
-			"definition_hash": "c27ecd2c96d6e1e7c075e5a9dfdd748a4161b047695d59b9887ad7cf9d86863b",
-			"reviewed_at": "2026-07-09T21:42:06.833737174Z"
+			"definition_hash": "c856151f204af87e68d6d7e669b9bce0201122b0699063a85651258e5edb3cb4",
+			"reviewed_at": "2026-07-11T21:34:27.119506666Z"
 		},
 		{
 			"function_name": "TestCreateBoxUnknownSpoke",
 			"documentation_hash": "75c9b631cf1ff59f2cc2edbda05614c7b82b09b1307d82e2412950bf252bfa1a",
 			"definition_hash": "fd22f8c3137e88552344e8042174fe091c692ca83fba9325d0d3c67e40c899cf",
 			"reviewed_at": "2026-07-07T08:15:52.578756526Z"
-		},
-		{
-			"function_name": "TestReapFansOutAcrossSpokes",
-			"documentation_hash": "5172c099ac0e0238d9d8e7e22627cb95dcd1333fae462901949e5794374357a4",
-			"definition_hash": "6e37756a0bc4af67e5459129df1d923a90e91920f781f2a8ebfbaf4170f856e7",
-			"reviewed_at": "2026-07-07T08:15:52.581269193Z"
 		},
 		{
 			"function_name": "TestDestroyRoutesToSpoke",
@@ -33,20 +27,20 @@
 		{
 			"function_name": "TestSpokeStatusesReportsHealth",
 			"documentation_hash": "96dade66ea34c9765535270b0493319e7a6564d40bbea4b9e95ccd42e237db78",
-			"definition_hash": "351512e263416bb2cf23c58832a375b8ee7695dbb4b4e92dde21d1253e190902",
-			"reviewed_at": "2026-07-07T08:15:52.584338971Z"
+			"definition_hash": "dec8300264435c92154e51bdcd71e8064794e4c4d77d50f044b897e6a0ca611f",
+			"reviewed_at": "2026-07-11T21:34:27.123129672Z"
 		},
 		{
 			"function_name": "TestListSpokesTool",
 			"documentation_hash": "32bac0b7a59443f08cea67055d452c7bd80c8871710b68feaab5f95a67609c7f",
-			"definition_hash": "a8f2128f9b9dd2ef6e27570d4ffffb470742b56e71594fb64bb42f883360a49e",
-			"reviewed_at": "2026-07-07T08:15:52.585585293Z"
+			"definition_hash": "82236d1eaaddba31586e63e1098acb3ee99a871962f87684d952c45a6e9d17aa",
+			"reviewed_at": "2026-07-11T21:34:27.124380273Z"
 		},
 		{
 			"function_name": "TestDestroyBoxByBoxIDRoutesToSpoke",
 			"documentation_hash": "6f0b0e3f71532118a29a4ef201b20dc8f54399385b21b888545d8b38c83e19f2",
-			"definition_hash": "3a6e188216d8a7ad93d7277f1e3fd5d39ee2b44f3178157b6677322e47df346f",
-			"reviewed_at": "2026-07-10T10:16:08.268698014Z"
+			"definition_hash": "e4bee8128f5e1e9b8af238aac5e27a2ee19e2ef7b7757b8eebed678e4eca816c",
+			"reviewed_at": "2026-07-11T21:34:27.120824648Z"
 		},
 		{
 			"function_name": "TestDestroySessionlessBoxFindsSpoke",
@@ -57,20 +51,20 @@
 		{
 			"function_name": "TestDestroyAlreadyGoneBoxSucceeds",
 			"documentation_hash": "fd4fa562940c9bc689e4c6e4df7466a2418f4ef31f7dcf03105a0a193768ce03",
-			"definition_hash": "6e976cafad52138dc90ee48b3d143c04fe18b774f1a1c9a02369d9b41ccf2152",
-			"reviewed_at": "2026-07-10T10:16:08.269538641Z"
+			"definition_hash": "8f2ec5a4b0f8e01993e70dfa7c1e1af63443d48ba372c38d2313eb76b6fb9124",
+			"reviewed_at": "2026-07-11T21:34:27.122396588Z"
 		},
 		{
 			"function_name": "serverWithSpokes",
 			"documentation_hash": "906effa26318e8ba5cd7fdf91a19019187027b3c752f223b71691af1e6be5ebd",
-			"definition_hash": "3ab226136ff6dfbad078eb02e1933e0adfdeeb12380dbc7d1df94f06c05e6383",
-			"reviewed_at": "2026-07-07T08:15:52.576781936Z"
+			"definition_hash": "bf0ff8e950d25645d190cbbacef8de28ff21758b7669247397753138239c3b1c",
+			"reviewed_at": "2026-07-11T21:34:27.118709682Z"
 		},
 		{
 			"function_name": "TestDefaultSpokeRoundTrip",
 			"documentation_hash": "9f0831026d6edfd86d6e84c0f01926731afa82576a90cf4fe726dbce44f219b1",
-			"definition_hash": "48bea2b32ea65043d79a4a552a5ae59367ab0a87896ebe9afd1417b41c4ade07",
-			"reviewed_at": "2026-07-07T08:15:52.578243491Z"
+			"definition_hash": "0a86cb6a81eea450e3a907521852065650cf8d3f01c9e290f80334c41a07783f",
+			"reviewed_at": "2026-07-11T21:34:27.120152816Z"
 		},
 		{
 			"function_name": "TestCreateBoxDefaultsToDefaultSpoke",
@@ -87,8 +81,8 @@
 		{
 			"function_name": "TestSpokeStatusesMarksDefault",
 			"documentation_hash": "a5965a1746670dc94bdc66684f7a68a467e93eab747789d96cfb142e506a4f73",
-			"definition_hash": "c24b5bcdc1fa832e4cd05e2c3e751ce4581451e840f778d74905d807cb30da72",
-			"reviewed_at": "2026-07-07T08:15:52.585026646Z"
+			"definition_hash": "411f9772a085bee88bd052005efb23d42c9bec070fda9bbcbcf06d088b2cac17",
+			"reviewed_at": "2026-07-11T21:34:27.123764777Z"
 		},
 		{
 			"function_name": "TestDestroyUnknownBoxIsIdempotent",
@@ -110,9 +104,9 @@
 		},
 		{
 			"function_name": "TestPauseResumeBoxByBoxID",
-			"documentation_hash": "2101d32a7f2499258a06c7118b9d26bfadfcb3194b23181f58b94aa5548de885",
-			"definition_hash": "638edf7dfd40158a463213c1a440433f231fee7414b73e785f9161d70eae4d21",
-			"reviewed_at": "2026-07-11T11:12:12.656250082Z"
+			"documentation_hash": "88f9b02efae98a3aa92137f37352c541873f787c00c927becbf70d6cc378fcc7",
+			"definition_hash": "78899472f5783b5699ced1d8c26d593f897fa1c65ad7f5d9c705e8033e4a7867",
+			"reviewed_at": "2026-07-11T21:34:27.121485449Z"
 		},
 		{
 			"function_name": "TestBoxExecOnPausedBoxErrors",

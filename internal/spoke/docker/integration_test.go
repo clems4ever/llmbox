@@ -13,23 +13,20 @@ import (
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/internal/spoke/box/conformance"
 	"github.com/clems4ever/llmbox/internal/spoke/docker"
-	"github.com/clems4ever/llmbox/testutils"
 )
 
-// mockDockerfile builds a minimal box image: tini, the llmbox-guest entrypoint,
-// and a mock `claude` so the box's login flow is deterministic (real claude would
-// need a real OAuth code). It lets the full conformance contract run against real
+// mockDockerfile builds a minimal box image: tini plus the llmbox-guest
+// entrypoint. It lets the full (login-free) conformance contract run against real
 // Docker containers, exercising the provisioner, the socket bind-mount across
 // uids, guest reachability, exec, dial, rename, and destroy.
 const mockDockerfile = `FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends tini && rm -rf /var/lib/apt/lists/*
 COPY llmbox-guest /usr/local/bin/llmbox-guest
-COPY claude /usr/local/bin/claude
 ENTRYPOINT ["tini","-g","--","llmbox-guest"]
 `
 
 // TestDockerConformance runs the backend-neutral box contract against a real
-// Docker daemon, using a mock-claude box image. Run it with:
+// Docker daemon. Run it with:
 //
 //	go test -tags=integration -run TestDockerConformance -v ./internal/docker/
 func TestDockerConformance(t *testing.T) {
@@ -70,8 +67,8 @@ func requireDocker(t *testing.T) {
 	}
 }
 
-// buildMockImage builds (the guest binary, the mock claude, then) the mock box
-// image and returns its tag, removing it on cleanup.
+// buildMockImage builds the guest binary and the minimal box image, returning its
+// tag and removing it on cleanup.
 func buildMockImage(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -82,9 +79,6 @@ func buildMockImage(t *testing.T) string {
 	build.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("building guest: %v\n%s", err, out)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "claude"), []byte(testutils.MockClaudeScript), 0o755); err != nil {
-		t.Fatalf("writing mock claude: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte(mockDockerfile), 0o644); err != nil {
 		t.Fatalf("writing Dockerfile: %v", err)

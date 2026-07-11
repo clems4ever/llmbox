@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestClusterEndToEnd",
 			"documentation_hash": "20fd993dd07458965df0f0a461d34dcec2d40e48807ef5a6e70b579c92f6aae5",
-			"definition_hash": "27d514d282cef17a0894e19a3a6afb24b6488a5781abae7f61a1bd898904baed",
-			"reviewed_at": "2026-07-10T15:05:33.226057343Z"
+			"definition_hash": "de07622f1e39c873d29fa67378c9d41f430348b7fce7442b65dbdb4d54c4fc96",
+			"reviewed_at": "2026-07-11T21:34:27.08526646Z"
 		},
 		{
 			"function_name": "newFakeSpokeMgr",
@@ -16,15 +16,8 @@
 			"function_name": "Create",
 			"receiver": "fakeSpokeMgr",
 			"documentation_hash": "e91be58eb99529e3bc7566f716b14c7abd79e4d26d54846d176d6fea38d69022",
-			"definition_hash": "0dbef580258ac7dc3f4d3926e228a65ad6d250ccdc5a58b5d95cf95d365e99c6",
-			"reviewed_at": "2026-07-08T09:42:50.873987991Z"
-		},
-		{
-			"function_name": "SubmitCode",
-			"receiver": "fakeSpokeMgr",
-			"documentation_hash": "38632f0ca034e455399d522a9d4a9511403873f714a50c574959e658bbd50cea",
-			"definition_hash": "04ac1a299162bd04178107d77ebc8e658485e16a9047409625da17b5a41c6045",
-			"reviewed_at": "2026-06-19T20:31:51.303328426Z"
+			"definition_hash": "828e487eeb17f5355c524cfb9661108190af4c81e5a8a966911a053a12051a30",
+			"reviewed_at": "2026-07-11T21:34:27.086636478Z"
 		},
 		{
 			"function_name": "List",
@@ -41,25 +34,11 @@
 			"reviewed_at": "2026-06-29T15:39:24.960632509Z"
 		},
 		{
-			"function_name": "Logs",
-			"receiver": "fakeSpokeMgr",
-			"documentation_hash": "342af416cd708e3c08822133e0c893a72cca2242668612a2d53c35ce449e7a33",
-			"definition_hash": "f12d5d05d8a2e44e161329d7230ba8171a8b390e7ddc38220391d8bd915d8c54",
-			"reviewed_at": "2026-06-19T20:31:54.162738815Z"
-		},
-		{
 			"function_name": "Exec",
 			"receiver": "fakeSpokeMgr",
 			"documentation_hash": "f0baa96183d55df79556428275525987be560cecaef953cdc12ade56fa6e02c0",
 			"definition_hash": "9815fb1bfba1d9b4aff62886eed27d8c3ef00d39ac7a2e0d52a22e2c7a26c3b9",
 			"reviewed_at": "2026-06-29T15:39:24.961588068Z"
-		},
-		{
-			"function_name": "ReapOrphans",
-			"receiver": "fakeSpokeMgr",
-			"documentation_hash": "1971cda8d65b3d413f462a9af2919569dd9f5674c68ef6b7d48cbbd021011946",
-			"definition_hash": "eaaaace7e0f2e2853929566c0036fb30759522f837495e17cf700aff426224b9",
-			"reviewed_at": "2026-06-19T20:31:56.997438599Z"
 		},
 		{
 			"function_name": "creates",
@@ -182,9 +161,9 @@
 		{
 			"function_name": "Resume",
 			"receiver": "fakeSpokeMgr",
-			"documentation_hash": "02ce10b3610ad04f8247e86460d49b26976e37cac4717e676d75b39456b8c34b",
-			"definition_hash": "a01a7cbcb6d9964e9c473bd340714a9f4c58e6f897a29bc90239e062923ce212",
-			"reviewed_at": "2026-07-11T12:27:34.062120301Z"
+			"documentation_hash": "cb9fa31e7e581ed1ff9a9e19876d5ae9ab2fcb73133c2de98432830d9b180087",
+			"definition_hash": "d3155ba8f8ead0736fe7c698ac0ee5ed8206371472d6aefe866c4759fbd1c9a7",
+			"reviewed_at": "2026-07-11T21:34:27.087372651Z"
 		}
 	]
 }

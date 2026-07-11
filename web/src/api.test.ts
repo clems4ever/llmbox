@@ -125,18 +125,13 @@ describe("Api mutations", () => {
     expect(await new Api("t").proxyEnabled()).toBe(true);
   });
 
-  it("createBox maps the session envelope to box_id/token", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ session: { BoxID: "b1", Token: "tok" } }));
+  it("createBox maps the session envelope to box_id", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ session: { BoxID: "b1" } }));
     const out = await new Api("t").createBox("b1", "desc", "edge-1");
-    expect(out).toEqual({ box_id: "b1", token: "tok" });
+    expect(out).toEqual({ box_id: "b1" });
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
       opts: { BoxID: "b1", Description: "desc", SpokeName: "edge-1" },
     });
-  });
-
-  it("authPageURL returns the url", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ url: "https://hub/auth/tok" }));
-    expect(await new Api("t").authPageURL("tok")).toBe("https://hub/auth/tok");
   });
 
   it("createProxy returns the proxy and posts the fields", async () => {

@@ -9,11 +9,8 @@
 http_addr: ":8080"
 
 # External base URL the user's browser can reach the UI/API at. MUST be set
-# correctly in production — it is used to build the auth-page links.
+# correctly in production — it is used to build the sign-in redirect links.
 public_url: "http://localhost:8080"
-
-# How long a box may stay un-authenticated before it is reaped (Go duration).
-auth_ttl: "5m"
 
 # SQLite file persisting the box/session registry, API keys, and cluster records
 # across restarts.
@@ -89,15 +86,13 @@ state_file: "llmbox-sessions.db"
 # proxy:
 #   base_domain: "proxy.example.com"
 
-# Activation authentication. Without this, anyone who obtains a box's auth-page
-# URL (which is relayed through the chatbot) can activate the box with their own
-# account. Enable a provider to require the person activating a box to sign in
-# first — over a channel that never passes through the chatbot — and be in an
-# allowed domain or email allowlist.
+# Admin authentication. Enable a provider to require whoever reaches the admin UI
+# (and the per-box HTTP proxies) to sign in first and be on the admin allow-list
+# below. Without a provider, the admin UI is disabled.
 # auth:
 #   session_ttl: "1h"          # how long a sign-in stays valid
-#   # Share one sign-in across sub-domains, so the login that gates box activation
-#   # also covers the per-proxy <slug>.proxy.example.com hosts. Set it to the bare
+#   # Share one sign-in across sub-domains, so the admin login also covers the
+#   # per-proxy <slug>.proxy.example.com hosts. Set it to the bare
 #   # parent domain both hosts share — NO leading dot and NO port (e.g. "example.com",
 #   # not ".example.com" or "example.com:8443"); either is rejected at load. It must
 #   # cover both public_url and proxy.base_domain. Leave unset unless you use the
@@ -110,9 +105,7 @@ state_file: "llmbox-sessions.db"
 #     # URI {public_url}/auth/google/callback in the Google Cloud console.
 #     client_secret_file: "/etc/llmbox/google-client-secret"
 #     # redirect_url defaults to {public_url}/auth/google/callback
-#     allowed_domains: ["your-company.com"]   # Google Workspace domain(s)
-#     allowed_emails: []                       # or specific addresses
 #   # Identities allowed into the admin web UI (/admin) to manage spokes and
-#   # boxes. Independent of the activation allow rule above. Empty disables /admin.
+#   # boxes. Only these identities are authorized after signing in. Empty disables /admin.
 #   admin:
 #     emails: ["you@your-company.com"]

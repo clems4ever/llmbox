@@ -10,8 +10,8 @@
 		{
 			"function_name": "newProxyServer",
 			"documentation_hash": "23bbffbdc4015740dd5036229776016ec088832fe471b752006ad60145cec211",
-			"definition_hash": "af9ee7753e004ecd51f89e3bf244bce0ef9859a8d78e199176a14105d01a12dd",
-			"reviewed_at": "2026-07-07T08:15:52.588583927Z"
+			"definition_hash": "71f6c2a4a4bba69e249eafe7cac41c34074d2dd319e51a5a4c692a4ec157ef94",
+			"reviewed_at": "2026-07-11T21:34:27.134535193Z"
 		},
 		{
 			"function_name": "registerBox",
@@ -106,8 +106,8 @@
 		{
 			"function_name": "TestHandleProxyAuthorizedForwards",
 			"documentation_hash": "78b241e38dd89a80100b11f102b4c020d8431b483a02349f191c62eaf0e45459",
-			"definition_hash": "c4f028f0e14274003519b2df975acacf1a42593ab267224436154b36a787e86d",
-			"reviewed_at": "2026-07-10T10:16:08.284120413Z"
+			"definition_hash": "c3e2f5d9f4e8a4b280783e41fccfd79ab6f3eb44d7af5585c149a77f527f2ce2",
+			"reviewed_at": "2026-07-11T21:34:27.140971966Z"
 		},
 		{
 			"function_name": "TestHandleProxyUnsupportedSpoke",
@@ -154,8 +154,8 @@
 		{
 			"function_name": "TestProxyURLCarriesPublicURLPort",
 			"documentation_hash": "c1d2472842370babfcd7725f6fb073d79455cd6a355aae65a4fffff455f49615",
-			"definition_hash": "7eaaf10bfebef1579c057aa6ecdca5dcc735f1edb578a1d69da5253f07c13b38",
-			"reviewed_at": "2026-07-08T21:06:08.470296993Z"
+			"definition_hash": "39d695be5dc841cb9b957af49035843ba9ca1fed5016e6d85e99f1125cdc750a",
+			"reviewed_at": "2026-07-11T21:34:27.138401711Z"
 		},
 		{
 			"function_name": "TestSyncReconcilesProxies",
@@ -166,14 +166,26 @@
 		{
 			"function_name": "TestCreateProxyRefusesTerminatedBox",
 			"documentation_hash": "0a7e95ee40056edfc8c0b11839ad670776182f87113d611a202e9914a433c8d6",
-			"definition_hash": "d89c2e1b05f4f9802e7d11e18deb1021dba508e8355da856bd2fa426678dc8d7",
-			"reviewed_at": "2026-07-10T10:16:08.282689494Z"
+			"definition_hash": "eb15dd33fbfc6ef82ad16b75c51ef1f7a6c11face66251815c7a350a089b1e44",
+			"reviewed_at": "2026-07-11T21:34:27.139864447Z"
 		},
 		{
 			"function_name": "TestHandleProxyDialsByBoxID",
 			"documentation_hash": "b8ec0c615ea459ad1fa7177218f89e54a6f4144379974b55961bfb550c2e6552",
 			"definition_hash": "5a75ce7cb573bf19eb2e0a08f53b077d6b434f12f99325e1cd84fc71620f5a4d",
 			"reviewed_at": "2026-07-09T21:42:06.838914268Z"
+		},
+		{
+			"function_name": "TestCreateBoxPublishesConfiguredPorts",
+			"documentation_hash": "db4912318209b01ca78e069c100f4c892679c9bed3c35aeb1802774969ca3f2b",
+			"definition_hash": "764f8e644784aef2158528e1dd294a9e256a393a76a8bb2fadea745f9880847b",
+			"reviewed_at": "2026-07-11T21:34:27.135926986Z"
+		},
+		{
+			"function_name": "TestCreateBoxPublishPortsProxyDisabled",
+			"documentation_hash": "ff7a6df38fe91aa2016b232778c885fd18adcf472729b7d9dede23892a051b8b",
+			"definition_hash": "29f5f7dd9e1e11b50fdc1bc96e05eb8f81e5d43723b27461c42be23b800f2079",
+			"reviewed_at": "2026-07-11T21:34:27.137410203Z"
 		}
 	]
 }

@@ -3,9 +3,9 @@
 		{
 			"function_name": "Create",
 			"receiver": "browserSpokeMgr",
-			"documentation_hash": "5158ba468ff665ac9ad5a4ec9fe3a36cf8b606be785c81fc07c6b09e65379f41",
-			"definition_hash": "47d7b585d58ada18fe1927b983059f802cd001aa145660c63e81c9e84b2a9b94",
-			"reviewed_at": "2026-07-09T21:42:06.821157174Z"
+			"documentation_hash": "ab3a339b798f1a923e9b31fb01143838987097c47d3ab4873fe3aa5d43b2640b",
+			"definition_hash": "bd04053d8b0145e662b7e9a04f5e00694a5447248f6a9ce4341c8c9fc17b3c78",
+			"reviewed_at": "2026-07-11T21:34:27.088894977Z"
 		},
 		{
 			"function_name": "Destroy",
@@ -27,27 +27,6 @@
 			"documentation_hash": "f82104cf626537c1579eabd33066a3e8e2866d90c890170ff0b596e0035a2f1e",
 			"definition_hash": "da04d64aa072e16e84c9e0851d72aa3daabb458578a9441b70b34f8f06218f84",
 			"reviewed_at": "2026-07-04T20:12:47.823567718Z"
-		},
-		{
-			"function_name": "Logs",
-			"receiver": "browserSpokeMgr",
-			"documentation_hash": "522e917ccb050b8a131c645932c4b54c62f87708fc71fcfbd1648fe6a3e19698",
-			"definition_hash": "0356edc90d984159a140bb8f9c53c186555b436cc8bd9333a925eab3f7e8c98e",
-			"reviewed_at": "2026-06-27T10:01:06.218946835Z"
-		},
-		{
-			"function_name": "ReapOrphans",
-			"receiver": "browserSpokeMgr",
-			"documentation_hash": "96639410bd50a250948ac74492fec157796e4b82fad78fabfdea6b32cdcaa322",
-			"definition_hash": "f89de22d36854cf831c92de35037ccdf2ab540d513729deb8143ab344f918676",
-			"reviewed_at": "2026-06-27T10:01:06.221225238Z"
-		},
-		{
-			"function_name": "SubmitCode",
-			"receiver": "browserSpokeMgr",
-			"documentation_hash": "02402ab2de8d16f8cf8d84e1a455361d85363ada1e82ef61ee2754a7e1fa23c0",
-			"definition_hash": "d1484c67fbcbda1ce76b6880ed6ef29829ba339f13441e725acf83c65bd4e91a",
-			"reviewed_at": "2026-06-27T10:01:06.222874532Z"
 		},
 		{
 			"function_name": "hasBox",
@@ -100,9 +79,9 @@
 		{
 			"function_name": "createBox",
 			"receiver": "clusterBrowserEnv",
-			"documentation_hash": "c0034e8579ed9d7a6fbf5201afa2b5b6cc59c08e91d29d805ee2f96f86ac1beb",
-			"definition_hash": "63abb8d7f5d2f8ac1b5eb3b4850dd214903239bf51de0683d8fba0fa6c94f734",
-			"reviewed_at": "2026-07-08T22:15:15.142675144Z"
+			"documentation_hash": "1f511c0861f2864176735954663b540df43c21ae951ea5156e18f93a399097c2",
+			"definition_hash": "b023d321c73b06fe919b57293cf1b080cc14dc789e629d8a01742f08226d9dfa",
+			"reviewed_at": "2026-07-11T21:34:27.091313291Z"
 		},
 		{
 			"function_name": "openAdmin",
@@ -135,8 +114,8 @@
 		{
 			"function_name": "newClusterBrowserEnv",
 			"documentation_hash": "80960e62883bbce1e1c50529f534e6187c6c8b0d446a9efd174974f2a3209971",
-			"definition_hash": "334df6ad0cf1cd7ffa375ee0bb247e9c0ccf3fd6c69aa6fdcbb60c20daf59688",
-			"reviewed_at": "2026-07-08T14:50:26.475023049Z"
+			"definition_hash": "7e492157142d8571c7da6656641d637acd9b4c23a79e14276a44f7fda4c2fe8d",
+			"reviewed_at": "2026-07-11T21:34:27.090574529Z"
 		},
 		{
 			"function_name": "TestAdminCreateAndRemoveBoxOnSpokeInBrowser",
@@ -192,9 +171,9 @@
 		{
 			"function_name": "Resume",
 			"receiver": "browserSpokeMgr",
-			"documentation_hash": "d02ea684d4a2648bc1ec2d790dd7023be0d31b36c2a9ada630837b2315db3bc5",
-			"definition_hash": "ef36b513fe5359e89e942d4b57c36f92ea33f62fb0207fe167379542c06176b3",
-			"reviewed_at": "2026-07-11T11:59:03.748127325Z"
+			"documentation_hash": "6b3041e5d05f8fb4c08f2781be2a26855b51089e8e1b9fcd4c509e5728979902",
+			"definition_hash": "edbde648d56bbb787e1c7a4d90cc07d7de47e171b182258a50f45debe8cfb1db",
+			"reviewed_at": "2026-07-11T21:34:27.089829516Z"
 		}
 	]
 }

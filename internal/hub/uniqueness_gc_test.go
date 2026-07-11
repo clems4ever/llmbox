@@ -23,7 +23,7 @@ func seedSession(t *testing.T, s *Server, token, boxID, spoke string) {
 		SpokeName:  spoke,
 		Generation: "container-" + token,
 		CreatedAt:  time.Now(),
-		Status:     "ready",
+		Phase:      "ready",
 	}
 	s.regSession(token, sess)
 	if err := s.store.PutBox(sess.persist()); err != nil {
@@ -108,9 +108,9 @@ func TestLookupByBoxIDPrefersReachableSpoke(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
 	s.SetHub(hub)
 
-	live := &session{Token: "tok-live", BoxID: "dup", SpokeName: "remote1", Generation: "cl", CreatedAt: time.Unix(100, 0), Status: "ready"}
+	live := &session{Token: "tok-live", BoxID: "dup", SpokeName: "remote1", Generation: "cl", CreatedAt: time.Unix(100, 0), Phase: "ready"}
 	// dead is on a disconnected spoke and is NEWER — reachability must still win.
-	dead := &session{Token: "tok-dead", BoxID: "dup", SpokeName: "ghost", Generation: "cd", CreatedAt: time.Unix(200, 0), Status: "ready"}
+	dead := &session{Token: "tok-dead", BoxID: "dup", SpokeName: "ghost", Generation: "cd", CreatedAt: time.Unix(200, 0), Phase: "ready"}
 	s.regSession("tok-live", live)
 	s.regSession("tok-dead", dead)
 

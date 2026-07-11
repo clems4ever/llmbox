@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestNewRootCmd",
 			"documentation_hash": "dae2d6a178b7f74f3bd694fc4fcc5bb15e7dba852b753cd1436c30bd8d85ef0d",
-			"definition_hash": "0ef512046f18c3b30e8c73bc683f4a0b9baeffaae447ca0b8491229a16168e88",
-			"reviewed_at": "2026-07-11T09:33:03.197504958Z"
+			"definition_hash": "58a7dc143a06b0306db01733367dd3078c3c31e90d9053dd1154d3513a9f6b71",
+			"reviewed_at": "2026-07-11T21:34:27.223378283Z"
 		},
 		{
 			"function_name": "TestSpokeCredsRoundTrip",
@@ -89,6 +89,12 @@
 			"documentation_hash": "37eb0c65196364440822759c1c5dd0e465791681c911ac6f44a232df575e0f29",
 			"definition_hash": "859694349d048cece7456733078164ab1ca4dbdf5b8c99686d74f8281a88a075",
 			"reviewed_at": "2026-07-11T09:32:51.313974154Z"
+		},
+		{
+			"function_name": "TestSpokeParsePublishPorts",
+			"documentation_hash": "150b3599e6f0796d96aa389d5328ebf7c5cb68d9fd730b5cdc971d19883fb0ca",
+			"definition_hash": "b598b8882423b742b1580cbcc28134e8193423712aa79194dcd2ebc485b1917d",
+			"reviewed_at": "2026-07-11T21:34:27.223927986Z"
 		}
 	]
 }

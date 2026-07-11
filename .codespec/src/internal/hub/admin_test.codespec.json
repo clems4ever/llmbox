@@ -3,14 +3,14 @@
 		{
 			"function_name": "newAdminServer",
 			"documentation_hash": "fd5b47c8505e800a829750e08537d9c6de3fefee8405a1b30a62e34af68b2c55",
-			"definition_hash": "c171a7c5611bea7284e537de8be585dd9310d3c9c48ce003e029aaa66978673c",
-			"reviewed_at": "2026-07-07T08:15:52.568818971Z"
+			"definition_hash": "67f16794f3038ffedd9edc0684f1ac44f79010499d6561f390e6a4f82c0a2390",
+			"reviewed_at": "2026-07-11T21:34:27.108416854Z"
 		},
 		{
 			"function_name": "signIn",
-			"documentation_hash": "06dbe717776b9276b78682cdb90dd421479f1c0c3c1b3e50c05763dd8ce15008",
-			"definition_hash": "cf2d58888f2780cf812cc729fdfeb8070f0b6f696dedfcc865bdc2493d78a534",
-			"reviewed_at": "2026-07-10T10:15:11.410543875Z"
+			"documentation_hash": "08a7a738ac08cbf07d4584954b66d981da1485b7b73681dde315f85bbde252ea",
+			"definition_hash": "3a2e13303f88c904dc59a2013cd8f1b529c2f00afb96055f9d9d82af93880b1b",
+			"reviewed_at": "2026-07-11T21:34:27.108721498Z"
 		},
 		{
 			"function_name": "TestSpokeConnectURL",
@@ -44,9 +44,9 @@
 		},
 		{
 			"function_name": "TestAssetsServedWithoutAdmin",
-			"documentation_hash": "b4d37adf5e4fa3478fd461c1d9655167006b6c0eb7e50631fefb8b6380c1eee7",
-			"definition_hash": "9a47f865148f5143b87b52fbadaa55bca08ef04e8ce73b98ffaaab104602fe50",
-			"reviewed_at": "2026-07-09T11:37:45.276775243Z"
+			"documentation_hash": "4d77ec78256c2d965c932ff760f2e5e4aefe7c141fc2d193593420e7f718cfd5",
+			"definition_hash": "d6fa8e27b81331c553eb1f4263bb15d2e401c1221f2aa2812140c0160a15e209",
+			"reviewed_at": "2026-07-11T21:34:27.10902401Z"
 		}
 	]
 }

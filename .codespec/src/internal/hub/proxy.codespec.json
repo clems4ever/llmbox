@@ -72,9 +72,9 @@
 		{
 			"function_name": "proxyAuthorized",
 			"receiver": "Server",
-			"documentation_hash": "b89e1d4ca7ba42e6d9d731e8732d51d8aabb1d3e50af07bcb1967b4e1f329d41",
-			"definition_hash": "bfce0454edb5ece2ef5da0f061c348a2cc9473ef8e058477691420c012d0f782",
-			"reviewed_at": "2026-07-09T18:10:52.508145573Z"
+			"documentation_hash": "572c655fdce79c97fc804e26648cdfcf0aee80c2eb706505b04a3286a34e343b",
+			"definition_hash": "7688db48e2d73ee8bcf46d236ddeb9237b0ff6240e4fa612b1f7d7459d86eb7b",
+			"reviewed_at": "2026-07-11T21:34:27.133741023Z"
 		},
 		{
 			"function_name": "handleProxy",

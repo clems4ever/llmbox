@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestConformanceFirecracker",
 			"documentation_hash": "9cd4aeda49df93296105916f08574593302a65419dfe4b67b7a2ff7d4e9fcc0d",
-			"definition_hash": "6137acfd600b9ead6dc4ad414e7638f97c6f3b2c04cbef40d5d5962c116dfdd3",
-			"reviewed_at": "2026-07-09T18:49:59.014673235Z"
+			"definition_hash": "c35644a4b5edffdc692fb2add03247153f12c608db5671911eab57f56e223291",
+			"reviewed_at": "2026-07-11T21:34:27.217063155Z"
 		},
 		{
 			"function_name": "fcArtifacts",
@@ -21,14 +21,14 @@
 		{
 			"function_name": "TestBoxAPIOverVsock",
 			"documentation_hash": "1941222f227b08b32b6f95f5f61729ea6cd5fec5347c0b1361b155ec10e16704",
-			"definition_hash": "18b6c4089b06be8218e2254aad104cdaa0d83734355cce4af9677ebf15ef6674",
-			"reviewed_at": "2026-07-09T18:49:59.014883587Z"
+			"definition_hash": "ea230cb4334ad80d8dfe710553271601a796e0a9552a8f99ef336978ff1dc836",
+			"reviewed_at": "2026-07-11T21:34:27.217338799Z"
 		},
 		{
-			"function_name": "TestBoxRunsClaudeUserWithSudo",
-			"documentation_hash": "fbad022fc1fdbed06ef696304603a0a0562a483bebc1aa61f4f4bbe2f2ef7b96",
-			"definition_hash": "207bb1d3a233327adde58e2f8ffc5188e43abbc17c16c3e4e00b7f5093d00bf3",
-			"reviewed_at": "2026-07-11T07:31:34.558942082Z"
+			"function_name": "TestBoxRunsAsUnprivilegedUserWithSudo",
+			"documentation_hash": "b0deb9eb83718614b3e962b51228cb48fa31c2817a01d12be9f9a7943ec24844",
+			"definition_hash": "cffd78472a43bb9fa387375f453fb58ef839113b03cef833261bca85b2747d09",
+			"reviewed_at": "2026-07-11T21:34:27.217604925Z"
 		}
 	]
 }

@@ -8,13 +8,6 @@
 			"reviewed_at": "2026-06-29T15:39:25.118830388Z"
 		},
 		{
-			"function_name": "AuthPageURL",
-			"receiver": "fakeBackend",
-			"documentation_hash": "ee5883ace328eba7f7cb8dc63b797e373ea513120580b920448aa32a8d7fa10c",
-			"definition_hash": "940e1a784a545e0dab4b31293b0eadae6a9750e8c353ac86173715dd1df3f9d1",
-			"reviewed_at": "2026-06-27T17:12:53.630543561Z"
-		},
-		{
 			"function_name": "LookupByBoxID",
 			"receiver": "fakeBackend",
 			"documentation_hash": "442005611e89ea996e70149423f5cb6acf463009a3d51c96bedca82288ea0193",
@@ -41,13 +34,6 @@
 			"documentation_hash": "359885298a0af175dac60f2ca8a42f78373652eb73456409f818c4e40eed397c",
 			"definition_hash": "a9ea159b99483593889b744e09ca12224cc3656683f4d985d7bab0f5abf9a195",
 			"reviewed_at": "2026-06-27T17:12:53.672327983Z"
-		},
-		{
-			"function_name": "BoxLogs",
-			"receiver": "fakeBackend",
-			"documentation_hash": "8977f66b3299bb52c7cb18a9d567d53c4fb1bb95dd1f631469603bee409dc97b",
-			"definition_hash": "5c785b254dc284995e7b468a6391321948fd7145aa50273d79cfcb6ef65f1b52",
-			"reviewed_at": "2026-06-27T17:12:53.6730936Z"
 		},
 		{
 			"function_name": "BoxExec",
@@ -116,9 +102,9 @@
 		},
 		{
 			"function_name": "TestToolCreate",
-			"documentation_hash": "e9f2599c25e56a75c2ecef673d12f7493fe67c6913e9c0e0dad19b32db030b16",
-			"definition_hash": "6f8d30f35e4e110919870354842256afc1d893f88383c5ff83b646a5a2cadc57",
-			"reviewed_at": "2026-07-09T21:42:06.884710764Z"
+			"documentation_hash": "d15092573a47005608c3ef73d4569e709cce43620ce180df58b6c01157495735",
+			"definition_hash": "d3609051a92f58f00bbb9ea2e2f686f141b0c516dd7caad1752e8ab1605f229f",
+			"reviewed_at": "2026-07-11T21:34:27.1968926Z"
 		},
 		{
 			"function_name": "TestToolCreateRequiresBoxID",
@@ -135,8 +121,8 @@
 		{
 			"function_name": "TestToolGet",
 			"documentation_hash": "71469f58d54f36e88afd015452105c2b3463172a6a293b11530f425fc6527abc",
-			"definition_hash": "589a89fdcef63ad533d145fa810e5a45e3ac5b0912ca332c6d7fb7f8ae6cb1ae",
-			"reviewed_at": "2026-06-27T17:12:53.684045639Z"
+			"definition_hash": "e2e316a50c4636f7589dc039a924bdcb96bd13f93b96ca4a46309838c7a1fe4c",
+			"reviewed_at": "2026-07-11T21:34:27.197705158Z"
 		},
 		{
 			"function_name": "TestToolList",
@@ -157,12 +143,6 @@
 			"reviewed_at": "2026-07-09T21:42:06.885555976Z"
 		},
 		{
-			"function_name": "TestToolLogs",
-			"documentation_hash": "0348d44b5e1636c5f6bc0bab9176e4acd4f8f7e9366f5e1b9648ef223b4cf5c8",
-			"definition_hash": "0a9fa5e41244c869e14243a90e023c233dcbf7e28b1e235f51b791f5db40c4e8",
-			"reviewed_at": "2026-06-27T17:12:53.687121507Z"
-		},
-		{
 			"function_name": "TestToolExec",
 			"documentation_hash": "f42c258fafddfd762fe096910554fba2fa799dfde07da17b1fd67befda189fa0",
 			"definition_hash": "4092fb7560b6659f86619dd7c0a77fc3ac4de5fa7bbc509b81d30400b9c24ea2",
@@ -177,14 +157,8 @@
 		{
 			"function_name": "TestToolsRegistered",
 			"documentation_hash": "f6603b7590ac1c6a399bc4383f5e17720c286a9ead0f1cb5fa5c1ec5227048fa",
-			"definition_hash": "020960dfbea446f3479344b72b17ab6134678e9cd78268af0d92e754c645dbae",
-			"reviewed_at": "2026-06-27T17:12:53.689609115Z"
-		},
-		{
-			"function_name": "TestCreateReturnsSafeAuthURL",
-			"documentation_hash": "c565d0cb3acf9ac275dd4ffc5a1e1d623c4255ff0601aa49adabaa01e0dc6199",
-			"definition_hash": "69cb7dc0e66cee308b26077cafade8d8fec54f4b2c9579748548266bdb12765e",
-			"reviewed_at": "2026-07-09T21:42:06.886635499Z"
+			"definition_hash": "0fff0d42c1fc7ce1908e1f3797c9f7c3d3cd47b655f45fb393c2a61850046090",
+			"reviewed_at": "2026-07-11T21:34:27.198696269Z"
 		},
 		{
 			"function_name": "connectMCP",

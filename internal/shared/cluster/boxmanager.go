@@ -10,7 +10,6 @@ package cluster
 
 import (
 	"context"
-	"time"
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
@@ -22,12 +21,9 @@ import (
 // can cross the hub/spoke boundary.
 type BoxManager interface {
 	Create(ctx context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error)
-	SubmitCode(ctx context.Context, idOrName, code string) (sessionURL string, err error)
 	List(ctx context.Context) ([]sandbox.Box, error)
 	Destroy(ctx context.Context, idOrName string) error
 	Pause(ctx context.Context, idOrName string) error
-	Resume(ctx context.Context, idOrName string) (sessionURL string, err error)
-	Logs(ctx context.Context, idOrName string, tail int) (string, error)
+	Resume(ctx context.Context, idOrName string) error
 	Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error)
-	ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error)
 }

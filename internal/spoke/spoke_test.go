@@ -104,7 +104,7 @@ func TestNewRootCmd(t *testing.T) {
 	}
 
 	// Flags every backend subcommand shares, plus the config-free invariant.
-	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "remote-args", "init-script", "init-script-timeout", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "registry", "registry-username", "registry-password-file"}
+	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "init-script", "init-script-timeout", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "registry", "registry-username", "registry-password-file"}
 
 	docker := subcmd(t, cmd, "docker")
 	for _, f := range append([]string{"box-gpus", "image"}, common...) {

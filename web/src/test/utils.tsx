@@ -46,8 +46,7 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
       token: "fresh-token",
       command: "llmbox-spoke docker --hub wss://hub/spoke/connect --token fresh-token",
     }),
-    createBox: vi.fn().mockResolvedValue({ box_id: "box-1", token: "tok" }),
-    authPageURL: vi.fn().mockResolvedValue("https://hub/auth/tok"),
+    createBox: vi.fn().mockResolvedValue({ box_id: "box-1" }),
     destroyBox: vi.fn().mockResolvedValue({}),
     pauseBox: vi.fn().mockResolvedValue({}),
     resumeBox: vi.fn().mockResolvedValue({}),
@@ -67,7 +66,8 @@ export function box(overrides: Partial<BoxView> = {}): BoxView {
     image: "llmbox-box:latest",
     state: "running",
     status: "Up",
-    phase: "ready",
+    // A healthy box omits phase (the API drops the empty value), so it is
+    // undefined here — matching the real payload and guarding the undefined path.
     created: 1_700_000_000,
     ...overrides,
   };

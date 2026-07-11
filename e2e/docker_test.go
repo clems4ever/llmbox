@@ -4,9 +4,9 @@ package e2e
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
-	"io"
-	"math/rand"
 	"net"
 	"strings"
 	"sync"
@@ -18,16 +18,11 @@ import (
 
 // fakeBoxManager simulates the Docker box-lifecycle layer. The real
 // implementation is *docker.Manager, which launches a container per box and
-// drives the Claude CLI inside it; this stand-in keeps boxes in memory and runs
-// each box's OAuth handshake against the fake Anthropic platform instead. It
-// satisfies the (unexported) boxManager interface hub.New expects, so the
-// real server, MCP tools, and auth web UI all run unchanged on top of it — only
-// Docker and the real Claude binary are simulated.
+// provisions it with the spoke's init script; this stand-in keeps boxes in
+// memory. It satisfies cluster.BoxManager (plus the BoxDialer the proxy layer
+// uses) so the real server, MCP tools, and admin web UI all run unchanged on top
+// of it — only Docker is simulated. A created box is immediately ready.
 type fakeBoxManager struct {
-	platform *fakeAnthropic
-
-	miscRand io.Reader
-
 	// dialTarget is the address DialBox connects to, standing in for a server
 	// listening inside a box (a real loopback server in the proxy e2e test).
 	dialTarget string
@@ -42,32 +37,23 @@ type fakeBox struct {
 	boxID       string
 	description string
 	image       string
-	authState   string // the platform OAuth state this box began login with
-	sessionURL  string
-	ready       bool
 	created     int64
 }
 
-// newFakeBoxManager builds a box manager backed by the given platform.
+// newFakeBoxManager builds a ready, empty simulated box manager.
 //
-// @arg platform The simulated Anthropic platform boxes authenticate against.
 // @return *fakeBoxManager A ready, empty simulated box manager.
-func newFakeBoxManager(platform *fakeAnthropic) *fakeBoxManager {
-	return &fakeBoxManager{
-		miscRand: rand.New(rand.NewSource(100)),
-		platform: platform,
-		boxes:    map[string]*fakeBox{},
-	}
+func newFakeBoxManager() *fakeBoxManager {
+	return &fakeBoxManager{boxes: map[string]*fakeBox{}}
 }
 
-// Create simulates launching a box: it rejects a duplicate box ID, begins
-// an OAuth login on the platform, and returns the new container ID plus the
-// authorize URL the user must open — exactly the contract the real manager has.
+// Create simulates launching a box: it rejects a duplicate box ID and returns
+// the new container ID. A box is ready as soon as it is created — there is no
+// activation step.
 //
 // @arg ctx Context (unused by the simulation).
 // @arg opts The caller-controlled box ID and description (the image is the spoke's own).
-// @return id The simulated container ID of the new box.
-// @return authorizeURL The OAuth authorize URL for the box's login.
+// @return sandbox.CreateResult The simulated container ID of the new box.
 // @error error if the requested box ID is already in use.
 func (m *fakeBoxManager) Create(_ context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	m.mu.Lock()
@@ -82,48 +68,20 @@ func (m *fakeBoxManager) Create(_ context.Context, opts sandbox.CreateOptions) (
 	// The spoke owns the image: every box launches the spoke's configured default,
 	// not one named by the create request.
 	image := docker.DefaultImage
-	id := randHex(m.miscRand, 20)
-	state, authorizeURL := m.platform.beginLogin()
+	id := randContainerID()
 	m.boxes[id] = &fakeBox{
 		containerID: id,
 		boxID:       opts.BoxID,
 		description: opts.Description,
 		image:       image,
-		authState:   state,
 		created:     time.Now().Unix(),
 	}
-	return sandbox.CreateResult{InstanceID: id, AuthorizeURL: authorizeURL}, nil
+	return sandbox.CreateResult{InstanceID: id}, nil
 }
 
-// SubmitCode simulates feeding the user's code to the box's login process: it
-// exchanges the code with the platform and, on success, marks the box ready and
-// returns its session URL.
-//
-// @arg ctx Context (unused by the simulation).
-// @arg id The container ID of the pending box.
-// @arg code The OAuth code the user pasted.
-// @return sessionURL The remote-control session URL once login completes.
-// @error error if the box is unknown or the code is rejected by the platform.
-func (m *fakeBoxManager) SubmitCode(_ context.Context, id, code string) (sessionURL string, err error) {
-	m.mu.Lock()
-	b := m.find(id)
-	m.mu.Unlock()
-	if b == nil {
-		return "", fmt.Errorf("no managed box matches %q", id)
-	}
-	url, err := m.platform.exchange(b.authState, code)
-	if err != nil {
-		return "", fmt.Errorf("login did not complete; box said: %v", err)
-	}
-	m.mu.Lock()
-	b.ready = true
-	b.sessionURL = url
-	m.mu.Unlock()
-	return url, nil
-}
-
-// List returns all simulated boxes as the server expects them, with the auth
-// phase and a phase-encoding name derived from each box's readiness.
+// List returns all simulated boxes as the server expects them. A simulated box
+// is always a healthy, running box (its init script never fails), so none carry
+// the "broken" phase.
 //
 // @arg ctx Context (unused by the simulation).
 // @return []sandbox.Box One Box per simulated box.
@@ -134,19 +92,14 @@ func (m *fakeBoxManager) List(_ context.Context) ([]sandbox.Box, error) {
 	out := make([]sandbox.Box, 0, len(m.boxes))
 	for _, b := range m.boxes {
 		short := b.containerID[:12]
-		name, phase := "llmbox-pending-"+short, "pending"
-		if b.ready {
-			name, phase = "llmbox-"+short, "ready"
-		}
 		out = append(out, sandbox.Box{
 			InstanceID:  short,
-			Name:        name,
+			Name:        "llmbox-" + short,
 			BoxID:       b.boxID,
 			Description: b.description,
 			Image:       b.image,
 			State:       "running",
 			Status:      "Up",
-			Phase:       phase,
 			Created:     b.created,
 		})
 	}
@@ -183,37 +136,18 @@ func (m *fakeBoxManager) Pause(_ context.Context, idOrName string) error {
 	return nil
 }
 
-// Resume simulates resuming a box: it verifies the box exists and returns a
-// canned session URL.
+// Resume simulates resuming a box: it is a no-op beyond verifying the box exists.
 //
 // @arg ctx Context (unused by the simulation).
 // @arg idOrName The ID or name identifying the box.
-// @return string A canned session URL.
 // @error error if no simulated box matches.
-func (m *fakeBoxManager) Resume(_ context.Context, idOrName string) (string, error) {
+func (m *fakeBoxManager) Resume(_ context.Context, idOrName string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.find(idOrName) == nil {
-		return "", fmt.Errorf("no managed box matches %q", idOrName)
+		return fmt.Errorf("no managed box matches %q", idOrName)
 	}
-	return "https://claude.ai/code/session", nil
-}
-
-// Logs returns canned console output for the box, standing in for a real box's
-// remote-control logs.
-//
-// @arg ctx Context (unused by the simulation).
-// @arg idOrName The ID or name identifying the box.
-// @arg tail The requested tail (ignored; the canned output is short).
-// @return string The box's simulated console output.
-// @error error if no simulated box matches.
-func (m *fakeBoxManager) Logs(_ context.Context, idOrName string, _ int) (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.find(idOrName) == nil {
-		return "", fmt.Errorf("no managed box matches %q", idOrName)
-	}
-	return "claude remote-control: Ready\nlistening for sessions\n", nil
+	return nil
 }
 
 // Exec simulates running a shell command in the box. It understands a single
@@ -258,20 +192,9 @@ func (m *fakeBoxManager) DialBox(ctx context.Context, idOrName string, port int)
 	return d.DialContext(ctx, "tcp", m.dialTarget)
 }
 
-// ReapOrphans is a no-op in the simulation; the workflow never leaves orphans.
-//
-// @arg ctx Context (unused by the simulation).
-// @arg ttl The orphan TTL (unused).
-// @return []string Always nil; nothing is reaped.
-// @error error never; present to satisfy the interface.
-func (m *fakeBoxManager) ReapOrphans(_ context.Context, _ time.Duration) ([]string, error) {
-	return nil, nil
-}
-
-// find resolves a box ID, container ID (full or short), or phase-prefixed name
-// to a box, matching the real provisioner's Find (which the hub now addresses by
-// box ID, e.g. SubmitCode/Destroy/Logs/Exec pass sess.BoxID). The caller must
-// hold m.mu.
+// find resolves a box ID, container ID (full or short), or box name to a box,
+// matching the real provisioner's Find (which the hub addresses by box ID). The
+// caller must hold m.mu.
 //
 // @arg idOrName The identifier to resolve.
 // @return *fakeBox The matching box, or nil.
@@ -283,10 +206,18 @@ func (m *fakeBoxManager) find(idOrName string) *fakeBox {
 			b.containerID == idOrName,
 			strings.HasPrefix(b.containerID, idOrName),
 			strings.HasPrefix(idOrName, short),
-			idOrName == "llmbox-pending-"+short,
 			idOrName == "llmbox-"+short:
 			return b
 		}
 	}
 	return nil
+}
+
+// randContainerID returns a random 40-character hex string for a fake container ID.
+//
+// @return string A 40-character hex container ID.
+func randContainerID() string {
+	b := make([]byte, 20)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }

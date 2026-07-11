@@ -10,30 +10,23 @@
 		{
 			"function_name": "CreateBox",
 			"receiver": "apiBackend",
-			"documentation_hash": "f3b51d4bc954b39b93476829630b1d42f12f7967986a283cdddd5443534447a0",
-			"definition_hash": "f963ad17fa88a7218a8c0342575ec583c0f894183a00cdb4acc872b22dbfa602",
-			"reviewed_at": "2026-07-10T10:15:43.535856248Z"
-		},
-		{
-			"function_name": "AuthPageURL",
-			"receiver": "apiBackend",
-			"documentation_hash": "a976ab41c23d419362a6eff1406884e644f44af23c60489da1eb0317193ce7db",
-			"definition_hash": "4e37179ea048015f33a54cf5779eac6d6942adcac636e8699b20585de905c8c6",
-			"reviewed_at": "2026-07-01T13:12:00.984871142Z"
+			"documentation_hash": "f11442b76901fb1149df74cd7d3c11e894f49437162e1df9d9c9c9c83cc5a3db",
+			"definition_hash": "b8a844d056bef00ebda150f545819e36d2e0908fd6180bcef0ef3f986b6b2c4e",
+			"reviewed_at": "2026-07-11T21:34:27.117061636Z"
 		},
 		{
 			"function_name": "LookupByBoxID",
 			"receiver": "apiBackend",
-			"documentation_hash": "cbd19ddf1c2a666e756f03251f8d7e1da193bc5e821e7acaa81467047ec013a4",
-			"definition_hash": "860b89e71247a081390b1cd951c0140e26a299a97a1c3d8cfb263b861c948730",
-			"reviewed_at": "2026-07-09T21:42:06.831932214Z"
+			"documentation_hash": "a80a78a1616b9effb2d4913ee80042ecdcded5715c42dbd3542c1fda62467024",
+			"definition_hash": "66669cc811ffab7a8704f2e798c7277e866a0d46c12cbd21c1b88f24ce3898ed",
+			"reviewed_at": "2026-07-11T21:34:27.117584644Z"
 		},
 		{
 			"function_name": "ListBoxes",
 			"receiver": "apiBackend",
-			"documentation_hash": "9c5c6f542f8cc81f981ec2d1da41e3d001cbc4ce38b06e45d9dafe525f5912e1",
-			"definition_hash": "4f975787962a005b67e6da8fa3e8b89f8aadfd97af4156ee574c7f136c985927",
-			"reviewed_at": "2026-07-10T10:15:43.536475431Z"
+			"documentation_hash": "29202b8b2acb8ad5f2df034b5dc341e75ecc0c8cba6fb4025e0478d9e631b7c4",
+			"definition_hash": "5977e7c95b0d5ffdafa5645b57387cc5069ea143d29dea2aec2566e0faa4dc83",
+			"reviewed_at": "2026-07-11T21:34:27.118049882Z"
 		},
 		{
 			"function_name": "SpokeStatuses",
@@ -48,13 +41,6 @@
 			"documentation_hash": "20cb5c6c4a257c32f141937f88d7f69295e2725469db12aada9138daea8cd5ab",
 			"definition_hash": "09214bfc3483356f16361f65a6c5660138ee23539d64ab8774f67112d91bb608",
 			"reviewed_at": "2026-07-09T21:42:06.83259765Z"
-		},
-		{
-			"function_name": "BoxLogs",
-			"receiver": "apiBackend",
-			"documentation_hash": "277644e4535920e5baad20b69f2769548d6933f46f26f7789a0d0022b9374d9c",
-			"definition_hash": "971441b046ad71c08c0ff51c1f7cdc75532ae1b548de960237713331e1885e5d",
-			"reviewed_at": "2026-07-01T13:12:00.986778774Z"
 		},
 		{
 			"function_name": "BoxExec",

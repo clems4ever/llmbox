@@ -38,15 +38,16 @@ export interface BoxView {
   // (spoke offline right now) / "terminated" (confirmed gone; tombstone).
   state: string;
   status: string;
-  phase: string;
-  // The failure detail when the box failed to activate or its init script broke
-  // (phase "broken"): the init script's captured output. Empty otherwise.
+  // The box's provisioning phase: "broken" when its init script failed. A
+  // healthy box omits the field (the API drops the empty phase), so it may be
+  // absent — the single non-empty value the UI surfaces.
+  phase?: string;
+  // The failure detail for a broken box (phase "broken"): the init script's
+  // captured output. Empty otherwise.
   last_error?: string;
   created: number;
   // When the hub last observed the box on its spoke (Unix seconds, 0 = never).
   last_seen?: number;
-  auth_url?: string;
-  session_url?: string;
 }
 
 export interface ProxyInfo {
@@ -156,16 +157,11 @@ export class Api {
     return r.spoke;
   }
 
-  async createBox(boxId: string, description: string, spoke: string): Promise<{ box_id: string; token: string }> {
-    const r = await this.call<{ session: { BoxID: string; Token: string } }>("/api/v1/create-box", {
+  async createBox(boxId: string, description: string, spoke: string): Promise<{ box_id: string }> {
+    const r = await this.call<{ session: { BoxID: string } }>("/api/v1/create-box", {
       opts: { BoxID: boxId, Description: description, SpokeName: spoke },
     });
-    return { box_id: r.session.BoxID, token: r.session.Token };
-  }
-
-  async authPageURL(token: string): Promise<string> {
-    const r = await this.call<{ url: string }>("/api/v1/auth-page-url", { token });
-    return r.url;
+    return { box_id: r.session.BoxID };
   }
 
   destroyBox(boxId: string): Promise<unknown> {
@@ -178,8 +174,8 @@ export class Api {
     return this.call("/api/v1/pause-box", { box_id: boxId });
   }
 
-  /** resumeBox restarts a paused box's compute; it comes back with a fresh session
-   * URL, visible on the next list refresh. */
+  /** resumeBox restarts a paused box's compute; it comes back running, visible on
+   * the next list refresh. */
   resumeBox(boxId: string): Promise<unknown> {
     return this.call("/api/v1/resume-box", { box_id: boxId });
   }

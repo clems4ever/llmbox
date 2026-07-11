@@ -30,7 +30,6 @@ func TestServe(t *testing.T) {
 		PublicURL: "http://" + "127.0.0.1",
 		StateFile: filepath.Join(t.TempDir(), "sessions.db"),
 	}
-	cfg.AuthTTL = config.Duration(5 * time.Minute)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	errc := make(chan error, 1)

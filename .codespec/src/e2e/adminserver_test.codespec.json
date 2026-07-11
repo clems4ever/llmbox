@@ -3,14 +3,14 @@
 		{
 			"function_name": "newAdminServer",
 			"documentation_hash": "b9000227a6774b9d3c0793ab23c1a5cefb20197cc6980165759de10a3e3ea1dc",
-			"definition_hash": "0b7697803c02e1a3c72eedbbeb9e42b13022d578624ff6b847eac821e4ca9109",
-			"reviewed_at": "2026-07-07T12:52:06.051489562Z"
+			"definition_hash": "b1f416ad48f777c60133207003f99df6839ebafc32d69669b4e5fb6e95713188",
+			"reviewed_at": "2026-07-11T21:34:27.08432557Z"
 		},
 		{
 			"function_name": "signIn",
-			"documentation_hash": "64a2fbc641867d549ebc4bdd11729a7d3e8c96db05f8e711b1ca2fe2a416c685",
-			"definition_hash": "4d734cffa4501b73fab50398d0cc6a2889c1766f1b28b4a2fe56efe700add572",
-			"reviewed_at": "2026-07-10T10:15:11.409068035Z"
+			"documentation_hash": "ee777d059236a2e2bd51eb3307e4171044ca0c22bf8241ba1f8bbeb7328faa04",
+			"definition_hash": "601613513597f792e676c6a9f47f97e9223d10743c1ce181aae1e6f3ae28b1ce",
+			"reviewed_at": "2026-07-11T21:34:27.084565064Z"
 		},
 		{
 			"function_name": "wireDefaultSpoke",

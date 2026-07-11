@@ -1,20 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "handleAuthPage",
-			"receiver": "Server",
-			"documentation_hash": "617689da5095860f4e22ebd03ada9cae07c431375890064a0bd9ad71f9acc540",
-			"definition_hash": "27d1a8287b1819c5678f806401ae8bc9a5701dc0b9fb4dde7b270f9b17b234ff",
-			"reviewed_at": "2026-07-09T11:33:00.44536573Z"
-		},
-		{
-			"function_name": "handleAuthSubmit",
-			"receiver": "Server",
-			"documentation_hash": "40e09e0aeb47e4bf82920dbcad3fcbba27cbd720ceda68bf23e5fedb324138fa",
-			"definition_hash": "02e01d8a93d1e3c426609f49ea88498bed91a97038310e3f8de3c4338cc4db23",
-			"reviewed_at": "2026-07-09T18:10:52.506345909Z"
-		},
-		{
 			"function_name": "APIHandler",
 			"receiver": "Server",
 			"documentation_hash": "7738ce50af9dc40b36ad941957c4c1f313df12c7d93f327092c7980f18d05574",
@@ -24,9 +10,9 @@
 		{
 			"function_name": "registerAppRoutes",
 			"receiver": "Server",
-			"documentation_hash": "5900c1b117d5ae3f1661d5692bc89d6ae5c79de52ac55074b03eb352ea41efc2",
-			"definition_hash": "604924530ea2578a1c27f5e1122f6d5d032e6b961b75ff8a03e4c3902c281233",
-			"reviewed_at": "2026-07-09T11:33:00.220959841Z"
+			"documentation_hash": "1bc908920b542974940e6a01dcb625f59b814df68fae86e32ac8129b78ecc73c",
+			"definition_hash": "e0ae825f26e02605fd4b1df2e6b5a8733f346cf00ac3d6a37975212ff733fbf9",
+			"reviewed_at": "2026-07-11T21:34:27.131710905Z"
 		},
 		{
 			"function_name": "handleSignIn",
@@ -36,30 +22,16 @@
 			"reviewed_at": "2026-07-09T11:33:00.457183214Z"
 		},
 		{
-			"function_name": "handleAuthState",
-			"receiver": "Server",
-			"documentation_hash": "ae19f5da2224219e9c3a8d6e1ebe6d52fbfca705d293a07472687badcb9c2425",
-			"definition_hash": "80915c2fd877ad58b02187acca5467699e268f405c73cc42f18393126bd9f694",
-			"reviewed_at": "2026-07-09T11:33:00.445947908Z"
-		},
-		{
-			"function_name": "authStateFor",
-			"receiver": "Server",
-			"documentation_hash": "041c3e85d7f418b878c10ea96084205c619bafa6a3e2fdd117bf8459db51ca75",
-			"definition_hash": "d3edd1f54ed2c4305787d6fcb41ae3b911cc6d37d8714b1ee10411ef570e5566",
-			"reviewed_at": "2026-07-10T10:16:08.279649662Z"
-		},
-		{
 			"function_name": "providerButtons",
-			"documentation_hash": "0dd5e3ac362a4cd4dcd61ba8324de36f0809abe5a1b58c91d75c736d4b1119e1",
+			"documentation_hash": "b140ea510a0d0d26b4b66091e9b95e5e922eaa5f6329704a4e2e48789a8e0f81",
 			"definition_hash": "23b65643d25f00004d78ce156a9380ba50c4b117a3c3aba8055bdf92a32481d6",
-			"reviewed_at": "2026-07-09T11:33:00.456227809Z"
+			"reviewed_at": "2026-07-11T21:34:27.132107978Z"
 		},
 		{
 			"function_name": "writeNoStoreJSON",
-			"documentation_hash": "7584bf9d43fbf50c37d0d7962cce92e8b91164be4a9cef9431c2bc00493365f6",
+			"documentation_hash": "1b03ac891d83642b737f2a314dfc5cc4c50a339ba5911bb2592c0c12b1222bb3",
 			"definition_hash": "b20111a8c217e230f24b045eb85673e3d800a1671d6e60fc836e753a1a1a9ec5",
-			"reviewed_at": "2026-07-09T11:33:00.456710379Z"
+			"reviewed_at": "2026-07-11T21:34:27.132484766Z"
 		},
 		{
 			"function_name": "handleSignInState",

@@ -285,7 +285,7 @@ func (r *remoteSpoke) call(ctx context.Context, method string, req, resp any) er
 //
 // @arg ctx Context for the call.
 // @arg opts The box creation options.
-// @return sandbox.CreateResult The box's generation token and authorize URL, or the init-script failure and its output.
+// @return sandbox.CreateResult The box's generation token and configured publish ports, or the init-script failure and its output.
 // @error error if the call fails or the spoke returns an error.
 //
 // @testcase TestRemoteSpokeRoundTrip creates a box through the remote spoke.
@@ -296,28 +296,10 @@ func (r *remoteSpoke) Create(ctx context.Context, opts sandbox.CreateOptions) (s
 	}
 	return sandbox.CreateResult{
 		InstanceID:       resp.ID,
-		AuthorizeURL:     resp.AuthorizeURL,
 		InitScriptFailed: resp.InitScriptFailed,
 		InitScriptOutput: resp.InitScriptOutput,
 		PublishPorts:     resp.PublishPorts,
 	}, nil
-}
-
-// SubmitCode forwards an OAuth code submission to the spoke.
-//
-// @arg ctx Context for the call.
-// @arg id The box ID identifying the box on the spoke.
-// @arg code The OAuth code.
-// @return sessionURL The remote-control session URL.
-// @error error if the call fails or the spoke returns an error.
-//
-// @testcase TestRemoteSpokeRoundTrip submits a code through the remote spoke.
-func (r *remoteSpoke) SubmitCode(ctx context.Context, id, code string) (sessionURL string, err error) {
-	var resp submitCodeResp
-	if err := r.call(ctx, methodSubmitCode, submitCodeReq{ID: id, Code: code}, &resp); err != nil {
-		return "", err
-	}
-	return resp.SessionURL, nil
 }
 
 // List returns the boxes the spoke manages.
@@ -357,38 +339,15 @@ func (r *remoteSpoke) Pause(ctx context.Context, idOrName string) error {
 	return r.call(ctx, methodPause, pauseReq{IDOrName: idOrName}, nil)
 }
 
-// Resume restarts a paused box's compute on the spoke and returns the box's new
-// remote-control session URL once claude has relaunched.
+// Resume restarts a paused box's compute on the spoke.
 //
 // @arg ctx Context for the call.
 // @arg idOrName The box ID or name to resume.
-// @return sessionURL The relaunched box's session URL.
 // @error error if the call fails or the spoke returns an error.
 //
 // @testcase TestRemoteSpokeRoundTrip resumes a box through the remote spoke.
-func (r *remoteSpoke) Resume(ctx context.Context, idOrName string) (sessionURL string, err error) {
-	var resp resumeResp
-	if err := r.call(ctx, methodResume, resumeReq{IDOrName: idOrName}, &resp); err != nil {
-		return "", err
-	}
-	return resp.SessionURL, nil
-}
-
-// Logs returns recent console output of a box on the spoke.
-//
-// @arg ctx Context for the call.
-// @arg idOrName The box ID or name.
-// @arg tail The maximum number of trailing lines.
-// @return string The box's recent console output.
-// @error error if the call fails or the spoke returns an error.
-//
-// @testcase TestRemoteSpokeRoundTrip reads logs through the remote spoke.
-func (r *remoteSpoke) Logs(ctx context.Context, idOrName string, tail int) (string, error) {
-	var resp logsResp
-	if err := r.call(ctx, methodLogs, logsReq{IDOrName: idOrName, Tail: tail}, &resp); err != nil {
-		return "", err
-	}
-	return resp.Logs, nil
+func (r *remoteSpoke) Resume(ctx context.Context, idOrName string) error {
+	return r.call(ctx, methodResume, resumeReq{IDOrName: idOrName}, nil)
 }
 
 // Exec runs a command inside a box on the spoke.
@@ -459,20 +418,4 @@ func (r *remoteSpoke) unregisterStream(id uint64) {
 	r.mu.Lock()
 	delete(r.streams, id)
 	r.mu.Unlock()
-}
-
-// ReapOrphans reaps never-authenticated boxes on the spoke older than ttl.
-//
-// @arg ctx Context for the call.
-// @arg ttl How long a box may stay un-authenticated before being reaped.
-// @return []string The opaque generation tokens of reaped boxes (compared by the hub by equality).
-// @error error if the call fails or the spoke returns an error.
-//
-// @testcase TestRemoteSpokeRoundTrip reaps orphans through the remote spoke.
-func (r *remoteSpoke) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error) {
-	var resp reapResp
-	if err := r.call(ctx, methodReap, reapReq{TTLNanos: int64(ttl)}, &resp); err != nil {
-		return nil, err
-	}
-	return resp.Reaped, nil
 }

@@ -48,20 +48,16 @@ export function boxId(b: BoxView): string {
   return b.box_id || b.name || b.instance_id;
 }
 
-export type PhaseTone = "ready" | "pending" | "error";
-
-/** phaseTone classifies a box phase into a colour tone for its status badge:
- * ready is green, error/failed/broken red, anything else a neutral "pending".
- * A broken box is one whose init script failed during creation.
+/** isBroken reports whether a box's phase marks it broken — its init script
+ * failed during provisioning, so it never came up. "broken" is the only
+ * non-empty phase the box lifecycle produces; a healthy box omits the field
+ * entirely (the API drops the empty phase), so phase may be undefined.
  *
- * @arg phase The box's phase string.
- * @return PhaseTone The tone the badge should use.
+ * @arg phase The box's phase string, or undefined for a healthy box.
+ * @return boolean True when the box is broken.
  */
-export function phaseTone(phase: string): PhaseTone {
-  const p = phase.toLowerCase();
-  if (p === "ready" || p === "running") return "ready";
-  if (p === "broken" || p.includes("error") || p.includes("fail")) return "error";
-  return "pending";
+export function isBroken(phase?: string): boolean {
+  return (phase ?? "").toLowerCase() === "broken";
 }
 
 export type StateTone = "running" | "unreachable" | "terminated" | "paused" | "stopped";
@@ -72,11 +68,11 @@ export type StateTone = "running" | "unreachable" | "terminated" | "paused" | "s
  * deliberately stopped to save compute (resumable), and anything else (exited,
  * …) is a stopped-ish backend state.
  *
- * @arg state The box's state string.
+ * @arg state The box's state string, or undefined.
  * @return StateTone The tone the state badge should use.
  */
-export function stateTone(state: string): StateTone {
-  const s = state.toLowerCase();
+export function stateTone(state?: string): StateTone {
+  const s = (state ?? "").toLowerCase();
   if (s === "running") return "running";
   if (s === "unreachable") return "unreachable";
   if (s === "terminated") return "terminated";

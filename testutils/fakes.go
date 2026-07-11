@@ -9,7 +9,6 @@ import (
 	"context"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
@@ -21,15 +20,10 @@ type FakeMgr struct {
 	mu sync.Mutex
 
 	CreateID               string
-	CreateURL              string
 	CreateErr              error
 	CreateInitScriptFailed bool
 	CreateInitScriptOutput string
 	CreatePublishPorts     []sandbox.PublishPort
-
-	SubmitURL string
-	SubmitErr error
-	GotCode   string
 
 	ListResult []sandbox.Box
 	// created models box existence: Create appends, Destroy removes, and List
@@ -39,18 +33,11 @@ type FakeMgr struct {
 	listCalls  int
 	Destroyed  []string
 	DestroyErr error
-	Reaped     []string
 
 	Paused    []string
 	PauseErr  error
 	Resumed   []string
-	ResumeURL string
 	ResumeErr error
-
-	LogsResult string
-	LogsErr    error
-	GotLogsID  string
-	GotLogsN   int
 
 	ExecResult sandbox.ExecResult
 	ExecErr    error
@@ -79,27 +66,10 @@ func (f *FakeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (sandb
 	f.mu.Unlock()
 	return sandbox.CreateResult{
 		InstanceID:       f.CreateID,
-		AuthorizeURL:     f.CreateURL,
 		InitScriptFailed: f.CreateInitScriptFailed,
 		InitScriptOutput: f.CreateInitScriptOutput,
 		PublishPorts:     f.CreatePublishPorts,
 	}, f.CreateErr
-}
-
-// SubmitCode records the submitted code and returns the canned URL/error.
-//
-// @arg ctx Context (unused by the fake).
-// @arg idOrName The box identifier (ignored).
-// @arg code The submitted OAuth code, recorded into GotCode.
-// @return string The canned session URL.
-// @error error The canned submit error, if any.
-//
-// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
-func (f *FakeMgr) SubmitCode(ctx context.Context, idOrName, code string) (string, error) {
-	f.mu.Lock()
-	f.GotCode = code
-	f.mu.Unlock()
-	return f.SubmitURL, f.SubmitErr
 }
 
 // List returns the canned ListResult plus any boxes created (and not destroyed)
@@ -166,36 +136,18 @@ func (f *FakeMgr) Pause(ctx context.Context, id string) error {
 	return f.PauseErr
 }
 
-// Resume records the resumed ID and returns the canned session URL/error.
+// Resume records the resumed ID and returns the canned ResumeErr.
 //
 // @arg ctx Context (unused by the fake).
 // @arg id The identifier to resume, appended to Resumed.
-// @return string The canned ResumeURL.
 // @error error The canned ResumeErr, if any.
 //
-// @testcase TestFakeMgr checks Resume records the ID and surfaces the canned session URL and error.
-func (f *FakeMgr) Resume(ctx context.Context, id string) (string, error) {
+// @testcase TestFakeMgr checks Resume records the ID and surfaces the canned error.
+func (f *FakeMgr) Resume(ctx context.Context, id string) error {
 	f.mu.Lock()
 	f.Resumed = append(f.Resumed, id)
 	f.mu.Unlock()
-	return f.ResumeURL, f.ResumeErr
-}
-
-// Logs records the requested box ID and tail and returns the canned output/error.
-//
-// @arg ctx Context (unused by the fake).
-// @arg id The box identifier, recorded into GotLogsID.
-// @arg tail The requested tail count, recorded into GotLogsN.
-// @return string The canned LogsResult.
-// @error error The canned logs error, if any.
-//
-// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
-func (f *FakeMgr) Logs(ctx context.Context, id string, tail int) (string, error) {
-	f.mu.Lock()
-	f.GotLogsID = id
-	f.GotLogsN = tail
-	f.mu.Unlock()
-	return f.LogsResult, f.LogsErr
+	return f.ResumeErr
 }
 
 // Exec records the requested box ID and command and returns the canned result/error.
@@ -213,18 +165,6 @@ func (f *FakeMgr) Exec(ctx context.Context, id string, cmd []string) (sandbox.Ex
 	f.GotExecCmd = cmd
 	f.mu.Unlock()
 	return f.ExecResult, f.ExecErr
-}
-
-// ReapOrphans returns the canned reaped IDs.
-//
-// @arg ctx Context (unused by the fake).
-// @arg ttl The orphan TTL (ignored).
-// @return []string The canned Reaped slice.
-// @error error Always nil.
-//
-// @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
-func (f *FakeMgr) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error) {
-	return f.Reaped, nil
 }
 
 // FakeHub is a stand-in for the server's spoke hub: tests inject connected

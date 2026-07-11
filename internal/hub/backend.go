@@ -27,12 +27,10 @@ func (s *Server) boxBackend() api.Backend {
 type apiBackend struct{ s *Server }
 
 // CreateBox launches a box and returns the flattened session for the API caller.
-// Only the box ID, container ID, and token are surfaced; the box's OAuth
-// authorize URL is deliberately not exposed so no secret reaches a tool.
 //
 // @arg ctx Context for the box creation.
 // @arg opts The image, box ID, description, and target spoke for the box.
-// @return api.BoxSession The new box's ID, container ID, and auth token.
+// @return api.BoxSession The new box's ID and generation.
 // @error error if the box cannot be created.
 //
 // @testcase TestBoxToolsOverBackend creates a box through the backend.
@@ -44,24 +42,11 @@ func (b apiBackend) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (
 	return api.BoxSession{
 		BoxID:      sess.BoxID,
 		Generation: sess.Generation,
-		// The plaintext token, so the caller can build the auth URL; the stored
-		// session keys itself by the token's hash (sess.Token).
-		Token: sess.plainToken,
 	}, nil
 }
 
-// AuthPageURL is the URL the user opens to finish authenticating a box.
-//
-// @arg token The session token identifying the auth session.
-// @return string The absolute auth page URL for the token.
-//
-// @testcase TestBoxToolsOverBackend checks the create output carries the auth page URL.
-func (b apiBackend) AuthPageURL(token string) string {
-	return b.s.AuthPageURL(token)
-}
-
-// LookupByBoxID finds a box's session by its box ID and flattens its mutable
-// state (status, session URL, error) into an api.BoxSession.
+// LookupByBoxID finds a box's session by its box ID and flattens it into an
+// api.BoxSession.
 //
 // @arg boxID The box ID to look up.
 // @return api.BoxSession The matching box's flattened session (zero value when ok is false).
@@ -73,52 +58,30 @@ func (b apiBackend) LookupByBoxID(boxID string) (api.BoxSession, bool) {
 	if sess == nil {
 		return api.BoxSession{}, false
 	}
-	status, url, errMsg := sess.snapshot()
 	return api.BoxSession{
 		BoxID:       sess.BoxID,
 		Generation:  sess.Generation,
 		Description: sess.Description,
-		Status:      status,
-		SessionURL:  url,
-		Error:       errMsg,
 	}, true
 }
 
-// ListBoxes returns every tracked box rendered from its record, each merged
-// with its session state: the activation page URL while the box is pending, or
-// the remote-control session URL once it is ready. The records are the system
-// of record, so a box on an offline spoke stays listed (as unreachable) and a
-// terminated box stays listed as a tombstone — carrying neither URL, since
-// there is nothing left to activate or open.
+// ListBoxes returns every tracked box rendered from its record. The records are
+// the system of record, so a box on an offline spoke stays listed (as
+// unreachable) and a terminated box stays listed as a tombstone. A box whose init
+// script failed carries phase "broken" and its captured output in LastError.
 //
 // @arg _ Context (unused; the data is the in-memory registry).
-// @return []api.BoxView The boxes with their activation/session URLs.
+// @return []api.BoxView The tracked boxes.
 // @error error Always nil (kept for interface stability).
 //
 // @testcase TestListLlmboxesReturnsBoxID lists boxes through the backend.
-// @testcase TestListBoxesCarriesSessionURLs merges each box's auth or session URL into the view.
 // @testcase TestListBoxesMarksUnreachable keeps a disconnected spoke's boxes listed.
 func (b apiBackend) ListBoxes(_ context.Context) ([]api.BoxView, error) {
 	connected := b.s.connectedSpokeSet()
 	recs := b.s.boxRecords()
 	out := make([]api.BoxView, 0, len(recs))
 	for _, ps := range recs {
-		view := api.BoxView{Box: b.s.boxFromRecord(ps, connected)}
-		switch {
-		case ps.Lifecycle == store.LifecycleTerminated:
-			// A tombstone has nothing to activate or open.
-		case ps.Status == sandbox.PhaseBroken:
-			// A broken box (init script failed) never started, so it has no
-			// activation URL — only its error detail, already on the view.
-		case ps.Status == "ready":
-			view.SessionURL = ps.SessionURL
-		default:
-			// A pending box's auth URL needs the plaintext token, which lives only
-			// in memory; it is "" for a box rehydrated from the store after a
-			// restart (still activatable via the link its creator holds).
-			view.AuthURL = b.s.authURLForRecord(ps)
-		}
-		out = append(out, view)
+		out = append(out, api.BoxView{Box: b.s.boxFromRecord(ps, connected)})
 	}
 	return out, nil
 }
@@ -305,19 +268,6 @@ func (b apiBackend) PauseBox(ctx context.Context, boxID string) error {
 // @testcase TestPauseResumeBoxByBoxID resumes a box through the backend.
 func (b apiBackend) ResumeBox(ctx context.Context, boxID string) error {
 	return b.s.resumeBox(ctx, boxID)
-}
-
-// BoxLogs returns the recent console output of the box with the given box ID.
-//
-// @arg ctx Context for the logs request.
-// @arg boxID The box ID of the box to read logs from.
-// @arg tail The maximum number of trailing log lines to return.
-// @return string The box's recent console output.
-// @error error if no box has that box ID or its logs cannot be read.
-//
-// @testcase TestBoxLogsByBoxID reads a box's logs through the backend.
-func (b apiBackend) BoxLogs(ctx context.Context, boxID string, tail int) (string, error) {
-	return b.s.boxLogs(ctx, boxID, tail)
 }
 
 // BoxExec runs a shell command inside the box with the given box ID.

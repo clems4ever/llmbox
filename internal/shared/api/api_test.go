@@ -24,14 +24,13 @@ var errStubFailure = errors.New("stub failure")
 // argument reaches the backend and that each result comes back intact.
 func TestBackendAPIRoundTrip(t *testing.T) {
 	fb := &testutils.FakeBackend{
-		CreateSess:        api.BoxSession{BoxID: "web", Generation: "cid123", Token: "tok"},
-		Sessions:          map[string]api.BoxSession{"web": {BoxID: "web", Generation: "cid123", Status: "ready"}},
+		CreateSess:        api.BoxSession{BoxID: "web", Generation: "cid123"},
+		Sessions:          map[string]api.BoxSession{"web": {BoxID: "web", Generation: "cid123", Description: "ready"}},
 		Boxes:             []api.BoxView{{Box: sandbox.Box{BoxID: "b1"}}, {Box: sandbox.Box{BoxID: "b2"}}},
 		Spokes:            []api.SpokeStatus{{Name: "edge", Connected: true, Default: true}},
 		CreateSpokeResult: api.SpokeEnrollment{Name: "edge", Token: "tok-1", Command: "llmbox-spoke firecracker --hub wss://x --token tok-1"},
 		JoinTokens:        []api.JoinTokenInfo{{ID: "tid", Name: "edge", ExpiresAt: time.Now().Add(time.Hour)}},
 		RegenTokenResult:  api.SpokeEnrollment{Name: "edge", Token: "tok-2", Command: "llmbox-spoke docker --hub wss://x --token tok-2"},
-		LogsResult:        "log output",
 		ExecResult:        sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 7},
 		ProxyOn:           true,
 		CreateProxyResult: api.ProxyInfo{BoxID: "web", Port: 8000, URL: "https://slug.example.com", Slug: "slug", Description: "app"},
@@ -46,18 +45,14 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if sess.Generation != "cid123" || sess.Token != "tok" || sess.BoxID != "web" {
+	if sess.Generation != "cid123" || sess.BoxID != "web" {
 		t.Fatalf("CreateBox session = %+v", sess)
 	}
 	if fb.GotCreate.BoxID != "web" || fb.GotCreate.Description != "d" || fb.GotCreate.SpokeName != "local" {
 		t.Fatalf("CreateBox opts not forwarded: %+v", fb.GotCreate)
 	}
 
-	if url := c.AuthPageURL("tok"); url != "https://boxes.example.com/auth/tok" || fb.GotAuthToken != "tok" {
-		t.Fatalf("AuthPageURL = %q (got token %q)", url, fb.GotAuthToken)
-	}
-
-	if got, ok := c.LookupByBoxID("web"); !ok || got.Status != "ready" || fb.GotLookup != "web" {
+	if got, ok := c.LookupByBoxID("web"); !ok || got.Description != "ready" || fb.GotLookup != "web" {
 		t.Fatalf("LookupByBoxID = %+v ok=%v", got, ok)
 	}
 	if _, ok := c.LookupByBoxID("missing"); ok {
@@ -115,11 +110,6 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 		t.Fatalf("ResumeBox err=%v id=%q", err, fb.GotResumeID)
 	}
 
-	logs, err := c.BoxLogs(ctx, "web", 42)
-	if err != nil || logs != "log output" || fb.GotLogsID != "web" || fb.GotLogsTail != 42 {
-		t.Fatalf("BoxLogs = %q err=%v (box %q tail %d)", logs, err, fb.GotLogsID, fb.GotLogsTail)
-	}
-
 	res, err := c.BoxExec(ctx, "web", "ls -la")
 	if err != nil || res.ExitCode != 7 || res.Stdout != "out" || fb.GotExecCmd != "ls -la" {
 		t.Fatalf("BoxExec = %+v err=%v cmd=%q", res, err, fb.GotExecCmd)
@@ -146,10 +136,10 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 
 // TestMCPToolsOverHTTP drives the full stand-alone path — an MCP client calling
 // tools that forward through the HTTP client to a handler-backed fake — proving
-// the split works end to end and never leaks a secret into MCP output.
+// the split works end to end.
 func TestMCPToolsOverHTTP(t *testing.T) {
 	fb := &testutils.FakeBackend{
-		CreateSess: api.BoxSession{BoxID: "web", Generation: "abcdef012345", Token: "tok"},
+		CreateSess: api.BoxSession{BoxID: "web", Generation: "abcdef012345"},
 	}
 	ts := httptest.NewServer(api.NewHandler(fb))
 	defer ts.Close()
@@ -167,8 +157,11 @@ func TestMCPToolsOverHTTP(t *testing.T) {
 		t.Fatalf("tool error: %v", res.Content)
 	}
 	out, _ := res.StructuredContent.(map[string]any)
-	if authURL, _ := out["auth_url"].(string); !strings.HasPrefix(authURL, "https://boxes.example.com/auth/") {
-		t.Errorf("auth_url = %q, want the public auth page URL", authURL)
+	if boxID, _ := out["box_id"].(string); boxID != "web" {
+		t.Errorf("box_id = %q, want web", boxID)
+	}
+	if instanceID, _ := out["instance_id"].(string); instanceID != "abcdef012345" {
+		t.Errorf("instance_id = %q, want abcdef012345", instanceID)
 	}
 	if fb.GotCreate.BoxID != "web" {
 		t.Errorf("create not forwarded to backend: %+v", fb.GotCreate)

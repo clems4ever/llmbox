@@ -3,20 +3,20 @@
 		{
 			"function_name": "TestSQLiteStoreRoundTrip",
 			"documentation_hash": "be8ed66ae7b564f8159bcd1fc48534f485a0f425abd20cae31ce072bf28c7e42",
-			"definition_hash": "c9deabfcb8e92c3625e6af56643bef381c0e8c664bd427cfab1709950e99b315",
-			"reviewed_at": "2026-07-09T18:10:52.594470403Z"
+			"definition_hash": "ffece1770e1f95375eb0449d158d969695cf9f7b17e54544d3c63bcf1e8fa2ca",
+			"reviewed_at": "2026-07-11T21:34:27.190336893Z"
 		},
 		{
 			"function_name": "TestSQLiteStoreDelete",
 			"documentation_hash": "7d782dafe101e6c92395b27543fc208411a87268793c8be5e0d438f957348c85",
-			"definition_hash": "dec36dcabbeb5256d1406db9304df4fc3b8ccd68e4feecacbb24546ff394225a",
-			"reviewed_at": "2026-07-09T18:10:52.594769436Z"
+			"definition_hash": "d694b2e826ae8bf986f057d6b3ffab85b10a4298575700944af226f91e767c71",
+			"reviewed_at": "2026-07-11T21:34:27.19064963Z"
 		},
 		{
 			"function_name": "TestIdentityStoreFlowRoundTrip",
 			"documentation_hash": "a45dadca831d26d14b001811aaebe2af74a89ade341a241b221f409cb6e19cf6",
-			"definition_hash": "f5c345ebd66b99e1080f52f74df995f522444a56c671f5e03c3b99d05e2f4b24",
-			"reviewed_at": "2026-07-09T18:10:52.595038032Z"
+			"definition_hash": "155862595569c1052b729224806fde4e7c1ab1546459bd506677423f05f50f98",
+			"reviewed_at": "2026-07-11T21:34:27.191219374Z"
 		},
 		{
 			"function_name": "TestIdentityStoreSessionRoundTrip",
@@ -29,6 +29,12 @@
 			"documentation_hash": "094662e0ef9cca5b30fd10f493b531cc61d244fd7fd1b1ea205f0e0f20f73025",
 			"definition_hash": "53138281443e7951027ad7fa771f26724c5f82695cd45b934697eefd3afe34d0",
 			"reviewed_at": "2026-07-09T18:10:52.595595005Z"
+		},
+		{
+			"function_name": "TestOpenDropsActivationColumns",
+			"documentation_hash": "97ccb18f35a307b6db29f3343571f02ca09fc18fcd7eb7775ace5aa149cf422a",
+			"definition_hash": "85fd185654381441e992d4de0419828d100304f801ceb942978a18b8eb7cbe21",
+			"reviewed_at": "2026-07-11T21:34:27.190933092Z"
 		}
 	]
 }

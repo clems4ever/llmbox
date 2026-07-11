@@ -18,17 +18,14 @@ import (
 	"github.com/clems4ever/llmbox/internal/guest"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
-	"github.com/clems4ever/llmbox/testutils"
 )
 
-// Fake is an in-process box.Provisioner: each box is a real guest (backed
-// by the mock claude) serving a Unix socket, with a per-box HOME so concurrent
+// Fake is an in-process box.Provisioner: each box is a real guest serving a Unix socket, with a per-box HOME so concurrent
 // boxes stay isolated. It exercises the whole Manager + guest-protocol stack with
 // no Docker, and its boxes are cleaned up when the test ends.
 type Fake struct {
 	t       testing.TB
 	baseDir string
-	claude  string
 
 	mu    sync.Mutex
 	n     int
@@ -44,11 +41,7 @@ type Fake struct {
 func NewFake(t testing.TB) *Fake {
 	t.Helper()
 	base := t.TempDir()
-	claude := filepath.Join(base, "claude")
-	if err := os.WriteFile(claude, []byte(testutils.MockClaudeScript), 0o755); err != nil {
-		t.Fatalf("writing mock claude: %v", err)
-	}
-	f := &Fake{t: t, baseDir: base, claude: claude, boxes: map[string]*fakeInstance{}}
+	f := &Fake{t: t, baseDir: base, boxes: map[string]*fakeInstance{}}
 	t.Cleanup(f.shutdown)
 	return f
 }
@@ -68,8 +61,7 @@ func (f *Fake) shutdown() {
 	}
 }
 
-// Provision starts a new box: a per-box HOME and socket, a guest backed by
-// the mock claude, registered in the pending phase.
+// Provision starts a new box: a per-box HOME and socket, a guest, registered in the pending phase.
 //
 // @arg ctx Context for waiting on the box's control socket.
 // @arg opts The caller-controlled inputs for the box.
@@ -181,7 +173,6 @@ func (i *fakeInstance) serve() error {
 		return fmt.Errorf("creating box home: %w", err)
 	}
 	a := guest.New(guest.Options{
-		ClaudeCmd:      i.fake.claude,
 		Home:           home,
 		InitScriptPath: filepath.Join(i.dir, "init-script"),
 	})
@@ -212,12 +203,9 @@ func (i *fakeInstance) serve() error {
 // @testcase TestConformanceFake stops a box's guest via Destroy and Pause.
 func (i *fakeInstance) stopGuest() {
 	i.mu.Lock()
-	g, cancel, errc := i.guest, i.cancel, i.errc
+	cancel, errc := i.cancel, i.errc
 	i.guest, i.cancel, i.errc = nil, nil, nil
 	i.mu.Unlock()
-	if g != nil {
-		g.Shutdown()
-	}
 	if cancel != nil {
 		cancel()
 	}

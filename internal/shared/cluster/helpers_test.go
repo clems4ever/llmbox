@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net"
 	"sync"
-	"time"
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
@@ -73,28 +72,21 @@ type fakeManager struct {
 
 	// configured results
 	createID   string
-	createURL  string
-	sessionURL string
 	boxes      []sandbox.Box
-	logsOut    string
 	execResult sandbox.ExecResult
-	reaped     []string
 	dialTarget string // address DialBox connects to (for proxy_http tests)
 	dialErr    error  // when set, DialBox returns it
 	err        error
 
 	// recorded inputs
 	lastCreate  sandbox.CreateOptions
-	lastSubmit  [2]string // id, code
 	lastDestroy string
 	lastPause   string
 	lastResume  string
-	lastLogs    [2]any // idOrName, tail
 	lastExec    struct {
 		idOrName string
 		cmd      []string
 	}
-	lastReap time.Duration
 }
 
 // DialBox is a test helper: it dials the configured target (or returns dialErr),
@@ -118,18 +110,7 @@ func (f *fakeManager) Create(_ context.Context, opts sandbox.CreateOptions) (san
 	if f.err != nil {
 		return sandbox.CreateResult{}, f.err
 	}
-	return sandbox.CreateResult{InstanceID: f.createID, AuthorizeURL: f.createURL}, nil
-}
-
-// SubmitCode is a test helper.
-func (f *fakeManager) SubmitCode(_ context.Context, id, code string) (string, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.lastSubmit = [2]string{id, code}
-	if f.err != nil {
-		return "", f.err
-	}
-	return f.sessionURL, nil
+	return sandbox.CreateResult{InstanceID: f.createID}, nil
 }
 
 // List is a test helper.
@@ -159,25 +140,11 @@ func (f *fakeManager) Pause(_ context.Context, idOrName string) error {
 }
 
 // Resume is a test helper.
-func (f *fakeManager) Resume(_ context.Context, idOrName string) (string, error) {
+func (f *fakeManager) Resume(_ context.Context, idOrName string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.lastResume = idOrName
-	if f.err != nil {
-		return "", f.err
-	}
-	return f.sessionURL, nil
-}
-
-// Logs is a test helper.
-func (f *fakeManager) Logs(_ context.Context, idOrName string, tail int) (string, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.lastLogs = [2]any{idOrName, tail}
-	if f.err != nil {
-		return "", f.err
-	}
-	return f.logsOut, nil
+	return f.err
 }
 
 // Exec is a test helper.
@@ -190,17 +157,6 @@ func (f *fakeManager) Exec(_ context.Context, idOrName string, cmd []string) (sa
 		return sandbox.ExecResult{}, f.err
 	}
 	return f.execResult, nil
-}
-
-// ReapOrphans is a test helper.
-func (f *fakeManager) ReapOrphans(_ context.Context, ttl time.Duration) ([]string, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.lastReap = ttl
-	if f.err != nil {
-		return nil, f.err
-	}
-	return f.reaped, nil
 }
 
 // memStore is an in-memory cluster.Store for tests.

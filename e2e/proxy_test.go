@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/clems4ever/llmbox/internal/hub"
 )
@@ -31,9 +30,7 @@ func TestEndToEndProxy(t *testing.T) {
 	}))
 	t.Cleanup(upstream.Close)
 
-	platform := newFakeAnthropic()
-	t.Cleanup(platform.close)
-	mgr := newFakeBoxManager(platform)
+	mgr := newFakeBoxManager()
 	mgr.dialTarget = upstream.Listener.Addr().String()
 
 	uiLn, err := net.Listen("tcp", "127.0.0.1:0")
@@ -48,7 +45,7 @@ func TestEndToEndProxy(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 
-	srv := hub.New(nil, base, 5*time.Minute, store, nil)
+	srv := hub.New(nil, base, store, nil)
 	wireDefaultSpoke(t, srv, store, mgr)
 	srv.SetProxyBaseDomain("proxy.example.com")
 	httpSrv := &http.Server{Handler: srv.APIHandler()}

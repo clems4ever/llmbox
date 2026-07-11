@@ -38,11 +38,6 @@ type fakeBackend struct {
 	resumedID string
 	resumeErr error
 
-	logs        string
-	gotLogsID   string
-	gotLogsTail int
-	logsErr     error
-
 	exec       sandbox.ExecResult
 	gotExecID  string
 	gotExecCmd string
@@ -69,11 +64,6 @@ func (f *fakeBackend) CreateBox(_ context.Context, opts sandbox.CreateOptions) (
 		return BoxSession{}, f.createErr
 	}
 	return f.createSess, nil
-}
-
-// AuthPageURL returns a canned auth page URL for the token.
-func (f *fakeBackend) AuthPageURL(token string) string {
-	return "https://boxes.example.com/auth/" + token
 }
 
 // LookupByBoxID returns the canned session for a box ID (case-insensitive).
@@ -132,12 +122,6 @@ func (f *fakeBackend) PauseBox(_ context.Context, boxID string) error {
 func (f *fakeBackend) ResumeBox(_ context.Context, boxID string) error {
 	f.resumedID = boxID
 	return f.resumeErr
-}
-
-// BoxLogs records the box ID and tail and returns the canned logs/error.
-func (f *fakeBackend) BoxLogs(_ context.Context, boxID string, tail int) (string, error) {
-	f.gotLogsID, f.gotLogsTail = boxID, tail
-	return f.logs, f.logsErr
 }
 
 // BoxExec records the box ID and command and returns the canned result/error.
@@ -248,10 +232,10 @@ func TestToolListProxies(t *testing.T) {
 	}
 }
 
-// TestToolCreate checks create_llmbox forwards its inputs, returns the auth page
-// URL and token, surfaces the opaque generation token, and starts the box pending.
+// TestToolCreate checks create_llmbox forwards its inputs and surfaces the box ID
+// and the opaque generation token.
 func TestToolCreate(t *testing.T) {
-	f := &fakeBackend{createSess: BoxSession{BoxID: "web-box", Generation: "abcdef0123456789", Token: "tok-123"}}
+	f := &fakeBackend{createSess: BoxSession{BoxID: "web-box", Generation: "abcdef0123456789"}}
 	h := &handlers{b: f}
 
 	_, out, err := h.toolCreate(context.Background(), nil, createInput{
@@ -264,12 +248,6 @@ func TestToolCreate(t *testing.T) {
 	}
 	if out.BoxID != "web-box" || out.InstanceID != "abcdef0123456789" {
 		t.Errorf("box/generation = %q/%q, want web-box/abcdef0123456789", out.BoxID, out.InstanceID)
-	}
-	if out.AuthURL != "https://boxes.example.com/auth/tok-123" || out.AuthToken != "tok-123" {
-		t.Errorf("auth url/token = %q/%q", out.AuthURL, out.AuthToken)
-	}
-	if out.Status != "pending" || out.Instructions == "" {
-		t.Errorf("status/instructions = %q/%q", out.Status, out.Instructions)
 	}
 	if f.gotCreate.BoxID != "web-box" || f.gotCreate.Description != "front-end work" || f.gotCreate.SpokeName != "edge" {
 		t.Errorf("backend got opts %+v, want all inputs forwarded", f.gotCreate)
@@ -303,7 +281,7 @@ func TestToolCreatePropagatesError(t *testing.T) {
 // empty or unknown box ID.
 func TestToolGet(t *testing.T) {
 	f := &fakeBackend{sessions: map[string]BoxSession{
-		"web-box": {BoxID: "web-box", Description: "d", Status: "ready", SessionURL: "https://claude.ai/code/s/1"},
+		"web-box": {BoxID: "web-box", Generation: "abcdef0123456789", Description: "d"},
 	}}
 	h := &handlers{b: f}
 
@@ -311,7 +289,7 @@ func TestToolGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("toolGet: %v", err)
 	}
-	if out.Status != "ready" || out.BoxID != "web-box" || out.Description != "d" || out.SessionURL != "https://claude.ai/code/s/1" {
+	if out.BoxID != "web-box" || out.InstanceID != "abcdef0123456789" || out.Description != "d" {
 		t.Errorf("unexpected get output: %+v", out)
 	}
 
@@ -399,31 +377,6 @@ func TestToolDestroy(t *testing.T) {
 	}
 }
 
-// TestToolLogs checks get_llmbox_logs forwards the box ID and tail, returns the
-// logs, and errors on an empty box ID and a read failure.
-func TestToolLogs(t *testing.T) {
-	f := &fakeBackend{logs: "Ready\nlistening\n"}
-	h := &handlers{b: f}
-
-	_, out, err := h.toolLogs(context.Background(), nil, logsInput{BoxID: "web-box", Tail: 25})
-	if err != nil {
-		t.Fatalf("toolLogs: %v", err)
-	}
-	if out.BoxID != "web-box" || out.Logs != "Ready\nlistening\n" {
-		t.Errorf("unexpected logs output: %+v", out)
-	}
-	if f.gotLogsID != "web-box" || f.gotLogsTail != 25 {
-		t.Errorf("backend got id=%q tail=%d, want web-box/25", f.gotLogsID, f.gotLogsTail)
-	}
-
-	if _, _, err := h.toolLogs(context.Background(), nil, logsInput{BoxID: ""}); err == nil {
-		t.Error("expected error for empty box ID")
-	}
-	if _, _, err := (&handlers{b: &fakeBackend{logsErr: errors.New("x")}}).toolLogs(context.Background(), nil, logsInput{BoxID: "web-box"}); err == nil {
-		t.Error("expected the logs error to propagate")
-	}
-}
-
 // TestToolExec checks exec_llmbox forwards the box ID and command, returns the
 // captured output, and errors on an empty box ID and a run failure.
 func TestToolExec(t *testing.T) {
@@ -473,33 +426,10 @@ func TestToolsRegistered(t *testing.T) {
 	for _, tl := range tools.Tools {
 		names[tl.Name] = true
 	}
-	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "list_spokes", "destroy_llmbox", "get_llmbox_logs", "exec_llmbox", "create_llmbox_proxy", "delete_llmbox_proxy", "list_llmbox_proxies"} {
+	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "list_spokes", "destroy_llmbox", "exec_llmbox", "create_llmbox_proxy", "delete_llmbox_proxy", "list_llmbox_proxies"} {
 		if !names[want] {
 			t.Errorf("tool %q not registered (have %v)", want, names)
 		}
-	}
-}
-
-// TestCreateReturnsSafeAuthURL checks create_llmbox returns only the public auth
-// page URL, never the box's raw OAuth authorize URL or any other secret.
-func TestCreateReturnsSafeAuthURL(t *testing.T) {
-	f := &fakeBackend{createSess: BoxSession{BoxID: "web-box", Generation: "abcdef0123456789", Token: "tok-123"}}
-	cs := connectMCP(t, f)
-
-	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "create_llmbox", Arguments: map[string]any{"box_id": "web-box"}})
-	if err != nil {
-		t.Fatalf("CallTool: %v", err)
-	}
-	if res.IsError {
-		t.Fatalf("tool error: %v", res.Content)
-	}
-	out, _ := res.StructuredContent.(map[string]any)
-	authURL, _ := out["auth_url"].(string)
-	if !strings.HasPrefix(authURL, "https://boxes.example.com/auth/") {
-		t.Errorf("auth_url = %q, want our public auth page", authURL)
-	}
-	if strings.Contains(authURL, "oauth/authorize") {
-		t.Error("auth_url must not leak the raw OAuth URL into MCP output")
 	}
 }
 

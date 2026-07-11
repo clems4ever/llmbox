@@ -5,7 +5,6 @@
 Dockerfile*
 docker-compose.yml
 .env
-.claude-config.seed.json
 /llmbox
 # Local web toolchain output: node_modules must come from npm ci inside the
 # image, and the embedded dist is built by the Dockerfile's webbuild stage —

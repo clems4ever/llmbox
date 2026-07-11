@@ -6,29 +6,28 @@ server's box-control API). Add `llmbox-mcp` as a remote MCP server in your clien
 
 | Tool             | Arguments | Returns |
 |------------------|-----------|---------|
-| `create_llmbox`  | `box_id`, `image?`, `description?` | `box_id`, `instance_id`, `auth_url`, `auth_token`, `status`, `instructions` |
-| `get_llmbox`     | `box_id` | `status` (pending/ready/error), `box_id`, `description`, `session_url` when ready |
+| `create_llmbox`  | `box_id`, `image?`, `description?`, `spoke?` | `box_id`, `instance_id` |
+| `get_llmbox`     | `box_id` | `box_id`, `instance_id`, `description` |
 | `list_llmboxes`  | – | the managed boxes (instance_id, name, box_id, description, image, state, phase, created) |
+| `list_spokes`    | – | the connected spokes and the default spoke |
 | `destroy_llmbox` | `box_id` | the destroyed box's box ID |
-| `get_llmbox_logs` | `box_id`, `tail?` | `box_id`, `logs` (the box's recent, ANSI-stripped console output) |
 | `exec_llmbox` | `box_id`, `command` | `box_id`, `stdout`, `stderr`, `exit_code` |
 | `create_llmbox_proxy` | `box_id`, `port`, `description?` | `box_id`, `port`, `url` (open it in a browser), `description`, `instructions` |
 | `delete_llmbox_proxy` | `box_id`, `port` | `box_id`, `port` |
 | `list_llmbox_proxies` | `box_id?` | the enabled proxies (`box_id`, `port`, `url`, `slug`, `spoke`, `description`) |
 
-`box_id` on `create_llmbox` is **required** (`description` is optional); it is
-the identifier you use to reference the box for every later verb
-(get/logs/exec/destroy/proxy) and is also applied as the box's hostname (so it
-shows up as the box's name in claude.ai/code). The hub addresses boxes only by
-their box ID — there is no other handle — so it **must be unique** across boxes; a
-duplicate is rejected with a clear error so the caller can pick another. The
-returned `instance_id` is an opaque backend generation token for the box's current
-incarnation, surfaced for information only — never address a box by it. `box_id`
-and `description` are surfaced again by `get_llmbox` and `list_llmboxes`.
-`get_llmbox` is keyed by `box_id` (case-insensitive). `get_llmbox_logs` is
-likewise keyed by `box_id` and returns the box's recent console output
-(ANSI-stripped), bounded to
-the last `tail` lines (a sensible default applies when `tail` is omitted).
+`box_id` on `create_llmbox` is **required** (`description` and `spoke` are
+optional); it is the identifier you use to reference the box for every later verb
+(get/exec/destroy/proxy) and is also applied as the box's hostname. The hub
+addresses boxes only by their box ID — there is no other handle — so it **must be
+unique** across boxes; a duplicate is rejected with a clear error so the caller
+can pick another. The box's workload is provisioned by the spoke's init script;
+`create_llmbox` returns as soon as the box is created (its `box_id` and an opaque
+`instance_id`). The returned `instance_id` is an opaque backend generation token
+for the box's current incarnation, surfaced for information only — never address a
+box by it. A box whose init script failed is reported with phase **`broken`** by
+`list_llmboxes`. `box_id` and `description` are surfaced again by `get_llmbox`
+and `list_llmboxes`. `get_llmbox` is keyed by `box_id` (case-insensitive).
 `exec_llmbox` is also keyed by `box_id`: it runs `command` inside the box via
 `/bin/sh -c` and returns
 its `stdout`, `stderr`, and `exit_code` (a non-zero exit is reported in the result,
@@ -55,5 +54,5 @@ Each proxy is served at its own sub-domain (`https://<slug>.<base_domain>/`) so
 single-page apps and servers that emit absolute paths work without rewriting. The
 feature is only available when the operator has configured `proxy.base_domain`
 (with the matching wildcard DNS and TLS); the tools report a clear error when it
-is disabled. Requests to a proxy are gated by the same sign-in that gates box
-activation. See [Proxying box HTTP ports](proxy.md).
+is disabled. Requests to a proxy are gated by the same admin sign-in that gates
+the admin UI. See [Proxying box HTTP ports](proxy.md).

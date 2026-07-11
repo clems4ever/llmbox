@@ -26,10 +26,9 @@ import (
 const (
 	DefaultHTTPAddr  = ":8080"
 	DefaultPublicURL = "http://localhost:8080"
-	DefaultAuthTTL   = 300 * time.Second
 	DefaultStateFile = "llmbox-sessions.db"
 
-	// DefaultSessionTTL is how long an activation login session stays valid when
+	// DefaultSessionTTL is how long an admin login session stays valid when
 	// auth.session_ttl is unset.
 	DefaultSessionTTL = time.Hour
 )
@@ -63,12 +62,11 @@ func (d *Duration) UnmarshalYAML(value *yaml.Node) error {
 // LLMBOX_* environment variables; see the README's Configuration section.
 type Config struct {
 	// HTTPAddr is the single listen address for the whole server: the box-control
-	// JSON API (under /api/v1/) plus the UI (auth pages, admin, spoke connect,
+	// JSON API (under /api/v1/) plus the UI (sign-in, admin, spoke connect,
 	// health, favicon). The box-control API is unauthenticated by the server itself
 	// (see internal/server/http.go), so run behind an authenticating reverse proxy.
 	HTTPAddr  string      `yaml:"http_addr"`
 	PublicURL string      `yaml:"public_url"`
-	AuthTTL   Duration    `yaml:"auth_ttl"`
 	StateFile string      `yaml:"state_file"`
 	Hooks     []string    `yaml:"hooks"`
 	Auth      AuthConfig  `yaml:"auth"`
@@ -112,11 +110,11 @@ type TLSConfig struct {
 	KeyFile string `yaml:"key_file"`
 }
 
-// AuthConfig configures who may activate a box. When a provider is enabled, the
-// activation page requires the visitor to sign in with that provider (over a
-// channel that never transits the chatbot) and be authorized before the box's
-// OAuth code is accepted. Each provider is a dedicated sub-block so more can be
-// added later without changing the existing ones.
+// AuthConfig configures who may administer the hub and reach the per-box HTTP
+// proxies. When a provider is enabled, the admin UI and the proxies require the
+// visitor to sign in with that provider and be on the admin allow-list. Each
+// provider is a dedicated sub-block so more can be added later without changing
+// the existing ones.
 type AuthConfig struct {
 	SessionTTL Duration     `yaml:"session_ttl"`
 	Google     GoogleConfig `yaml:"google"`
@@ -132,23 +130,19 @@ type AuthConfig struct {
 }
 
 // AdminConfig lists the signed-in identities allowed to use the admin web UI
-// (/admin) for managing spokes and boxes. It is independent of the box-activation
-// allow rule: an admin email need not be allowed to activate boxes, and vice
-// versa. When Emails is empty the admin UI is disabled entirely.
+// (/admin) for managing spokes and boxes and to reach the per-box HTTP proxies.
+// When Emails is empty the admin UI (and provider sign-in) is disabled entirely.
 type AdminConfig struct {
 	Emails []string `yaml:"emails"`
 }
 
-// GoogleConfig configures Sign in with Google (OIDC) for box activation. A
-// non-empty allow rule (allowed_domains or allowed_emails) is required when
-// enabled, so enabling it can never authorize every Google account.
+// GoogleConfig configures Sign in with Google (OIDC). Only identities on the
+// admin allow-list (auth.admin.emails) are authorized after signing in.
 type GoogleConfig struct {
-	Enabled          bool     `yaml:"enabled"`
-	ClientID         string   `yaml:"client_id"`
-	ClientSecretFile string   `yaml:"client_secret_file"`
-	RedirectURL      string   `yaml:"redirect_url"`
-	AllowedDomains   []string `yaml:"allowed_domains"`
-	AllowedEmails    []string `yaml:"allowed_emails"`
+	Enabled          bool   `yaml:"enabled"`
+	ClientID         string `yaml:"client_id"`
+	ClientSecretFile string `yaml:"client_secret_file"`
+	RedirectURL      string `yaml:"redirect_url"`
 
 	// ClientSecret is read from ClientSecretFile at load time; it is never set in
 	// the YAML itself (secrets live in files, not in the config document).
@@ -181,7 +175,6 @@ func Default() *Config {
 // @testcase TestLoadParsesDuration parses a duration string from the config.
 // @testcase TestLoadRejectsBadDuration fails on an unparseable duration.
 // @testcase TestLoadGoogleAuth loads an enabled Google provider and resolves its secret file.
-// @testcase TestLoadGoogleRequiresAllowlist rejects an enabled Google provider with no allow rule.
 // @testcase TestLoadGoogleMissingSecretFile errors when the client secret file is absent.
 // @testcase TestLoadRejectsBoxRunningKey rejects box-running keys that moved to the spoke.
 // @testcase TestExampleConfigParses parses the shipped llmbox.example.yaml.
@@ -279,18 +272,16 @@ func secretFromFile(path string) (string, error) {
 }
 
 // validate rejects internally-inconsistent configuration. An enabled auth
-// provider must carry credentials and a non-empty allow rule, so enabling it can
-// never authorize every account. The proxy base domain and the login cookie
+// provider must carry credentials. The proxy base domain and the login cookie
 // domain must each be a bare host, and the cookie domain must span both the
 // public_url host and the proxy base domain — shapes that otherwise silently
 // break proxy routing or the shared login (a port or leading dot slips past at
 // load and only surfaces as a dead proxy or a rejected cookie later).
 //
-// @error error if an enabled provider is missing credentials or an allow rule.
+// @error error if an enabled provider is missing credentials.
 // @error error if proxy.base_domain or auth.cookie_domain is not a bare host.
 // @error error if auth.cookie_domain does not cover public_url or proxy.base_domain.
 //
-// @testcase TestLoadGoogleRequiresAllowlist rejects an enabled provider with no allow rule.
 // @testcase TestLoadTLSRequiresCertAndKey rejects enabled TLS with no cert_file or key_file.
 // @testcase TestLoadRejectsBaseDomainWithPort rejects a proxy.base_domain carrying a port.
 // @testcase TestLoadRejectsCookieDomainLeadingDot rejects an auth.cookie_domain with a leading dot.
@@ -307,9 +298,6 @@ func (c *Config) validate() error {
 		}
 		if g.ClientSecret == "" {
 			return errors.New("auth.google.enabled requires a non-empty client_secret_file")
-		}
-		if len(g.AllowedDomains) == 0 && len(g.AllowedEmails) == 0 {
-			return errors.New("auth.google.enabled requires allowed_domains or allowed_emails (refusing to authorize every Google account)")
 		}
 	}
 	if c.Proxy.BaseDomain != "" {
@@ -394,9 +382,6 @@ func (c *Config) applyDefaults() {
 	}
 	if c.PublicURL == "" {
 		c.PublicURL = DefaultPublicURL
-	}
-	if c.AuthTTL == 0 {
-		c.AuthTTL = Duration(DefaultAuthTTL)
 	}
 	if c.StateFile == "" {
 		c.StateFile = DefaultStateFile

@@ -17,13 +17,13 @@ refused.
 A spoke exposes **only** these verbs over the wire — it is never a generic Docker
 proxy:
 
-    CreateLLMBox, SubmitCode, List, Destroy, Logs, Exec, ReapOrphans
+    CreateLLMBox, List, Destroy, Pause, Resume, Exec
 
 This is the security boundary: a spoke holds a Docker socket (root-equivalent on
 its host), so the protocol is a fixed allowlist of box verbs with validated
 arguments, and the spoke re-validates every input rather than trusting the hub.
-Each verb is bounded request/response (Exec/Logs buffer and cap their output;
-SubmitCode/CreateLLMBox capture a single URL with a timeout).
+Each verb is bounded request/response (Exec buffers and caps its output;
+CreateLLMBox runs the init script under a timeout).
 
 The one exception is **HTTP proxying** to a box's port: to carry WebSocket and
 SSE, the hub opens a raw byte **tunnel** to the box over the same connection
@@ -73,7 +73,7 @@ guarantees the spoke never becomes a generic Docker proxy. A leaked join token i
 bounded to enrolling one spoke (one-time, TTL'd, operator-visible).
 
 **Managed-only enforcement.** Every verb targeting an existing box — `Destroy`,
-`Logs`, `Exec`, `SubmitCode` — resolves only to containers carrying the
+`Pause`, `Resume`, `Exec` — resolves only to containers carrying the
 `com.llmbox.managed` label. A hub that sends an ID for a container the spoke
 didn't create gets a `no managed box matches` error and **no action**, so it can
 never touch an arbitrary host container. This makes "the spoke can only ever act
@@ -85,14 +85,13 @@ The hub keeps a **spoke registry** (name → connection), populated by remote
 spokes as they connect and disconnect. Box→spoke affinity lives on the session:
 `create_llmbox` takes an optional `spoke`; when omitted the box runs on the
 default spoke, and the resolved name is stored on the session. Per-box verbs
-(get/logs/exec/destroy, submit-code) route to that spoke. Cluster-wide verbs fan
-out:
+(get/exec/destroy/pause/resume) route to that spoke. Cluster-wide verbs fan out:
 
 - `List` queries every registered spoke and aggregates (each box is tagged with
   its spoke).
-- `ReapOrphans` reaps each spoke; restore reconciles each session against its
-  spoke's list (a session whose spoke is currently disconnected is kept, not
-  dropped, since the box may still be alive).
+- Restore reconciles each session against its spoke's list (a session whose spoke
+  is currently disconnected is kept, not dropped, since the box may still be
+  alive; only a de-enrolled spoke's sessions are purged).
 
 Token and credential records live in the hub's SQLite state file
 (`internal/hub/store`), alongside the box registry and API keys.
@@ -111,16 +110,17 @@ Token and credential records live in the hub's SQLite state file
   the single command the admin UI generates. Because the hub runs no box backend,
   the per-box knobs live entirely on the spoke: `--image`, `--box-memory-mb`,
   `--box-cpus`, `--box-pids-limit`, `--box-socket-dir`, `--box-peer`,
-  `--remote-args`, `--init-script`, `--registry[-username|-password-file]`. Run
+  `--init-script`, `--publish-port`, `--registry[-username|-password-file]`. Run
   `llmbox-spoke --help` for the full list.
 
 #### Customising boxes with an init script
 
 `--init-script <path>` points at a script **on the spoke host** that runs inside
-every box this spoke spawns, once at creation, **before** claude starts — a way to
-customise boxes (install packages, drop dotfiles, seed a workspace) without
-rebuilding the image. It applies to both the Docker and Firecracker backends and
-never crosses the hub/spoke boundary.
+every box this spoke spawns, once at creation. **This is how a box gets its
+workload**: the init script installs and starts whatever the box should run
+(packages, dotfiles, a service, a seeded workspace) — llmbox itself runs no
+workload. It applies to both the Docker and Firecracker backends and never
+crosses the hub/spoke boundary.
 
 - The script is read once when the spoke starts (a missing or empty file fails the
   spoke immediately), so editing it takes effect on the next spoke restart.
@@ -128,11 +128,12 @@ never crosses the hub/spoke boundary.
   `agent` user (with passwordless `sudo`) on Firecracker — from that user's home
   directory, so use `sudo` for system-level changes on Firecracker.
 - Give it a shebang (e.g. `#!/bin/sh`); it is executed directly.
-- A **non-zero exit fails box creation** and tears the half-created box down, with
-  a tail of the script's output in the error, so a broken provisioning step is
-  loud rather than silent.
+- A **non-zero exit marks the box `broken`** rather than tearing it down: the box
+  is kept, and the script's captured output is surfaced on the box (as
+  `last_error`) so an operator can inspect the failure instead of having the box
+  vanish. `list_llmboxes` reports it with phase `broken`.
 - `--init-script-timeout` (default `5m`) bounds each run; a script that exceeds it
-  fails creation.
+  is treated as a failed run (a broken box).
 
 ### Sharing one Docker daemon: namespaces
 

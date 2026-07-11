@@ -13,7 +13,7 @@ import (
 )
 
 // Default per-box resource caps applied when the box block is unset. They are
-// generous (a box runs Claude Code and its builds) but finite, so a single box
+// generous (a box runs its workload and builds) but finite, so a single box
 // cannot exhaust the host's memory/CPU/PIDs. Set a field to 0 to lift a cap.
 const (
 	DefaultBoxMemoryMB  = 4096

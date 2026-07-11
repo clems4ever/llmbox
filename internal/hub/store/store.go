@@ -1,5 +1,5 @@
-// Package store persists llmbox's durable state — the box registry, the identity
-// (activation login) state, the cluster enrollment records, API keys, and hub-wide
+// Package store persists llmbox's durable state — the box registry, the admin
+// sign-in (identity) state, the cluster enrollment records, API keys, and hub-wide
 // settings — behind a small set of interfaces. SQLite is the only implementation
 // today (see Open), but the interfaces are deliberately backend-agnostic so another
 // engine (Postgres, …) can be added without touching the server.
@@ -29,14 +29,14 @@ const (
 	LifecycleTerminated Lifecycle = "terminated"
 )
 
-// Box is the persisted form of one box: its stable identity, where it runs, the
-// auth handshake that activates it, its hub-recorded lifecycle, and the backend
-// facts last observed for it. It is keyed in the store by its Token (the box's
-// bearer credential to the hub), because a box ID is unique only per spoke while
-// the token is globally unique. Fields grouped by concern:
+// Box is the persisted form of one box: its stable identity, where it runs, its
+// hub-recorded lifecycle, and the backend facts last observed for it. It is keyed
+// in the store by its Token (the box's bearer credential to the hub), because a
+// box ID is unique only per spoke while the token is globally unique. Fields
+// grouped by concern:
 //
-//   - identity/placement: Token, InstanceID, BoxID, Spoke, Owner, Description.
-//   - activation handshake: AuthorizeURL, SessionURL, Status, LastError, HookState.
+//   - identity/placement: Token, InstanceID, BoxID, Spoke, Description.
+//   - provisioning: Status, LastError, HookState.
 //   - hub lifecycle: Lifecycle, CreatedAt.
 //   - last-observed backend facts (Observed*): what the sync pass last saw on the
 //     spoke, stored so the record renders in full while its spoke is offline.
@@ -52,18 +52,13 @@ type Box struct {
 	BoxID string `json:"box_id,omitempty"`
 	// Spoke is the cluster spoke the box runs on.
 	Spoke string `json:"spoke,omitempty"`
-	// Owner is the identity (email) that activated the box, when auth is enabled.
-	Owner string `json:"owner,omitempty"`
 	// Description is the caller-supplied human note.
 	Description string `json:"description,omitempty"`
 
-	// AuthorizeURL is the provider authorize URL the box is activated against.
-	AuthorizeURL string `json:"authorize_url"`
-	// SessionURL is the remote-control session URL, set once the box is ready.
-	SessionURL string `json:"session_url,omitempty"`
-	// Status is the activation-handshake status: "pending" | "ready" | "error".
+	// Status is the box's provisioning phase: "broken" when its init script failed
+	// during creation, "ready" otherwise.
 	Status string `json:"status"`
-	// LastError is the activation error detail, set when Status is "error".
+	// LastError is the init script's captured output, set when Status is "broken".
 	LastError string `json:"last_error,omitempty"`
 	// HookState is the opaque per-hook state returned by the box.create hooks,
 	// replayed to box.destroy. It is the one field without a natural columnar
@@ -87,26 +82,23 @@ type Box struct {
 
 // IdentitySession is a completed sign-in, keyed in the store by an opaque random
 // session ID (the value of the browser cookie). Its presence means the user
-// authenticated and was authorized; the CSRF token guards the activation POST.
+// authenticated and was authorized; the CSRF token guards state-changing POSTs.
 type IdentitySession struct {
 	Email     string    `json:"email"`
 	Provider  string    `json:"provider"`
 	CSRFToken string    `json:"csrf_token"`
 	ExpiresAt time.Time `json:"expires_at"`
 
-	// CanActivate reports whether this identity may activate boxes (it passed the
-	// provider's box-activation allow rule). CanAdmin reports whether it may use
-	// the admin UI. The two capabilities are independent and both decided once at
-	// sign-in, so each surface enforces its own gate from the stored session.
-	CanActivate bool `json:"can_activate"`
-	CanAdmin    bool `json:"can_admin"`
+	// CanAdmin reports whether this identity may use the admin UI and reach the
+	// per-box HTTP proxies. It is decided once at sign-in (from the admin
+	// allow-list) and enforced from the stored session.
+	CanAdmin bool `json:"can_admin"`
 }
 
 // OIDCFlow is the short-lived state of an in-flight OIDC handshake, keyed in the
 // store by the OAuth state parameter. It is consumed (deleted) on callback.
 type OIDCFlow struct {
 	Provider     string    `json:"provider"`
-	ReturnToken  string    `json:"return_token"`
 	ReturnTo     string    `json:"return_to"`
 	Nonce        string    `json:"nonce"`
 	PKCEVerifier string    `json:"pkce_verifier"`

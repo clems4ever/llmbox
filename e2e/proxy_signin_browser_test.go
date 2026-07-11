@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/tebeka/selenium"
 
@@ -21,7 +20,7 @@ import (
 )
 
 // TestProxySignInRedirectInBrowser exercises the proxy sign-in gate end to end and
-// captures the sign-in page for the docs. With activation auth on, a signed-out
+// captures the sign-in page for the docs. With admin sign-in on, a signed-out
 // request to a box's proxy URL must be redirected to the public sign-in page
 // (carrying the proxy URL as the return target), and a request bearing a valid
 // shared session must reverse-proxy through to the box. The redirect and the
@@ -42,9 +41,7 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	}))
 	t.Cleanup(upstream.Close)
 
-	platform := newFakeAnthropic()
-	t.Cleanup(platform.close)
-	mgr := newFakeBoxManager(platform)
+	mgr := newFakeBoxManager()
 	mgr.dialTarget = upstream.Listener.Addr().String()
 
 	uiLn, err := net.Listen("tcp", "127.0.0.1:0")
@@ -59,12 +56,12 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 
-	// Activation auth on, with the login cookie scoped to the parent domain so it
+	// Admin sign-in on, with the login cookie scoped to the parent domain so it
 	// spans the proxy sub-domains — the configuration the redirect relies on.
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	a.SetCookieDomain("example.com")
 
-	srv := hub.New(nil, base, 5*time.Minute, st, a)
+	srv := hub.New(nil, base, st, a)
 	wireDefaultSpoke(t, srv, st, mgr)
 	srv.SetProxyBaseDomain("proxy.example.com")
 	httpSrv := &http.Server{Handler: srv.APIHandler()}
@@ -120,7 +117,7 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	}
 
 	// --- signed in: the same proxy URL now reverse-proxies through to the box ---
-	cookie := signIn(t, st, false, true) // a box-activator session
+	cookie := signIn(t, st, true) // an admin session (proxy access is gated on CanAdmin)
 	authed := proxyReq(t, "/hello", cookie)
 	defer authed.Body.Close()
 	if authed.StatusCode != http.StatusOK {

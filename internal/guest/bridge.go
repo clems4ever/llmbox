@@ -14,7 +14,7 @@ import (
 
 // RunBoxAPIBridge accepts connections on a guest Unix socket and splices each
 // to a host-side connection opened by dial — the guest half of the microVM
-// box-port API path. The in-box Claude process talks HTTP to the Unix socket
+// box-port API path. The in-box workload talks HTTP to the Unix socket
 // (the same contract as the Docker backend, where the spoke serves the socket
 // directly through the bind mount); here the guest forwards the raw bytes to
 // the host over vsock, where the spoke's per-VM listener serves the same API.
@@ -36,7 +36,7 @@ func RunBoxAPIBridge(ctx context.Context, socketPath string, dial func(ctx conte
 		log = slog.Default()
 	}
 	// The bridge runs only on the vsock (Firecracker) transport, where the box's
-	// claude runs as an unprivileged box user, not root. That user must be able to
+	// workload runs as an unprivileged box user, not root. That user must be able to
 	// reach this socket to publish its own ports, so make the containing dir
 	// traversable and the socket world-connectable — the same access
 	// boxapi.ServeUnix grants the socket on the Docker/host side. MkdirAll leaves an

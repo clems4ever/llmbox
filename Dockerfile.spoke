@@ -21,8 +21,9 @@
 # The `token` subcommand (mint/list/revoke join tokens) runs against the hub's
 # state file: `llmbox-spoke token create --name <spoke> --config <hub.yaml>`.
 #
-# This image ships only the spoke binary; the box image (which bakes in Claude)
-# is pulled by the spoke from a registry at box-creation time.
+# This image ships only the spoke binary; the box image (a minimal infra base;
+# its workload is installed by the spoke's init script) is pulled by the spoke
+# from a registry at box-creation time.
 
 # ---- build stage ----
 FROM golang:1.26-bookworm AS build

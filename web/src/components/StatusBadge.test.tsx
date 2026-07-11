@@ -4,14 +4,23 @@ import { StateBadge, StatusBadge } from "./StatusBadge";
 import { render } from "../test/utils";
 
 describe("StatusBadge", () => {
-  it("shows the phase text", () => {
-    render(<StatusBadge phase="ready" />);
-    expect(screen.getByText("ready")).toBeInTheDocument();
+  it("shows a broken badge for a broken box", () => {
+    render(<StatusBadge phase="broken" />);
+    expect(screen.getByText("broken")).toBeInTheDocument();
   });
 
-  it("falls back to 'unknown' for an empty phase", () => {
+  it("renders no badge for a healthy box (empty phase)", () => {
     render(<StatusBadge phase="" />);
-    expect(screen.getByText("unknown")).toBeInTheDocument();
+    expect(screen.queryByText("broken")).not.toBeInTheDocument();
+    expect(document.querySelector(".mantine-Badge-root")).toBeNull();
+  });
+
+  it("renders no badge (and does not crash) when phase is absent", () => {
+    // A healthy box omits phase entirely, so the prop is undefined; this must not
+    // throw (the real API drops the empty phase field).
+    render(<StatusBadge />);
+    expect(screen.queryByText("broken")).not.toBeInTheDocument();
+    expect(document.querySelector(".mantine-Badge-root")).toBeNull();
   });
 });
 

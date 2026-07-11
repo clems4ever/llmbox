@@ -1,12 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "TestEndToEndWorkflow",
-			"documentation_hash": "c1998d3510cca65b445144277f76f2be838cd73df907053f068dd580567eff08",
-			"definition_hash": "745a6b605d82665ff5c09b35b62fd971f4219de711c1cbed678a3ea1caebd800",
-			"reviewed_at": "2026-07-09T11:33:00.181104957Z"
-		},
-		{
 			"function_name": "waitHealthy",
 			"documentation_hash": "00c7bd98365f0c1422a6b3a33e506bbb1d853108eef23f100d42fbe2636b467e",
 			"definition_hash": "57aa0e4066932708286ee88f21ea4646713b4a43811df9177a8d5c0b5d04f1d4",
@@ -36,24 +30,6 @@
 			"documentation_hash": "e1cb0767179cb9ce64eaf36f4e88a6607c6f202eb94f82b2c955f2c92e3b620c",
 			"definition_hash": "afdd757cd808edd1d05b9ba534fa6876bdcf48ac6651ced6e9e6e636ba38fb00",
 			"reviewed_at": "2026-06-23T09:09:28.594171291Z"
-		},
-		{
-			"function_name": "assertNoOAuthLeak",
-			"documentation_hash": "980f4c7c0adf791a990bab2fd5bf95a7543c7d3fdf73539b51b5e54892785a09",
-			"definition_hash": "74b349e8497746f283254ea37389874b2e0b5f5a702edeca3c837f77af168e1e",
-			"reviewed_at": "2026-06-23T09:09:28.595537161Z"
-		},
-		{
-			"function_name": "listMentionsReadyBox",
-			"documentation_hash": "b755eb60eb833466fcffae72e1d416e9fd568564c2bb6fad884234f823a736f1",
-			"definition_hash": "033f3e9534f3b5c0e0aad71d79f4451ddeb6ce9bdc7a034b27a2656e4f434556",
-			"reviewed_at": "2026-06-23T09:09:28.596990776Z"
-		},
-		{
-			"function_name": "by",
-			"documentation_hash": "b64bfe238fe514ad8f70c5a977293012281323d775cfe89586ed25acbf1d8ab8",
-			"definition_hash": "d2422aae47e1da309c13fc773c2bb9b3867d01367e10e1fd41a36b0b9fd2f2b0",
-			"reviewed_at": "2026-07-09T11:33:00.181724473Z"
 		}
 	]
 }

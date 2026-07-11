@@ -1,4 +1,4 @@
-# llmbox — box-control API + auth web server that manages sandboxed Claude boxes.
+# llmbox — box-control API + auth web server that manages sandboxed boxes.
 #
 # It serves everything on one HTTP port (http_addr):
 #   /auth/{token}  web page where a user pastes their OAuth code to activate a box
@@ -6,7 +6,7 @@
 #
 # The MCP protocol itself is served by a separate image (Dockerfile.mcp), which
 # forwards to the box-control API. It drives the Docker daemon to launch the
-# Claude image, so it must be given access to a Docker socket at runtime.
+# box image, so it must be given access to a Docker socket at runtime.
 #
 # Build:
 #   docker build -t llmbox .
@@ -21,9 +21,9 @@
 # Configuration is a YAML file (see llmbox.example.yaml and the README); at a
 # minimum set public_url. llmbox reads no environment variables of its own.
 #
-# The server neither runs nor ships Claude itself: each box image bakes in the
-# standalone Claude binary (see Dockerfile.box), so this image only carries the
-# llmbox server binary.
+# The server neither runs nor ships any box workload itself: a box's workload is
+# installed and started by the spoke's init script (see Dockerfile.box for the
+# minimal box base), so this image only carries the llmbox server binary.
 
 # ---- web build stage ----
 # The admin SPA dist (internal/hub/webdist) is generated, not committed, and the

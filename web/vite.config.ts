@@ -8,15 +8,14 @@ import react from "@vitejs/plugin-react";
 // `make web` builds it, and the test/build Makefile targets, CI, and the
 // Dockerfile all build it on demand before compiling Go.
 //
-// Three page shells come out of one build (a multi-page app): the admin
-// dashboard (index.html at /admin), the activation page (auth.html at
-// /auth/{token}), and the sign-in page (signin.html at /signin). The hub
-// serves each shell on its route; all of them load hashed assets from the
-// shared /admin/assets/ base.
+// Two page shells come out of one build (a multi-page app): the admin
+// dashboard (index.html at /admin) and the sign-in page (signin.html at
+// /signin). The hub serves each shell on its route; both load hashed assets
+// from the shared /admin/assets/ base.
 
 /** pageRewrite maps the hub's page routes onto their HTML entries in dev, so
- * `npm run dev` serves the activation and sign-in pages live too (their JSON
- * endpoints are proxied to the hub below).
+ * `npm run dev` serves the sign-in page live too (its JSON endpoints are
+ * proxied to the hub below).
  *
  * @return Plugin The dev-server middleware plugin.
  */
@@ -26,10 +25,7 @@ function pageRewrite(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
         const url = (req.url ?? "").split("?")[0];
-        // /auth/{token} (exactly two segments — deeper paths are the JSON/OIDC
-        // endpoints proxied to the hub) → the activation shell.
-        if (/^\/auth\/[^/]+$/.test(url)) req.url = "/admin/auth.html";
-        else if (url === "/signin") req.url = "/admin/signin.html";
+        if (url === "/signin") req.url = "/admin/signin.html";
         next();
       });
     },
@@ -47,7 +43,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         admin: resolve(__dirname, "index.html"),
-        auth: resolve(__dirname, "auth.html"),
         signin: resolve(__dirname, "signin.html"),
       },
     },
@@ -55,11 +50,11 @@ export default defineConfig({
   server: {
     // `npm run dev` proxies the JSON/OIDC routes to a locally running hub, so
     // the dev server serves the pages live while real data comes from the hub.
-    // The page shells themselves (/auth/{token}, /signin) are served by the
-    // dev server via pageRewrite above, so only deeper paths are proxied.
+    // The sign-in page shell (/signin) is served by the dev server via
+    // pageRewrite above, so only deeper paths are proxied.
     proxy: {
       "/api": "http://localhost:8080",
-      "^/auth/[^/]+/(state|code|login|callback)$": "http://localhost:8080",
+      "^/auth/[^/]+/(login|callback)$": "http://localhost:8080",
       "^/signin/state": "http://localhost:8080",
       "/favicon.svg": "http://localhost:8080",
     },

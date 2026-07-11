@@ -13,8 +13,8 @@ type (
 	Store = store.Store
 	// IdentitySession is a completed sign-in, used by the admin handlers.
 	IdentitySession = store.IdentitySession
-	// boxRecord is the on-disk form of a box (its stable identity, activation
-	// handshake, hub lifecycle, and last-observed backend facts).
+	// boxRecord is the on-disk form of a box (its stable identity, provisioning
+	// phase, hub lifecycle, and last-observed backend facts).
 	boxRecord = store.Box
 )
 

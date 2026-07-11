@@ -2,30 +2,23 @@
 	"functions": [
 		{
 			"function_name": "newFakeBoxManager",
-			"documentation_hash": "cad3fa9cde66c85e35402ecc1fdc371c655ca3db69110df615bd10b0c13f1522",
-			"definition_hash": "d56c5c19816db8041d99202ad2c2187f85ef8dd6093b7001eb110e49c6949f0c",
-			"reviewed_at": "2026-06-25T09:53:56.364031656Z"
+			"documentation_hash": "247bce71c910f0ed4ae1568c1282b2651aa916d4fc77ee54d44164e8c5e1b98b",
+			"definition_hash": "b4849e51521fd6b398aa488c0c7fb0fc88e30b476b6a274e45e2702b41a9832a",
+			"reviewed_at": "2026-07-11T21:34:27.091649862Z"
 		},
 		{
 			"function_name": "Create",
 			"receiver": "fakeBoxManager",
-			"documentation_hash": "d9cbf8029b578d6d498e5992c27a37267f9f2425db01aa9fc58a1e20b1ca6ccf",
-			"definition_hash": "581c0a1990353adfd171656487faafd3dc857ce9c7bdcdc155d24151f9b0d3ba",
-			"reviewed_at": "2026-07-08T09:43:14.688630374Z"
-		},
-		{
-			"function_name": "SubmitCode",
-			"receiver": "fakeBoxManager",
-			"documentation_hash": "89ad0ff8608c5e23df7406f5496ecbbebd789ad740ac7c7aa1fdcf8d59ab8aa6",
-			"definition_hash": "f9dcebf826fbdf57ec523542cc95a5b7f11939ad3c76c05e18458c0b26ac52c5",
-			"reviewed_at": "2026-06-25T09:53:56.380599616Z"
+			"documentation_hash": "090adefc2b35589379dbe125949e2c1b4fa5467add117525030a4e667b65c138",
+			"definition_hash": "3c1b87e102d4cb521faee8aa55f6217d5d94c3e007242fe303d2f344ae67adbd",
+			"reviewed_at": "2026-07-11T21:34:27.0919601Z"
 		},
 		{
 			"function_name": "List",
 			"receiver": "fakeBoxManager",
-			"documentation_hash": "9d4d9fefd6161ffaa88ad13f52fe6b0a1ea4b449babcd9d81742264a2bd87334",
-			"definition_hash": "aa2b1ada71e0a5737417abdc7cfd2f9a6e685f54aeaa8653b85e5b7863317a34",
-			"reviewed_at": "2026-07-04T20:12:47.824013754Z"
+			"documentation_hash": "2c9654e9927ece783262a63a9ee284ae5b61baa6bc347af9f22513fd20321bf7",
+			"definition_hash": "7f114ff5d412138659d5c0c98ad36f48a7691b81bfc1569385d6d887e1ca0713",
+			"reviewed_at": "2026-07-11T21:34:27.092250259Z"
 		},
 		{
 			"function_name": "Destroy",
@@ -35,13 +28,6 @@
 			"reviewed_at": "2026-06-25T09:53:56.397284979Z"
 		},
 		{
-			"function_name": "Logs",
-			"receiver": "fakeBoxManager",
-			"documentation_hash": "386bae34416baeea627e1d1cf836a61b62ef4a9488d25c149b77418f6c30324a",
-			"definition_hash": "7aec6a81e4f7897f8ef07a985454be8c0e24e984600978c1537f2dcd88a3c733",
-			"reviewed_at": "2026-06-25T09:53:56.400579009Z"
-		},
-		{
 			"function_name": "Exec",
 			"receiver": "fakeBoxManager",
 			"documentation_hash": "c71456f78c1e10b83074363d654d4c6d5d8cd3d66c24717cd5a5d865a8f96b57",
@@ -49,18 +35,11 @@
 			"reviewed_at": "2026-06-29T15:39:24.997939239Z"
 		},
 		{
-			"function_name": "ReapOrphans",
-			"receiver": "fakeBoxManager",
-			"documentation_hash": "5c706ad9a24625e429cc45ea4ac9f903e085aaeb10fbf398458cc1cf1f8addef",
-			"definition_hash": "1afe4f476d18a6c55569e313c7c8e32e9abc4d9b077cbfa6c4189483117776db",
-			"reviewed_at": "2026-06-25T09:53:56.409161921Z"
-		},
-		{
 			"function_name": "find",
 			"receiver": "fakeBoxManager",
-			"documentation_hash": "fcbd36eebfd1d5baee95ad59ab043335e8de1f96f79b816db9c749c21cd44396",
-			"definition_hash": "2f92d9364922edb5440074fd6b1d5bc4200ed10501b73eb8e643b20648be77b1",
-			"reviewed_at": "2026-07-10T09:27:08.931592751Z"
+			"documentation_hash": "5142fb8d7bc43d2fb873a620a862ca8bf8cf1a34d8cc08291bdf2acf1ef3212c",
+			"definition_hash": "04b00e84b5ce37ed53b9e41d94fefb69cd3c91a8b517fd3a996f5195d469c36f",
+			"reviewed_at": "2026-07-11T21:34:27.093124601Z"
 		},
 		{
 			"function_name": "DialBox",
@@ -79,9 +58,15 @@
 		{
 			"function_name": "Resume",
 			"receiver": "fakeBoxManager",
-			"documentation_hash": "1a928b82935f59cb1889fb735eb85e9aacd9228b1b4cafd630c81a98939a9286",
-			"definition_hash": "b5df4c122819913542864314a74df45478718374fb6872a9e31ee1db74a0d9ea",
-			"reviewed_at": "2026-07-11T11:59:03.758619244Z"
+			"documentation_hash": "9d8d36c63f8a48f3f290f2ad7681d7ccb56f812a1b3230d969c65b4ba4c42c59",
+			"definition_hash": "a07c037e7ed3ed5a00d7141bcc399116a485e958fcf1985a9713474583414c0b",
+			"reviewed_at": "2026-07-11T21:34:27.092792502Z"
+		},
+		{
+			"function_name": "randContainerID",
+			"documentation_hash": "571e2c92a453974daf66f8a39f858cebd88e8acbc08df20079deefceb59a1bf0",
+			"definition_hash": "f9002c47f97cc8b843d7c2d6d380f797c6753b75fa0d83de98eb08e8702609aa",
+			"reviewed_at": "2026-07-11T21:34:27.093401472Z"
 		}
 	]
 }

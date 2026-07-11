@@ -23,17 +23,18 @@ func newAdminServer(t *testing.T) (*Server, *testutils.FakeMgr, Store) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	a := auth.NewTestAuthenticator("admin@corp.com")
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/x", SubmitURL: "https://claude.ai/code/s/1"}
-	return wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, a), f), f, st
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
+	return wireSpoke(New(nil, "https://boxes.example.com", st, a), f), f, st
 }
 
-// signIn stores a login session and returns its cookie. admin/activate control
-// the session's capabilities.
-func signIn(t *testing.T, st Store, admin, activate bool) *http.Cookie {
+// signIn stores a login session and returns its cookie. admin controls whether
+// the session may use the admin UI; the second flag is retained for call-site
+// readability but no longer maps to a capability (box activation was removed).
+func signIn(t *testing.T, st Store, admin, _ bool) *http.Cookie {
 	t.Helper()
 	if err := st.PutIdentitySession(hashTok("SID"), IdentitySession{
 		Email: "admin@corp.com", CSRFToken: "CSRF", ExpiresAt: time.Now().Add(time.Hour),
-		CanAdmin: admin, CanActivate: activate,
+		CanAdmin: admin,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -78,23 +79,21 @@ func TestAdminSPAServed(t *testing.T) {
 }
 
 // TestAssetsServedWithoutAdmin checks the web assets are mounted even when the
-// admin UI is disabled: the public activation page is served from the same
-// built app, so its hashed bundle must resolve for a server with no admin
-// allow-list.
+// admin UI is disabled: the proxy sign-in page is served from the same built app,
+// so its hashed bundle must resolve for a server with no admin allow-list.
 func TestAssetsServedWithoutAdmin(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{}) // nil auth: admin UI disabled
-	h := s.APIHandler()
-
-	// Discover a hashed asset path from the activation shell.
+	// Discover a hashed asset path from an admin-enabled server's shell; the bundle
+	// is embedded, so the same path resolves on any server built from it.
+	admin, _, _ := newAdminServer(t)
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/sometoken", nil))
+	admin.APIHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/admin", nil))
 	if rec.Code != http.StatusOK {
-		t.Fatalf("GET /auth/{token} = %d, want 200 (is the web app built? run `make web`)", rec.Code)
+		t.Fatalf("GET /admin = %d, want 200 (is the web app built? run `make web`)", rec.Code)
 	}
 	body := rec.Body.String()
 	start := strings.Index(body, "/admin/assets/")
 	if start < 0 {
-		t.Fatalf("activation shell does not reference /admin/assets/: %q", body)
+		t.Fatalf("admin shell does not reference /admin/assets/: %q", body)
 	}
 	end := start
 	for end < len(body) && body[end] != '"' {
@@ -102,6 +101,9 @@ func TestAssetsServedWithoutAdmin(t *testing.T) {
 	}
 	assetPath := body[start:end]
 
+	// A server with the admin UI disabled (nil auth) must still serve the asset.
+	s := newTestServer(&testutils.FakeMgr{})
+	h := s.APIHandler()
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, assetPath, nil))
 	if rec.Code != http.StatusOK {

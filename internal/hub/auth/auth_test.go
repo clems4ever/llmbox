@@ -48,15 +48,14 @@ func googleTestProvider(t *testing.T, claims idClaims, verr error) *provider {
 			RedirectURL:  "https://boxes.example.com/auth/google/callback",
 			Scopes:       []string{"openid", "email"},
 		},
-		verifier:       fakeVerifier{claims: claims, err: verr},
-		allowedDomains: map[string]bool{"corp.com": true},
+		verifier: fakeVerifier{claims: claims, err: verr},
 	}
 }
 
 // newTestAuth builds an Authenticator wrapping p and bound to a fresh SQLite store,
 // plus a mux mounting the login/callback handlers, so the OIDC flow can be driven
 // over HTTP without a Server.
-func newTestAuth(t *testing.T, p *provider) (*Authenticator, http.Handler, store.Store) {
+func newTestAuth(t *testing.T, p *provider, adminEmails ...string) (*Authenticator, http.Handler, store.Store) {
 	t.Helper()
 	st, err := store.Open(filepath.Join(t.TempDir(), "s.db"))
 	if err != nil {
@@ -64,42 +63,16 @@ func newTestAuth(t *testing.T, p *provider) (*Authenticator, http.Handler, store
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	a := &Authenticator{
-		providers:  map[string]*provider{p.name: p},
-		order:      []string{p.name},
-		sessionTTL: time.Hour,
+		providers:   map[string]*provider{p.name: p},
+		order:       []string{p.name},
+		sessionTTL:  time.Hour,
+		adminEmails: lowerSet(adminEmails),
 	}
 	a.Bind(st, nil)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /auth/{provider}/login", a.HandleLogin)
 	mux.HandleFunc("GET /auth/{provider}/callback", a.HandleCallback)
 	return a, mux, st
-}
-
-// TestAuthorize checks the allow rules: verified email in an allowed domain or
-// the email allowlist passes; unverified, wrong-domain, or hd-mismatch fails.
-func TestAuthorize(t *testing.T) {
-	p := &provider{
-		allowedDomains: map[string]bool{"corp.com": true},
-		allowedEmails:  map[string]bool{"ext@gmail.com": true},
-	}
-	cases := []struct {
-		name string
-		c    idClaims
-		want bool
-	}{
-		{"domain ok", idClaims{Email: "a@corp.com", EmailVerified: true}, true},
-		{"domain ok, hd matches", idClaims{Email: "a@corp.com", EmailVerified: true, HostedDomain: "corp.com"}, true},
-		{"hd mismatch", idClaims{Email: "a@corp.com", EmailVerified: true, HostedDomain: "evil.com"}, false},
-		{"email allowlist", idClaims{Email: "ext@gmail.com", EmailVerified: true}, true},
-		{"unverified", idClaims{Email: "a@corp.com", EmailVerified: false}, false},
-		{"other domain", idClaims{Email: "a@other.com", EmailVerified: true}, false},
-		{"empty", idClaims{}, false},
-	}
-	for _, tc := range cases {
-		if got := p.authorize(tc.c); got != tc.want {
-			t.Errorf("%s: authorize = %v, want %v", tc.name, got, tc.want)
-		}
-	}
 }
 
 // TestNewDisabled checks that no enabled provider yields a nil Authenticator
@@ -120,7 +93,7 @@ func TestProviderLoginRedirects(t *testing.T) {
 	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{}, nil))
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/login?token=TOK", nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/login?return=%2Fadmin", nil))
 
 	if rec.Code != http.StatusFound {
 		t.Fatalf("status = %d, want 302", rec.Code)
@@ -140,7 +113,7 @@ func TestProviderLoginRedirects(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("flow not persisted for state: ok=%v err=%v", ok, err)
 	}
-	if flow.ReturnToken != "TOK" || flow.Provider != "google" {
+	if flow.ReturnTo != "/admin" || flow.Provider != "google" {
 		t.Errorf("flow = %+v", flow)
 	}
 }
@@ -160,17 +133,17 @@ func TestProviderLoginReturnPath(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("flow not persisted: ok=%v err=%v", ok, err)
 	}
-	if flow.ReturnTo != "/admin" || flow.ReturnToken != "" {
+	if flow.ReturnTo != "/admin" {
 		t.Errorf("flow = %+v, want ReturnTo=/admin", flow)
 	}
 }
 
-// TestProviderCallbackActivates checks an authorized identity gets a login
-// session cookie and is redirected back to the box's auth page.
+// TestProviderCallbackActivates checks an admin-allow-listed identity gets a login
+// session cookie and is redirected back to the flow's return target.
 func TestProviderCallbackActivates(t *testing.T) {
-	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "alice@corp.com", EmailVerified: true}, nil))
+	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "alice@corp.com", EmailVerified: true}, nil), "alice@corp.com")
 
-	if err := st.PutOIDCFlow(store.HashToken("STATE"), store.OIDCFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+	if err := st.PutOIDCFlow(store.HashToken("STATE"), store.OIDCFlow{Provider: "google", ReturnTo: "/admin", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -180,8 +153,8 @@ func TestProviderCallbackActivates(t *testing.T) {
 	if rec.Code != http.StatusFound {
 		t.Fatalf("status = %d, want 302 (body %q)", rec.Code, rec.Body.String())
 	}
-	if loc := rec.Header().Get("Location"); loc != "/auth/TOK" {
-		t.Errorf("Location = %q, want /auth/TOK", loc)
+	if loc := rec.Header().Get("Location"); loc != "/admin" {
+		t.Errorf("Location = %q, want /admin", loc)
 	}
 	var cookie *http.Cookie
 	for _, c := range rec.Result().Cookies() {
@@ -201,12 +174,12 @@ func TestProviderCallbackActivates(t *testing.T) {
 	}
 }
 
-// TestProviderCallbackRejectsUnauthorized checks an identity outside the allow
-// rule is refused with 403 and gets no login cookie.
+// TestProviderCallbackRejectsUnauthorized checks an identity not on the admin
+// allow-list is refused with 403 and gets no login cookie.
 func TestProviderCallbackRejectsUnauthorized(t *testing.T) {
-	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "mallory@evil.com", EmailVerified: true}, nil))
+	_, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "mallory@evil.com", EmailVerified: true}, nil), "alice@corp.com")
 
-	if err := st.PutOIDCFlow(store.HashToken("STATE"), store.OIDCFlow{Provider: "google", ReturnToken: "TOK", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+	if err := st.PutOIDCFlow(store.HashToken("STATE"), store.OIDCFlow{Provider: "google", ReturnTo: "/admin", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
 	rec := httptest.NewRecorder()
@@ -217,41 +190,6 @@ func TestProviderCallbackRejectsUnauthorized(t *testing.T) {
 	}
 	if len(rec.Result().Cookies()) != 0 {
 		t.Error("unauthorized identity should get no cookie")
-	}
-}
-
-// TestProviderCallbackAdminOnly checks an admin who cannot activate boxes still
-// signs in with Admin=true, Activate=false.
-func TestProviderCallbackAdminOnly(t *testing.T) {
-	// Admin whose email is in no activation allow rule (domain admin.io is not
-	// allowed) still signs in for admin, with Activate=false.
-	a, h, st := newTestAuth(t, googleTestProvider(t, idClaims{Email: "boss@admin.io", EmailVerified: true}, nil))
-	a.adminEmails = map[string]bool{"boss@admin.io": true}
-
-	if err := st.PutOIDCFlow(store.HashToken("STATE"), store.OIDCFlow{Provider: "google", ReturnTo: "/admin", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
-		t.Fatal(err)
-	}
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/google/callback?state=STATE&code=CODE", nil))
-
-	if rec.Code != http.StatusFound {
-		t.Fatalf("status = %d, want 302 (body %q)", rec.Code, rec.Body.String())
-	}
-	if loc := rec.Header().Get("Location"); loc != "/admin" {
-		t.Errorf("Location = %q, want /admin", loc)
-	}
-	var cookie *http.Cookie
-	for _, c := range rec.Result().Cookies() {
-		if c.Name == LoginCookie {
-			cookie = c
-		}
-	}
-	if cookie == nil {
-		t.Fatal("no login cookie set")
-	}
-	ls, ok, _ := st.GetIdentitySession(store.HashToken(cookie.Value))
-	if !ok || !ls.CanAdmin || ls.CanActivate {
-		t.Errorf("session = %+v, want Admin=true Activate=false", ls)
 	}
 }
 
@@ -350,22 +288,6 @@ func TestNewTestAuthenticator(t *testing.T) {
 	}
 }
 
-// TestButtons checks Buttons renders one login button per provider, labelled and
-// carrying the box token in the login path.
-func TestButtons(t *testing.T) {
-	a := NewTestAuthenticator()
-	btns := a.Buttons("tok 123")
-	if len(btns) != 1 {
-		t.Fatalf("got %d buttons, want 1", len(btns))
-	}
-	if btns[0].Label != "Google" {
-		t.Errorf("label = %q, want Google", btns[0].Label)
-	}
-	if !strings.Contains(btns[0].LoginPath, "/auth/google/login?token=tok+123") {
-		t.Errorf("login path = %q, want it to carry the escaped token", btns[0].LoginPath)
-	}
-}
-
 // TestCurrentLogin checks CurrentLogin resolves a live login session from the
 // request cookie and treats a missing or expired session as not-signed-in.
 func TestCurrentLogin(t *testing.T) {
@@ -383,12 +305,12 @@ func TestCurrentLogin(t *testing.T) {
 	}
 
 	// A live session resolves via its cookie.
-	if err := st.PutIdentitySession(store.HashToken("SID"), store.IdentitySession{Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true}); err != nil {
+	if err := st.PutIdentitySession(store.HashToken("SID"), store.IdentitySession{Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanAdmin: true}); err != nil {
 		t.Fatal(err)
 	}
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: LoginCookie, Value: "SID"})
-	if ls, ok := a.CurrentLogin(req); !ok || ls.Email != "dev@corp.com" || !ls.CanActivate {
+	if ls, ok := a.CurrentLogin(req); !ok || ls.Email != "dev@corp.com" || !ls.CanAdmin {
 		t.Errorf("CurrentLogin = (%+v, %v), want the signed-in session", ls, ok)
 	}
 

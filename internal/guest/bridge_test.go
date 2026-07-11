@@ -138,8 +138,8 @@ func TestDialHostVsockDialer(t *testing.T) {
 
 // TestBoxAPIBridgePermitsBoxUser checks the bridge makes its socket reachable by
 // the unprivileged box user: the containing dir is traversable (o+x) and the
-// socket is world-connectable (0666). Without this, on Firecracker — where claude
-// runs as a non-root box user — the box cannot reach /run/llmbox/boxapi.sock to
+// socket is world-connectable (0666). Without this, on Firecracker — where the
+// workload runs as a non-root box user — the box cannot reach /run/llmbox/boxapi.sock to
 // publish its own ports.
 func TestBoxAPIBridgePermitsBoxUser(t *testing.T) {
 	dial := func(context.Context) (net.Conn, error) { return nil, errors.New("unused") }

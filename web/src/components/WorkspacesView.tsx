@@ -7,7 +7,6 @@
 import { useState } from "react";
 import {
   ActionIcon,
-  Anchor,
   Box,
   Button,
   Card,
@@ -24,7 +23,6 @@ import {
   Tooltip,
 } from "@mantine/core";
 import {
-  IconExternalLink,
   IconLayoutGrid,
   IconLayoutList,
   IconPlayerPause,
@@ -34,7 +32,7 @@ import {
 } from "@tabler/icons-react";
 import type { Api, BoxView } from "../api";
 import type { DashboardData } from "../lib/data";
-import { boxId, createdAt, lastSeenAt, phaseTone, stateTone } from "../lib/format";
+import { boxId, createdAt, lastSeenAt, stateTone } from "../lib/format";
 import { confirmDestroy } from "../lib/confirm";
 import { perform } from "../lib/actions";
 import { StateBadge, StatusBadge } from "./StatusBadge";
@@ -151,25 +149,6 @@ export function WorkspacesView({
   );
 }
 
-/** WorkspaceLink renders a box's activation or session link, or a dash. */
-function WorkspaceLink({ box }: { box: BoxView }): JSX.Element {
-  if (box.auth_url) {
-    return (
-      <Anchor href={box.auth_url} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>
-        <Group gap={4} wrap="nowrap"><IconPlayerPlay size={14} /> Activate</Group>
-      </Anchor>
-    );
-  }
-  if (box.session_url) {
-    return (
-      <Anchor href={box.session_url} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>
-        <Group gap={4} wrap="nowrap"><IconExternalLink size={14} /> Open</Group>
-      </Anchor>
-    );
-  }
-  return <Text c="dimmed" size="sm">—</Text>;
-}
-
 interface RowProps {
   boxes: BoxView[];
   onSelect: (id: string) => void;
@@ -179,8 +158,8 @@ interface RowProps {
 }
 
 /** WorkspacePauseAction renders the per-box pause/resume control: a Resume button
- * for a paused box, a Pause button for a running & activated one, and nothing for a
- * box in any other state (pending, unreachable, terminated) where neither applies. */
+ * for a paused box, a Pause button for a running one, and nothing for a box in
+ * any other state (unreachable, terminated) where neither applies. */
 function WorkspacePauseAction({
   box,
   onPause,
@@ -206,9 +185,8 @@ function WorkspacePauseAction({
       </Tooltip>
     );
   }
-  // Only an activated, running box can be paused; pausing mid-activation or an
-  // offline box makes no sense.
-  if (box.state === "running" && phaseTone(box.phase) === "ready") {
+  // Only a running box can be paused; pausing an offline box makes no sense.
+  if (box.state === "running") {
     return (
       <Tooltip label="Pause workspace to save compute">
         <ActionIcon
@@ -239,7 +217,6 @@ function WorkspaceTable({ boxes, onSelect, onRemove, onPause, onResume }: RowPro
               <Table.Th>Image</Table.Th>
               <Table.Th>State</Table.Th>
               <Table.Th>Phase</Table.Th>
-              <Table.Th>Link</Table.Th>
               <Table.Th />
             </Table.Tr>
           </Table.Thead>
@@ -268,7 +245,6 @@ function WorkspaceTable({ boxes, onSelect, onRemove, onPause, onResume }: RowPro
                     )}
                   </Table.Td>
                   <Table.Td><StatusBadge phase={b.phase} /></Table.Td>
-                  <Table.Td onClick={(e) => e.stopPropagation()}><WorkspaceLink box={b} /></Table.Td>
                   <Table.Td onClick={(e) => e.stopPropagation()} ta="right">
                     <Group gap={4} justify="flex-end" wrap="nowrap">
                       <WorkspacePauseAction box={b} onPause={onPause} onResume={onResume} />
@@ -330,8 +306,7 @@ function WorkspaceGrid({ boxes, onSelect, onRemove, onPause, onResume }: RowProp
                 <Text size="xs" c="dimmed">last seen {lastSeenAt(b.last_seen)}</Text>
               )}
             </Stack>
-            <Group justify="space-between" onClick={(e) => e.stopPropagation()}>
-              <WorkspaceLink box={b} />
+            <Group justify="flex-end" onClick={(e) => e.stopPropagation()}>
               <Group gap={4} wrap="nowrap">
                 <WorkspacePauseAction box={b} onPause={onPause} onResume={onResume} />
                 <Tooltip label="Remove workspace">

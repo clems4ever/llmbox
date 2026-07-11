@@ -8,13 +8,6 @@
 			"reviewed_at": "2026-07-01T13:13:15.246550459Z"
 		},
 		{
-			"function_name": "AuthPageURL",
-			"receiver": "FakeBackend",
-			"documentation_hash": "3d43bafd3d84d8dd5c09706b692b5627c63c47fa440db9f0ebb5850815875bda",
-			"definition_hash": "c91e519304916d0c7d3a0d4c0c7c0de27c832548e95c186f9263aad34d09f473",
-			"reviewed_at": "2026-07-01T11:56:15.195595547Z"
-		},
-		{
 			"function_name": "LookupByBoxID",
 			"receiver": "FakeBackend",
 			"documentation_hash": "d5c7799dcd778f19745c1302be0f5b2bc653be02a61171ba6cdb881007aa5919",
@@ -41,13 +34,6 @@
 			"documentation_hash": "934c61f3cba163f6644e61930e6e7e1fe7e649845419f531f4194108e76c18d0",
 			"definition_hash": "026289e06cf2bfe7e8ea231711780ee64de84bbd94b1952155175c0e22753c7a",
 			"reviewed_at": "2026-07-09T21:42:06.91304059Z"
-		},
-		{
-			"function_name": "BoxLogs",
-			"receiver": "FakeBackend",
-			"documentation_hash": "6363e86412d43f0d2a114f037b882be1f6c00aa31296bec1605a3484517f1ef3",
-			"definition_hash": "c650ac61a66c003433aa5fa569c6f8ac0cc046b53e17b2dde66bcf366fe3e642",
-			"reviewed_at": "2026-07-01T11:56:15.206416291Z"
 		},
 		{
 			"function_name": "BoxExec",

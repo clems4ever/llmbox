@@ -9,7 +9,7 @@ name: Firecracker assets
 #                     changes: content-addressed by input hash, skip-on-hit.
 #   llmbox-fc-kernel  the full guest kernel — slow (~15 min) but very rare:
 #                     content-addressed by input hash, skip-on-hit.
-#   llmbox-fc-payload the tiny guest + claude drive — changes every commit, so it
+#   llmbox-fc-payload the tiny guest drive — changes every commit, so it
 #                     is (re)published on every push to main, tagged :latest.
 #
 # The expensive jobs gate themselves on a cache hit rather than on a paths filter,

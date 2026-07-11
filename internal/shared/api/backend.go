@@ -22,11 +22,7 @@ import (
 type BoxSession struct {
 	BoxID       string
 	Generation  string
-	Token       string
 	Description string
-	Status      string // "pending" | "ready" | "error"
-	SessionURL  string
-	Error       string
 }
 
 // ProxyInfo describes one enabled HTTP proxy: the box and port it exposes and the
@@ -51,17 +47,11 @@ type SpokeStatus struct {
 	EnrolledAt time.Time `json:"enrolled_at,omitempty" jsonschema:"when the spoke enrolled"`
 }
 
-// BoxView is one listed box together with its activation state: the underlying
-// box plus the URL a user needs next — the activation page while the box is
-// pending, or the remote-control session URL once it is ready.
+// BoxView is one listed box. It is the underlying box as tracked by the hub; a
+// box whose init script failed carries phase "broken" and its captured output in
+// LastError.
 type BoxView struct {
 	sandbox.Box
-	// AuthURL is the activation page URL for a box still awaiting sign-in; empty
-	// once the box is ready (or when the hub no longer tracks its session).
-	AuthURL string `json:"auth_url,omitempty" jsonschema:"the activation page URL while the box awaits authentication"`
-	// SessionURL is the remote-control session URL of a ready box; empty until
-	// activation completes.
-	SessionURL string `json:"session_url,omitempty" jsonschema:"the remote-control session URL once the box is ready"`
 }
 
 // SpokeEnrollment is the result of minting a join token for a new spoke: the
@@ -91,19 +81,14 @@ type JoinTokenInfo struct {
 }
 
 // Backend is the box-operation contract the API layer needs. The server
-// implements it; tests supply a fake. The OAuth secret is intentionally absent:
-// CreateBox returns only a token, and AuthPageURL turns that token into the public
-// auth page URL, so no secret ever flows through the API.
+// implements it; tests supply a fake.
 type Backend interface {
-	// CreateBox launches a box and returns its registered auth session.
+	// CreateBox launches a box and returns its registered session.
 	CreateBox(ctx context.Context, opts sandbox.CreateOptions) (BoxSession, error)
-	// AuthPageURL is the URL the user opens to finish authenticating a box.
-	AuthPageURL(token string) string
 	// LookupByBoxID finds a box's session by its caller-assigned box ID
 	// (case-insensitive); ok is false when none matches.
 	LookupByBoxID(boxID string) (sess BoxSession, ok bool)
-	// ListBoxes returns all boxes managed across every spoke, each with its
-	// activation or session URL when known.
+	// ListBoxes returns all boxes managed across every spoke.
 	ListBoxes(ctx context.Context) ([]BoxView, error)
 	// SpokeStatuses returns every spoke and whether it is currently connected.
 	SpokeStatuses(ctx context.Context) ([]SpokeStatus, error)
@@ -130,11 +115,9 @@ type Backend interface {
 	// PauseBox stops the compute of the box with the given box ID to save CPU/RAM,
 	// keeping its disk so it can be resumed later.
 	PauseBox(ctx context.Context, boxID string) error
-	// ResumeBox restarts a paused box's compute and relaunches claude; the box comes
-	// back with a fresh session URL, observable on the next ListBoxes.
+	// ResumeBox restarts a paused box's compute; the box comes back on the next
+	// ListBoxes.
 	ResumeBox(ctx context.Context, boxID string) error
-	// BoxLogs returns the recent console output of the box with the given box ID.
-	BoxLogs(ctx context.Context, boxID string, tail int) (string, error)
 	// BoxExec runs a shell command inside the box with the given box ID.
 	BoxExec(ctx context.Context, boxID, command string) (sandbox.ExecResult, error)
 	// ProxyEnabled reports whether the HTTP proxy feature is configured.

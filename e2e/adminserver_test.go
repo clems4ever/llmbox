@@ -56,25 +56,24 @@ func newAdminServer(t *testing.T) (*hub.Server, *testutils.FakeMgr, hub.Store) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	a := auth.NewTestAuthenticator("admin@corp.com")
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/x", SubmitURL: "https://claude.ai/code/s/1"}
-	srv := hub.New(nil, "https://boxes.example.com", time.Minute, st, a)
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
+	srv := hub.New(nil, "https://boxes.example.com", st, a)
 	wireDefaultSpoke(t, srv, st, f)
 	return srv, f, st
 }
 
-// signIn stores a login session and returns its cookie. admin/activate control
-// the session's capabilities.
+// signIn stores a login session and returns its cookie. admin controls whether
+// the session may use the admin UI and reach the per-box HTTP proxies.
 //
 // @arg t The test, failed if the session cannot be saved.
 // @arg st The store to persist the login session in.
 // @arg admin Whether the session has admin capability.
-// @arg activate Whether the session may activate boxes.
 // @return *http.Cookie The login cookie naming the persisted session.
-func signIn(t *testing.T, st hub.Store, admin, activate bool) *http.Cookie {
+func signIn(t *testing.T, st hub.Store, admin bool) *http.Cookie {
 	t.Helper()
 	if err := st.PutIdentitySession(store.HashToken("SID"), store.IdentitySession{
 		Email: "admin@corp.com", CSRFToken: "CSRF", ExpiresAt: time.Now().Add(time.Hour),
-		CanAdmin: admin, CanActivate: activate,
+		CanAdmin: admin,
 	}); err != nil {
 		t.Fatal(err)
 	}

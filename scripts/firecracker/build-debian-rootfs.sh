@@ -2,7 +2,7 @@
 # Convenience wrapper that builds BOTH halves of a Firecracker Debian box locally:
 #
 #   1. build-base-rootfs.sh   -> base-rootfs.ext4   (multi-GiB Debian OS, cached; no guest)
-#   2. build-payload-drive.sh -> payload.ext4       (tiny; the guest + claude, rebuilt often)
+#   2. build-payload-drive.sh -> payload.ext4       (tiny; the guest, rebuilt often)
 #
 # The base is the slow, rarely-changing half — in CI it is built once and cached in
 # GHCR keyed on its inputs (see .github/workflows/firecracker-assets.yml), not

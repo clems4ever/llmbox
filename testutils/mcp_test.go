@@ -13,8 +13,8 @@ import (
 // results across the Backend methods.
 func TestFakeBackend(t *testing.T) {
 	f := &FakeBackend{
-		CreateSess: mcpserver.BoxSession{BoxID: "web", Generation: "cid", Token: "tok"},
-		Sessions:   map[string]mcpserver.BoxSession{"web": {BoxID: "web", Status: "ready"}},
+		CreateSess: mcpserver.BoxSession{BoxID: "web", Generation: "cid"},
+		Sessions:   map[string]mcpserver.BoxSession{"web": {BoxID: "web", Description: "ready"}},
 		Boxes:      []api.BoxView{{Box: sandbox.Box{BoxID: "b1"}}},
 		ExecResult: sandbox.ExecResult{ExitCode: 3},
 		ProxyOn:    true,
@@ -28,11 +28,7 @@ func TestFakeBackend(t *testing.T) {
 		t.Errorf("GotCreate = %+v", f.GotCreate)
 	}
 
-	if url := f.AuthPageURL("tok"); url != defaultAuthBase+"tok" || f.GotAuthToken != "tok" {
-		t.Errorf("AuthPageURL = %q (token %q)", url, f.GotAuthToken)
-	}
-
-	if s, ok := f.LookupByBoxID("WEB"); !ok || s.Status != "ready" {
+	if s, ok := f.LookupByBoxID("WEB"); !ok || s.Description != "ready" {
 		t.Errorf("LookupByBoxID case-insensitive miss: %+v ok=%v", s, ok)
 	}
 	if _, ok := f.LookupByBoxID("nope"); ok {
@@ -50,9 +46,6 @@ func TestFakeBackend(t *testing.T) {
 	}
 	if err := f.ResumeBox(ctx, "pz"); err != nil || f.GotResumeID != "pz" {
 		t.Errorf("ResumeBox err=%v id=%q", err, f.GotResumeID)
-	}
-	if _, _ = f.BoxLogs(ctx, "web", 5); f.GotLogsID != "web" || f.GotLogsTail != 5 {
-		t.Errorf("BoxLogs recorded %q/%d", f.GotLogsID, f.GotLogsTail)
 	}
 	if res, _ := f.BoxExec(ctx, "web", "ls"); res.ExitCode != 3 || f.GotExecCmd != "ls" {
 		t.Errorf("BoxExec = %+v cmd=%q", res, f.GotExecCmd)

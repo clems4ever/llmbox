@@ -3,15 +3,15 @@
 		{
 			"function_name": "New",
 			"documentation_hash": "afe79c50b8f6ab9a7fc22d54910d6ae5329b54d176b5f9f4e9d10058b250304d",
-			"definition_hash": "a165b01e8d0a4f3a2f14ffe578f839af977eacfac8e5c87fe6fd683b2897ba62",
-			"reviewed_at": "2026-07-11T09:32:51.297540588Z"
+			"definition_hash": "d451770e0e94f7d273264fc5781a269b5a9efec0bd8e2e52ec9efd842e099aa1",
+			"reviewed_at": "2026-07-11T21:34:27.096285211Z"
 		},
 		{
 			"function_name": "entryEnv",
 			"receiver": "Guest",
-			"documentation_hash": "131b674d2ade188419013457a5ae77bbf0b5a7f442f8a7fcf0b5a81fb91c200e",
+			"documentation_hash": "c89dee855c868ed1002a983eddb4f04e72e322626052117fcbddf417eca42d2d",
 			"definition_hash": "92f13b18cbf0daa54125a37834a6d0b4142cdc308f7323327ab93fe7c1b8fc5d",
-			"reviewed_at": "2026-07-09T18:51:40.236657564Z"
+			"reviewed_at": "2026-07-11T21:34:27.097091722Z"
 		},
 		{
 			"function_name": "hasEnvKey",
@@ -58,15 +58,15 @@
 			"function_name": "dispatch",
 			"receiver": "Guest",
 			"documentation_hash": "71ae0abd79e2133ee431d1f00d0a14e387ca454246180f7943fa75680d6eea05",
-			"definition_hash": "91bbc398a182d0931f7a15fb008f7446a5ca4596a6012ecd8877d363faba543e",
-			"reviewed_at": "2026-07-11T09:33:03.196161927Z"
+			"definition_hash": "c51e40650a63734121c7949e8c5c60d0b90b40ffc102eee778f902acca2780af",
+			"reviewed_at": "2026-07-11T21:34:27.097743268Z"
 		},
 		{
 			"function_name": "handleInit",
 			"receiver": "Guest",
-			"documentation_hash": "199182b2c7e425d920471da7acdf79ba6c8f1560310d59a11ad713cd9096e056",
-			"definition_hash": "25034233f648650fbbfc073462c8ed9ee76e2cea8330118bedcc9fac41637895",
-			"reviewed_at": "2026-07-11T09:32:51.300341281Z"
+			"documentation_hash": "bfddb82a0b68f3f828b09b1aeeba7271740fbb05d5d79f7054f3f91ab75f123c",
+			"definition_hash": "8f99d86c69b33ac428def4759455074f284ffe9db08ce4901b35af5650917a69",
+			"reviewed_at": "2026-07-11T21:34:27.098317511Z"
 		},
 		{
 			"function_name": "handleStart",
@@ -85,9 +85,9 @@
 		{
 			"function_name": "handleExec",
 			"receiver": "Guest",
-			"documentation_hash": "0cab265f3a81e4b8ed6e9ed934e7af0827809117e0e47b3ede7387cce0a1a41b",
-			"definition_hash": "6fb0343422c1365912575fb861e1ff95f1f948f9658c72f217fa10a913430555",
-			"reviewed_at": "2026-07-11T07:31:34.558003926Z"
+			"documentation_hash": "19ad66670dc98b58931d840095a92ca497ecbf1e278e6f574618cf699cec3514",
+			"definition_hash": "469ec0a4e828dbeb2b69c0501f7bfe5cd3f6ee4b94c69208b2ea18572b9abc84",
+			"reviewed_at": "2026-07-11T21:34:27.099455152Z"
 		},
 		{
 			"function_name": "handleLogs",
@@ -131,9 +131,9 @@
 		{
 			"function_name": "runInitScript",
 			"receiver": "Guest",
-			"documentation_hash": "2c0422017562733100f373e11a254d7afb85a0f383c14ac5cb646a2527b1beb5",
-			"definition_hash": "55096629f70b02c69624f64b8138258c3f074e8cfe3e13e75a4e00301e2a8520",
-			"reviewed_at": "2026-07-11T09:32:51.302282016Z"
+			"documentation_hash": "a73faeb19f2efeffd10a160e0ccaf9317620883665c15faaae4f2b04649dcb77",
+			"definition_hash": "6058c917ae47e37d3e00d14e0965d1ceb17f1556a0814e5de4e5af02487dcc9c",
+			"reviewed_at": "2026-07-11T21:34:27.098891332Z"
 		},
 		{
 			"function_name": "homeFromEnv",

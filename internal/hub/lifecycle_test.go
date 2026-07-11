@@ -17,10 +17,10 @@ import (
 func TestDestroyTerminatedRecordSkipsSpoke(t *testing.T) {
 	fh := &fakeHooks{}
 	f := &testutils.FakeMgr{}
-	s := wireSpoke(New(fh, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
+	s := wireSpoke(New(fh, "https://boxes.example.com", newTestStore(), nil), f)
 	s.regSession("tok", &session{
 		BoxID: "dead-box", Generation: "cccccccccccc1111", SpokeName: testSpoke,
-		Status: "pending", BoxState: boxStateTerminated, HookState: map[string]string{"hook": "state"},
+		Phase: "ready", BoxState: boxStateTerminated, HookState: map[string]string{"hook": "state"},
 	})
 	// The spoke goes offline: a tombstone must still be removable.
 	s.SetHub(&testutils.FakeHub{Connected: map[string]boxManager{}})
@@ -28,7 +28,7 @@ func TestDestroyTerminatedRecordSkipsSpoke(t *testing.T) {
 	if err := s.destroyBox(context.Background(), "dead-box"); err != nil {
 		t.Fatalf("destroyBox: %v", err)
 	}
-	if s.lookup("tok") != nil {
+	if s.lookupTok("tok") != nil {
 		t.Error("tombstone record should be forgotten")
 	}
 	if len(f.Destroyed) != 0 {
@@ -60,7 +60,7 @@ func TestDestroyUnreachableSpokeRefused(t *testing.T) {
 	if !strings.Contains(err.Error(), "not connected") {
 		t.Errorf("error should explain the spoke is offline, got: %v", err)
 	}
-	if s.lookup(sess.plainToken) == nil {
+	if s.lookupByBoxID(sess.BoxID) == nil {
 		t.Error("the refused destroy must keep the box record")
 	}
 }
@@ -73,14 +73,14 @@ func TestCreateBoxReplacesTerminatedTombstone(t *testing.T) {
 	s := newTestServer(f)
 	s.regSession("old", &session{
 		BoxID: "web", Generation: "000000000000aaaa", SpokeName: testSpoke,
-		Status: "pending", BoxState: boxStateTerminated,
+		Phase: "ready", BoxState: boxStateTerminated,
 	})
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web"})
 	if err != nil {
 		t.Fatalf("CreateBox reusing a tombstone's box ID: %v", err)
 	}
-	if s.lookup("old") != nil {
+	if s.lookupTok("old") != nil {
 		t.Error("the tombstone should be replaced by the new box's record")
 	}
 	if got := s.lookupByBoxID("web"); got == nil || got.Token != sess.Token {
@@ -121,8 +121,8 @@ func TestLookupByBoxIDPrefersAliveOverTerminated(t *testing.T) {
 	s := newTestServer(f)
 	// alive is OLDER and on an unreachable spoke; the tombstone is newer and on
 	// the connected spoke. Alive must still win.
-	alive := &session{Token: "tok-alive", BoxID: "dup", SpokeName: "ghost", Generation: "ca", CreatedAt: time.Unix(100, 0), Status: "ready"}
-	tomb := &session{Token: "tok-tomb", BoxID: "dup", SpokeName: testSpoke, Generation: "ct", CreatedAt: time.Unix(200, 0), Status: "ready", BoxState: boxStateTerminated}
+	alive := &session{Token: "tok-alive", BoxID: "dup", SpokeName: "ghost", Generation: "ca", CreatedAt: time.Unix(100, 0), Phase: "ready"}
+	tomb := &session{Token: "tok-tomb", BoxID: "dup", SpokeName: testSpoke, Generation: "ct", CreatedAt: time.Unix(200, 0), Phase: "ready", BoxState: boxStateTerminated}
 	s.regSession("tok-alive", alive)
 	s.regSession("tok-tomb", tomb)
 

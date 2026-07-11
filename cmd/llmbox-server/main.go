@@ -1,19 +1,17 @@
-// Command llmbox-server runs the llmbox server that manages sandboxed Claude
-// containers ("llmboxes") and lets an end user authenticate each one via OAuth in
-// their browser — never routing the OAuth secret through the chatbot.
+// Command llmbox-server runs the llmbox server that manages sandboxed boxes
+// ("llmboxes") — the box infrastructure; each box's workload is installed by the
+// spoke's init script.
 //
 // One process serves everything on a single HTTP port (http_addr):
 //
 //	/api/v1/...     box-control JSON API — the UI and the stand-alone llmbox-mcp binary call it
-//	/auth/{token}   web page where the user pastes their OAuth code (+ admin UI, health)
+//	/admin, /signin admin web UI and the OIDC sign-in that gates it and the per-box proxies (+ health)
 //
 // The MCP protocol itself is served by a separate binary (llmbox-mcp), which
 // forwards every call to the box-control API over HTTP. The box-control API is
 // authenticated: callers present an API key as a bearer token (minted with
 // `llmbox-server apikey add`), and the admin web app uses the signed-in admin's
 // login cookie plus a CSRF header.
-//
-// Boxes that are never authenticated are destroyed after a TTL.
 //
 // Configuration is a YAML file (default ./llmbox.yaml, override with --config).
 // Every field is optional; unset fields fall back to built-in defaults:
@@ -89,7 +87,7 @@ func newRootCmd() *cobra.Command {
 
 	rootCmd := &cobra.Command{
 		Use:           name,
-		Short:         "Run the llmbox server that manages sandboxed Claude containers",
+		Short:         "Run the llmbox server that manages sandboxed boxes",
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: false,

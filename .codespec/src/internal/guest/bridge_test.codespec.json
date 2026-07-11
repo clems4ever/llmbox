@@ -23,6 +23,12 @@
 			"documentation_hash": "ad68f307783163c2f63257988ba2d2f68780ec0382100cfaeaa3e7c0c691fc4e",
 			"definition_hash": "571b760b93ee46c409c77f028a12da547fc415a3b40bd39c71fd16af8c1701fe",
 			"reviewed_at": "2026-07-09T18:52:17.799355507Z"
+		},
+		{
+			"function_name": "TestBoxAPIBridgePermitsBoxUser",
+			"documentation_hash": "5fb53db17affb586ab2f1a38c2d40a4bd4455882e50ee80903a23b6152d38bc6",
+			"definition_hash": "ed7f7d306cb019bc96153048b6de6120bb9e96ebe4ef2d6529cf55720155c3e2",
+			"reviewed_at": "2026-07-11T21:34:27.09419218Z"
 		}
 	]
 }

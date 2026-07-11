@@ -1,12 +1,6 @@
 {
 	"functions": [
 		{
-			"function_name": "TestListBoxesCarriesSessionURLs",
-			"documentation_hash": "0fed9c5e95cc2ed330e55e95df17933faf0f270bbb574a41987a03b8f9505d51",
-			"definition_hash": "f4b0715133267a2850c39e89b697828931a5580956cefbfe839fd6989537bde0",
-			"reviewed_at": "2026-07-10T10:15:43.537185638Z"
-		},
-		{
 			"function_name": "TestBackendCreateSpoke",
 			"documentation_hash": "c1d0899690f064e07d72538428a5ef1bd859f2f4753540b84424c62ff8b1c8f1",
 			"definition_hash": "4bdeed768dc4df4f305824ce50deb8522b73bad2daf9035831bebefa635bb41e",
@@ -41,12 +35,6 @@
 			"documentation_hash": "20dce63893a1796fbe5810a2329c36675f1da5dabe2ca7abf0eb9ca505ab0717",
 			"definition_hash": "bd2e690a9f4f8f7b2c5d300bed9316398e93a26e47b67e14da2fc294399f3c83",
 			"reviewed_at": "2026-07-09T18:10:52.504138205Z"
-		},
-		{
-			"function_name": "TestListBoxesOmitsAuthURLForRestoredBox",
-			"documentation_hash": "dafbc99c04b5e033ea59082799c704785f40f2d418d115267839c3bc4671bda6",
-			"definition_hash": "82bfc6e34a6036bb7816e5c81bf2d31b2023b74d4670a3a5667681dbb84c864e",
-			"reviewed_at": "2026-07-10T10:15:43.536865998Z"
 		},
 		{
 			"function_name": "TestBackendRegenerateJoinToken",

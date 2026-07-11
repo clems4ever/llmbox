@@ -1,10 +1,8 @@
 # Two services: llmbox (the box-control + auth server) and llmbox-mcp (the
 # stand-alone MCP front-end that forwards MCP tool calls to llmbox's box-control
 # API). A chatbot connects to llmbox-mcp; llmbox does the real work, creating
-# sandboxed Claude boxes each authenticated by the end user in a browser. The
-# server bakes in the standalone Claude binary and injects it into every box at
-# creation, so boxes run on a plain base image — there is no separate Claude
-# image to build:
+# sandboxed boxes on demand. Boxes run on a minimal infra base image; a box's
+# workload is installed and started by the spoke's init script:
 #
 #   docker compose up --build               # build + run both services
 services:

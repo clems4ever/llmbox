@@ -20,7 +20,7 @@ import (
 // microVM path is exercised end-to-end by the Firecracker integration test; this
 // only guards the entrypoint against blocking forever.
 func TestListenVsockReturns(t *testing.T) {
-	a := New(Options{ClaudeCmd: "/bin/true"})
+	a := New(Options{})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel up front so a successful listen still unblocks serve
 
@@ -34,41 +34,6 @@ func TestListenVsockReturns(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("ListenVsockAndServe hung instead of returning")
 	}
-}
-
-// mockClaude mimics the standalone `claude` binary closely enough to exercise the
-// guest's PTY handling and URL scanning: `auth login` prints an authorize URL and
-// blocks reading the OAuth code, then `remote-control` prints a session URL and
-// stays alive reading stdin until the PTY closes.
-const mockClaude = `#!/bin/sh
-case "$1" in
-auth)
-  echo "To authenticate, visit https://claude.com/cai/oauth/authorize?a=1&code_challenge=chal&state=st8 then paste the code"
-  IFS= read -r code
-  echo "submitted code: $code"
-  exit 0
-  ;;
-remote-control)
-  echo "Remote control session ready: https://claude.ai/s/mock-session-xyz"
-  while IFS= read -r _; do : ; done
-  exit 0
-  ;;
-*)
-  echo "mock claude: unexpected args: $*" >&2
-  exit 2
-  ;;
-esac
-`
-
-// writeMockClaude writes the mock claude script to a temp file and returns its
-// path.
-func writeMockClaude(t *testing.T) string {
-	t.Helper()
-	p := filepath.Join(t.TempDir(), "claude")
-	if err := os.WriteFile(p, []byte(mockClaude), 0o755); err != nil {
-		t.Fatalf("writing mock claude: %v", err)
-	}
-	return p
 }
 
 // startGuest starts a guest serving a unix socket and returns it with a client.
@@ -91,59 +56,29 @@ func startGuest(t *testing.T, opts Options) (*Guest, *Client) {
 		time.Sleep(5 * time.Millisecond)
 	}
 	t.Cleanup(func() {
-		a.Shutdown()
 		cancel()
 		<-errc
 	})
 	return a, NewUnixClient(sock)
 }
 
-// boxEnv returns an environment that points HOME at an empty temp dir (so the box
-// looks unauthenticated) unless seedCreds is true, in which case a credentials
-// file is planted so the box looks already authenticated.
-func boxEnv(t *testing.T, seedCreds bool) []string {
+// boxEnv returns an environment that points HOME at an empty temp dir and carries
+// the ambient PATH, isolating each box's home directory.
+func boxEnv(t *testing.T) []string {
 	t.Helper()
 	home := t.TempDir()
-	if seedCreds {
-		dir := filepath.Join(home, ".claude")
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.Fatalf("mkdir: %v", err)
-		}
-		if err := os.WriteFile(filepath.Join(dir, ".credentials.json"), []byte(`{"token":"x"}`), 0o600); err != nil {
-			t.Fatalf("seed creds: %v", err)
-		}
-	}
 	return []string{"HOME=" + home, "PATH=" + os.Getenv("PATH")}
 }
 
-// TestGuestLifecycle drives a box through Init, Start (authorize URL), SubmitCode
-// (session URL), Exec, and Logs over the unix-socket client, then Shutdown.
+// TestGuestLifecycle drives a box through Init and Exec over the unix-socket
+// client, the two control verbs the guest still serves.
 func TestGuestLifecycle(t *testing.T) {
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
+	_, c := startGuest(t, Options{})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if _, err := c.Init(ctx, InitReq{BoxID: "my-box", Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t)}); err != nil {
 		t.Fatalf("Init: %v", err)
-	}
-
-	start, err := c.Start(ctx)
-	if err != nil {
-		t.Fatalf("Start: %v", err)
-	}
-	if !strings.Contains(start.AuthorizeURL, "oauth/authorize") {
-		t.Fatalf("AuthorizeURL = %q, want an authorize URL", start.AuthorizeURL)
-	}
-	if start.SessionURL != "" {
-		t.Fatalf("SessionURL should be empty before login, got %q", start.SessionURL)
-	}
-
-	session, err := c.SubmitCode(ctx, "the-oauth-code")
-	if err != nil {
-		t.Fatalf("SubmitCode: %v", err)
-	}
-	if !strings.HasPrefix(session, "https://claude.ai/") {
-		t.Fatalf("session URL = %q, want a claude.ai session URL", session)
 	}
 
 	res, err := c.Exec(ctx, []string{"echo", "hello-exec"})
@@ -153,37 +88,25 @@ func TestGuestLifecycle(t *testing.T) {
 	if strings.TrimSpace(res.Stdout) != "hello-exec" || res.ExitCode != 0 {
 		t.Fatalf("Exec result = %+v", res)
 	}
-
-	logs, err := c.Logs(ctx, 0)
-	if err != nil {
-		t.Fatalf("Logs: %v", err)
-	}
-	if !strings.Contains(logs, "Remote control session ready") {
-		t.Fatalf("logs missing remote-control banner:\n%s", logs)
-	}
 }
 
 // TestGuestRunsAsCredential launches the box under an explicit OS credential and
-// checks both the PTY entrypoint (handleStart) and Exec (handleExec) run as that
-// uid. It targets the running user's own uid/gid — a no-op drop any non-root
-// process may perform — so the credential plumbing is exercised without root;
-// NoSetGroups skips the privileged setgroups call a non-root test cannot make.
+// checks Exec (handleExec) runs as that uid. It targets the running user's own
+// uid/gid — a no-op drop any non-root process may perform — so the credential
+// plumbing is exercised without root; NoSetGroups skips the privileged setgroups
+// call a non-root test cannot make.
 func TestGuestRunsAsCredential(t *testing.T) {
 	cred := &syscall.Credential{
 		Uid:         uint32(os.Getuid()),
 		Gid:         uint32(os.Getgid()),
 		NoSetGroups: true,
 	}
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t), Credential: cred})
+	_, c := startGuest(t, Options{Credential: cred})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if _, err := c.Init(ctx, InitReq{BoxID: "cred-box", Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t)}); err != nil {
 		t.Fatalf("Init: %v", err)
-	}
-	// handleStart must still bring the box up with a credential set on the PTY.
-	if _, err := c.Start(ctx); err != nil {
-		t.Fatalf("Start with credential: %v", err)
 	}
 	// handleExec must run the command as the configured uid.
 	res, err := c.Exec(ctx, []string{"id", "-u"})
@@ -201,12 +124,12 @@ func TestGuestRunsAsCredential(t *testing.T) {
 // (0666) so the host process can connect to it across a container bind mount
 // where the in-box guest runs as a different uid.
 func TestListenAndServeSocketPerms(t *testing.T) {
-	a := New(Options{ClaudeCmd: writeMockClaude(t)})
+	a := New(Options{})
 	sock := filepath.Join(t.TempDir(), "sockdir", "control.sock")
 	ctx, cancel := context.WithCancel(context.Background())
 	errc := make(chan error, 1)
 	go func() { errc <- a.ListenAndServe(ctx, sock) }()
-	t.Cleanup(func() { a.Shutdown(); cancel(); <-errc })
+	t.Cleanup(func() { cancel(); <-errc })
 
 	deadline := time.Now().Add(3 * time.Second)
 	for {
@@ -235,28 +158,6 @@ func TestListenAndServeSocketPerms(t *testing.T) {
 	}
 }
 
-// TestGuestStartAlreadyAuthenticated returns a session URL (not an authorize URL)
-// when the box already has credentials on disk.
-func TestGuestStartAlreadyAuthenticated(t *testing.T) {
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	if _, err := c.Init(ctx, InitReq{BoxID: "authed", Env: boxEnv(t, true)}); err != nil {
-		t.Fatalf("Init: %v", err)
-	}
-	start, err := c.Start(ctx)
-	if err != nil {
-		t.Fatalf("Start: %v", err)
-	}
-	if start.AuthorizeURL != "" {
-		t.Fatalf("AuthorizeURL = %q, want none for an authenticated box", start.AuthorizeURL)
-	}
-	if !strings.HasPrefix(start.SessionURL, "https://claude.ai/") {
-		t.Fatalf("SessionURL = %q, want a session URL", start.SessionURL)
-	}
-}
-
 // TestClientOverUnixSocket is the lifecycle exercised end to end through the unix
 // client (an alias assertion that the public client path works).
 func TestClientOverUnixSocket(t *testing.T) {
@@ -265,13 +166,13 @@ func TestClientOverUnixSocket(t *testing.T) {
 
 // TestGuestInitWritesFiles writes a file with the requested mode and owner.
 func TestGuestInitWritesFiles(t *testing.T) {
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
+	_, c := startGuest(t, Options{})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	target := filepath.Join(t.TempDir(), "nested", "seed.json")
 	if _, err := c.Init(ctx, InitReq{
-		Env:   boxEnv(t, false),
+		Env:   boxEnv(t),
 		Files: []sandbox.InjectFile{{Path: target, Content: []byte(`{"ok":true}`), Mode: 0o600}},
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -289,12 +190,10 @@ func TestGuestInitWritesFiles(t *testing.T) {
 	}
 }
 
-// TestGuestInitRunsScript runs a host-provided init script during Init, before
-// Start, and checks its side effect landed (a sentinel written into the box home)
-// and that the box then starts normally.
+// TestGuestInitRunsScript runs a host-provided init script during Init and checks
+// its side effect landed (a sentinel written into the box home).
 func TestGuestInitRunsScript(t *testing.T) {
 	_, c := startGuest(t, Options{
-		ClaudeCmd:      writeMockClaude(t),
 		InitScriptPath: filepath.Join(t.TempDir(), "init-script"),
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -312,18 +211,14 @@ func TestGuestInitRunsScript(t *testing.T) {
 	if _, err := os.Stat(sentinel); err != nil {
 		t.Fatalf("init script did not run (no sentinel): %v", err)
 	}
-	if _, err := c.Start(ctx); err != nil {
-		t.Fatalf("Start after init script: %v", err)
-	}
 }
 
 // TestGuestInitScriptFailureReportsBroken checks a non-zero init script does not
 // fail Init at the transport level but reports a broken box in the InitResp
-// (carrying the reason and its output), and leaves the box uninitialised so Start
-// refuses to run — the host keeps the box for inspection rather than tearing it down.
+// (carrying the reason and its output) — the host keeps the box for inspection
+// rather than tearing it down.
 func TestGuestInitScriptFailureReportsBroken(t *testing.T) {
 	_, c := startGuest(t, Options{
-		ClaudeCmd:      writeMockClaude(t),
 		InitScriptPath: filepath.Join(t.TempDir(), "init-script"),
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -331,7 +226,7 @@ func TestGuestInitScriptFailureReportsBroken(t *testing.T) {
 
 	script := "#!/bin/sh\necho boom-provisioning-error 1>&2\nexit 7\n"
 	resp, err := c.Init(ctx, InitReq{
-		Env:        boxEnv(t, false),
+		Env:        boxEnv(t),
 		InitScript: []byte(script),
 	})
 	if err != nil {
@@ -345,9 +240,6 @@ func TestGuestInitScriptFailureReportsBroken(t *testing.T) {
 	}
 	if !strings.Contains(resp.ScriptOutput, "boom-provisioning-error") {
 		t.Fatalf("ScriptOutput missing the script's output: %q", resp.ScriptOutput)
-	}
-	if _, err := c.Start(ctx); err == nil {
-		t.Fatal("Start should refuse to run after a failed init script")
 	}
 }
 
@@ -368,10 +260,10 @@ func TestDefaultInitScriptPathOutsideSocketDir(t *testing.T) {
 
 // TestGuestExecNonZeroExit reports a non-zero exit code without erroring.
 func TestGuestExecNonZeroExit(t *testing.T) {
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
+	_, c := startGuest(t, Options{})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	res, err := c.Exec(ctx, []string{"/bin/sh", "-c", "echo out; echo err 1>&2; exit 3"})
@@ -388,25 +280,12 @@ func TestGuestExecNonZeroExit(t *testing.T) {
 
 // TestGuestUnknownVerb returns an error for an unrecognised verb.
 func TestGuestUnknownVerb(t *testing.T) {
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
+	_, c := startGuest(t, Options{})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	err := c.call(ctx, "bogus", nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "unknown verb") {
 		t.Fatalf("err = %v, want unknown verb", err)
-	}
-}
-
-// TestGuestSubmitCodeBeforeStart errors when called before Start.
-func TestGuestSubmitCodeBeforeStart(t *testing.T) {
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
-		t.Fatalf("Init: %v", err)
-	}
-	if _, err := c.SubmitCode(ctx, "x"); err == nil || !strings.Contains(err.Error(), "not started") {
-		t.Fatalf("err = %v, want 'not started'", err)
 	}
 }
 
@@ -449,18 +328,6 @@ func TestGuestEntryEnvKeepsInitValues(t *testing.T) {
 	}
 }
 
-// TestGuestEntrypointNamesDefaultSession adds a --name for the box's default
-// session when a box ID is set, and omits it otherwise.
-func TestGuestEntrypointNamesDefaultSession(t *testing.T) {
-	a := New(Options{ClaudeCmd: "claude"})
-	if got := a.entrypoint(InitReq{BoxID: "mybox"}); !strings.Contains(got, "--name mybox-default") {
-		t.Fatalf("entrypoint = %q, want a --name for the default session", got)
-	}
-	if got := a.entrypoint(InitReq{}); strings.Contains(got, "--name") {
-		t.Fatalf("entrypoint = %q, want no --name when box ID is empty", got)
-	}
-}
-
 // TestClientDialPort reaches a listener inside the box through the guest, and
 // TestGuestDialRejectsBadPort rejects an out-of-range port.
 func TestClientDialPort(t *testing.T) {
@@ -493,7 +360,7 @@ func TestClientDialPort(t *testing.T) {
 	}()
 	port := ln.Addr().(*net.TCPAddr).Port
 
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
+	_, c := startGuest(t, Options{})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -516,7 +383,7 @@ func TestClientDialPort(t *testing.T) {
 
 // TestGuestDialRejectsBadPort writes an error response for an out-of-range port.
 func TestGuestDialRejectsBadPort(t *testing.T) {
-	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
+	_, c := startGuest(t, Options{})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if _, err := c.DialPort(ctx, 70000); err == nil || !strings.Contains(err.Error(), "out of range") {

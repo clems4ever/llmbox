@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { boxId, createdAt, isExpired, phaseTone, shortTime, stateTone } from "./format";
+import { boxId, createdAt, isBroken, isExpired, shortTime, stateTone } from "./format";
 
 describe("shortTime", () => {
   it("trims an ISO timestamp to minutes and drops the T", () => {
@@ -40,22 +40,17 @@ describe("boxId", () => {
   });
 });
 
-describe("phaseTone", () => {
-  it("maps ready/running to ready", () => {
-    expect(phaseTone("ready")).toBe("ready");
-    expect(phaseTone("Running")).toBe("ready");
+describe("isBroken", () => {
+  it("is true only for a broken phase, case-insensitively", () => {
+    expect(isBroken("broken")).toBe(true);
+    expect(isBroken("Broken")).toBe(true);
   });
-  it("maps error/fail phases to error", () => {
-    expect(phaseTone("error")).toBe("error");
-    expect(phaseTone("provision-failed")).toBe("error");
+  it("is false for a healthy (empty) phase", () => {
+    expect(isBroken("")).toBe(false);
   });
-  it("maps a broken box (init script failed) to error", () => {
-    expect(phaseTone("broken")).toBe("error");
-    expect(phaseTone("Broken")).toBe("error");
-  });
-  it("maps anything else to pending", () => {
-    expect(phaseTone("pending")).toBe("pending");
-    expect(phaseTone("")).toBe("pending");
+  it("is false (and does not throw) when phase is undefined", () => {
+    // Healthy boxes omit phase, so the API sends undefined.
+    expect(isBroken(undefined)).toBe(false);
   });
 });
 
@@ -72,5 +67,8 @@ describe("stateTone", () => {
   it("maps other backend states to stopped", () => {
     expect(stateTone("exited")).toBe("stopped");
     expect(stateTone("")).toBe("stopped");
+  });
+  it("does not throw on an undefined state", () => {
+    expect(stateTone(undefined)).toBe("stopped");
   });
 });

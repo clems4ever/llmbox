@@ -26,8 +26,8 @@ func TestDefault(t *testing.T) {
 	if c.PublicURL != DefaultPublicURL {
 		t.Errorf("PublicURL = %q, want %q", c.PublicURL, DefaultPublicURL)
 	}
-	if time.Duration(c.AuthTTL) != DefaultAuthTTL {
-		t.Errorf("AuthTTL = %v, want %v", time.Duration(c.AuthTTL), DefaultAuthTTL)
+	if time.Duration(c.Auth.SessionTTL) != DefaultSessionTTL {
+		t.Errorf("SessionTTL = %v, want %v", time.Duration(c.Auth.SessionTTL), DefaultSessionTTL)
 	}
 	if c.StateFile != DefaultStateFile {
 		t.Errorf("StateFile = %q, want %q", c.StateFile, DefaultStateFile)
@@ -39,7 +39,6 @@ func TestLoad(t *testing.T) {
 	path := write(t, `
 http_addr: ":9090"
 public_url: "https://boxes.example.com"
-auth_ttl: "10m"
 state_file: "/var/lib/llmbox/sessions.db"
 hooks:
   - /opt/granular-llmbox/hook
@@ -50,9 +49,6 @@ hooks:
 	}
 	if c.HTTPAddr != ":9090" || c.PublicURL != "https://boxes.example.com" {
 		t.Errorf("addr/url = %q / %q", c.HTTPAddr, c.PublicURL)
-	}
-	if time.Duration(c.AuthTTL) != 10*time.Minute {
-		t.Errorf("AuthTTL = %v, want 10m", time.Duration(c.AuthTTL))
 	}
 	if c.StateFile != "/var/lib/llmbox/sessions.db" {
 		t.Errorf("StateFile = %q", c.StateFile)
@@ -66,7 +62,7 @@ hooks:
 // (image, backend, resource caps, registries) are rejected as unknown keys, so a
 // stale hub config surfaces the move rather than being silently ignored.
 func TestLoadRejectsBoxRunningKey(t *testing.T) {
-	for _, key := range []string{"claude_image", "backend", "remote_args", "box_peers", "box", "firecracker", "registries"} {
+	for _, key := range []string{"box_image", "backend", "remote_args", "box_peers", "box", "firecracker", "registries"} {
 		if _, err := Load(write(t, key+": x\n")); err == nil {
 			t.Errorf("Load with %q = nil, want unknown-key error", key)
 		}
@@ -100,8 +96,8 @@ func TestLoadAppliesDefaults(t *testing.T) {
 	if c.HTTPAddr != DefaultHTTPAddr {
 		t.Errorf("HTTPAddr = %q, want default", c.HTTPAddr)
 	}
-	if time.Duration(c.AuthTTL) != DefaultAuthTTL {
-		t.Errorf("AuthTTL = %v, want default", time.Duration(c.AuthTTL))
+	if time.Duration(c.Auth.SessionTTL) != DefaultSessionTTL {
+		t.Errorf("SessionTTL = %v, want default", time.Duration(c.Auth.SessionTTL))
 	}
 	if c.StateFile != DefaultStateFile {
 		t.Errorf("StateFile = %q, want default", c.StateFile)
@@ -133,18 +129,18 @@ func TestLoadRejectsUnknownKey(t *testing.T) {
 
 // TestLoadParsesDuration checks a duration string is parsed.
 func TestLoadParsesDuration(t *testing.T) {
-	c, err := Load(write(t, "auth_ttl: \"90s\"\n"))
+	c, err := Load(write(t, "auth:\n  session_ttl: \"90s\"\n"))
 	if err != nil {
 		t.Fatalf("Load = %v", err)
 	}
-	if time.Duration(c.AuthTTL) != 90*time.Second {
-		t.Errorf("AuthTTL = %v, want 90s", time.Duration(c.AuthTTL))
+	if time.Duration(c.Auth.SessionTTL) != 90*time.Second {
+		t.Errorf("SessionTTL = %v, want 90s", time.Duration(c.Auth.SessionTTL))
 	}
 }
 
 // TestLoadRejectsBadDuration checks an unparseable duration is an error.
 func TestLoadRejectsBadDuration(t *testing.T) {
-	if _, err := Load(write(t, "auth_ttl: \"not-a-duration\"\n")); err == nil {
+	if _, err := Load(write(t, "auth:\n  session_ttl: \"not-a-duration\"\n")); err == nil {
 		t.Error("Load bad duration = nil, want error")
 	}
 }
@@ -183,7 +179,6 @@ auth:
     enabled: true
     client_id: "cid"
     client_secret_file: "`+secret+`"
-    allowed_domains: ["corp.com"]
 `)
 	c, err := Load(cfgPath)
 	if err != nil {
@@ -199,26 +194,6 @@ auth:
 	if time.Duration(c.Auth.SessionTTL) != 30*time.Minute {
 		t.Errorf("SessionTTL = %v, want 30m", time.Duration(c.Auth.SessionTTL))
 	}
-	if len(g.AllowedDomains) != 1 || g.AllowedDomains[0] != "corp.com" {
-		t.Errorf("AllowedDomains = %v", g.AllowedDomains)
-	}
-}
-
-// TestLoadGoogleRequiresAllowlist checks enabling Google with no allow rule is a
-// hard error (it would otherwise authorize every Google account).
-func TestLoadGoogleRequiresAllowlist(t *testing.T) {
-	dir := t.TempDir()
-	secret := writeFile(t, dir, "secret", "s")
-	cfgPath := writeFile(t, dir, "llmbox.yaml", `
-auth:
-  google:
-    enabled: true
-    client_id: "cid"
-    client_secret_file: "`+secret+`"
-`)
-	if _, err := Load(cfgPath); err == nil {
-		t.Error("Load with no allow rule = nil, want error")
-	}
 }
 
 // TestLoadGoogleMissingSecretFile checks an unreadable client secret file errors.
@@ -230,7 +205,6 @@ auth:
     enabled: true
     client_id: "cid"
     client_secret_file: "`+filepath.Join(dir, "nope")+`"
-    allowed_domains: ["corp.com"]
 `)
 	if _, err := Load(cfgPath); err == nil {
 		t.Error("Load with missing secret file = nil, want error")

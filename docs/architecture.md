@@ -1,71 +1,58 @@
 # Architecture
 
-How llmbox is put together and why the auth secret stays out of the chatbot.
+How llmbox is put together. llmbox is **pure box infrastructure**: it provides the
+sandbox lifecycle (create/destroy/pause/resume/exec/dial) and an HTTP proxy for a
+box's ports. A box's actual workload is installed and started by the **spoke's
+init script** — llmbox itself never runs the workload.
 
-## The auth secret never touches the chatbot
+## Two surfaces on one port
 
-The OAuth code exchanges for a full-scope account token, so it must never enter
-the model's context. This is split accordingly across two paths on the single
-server port:
+Everything is served on the single server port, split across two paths:
 
 | Path             | Audience | Carries |
 |------------------|----------|---------|
-| `/api/v1/...`    | the chatbot, via the `llmbox-mcp` binary (which serves MCP and forwards here) | box IDs + the **auth page URL** only |
-| `/auth/{token}`  | the human, in a browser | the **OAuth code** (browser → this server → container stdin) |
+| `/api/v1/...`    | the chatbot, via the `llmbox-mcp` binary (which serves MCP and forwards here) | box-control verbs (create/get/list/exec/destroy + proxy) |
+| the UI           | a human, in a browser | the admin dashboard, the OIDC sign-in page, and health |
 
-The code travels from the user's browser to the box's `claude auth login`
-process; it is never an MCP input or output and is never logged.
+The `/api/v1/*` API is authenticated by an **API key** (headless callers) or an
+**admin login session** (the web app). The UI's admin dashboard and the per-box
+[HTTP proxies](proxy.md) are gated by **admin OIDC sign-in** (see
+[Authentication](authentication.md)).
 
 ## Flow
 
 ```
 chat: "create an llmbox"
-  └─ create_llmbox ──▶ starts a box parked at `claude auth login`,
-                       captures its OAuth authorize URL,
-                       returns  https://YOUR_HOST/auth/<token>   (+ auth_token)
+  └─ create_llmbox ──▶ hub places the box on a spoke
+                       spoke provisions it by running its --init-script once
+                       returns  box_id + instance_id
 
-user opens that URL ──▶ "Sign in with Claude" (their account) ──▶ copies the code
-                   ──▶ pastes it into the page ──▶ server feeds it to the box
+exec_llmbox / *_llmbox_proxy ──▶ run commands in the box, or expose its ports
 
-box finishes login ──▶ `claude remote-control` starts ──▶ session URL
-  └─ get_llmbox(box_id) ──▶ returns the session URL once ready
+get_llmbox / list_llmboxes ──▶ inspect boxes (phase "ready", or "broken"
+                               with the failed init script's output)
 ```
 
-Boxes that are never authenticated are destroyed after `auth_ttl`
-(default 5 minutes) — see [Orphan cleanup](operations.md#orphan-cleanup).
-
-## The activation page
-
-This is what the user sees at the auth-page URL — paste the code to activate, and
-the box reports ready with its session URL. The page is responsive, so on a phone
-it drops the card framing and fills the screen. These images are **captured by the
-end-to-end test** (headless Chrome via WebDriver) and refreshed by CI **on the
-pull request** that changes the UI — committed straight into the PR's diff — so
-they always reflect the current UI and stay reviewable; see
-[Testing](development.md#testing).
-
-| Activate | Ready | On mobile |
-|----------|-------|-----------|
-| ![The llmbox activation page](../.github/screenshots/auth-page.png) | ![The activated llmbox page showing the session URL](../.github/screenshots/auth-ready.png) | ![The llmbox activation page on a phone-sized screen](../.github/screenshots/auth-page-mobile.png) |
+A box whose init script succeeds is phase **`ready`** immediately. A box whose
+init script **fails** is kept for inspection as phase **`broken`**, with the
+captured script output surfaced on the box (`last_error`).
 
 ## Components
 
 | Path                 | What it is |
 |----------------------|------------|
-| `cmd/llmbox-server`  | Entry point: opens the session store, runs the HTTP server (box-control API + auth pages) and the reaper. |
-| `internal/spoke/docker`    | Box lifecycle over the Docker Engine API (create with image auto-pull + box-ID uniqueness, graceful destroy, reap); login/code-submit/exec run in the box's `internal/guest`. |
-| `internal/hub`    | Session registry (persisted to SQLite), MCP tools, auth web pages, reaper loop. |
-| `internal/guest`  | The `llmbox-guest` init that runs **inside** each box: drives `claude auth login` / `remote-control`, captures the OAuth and session URLs, and serves exec/logs to the spoke. |
-| `Dockerfile`         | Image for **this server** (`llmbox`). Carries only the llmbox server binary; it neither runs nor ships Claude. |
-| `Dockerfile.box`     | Default box image (the spoke's `--image`). Bakes in the standalone Claude binary, tini (PID 1), util-linux, Node.js + pm2 (so Claude can run daemons), and a CA bundle. |
+| `cmd/llmbox-server`  | Entry point (the hub): opens the state store and runs the HTTP server (box-control API + admin/sign-in UI). |
+| `cmd/llmbox-mcp`     | The MCP binary: serves the MCP protocol and forwards every tool call to the hub's box-control API. |
+| `cmd/llmbox-spoke`   | The spoke: connects to the hub and runs the box backend (Docker or Firecracker). Provisions each box with its `--init-script` and can publish box ports with `--publish-port`. |
+| `internal/spoke/docker` / `internal/spoke/firecracker` | Box lifecycle over the Docker Engine API or as a Firecracker microVM. Exec/dial and init-script provisioning run in the box's `internal/guest`. |
+| `internal/hub`       | Box registry (persisted to SQLite), MCP tools, admin UI, OIDC sign-in, spoke routing. |
+| `internal/guest`     | The `llmbox-guest` init that runs **inside** each box. It serves exactly three verbs to the spoke — `Init` (runs the host-provided init script once), `Exec` (run a command), and `Dial` (open a byte stream to a box port for the proxy). |
+| `Dockerfile`         | Image for **this server** (`llmbox`). Carries only the llmbox server binary. |
+| `Dockerfile.box`     | Default box image (the spoke's `--image`). A generic sandbox base with `tini` as PID 1 (so short-lived processes are reaped) plus Node.js + pm2 for running daemons. The workload itself is provisioned by the spoke's init script. |
 
-Boxes run on the box image (the spoke's `--image` flag, default
-`ghcr.io/clems4ever/llmbox-box`, built by `Dockerfile.box`), which **bakes in**
-the standalone Claude binary along with `tini`, plus a small `~/.claude.json`
-seed that pre-answers the workspace-trust dialog. Each box runs as root with
-`HOME=/root` and a `/workspace` working directory. The entrypoint runs under
-`tini` as PID 1, so the many short-lived processes Claude's tools spawn are
-reaped instead of accumulating as zombies. The default image also ships Node.js
-and `pm2`, so Claude can start, list, and stop long-running daemons at runtime
-(`pm2 start <cmd>`). Any glibc image bundling Claude, `tini`, `/bin/sh`,
-`util-linux` (for `script`), and CA certificates works.
+Boxes run on the box image (the spoke's `--image` flag). Each box runs on its own
+isolated network and gets a local box-port control socket for
+[box-initiated port publishing](proxy.md#box-initiated-port-publishing). The box's
+workload — whatever the integration needs — is installed and started by the
+spoke's `--init-script`; see [Customising boxes with an init
+script](hub-and-spoke.md#customising-boxes-with-an-init-script).
