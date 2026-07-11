@@ -351,6 +351,21 @@ func TestGuestInitScriptFailureReportsBroken(t *testing.T) {
 	}
 }
 
+// TestDefaultInitScriptPathOutsideSocketDir guards against a Firecracker EACCES
+// regression: the init script must not be written under the 0700 control-socket
+// dir (/run/llmbox), because it is exec'd as the unprivileged box user, which
+// cannot traverse a directory locked to the guest's own (root) user. It must live
+// in a world-traversable location so execve as the box user succeeds on every
+// backend (Docker runs the guest as root and slipped through; Firecracker drops
+// to the box user and did not).
+func TestDefaultInitScriptPathOutsideSocketDir(t *testing.T) {
+	const socketDir = "/run/llmbox" // matches docker.socketMountTarget
+	dir := filepath.Dir(defaultInitScriptPath)
+	if dir == socketDir || strings.HasPrefix(dir, socketDir+"/") {
+		t.Fatalf("init script %q lives under the 0700 socket dir %q; the box user cannot traverse it (EACCES on execve)", defaultInitScriptPath, socketDir)
+	}
+}
+
 // TestGuestExecNonZeroExit reports a non-zero exit code without erroring.
 func TestGuestExecNonZeroExit(t *testing.T) {
 	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
