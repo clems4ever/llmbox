@@ -59,6 +59,18 @@
 			"documentation_hash": "ddacb9bcc0f84d946c910b2a7dda36e18485a68378abeefbdf97ef4eae58173d",
 			"definition_hash": "41555185c9789614d886c57f3fd68d58333f914279e30b70f913738497105867",
 			"reviewed_at": "2026-07-10T15:37:12.833854839Z"
+		},
+		{
+			"function_name": "TestFirecrackerFetchCmd",
+			"documentation_hash": "fc9eaa7dda0c44ae28c204a42c81ecb625fe054c3bc8a654311f2d98e6df90b5",
+			"definition_hash": "06f9ff35e5a7331f870ad07169951557d0c5b17a0ddd66f4e11ba529b9cff74d",
+			"reviewed_at": "2026-07-10T20:17:03.201478348Z"
+		},
+		{
+			"function_name": "TestRunFirecrackerFetchBadRegistry",
+			"documentation_hash": "ab8233356da03032b0b25bd5b9cfa107d2b9494f2138d185491a827c666d05c3",
+			"definition_hash": "d0d801cc924c9091483703e91fb735a4732d291492373c16e80528b522bb7273",
+			"reviewed_at": "2026-07-10T20:17:03.202174498Z"
 		}
 	]
 }
