@@ -289,6 +289,61 @@ func TestGuestInitWritesFiles(t *testing.T) {
 	}
 }
 
+// TestGuestInitRunsScript runs a host-provided init script during Init, before
+// Start, and checks its side effect landed (a sentinel written into the box home)
+// and that the box then starts normally.
+func TestGuestInitRunsScript(t *testing.T) {
+	_, c := startGuest(t, Options{
+		ClaudeCmd:      writeMockClaude(t),
+		InitScriptPath: filepath.Join(t.TempDir(), "init-script"),
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	home := t.TempDir()
+	sentinel := filepath.Join(home, "provisioned")
+	script := "#!/bin/sh\necho customising box\ntouch \"$HOME/provisioned\"\n"
+	if err := c.Init(ctx, InitReq{
+		Env:        []string{"HOME=" + home, "PATH=" + os.Getenv("PATH")},
+		InitScript: []byte(script),
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Fatalf("init script did not run (no sentinel): %v", err)
+	}
+	if _, err := c.Start(ctx); err != nil {
+		t.Fatalf("Start after init script: %v", err)
+	}
+}
+
+// TestGuestInitScriptFailureFailsInit checks a non-zero init script fails Init
+// (carrying a tail of its output) and leaves the box uninitialised so Start
+// refuses to run.
+func TestGuestInitScriptFailureFailsInit(t *testing.T) {
+	_, c := startGuest(t, Options{
+		ClaudeCmd:      writeMockClaude(t),
+		InitScriptPath: filepath.Join(t.TempDir(), "init-script"),
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	script := "#!/bin/sh\necho boom-provisioning-error 1>&2\nexit 7\n"
+	err := c.Init(ctx, InitReq{
+		Env:        boxEnv(t, false),
+		InitScript: []byte(script),
+	})
+	if err == nil {
+		t.Fatal("Init should have failed on a non-zero init script")
+	}
+	if !strings.Contains(err.Error(), "boom-provisioning-error") {
+		t.Fatalf("error missing script output tail: %v", err)
+	}
+	if _, err := c.Start(ctx); err == nil {
+		t.Fatal("Start should refuse to run after a failed init script")
+	}
+}
+
 // TestGuestExecNonZeroExit reports a non-zero exit code without erroring.
 func TestGuestExecNonZeroExit(t *testing.T) {
 	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})

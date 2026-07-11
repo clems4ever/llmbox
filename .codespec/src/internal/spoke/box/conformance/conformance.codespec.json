@@ -3,8 +3,8 @@
 		{
 			"function_name": "Run",
 			"documentation_hash": "3c9e4e8da0a06a3a316270c6edbaaaae011cc672bf2f629147c9b0e4ad2fed1a",
-			"definition_hash": "3fc4ea06ccde2122ed67324a7c4ac9398b3563483dbce13484f33f44f16d0271",
-			"reviewed_at": "2026-06-30T16:10:22.197702403Z"
+			"definition_hash": "c2de9a4e458227e257b385618b6ffdcb4fd7eec7eb33dabf5c62e2ad94947beb",
+			"reviewed_at": "2026-07-11T09:32:51.314351759Z"
 		},
 		{
 			"function_name": "opCtx",
@@ -53,6 +53,18 @@
 			"documentation_hash": "e2f1f52121c30da797f97dc7c892d25150287494c85fa39495f811f8c82bb8dc",
 			"definition_hash": "d8caaa06bb33cb69993d11465795b21468320a61a75c32b782a571621f803851",
 			"reviewed_at": "2026-06-30T15:28:59.214513769Z"
+		},
+		{
+			"function_name": "testInitScript",
+			"documentation_hash": "b7b598a6e49209e21ac2270aa37331145e5f5e4b418abde8268c5773d80d47bf",
+			"definition_hash": "d4854da7ab7354a0cc9ff1b0103623a67f8d2c9a2123885e7d9dcfe10f747637",
+			"reviewed_at": "2026-07-11T09:32:51.314771529Z"
+		},
+		{
+			"function_name": "testInitScriptFailure",
+			"documentation_hash": "5b09b68c35ded5a8764e60086e2f20b21cc61779f9697874ea090c0cf740343f",
+			"definition_hash": "17b069351085521aabd37a65a294e3370d53cafc4df64ea552642b212e3b93d6",
+			"reviewed_at": "2026-07-11T09:32:51.315147551Z"
 		}
 	]
 }

@@ -37,6 +37,8 @@ func Run(t *testing.T, newProv NewProvisioner) {
 	t.Run("DuplicateBoxID", func(t *testing.T) { testDuplicateBoxID(t, newProv) })
 	t.Run("MaxBoxes", func(t *testing.T) { testMaxBoxes(t, newProv) })
 	t.Run("ReapOrphans", func(t *testing.T) { testReapOrphans(t, newProv) })
+	t.Run("InitScript", func(t *testing.T) { testInitScript(t, newProv) })
+	t.Run("InitScriptFailure", func(t *testing.T) { testInitScriptFailure(t, newProv) })
 }
 
 // opCtx returns a context bounded to a generous per-operation timeout, cancelled
@@ -100,6 +102,56 @@ func testLifecycle(t *testing.T, newProv NewProvisioner) {
 	}
 	if !strings.Contains(logs, "Remote control session ready") {
 		t.Fatalf("logs missing remote-control banner:\n%s", logs)
+	}
+}
+
+// testInitScript checks a host-provided init script runs inside the box during
+// Create, before claude starts, as the box user: its side effect (a file written
+// into the box) is observable afterwards via Exec. It is part of the shared
+// contract so every backend proves the provisioning hook fires in a real box.
+//
+// @arg t The test to assert under.
+// @arg newProv Builds the provisioner under test.
+//
+// @testcase TestConformanceFake runs testInitScript as a subtest.
+func testInitScript(t *testing.T, newProv NewProvisioner) {
+	script := "#!/bin/sh\necho box-was-provisioned > \"$HOME/init-marker\"\n"
+	m := box.NewManager(newProv(t), box.Config{InitScript: []byte(script)})
+	ctx := opCtx(t)
+
+	id, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "init-box"})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	res, err := m.Exec(ctx, id, []string{"sh", "-c", "cat \"$HOME/init-marker\""})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+	if strings.TrimSpace(res.Stdout) != "box-was-provisioned" || res.ExitCode != 0 {
+		t.Fatalf("init script side effect missing: %+v", res)
+	}
+}
+
+// testInitScriptFailure checks a non-zero init script fails Create and leaves no
+// box behind, so a broken provisioning step never yields a half-created box.
+//
+// @arg t The test to assert under.
+// @arg newProv Builds the provisioner under test.
+//
+// @testcase TestConformanceFake runs testInitScriptFailure as a subtest.
+func testInitScriptFailure(t *testing.T, newProv NewProvisioner) {
+	m := box.NewManager(newProv(t), box.Config{InitScript: []byte("#!/bin/sh\nexit 9\n")})
+	ctx := opCtx(t)
+
+	if _, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "bad-init"}); err == nil {
+		t.Fatal("Create should fail when the init script exits non-zero")
+	}
+	boxes, err := m.List(ctx)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(boxes) != 0 {
+		t.Fatalf("failed init left %d boxes behind, want 0", len(boxes))
 	}
 }
 

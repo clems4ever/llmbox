@@ -107,6 +107,18 @@
 			"documentation_hash": "5463c5e49842c45c34f71dc67777aa25b63c08f2c7f7078459b40bf9883f007c",
 			"definition_hash": "cba0e750ab41224cb011e50aac578bc35482452b944f7d1b02958037a1ea9f65",
 			"reviewed_at": "2026-07-11T07:31:34.558570202Z"
+		},
+		{
+			"function_name": "TestGuestInitRunsScript",
+			"documentation_hash": "c87bf24c6e0bcd29ee859123b98e28bb22fa418d78e189ff67bc6f0d50720748",
+			"definition_hash": "fd1cd30df3ea58ee08cce0134a9dd53f9e00877628464fe5bd6908b9d1c8ce66",
+			"reviewed_at": "2026-07-11T09:32:51.30559849Z"
+		},
+		{
+			"function_name": "TestGuestInitScriptFailureFailsInit",
+			"documentation_hash": "65f7418f329c3a92b7af1b6d9631d15ed284bd24e460cecdc0d861da077fb69f",
+			"definition_hash": "8ca0f5bf4543233d47ae3f53be8a5d8f1d053b01fb16695c9cf97d06ba843ca1",
+			"reviewed_at": "2026-07-11T09:32:51.306555105Z"
 		}
 	]
 }

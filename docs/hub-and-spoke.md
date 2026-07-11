@@ -111,8 +111,28 @@ Token and credential records live in the hub's SQLite state file
   the single command the admin UI generates. Because the hub runs no box backend,
   the per-box knobs live entirely on the spoke: `--image`, `--box-memory-mb`,
   `--box-cpus`, `--box-pids-limit`, `--box-socket-dir`, `--box-peer`,
-  `--remote-args`, `--registry[-username|-password-file]`. Run
+  `--remote-args`, `--init-script`, `--registry[-username|-password-file]`. Run
   `llmbox-spoke --help` for the full list.
+
+#### Customising boxes with an init script
+
+`--init-script <path>` points at a script **on the spoke host** that runs inside
+every box this spoke spawns, once at creation, **before** claude starts — a way to
+customise boxes (install packages, drop dotfiles, seed a workspace) without
+rebuilding the image. It applies to both the Docker and Firecracker backends and
+never crosses the hub/spoke boundary.
+
+- The script is read once when the spoke starts (a missing or empty file fails the
+  spoke immediately), so editing it takes effect on the next spoke restart.
+- It runs as the **box user** — root on the Docker backend, the unprivileged
+  `agent` user (with passwordless `sudo`) on Firecracker — from that user's home
+  directory, so use `sudo` for system-level changes on Firecracker.
+- Give it a shebang (e.g. `#!/bin/sh`); it is executed directly.
+- A **non-zero exit fails box creation** and tears the half-created box down, with
+  a tail of the script's output in the error, so a broken provisioning step is
+  loud rather than silent.
+- `--init-script-timeout` (default `5m`) bounds each run; a script that exceeds it
+  fails creation.
 
 ### Sharing one Docker daemon: namespaces
 

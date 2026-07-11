@@ -55,10 +55,10 @@ func TestWriteInjectFileDefaultMode(t *testing.T) {
 // TestHandleInitTwiceErrors rejects a second Init.
 func TestHandleInitTwiceErrors(t *testing.T) {
 	a := New(Options{})
-	if err := a.handleInit(InitReq{}); err != nil {
+	if err := a.handleInit(context.Background(), InitReq{}); err != nil {
 		t.Fatalf("first Init: %v", err)
 	}
-	if err := a.handleInit(InitReq{}); err == nil {
+	if err := a.handleInit(context.Background(), InitReq{}); err == nil {
 		t.Fatal("second Init should fail")
 	}
 }

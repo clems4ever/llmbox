@@ -104,7 +104,7 @@ func TestNewRootCmd(t *testing.T) {
 	}
 
 	// Flags every backend subcommand shares, plus the config-free invariant.
-	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "remote-args", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "registry", "registry-username", "registry-password-file"}
+	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "remote-args", "init-script", "init-script-timeout", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "registry", "registry-username", "registry-password-file"}
 
 	docker := subcmd(t, cmd, "docker")
 	for _, f := range append([]string{"box-gpus", "image"}, common...) {
@@ -250,6 +250,60 @@ func TestRunSpokeRejectsBadGPUs(t *testing.T) {
 	err := runSpoke(context.Background(), o)
 	if err == nil || !strings.Contains(err.Error(), "box-gpus") {
 		t.Fatalf("runSpoke err = %v, want a box-gpus error", err)
+	}
+}
+
+// TestRunSpokeRejectsBadInitScript checks --init-script is validated up front: a
+// path that cannot be read fails the spoke before it does any hub work.
+func TestRunSpokeRejectsBadInitScript(t *testing.T) {
+	o := spokeOptions{
+		hubURL:         "wss://hub/spoke/connect",
+		token:          "tok",
+		statePath:      filepath.Join(t.TempDir(), "none.json"),
+		initScriptPath: filepath.Join(t.TempDir(), "does-not-exist.sh"),
+	}
+	err := runSpoke(context.Background(), o)
+	if err == nil || !strings.Contains(err.Error(), "init-script") {
+		t.Fatalf("runSpoke err = %v, want an init-script error", err)
+	}
+}
+
+// TestSpokeInitScriptFromFlag checks --init-script reads the file's bytes and that
+// an unset flag yields no script.
+func TestSpokeInitScriptFromFlag(t *testing.T) {
+	// Unset: no script, no error.
+	if s, err := (spokeOptions{}).initScript(); err != nil || s != nil {
+		t.Fatalf("initScript(unset) = (%q, %v), want (nil, nil)", s, err)
+	}
+
+	path := filepath.Join(t.TempDir(), "provision.sh")
+	body := "#!/bin/sh\napt-get install -y jq\n"
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	s, err := (spokeOptions{initScriptPath: path}).initScript()
+	if err != nil {
+		t.Fatalf("initScript: %v", err)
+	}
+	if string(s) != body {
+		t.Fatalf("initScript = %q, want %q", s, body)
+	}
+}
+
+// TestSpokeInitScriptErrors checks --init-script rejects a missing file and an
+// empty (whitespace-only) script, so a misconfigured provisioning file fails the
+// spoke at startup rather than silently on every box create.
+func TestSpokeInitScriptErrors(t *testing.T) {
+	if _, err := (spokeOptions{initScriptPath: filepath.Join(t.TempDir(), "nope.sh")}).initScript(); err == nil {
+		t.Error("initScript(missing file) = nil error, want error")
+	}
+
+	empty := filepath.Join(t.TempDir(), "empty.sh")
+	if err := os.WriteFile(empty, []byte("   \n\t\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (spokeOptions{initScriptPath: empty}).initScript(); err == nil {
+		t.Error("initScript(empty file) = nil error, want error")
 	}
 }
 

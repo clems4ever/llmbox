@@ -81,6 +81,11 @@ type spokeOptions struct {
 	tlsInsecure bool
 	boxGPUs     string
 	remoteArgs  string
+	// initScriptPath is a host file run inside every box this spoke spawns, once at
+	// creation, before claude starts, so a spoke can customise its boxes without
+	// rebuilding the image; empty runs nothing. initScriptTimeout bounds each run.
+	initScriptPath    string
+	initScriptTimeout time.Duration
 	// backend is the box isolation backend this spoke runs ("docker" or
 	// "firecracker"); it is set from the chosen run subcommand, not a flag.
 	backend string
@@ -140,6 +145,30 @@ func (o spokeOptions) registries() ([]boxconfig.RegistryConfig, error) {
 		Username: o.registry.username,
 		Password: strings.TrimSpace(string(data)),
 	}}, nil
+}
+
+// initScript reads the spoke's --init-script file into the bytes the box manager
+// runs inside every box. It returns nil (no script) when the flag is unset, and
+// errors when the path is set but unreadable or empty, so a misconfigured init
+// script fails the spoke at startup rather than silently on every box create.
+//
+// @return []byte The init script bytes, or nil when --init-script is unset.
+// @error error if the configured path cannot be read or holds an empty script.
+//
+// @testcase TestSpokeInitScriptFromFlag reads a script file and returns nil when unset.
+// @testcase TestSpokeInitScriptErrors errors on a missing file and on an empty script.
+func (o spokeOptions) initScript() ([]byte, error) {
+	if o.initScriptPath == "" {
+		return nil, nil
+	}
+	data, err := os.ReadFile(o.initScriptPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading --init-script: %w", err)
+	}
+	if len(strings.TrimSpace(string(data))) == 0 {
+		return nil, fmt.Errorf("--init-script %q is empty", o.initScriptPath)
+	}
+	return data, nil
 }
 
 // hubTLS builds the TLS client config for the hub WebSocket dial. It returns nil
@@ -308,6 +337,8 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.BoolVar(&o.tlsInsecure, "tls-insecure", false, "skip TLS certificate verification when dialing a wss:// hub (testing only; prefer --tls-ca)")
 	f.StringVar(&o.box.Namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one host without collapsing each other's boxes; empty is unscoped")
 	f.StringVar(&o.remoteArgs, "remote-args", "", "args passed to `claude remote-control` in every box; empty uses the built-in default")
+	f.StringVar(&o.initScriptPath, "init-script", "", "host path to a script run inside every box on this spoke, once at creation before claude starts, as the box user; empty runs none")
+	f.DurationVar(&o.initScriptTimeout, "init-script-timeout", 5*time.Minute, "max time the --init-script may run before box creation fails")
 	f.IntVar(&o.box.MemoryMB, "box-memory-mb", boxconfig.DefaultBoxMemoryMB, "hard memory limit per box in MiB (0 = unlimited)")
 	f.Float64Var(&o.box.CPUs, "box-cpus", boxconfig.DefaultBoxCPUs, "CPU quota per box, fractional allowed (0 = unlimited)")
 	f.Int64Var(&o.box.PidsLimit, "box-pids-limit", boxconfig.DefaultBoxPidsLimit, "max processes/threads per box, blunts fork bombs (0 = unlimited)")
@@ -354,16 +385,24 @@ func addFirecrackerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 //
 // @arg parent Base context; serving stops when it (or SIGINT/SIGTERM) fires.
 // @arg o The flag-sourced options: hub URL, token, state path, and per-box Docker settings.
-// @error error if the Docker manager cannot be built, the GPU spec is malformed, a registry password file cannot be read, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
+// @error error if the Docker manager cannot be built, the GPU spec is malformed, a registry password file cannot be read, the init script cannot be read, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
 //
 // @testcase TestRunSpokeRequiresTokenOrCreds errors when neither a token nor saved credentials are available.
 // @testcase TestRunSpokeRejectsBadGPUs errors when the GPU spec is malformed.
+// @testcase TestRunSpokeRejectsBadInitScript errors when --init-script names an unreadable file.
 func runSpoke(parent context.Context, o spokeOptions) error {
 	statePath, token, hubURL := o.statePath, o.token, o.hubURL
 	// The spoke owns the box image: every box it runs launches o.image (empty uses
 	// the backend's built-in default). The hub never names an image, so nothing
 	// about the image crosses the hub/spoke boundary.
 	regs, err := o.registries()
+	if err != nil {
+		return err
+	}
+	// The init script is a spoke-local file read once here (fail fast if it is
+	// missing or empty) and run inside every box this spoke spawns; it never crosses
+	// the hub/spoke boundary.
+	initScript, err := o.initScript()
 	if err != nil {
 		return err
 	}
@@ -402,7 +441,12 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 			log.Printf("closing box backend: %v", err)
 		}
 	}()
-	mgr := box.NewManager(prov, box.Config{RemoteArgs: o.remoteArgs, MaxBoxes: o.box.MaxBoxes})
+	mgr := box.NewManager(prov, box.Config{
+		RemoteArgs:        o.remoteArgs,
+		MaxBoxes:          o.box.MaxBoxes,
+		InitScript:        initScript,
+		InitScriptTimeout: o.initScriptTimeout,
+	})
 
 	creds, err := loadSpokeCreds(statePath)
 	if err != nil {

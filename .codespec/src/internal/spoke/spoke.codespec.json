@@ -8,9 +8,9 @@
 		},
 		{
 			"function_name": "runSpoke",
-			"documentation_hash": "e1e2528558d9197deb578e6ff9c3eec368d1d2e19cf2b5a25677b8b58d127f19",
-			"definition_hash": "757205c78a1daf46acef9b95d9d0f355549fa5bbd8833d271b14ef18a44a5cb1",
-			"reviewed_at": "2026-07-08T14:50:26.499513178Z"
+			"documentation_hash": "7d2d7525b694e69cf51cc04bb1696341d2b9a8265a95616611f1fba147745ef1",
+			"definition_hash": "cf0fd7104df862e6fc9dfeb27461dbedd974d0885d0a4473158d4cbee8a23608",
+			"reviewed_at": "2026-07-11T09:32:51.311134839Z"
 		},
 		{
 			"function_name": "checkStateWritable",
@@ -46,8 +46,8 @@
 		{
 			"function_name": "addCommonSpokeFlags",
 			"documentation_hash": "2e243a42d00c9155a08f0c89d9a369dbb8cfeb0415ef8a096a56869da63cf601",
-			"definition_hash": "65cb2f866b7c4f8b0f7a52e4b8f25a1ea1b71ede3fb0eaca041b78c6a8231a5c",
-			"reviewed_at": "2026-07-10T15:37:12.829811339Z"
+			"definition_hash": "3023d52820811161421db6ddb44166d2eecfc8df4878921edfc4b080e2952e15",
+			"reviewed_at": "2026-07-11T09:32:51.312112214Z"
 		},
 		{
 			"function_name": "addDockerSpokeFlags",
@@ -85,6 +85,13 @@
 			"documentation_hash": "f885bc9e1bc21e696f97aee72e51bea820b74c5ed071f09d3351e022e12ab5ab",
 			"definition_hash": "e54cd6dbe003ab050bb19bcd892ea99cce79df758e9da05e342684783a267423",
 			"reviewed_at": "2026-07-10T20:17:03.200666286Z"
+		},
+		{
+			"function_name": "initScript",
+			"receiver": "spokeOptions",
+			"documentation_hash": "6fdd745f8b7116db8d446486e4dc19e57e52cbe2102061164d3212ebe10f0257",
+			"definition_hash": "b2bad10815ab44bd91cae4ed3482a60007e37cc76e2f595964c69148daffbf0e",
+			"reviewed_at": "2026-07-11T09:32:51.309850362Z"
 		}
 	]
 }

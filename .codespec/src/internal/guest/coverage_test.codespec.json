@@ -21,8 +21,8 @@
 		{
 			"function_name": "TestHandleInitTwiceErrors",
 			"documentation_hash": "239844865ccf5710f2f49cb05cc2b4c0082a49398cf2e4aec83b3350df865da4",
-			"definition_hash": "23215af1f5fc5bfe17ef6b13bf98d763d2a6b5ba64e6d781b416e78ae51560b7",
-			"reviewed_at": "2026-07-09T18:52:18.815021035Z"
+			"definition_hash": "4956746a59e9b4ed997420602c228cecdcb8f42d0bf7ea118eeefa50caa7ffbf",
+			"reviewed_at": "2026-07-11T09:32:51.307284709Z"
 		},
 		{
 			"function_name": "TestHandleStartBeforeInit",

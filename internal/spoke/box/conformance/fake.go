@@ -90,7 +90,11 @@ func (f *Fake) Provision(ctx context.Context, opts sandbox.CreateOptions) (box.I
 	}
 	sock := filepath.Join(dir, "control.sock")
 
-	a := guest.New(guest.Options{ClaudeCmd: f.claude, Home: home})
+	a := guest.New(guest.Options{
+		ClaudeCmd:      f.claude,
+		Home:           home,
+		InitScriptPath: filepath.Join(dir, "init-script"),
+	})
 	actx, cancel := context.WithCancel(context.Background())
 	errc := make(chan error, 1)
 	go func() { errc <- a.ListenAndServe(actx, sock) }()

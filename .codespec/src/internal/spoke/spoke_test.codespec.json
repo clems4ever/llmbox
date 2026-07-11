@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestNewRootCmd",
 			"documentation_hash": "dae2d6a178b7f74f3bd694fc4fcc5bb15e7dba852b753cd1436c30bd8d85ef0d",
-			"definition_hash": "46536521dd2deea159b26d5df423273277e86f60976529e5f42a0c69938ec968",
-			"reviewed_at": "2026-07-08T09:43:14.717381153Z"
+			"definition_hash": "0ef512046f18c3b30e8c73bc683f4a0b9baeffaae447ca0b8491229a16168e88",
+			"reviewed_at": "2026-07-11T09:33:03.197504958Z"
 		},
 		{
 			"function_name": "TestSpokeCredsRoundTrip",
@@ -71,6 +71,24 @@
 			"documentation_hash": "ab8233356da03032b0b25bd5b9cfa107d2b9494f2138d185491a827c666d05c3",
 			"definition_hash": "d0d801cc924c9091483703e91fb735a4732d291492373c16e80528b522bb7273",
 			"reviewed_at": "2026-07-10T20:17:03.202174498Z"
+		},
+		{
+			"function_name": "TestRunSpokeRejectsBadInitScript",
+			"documentation_hash": "138ec3642a72fd03b4f3fda9776f00c36c423ab00bd9f0bd04da6d8bd548dc77",
+			"definition_hash": "801a82102f8400b4a6d6dae71dbd14507990ec98e39cde52558dee9b39704efd",
+			"reviewed_at": "2026-07-11T09:32:51.312697856Z"
+		},
+		{
+			"function_name": "TestSpokeInitScriptFromFlag",
+			"documentation_hash": "01a621bc8dcb9f04f6506d2d303165d9912623df51c2943b6544de97eab3d069",
+			"definition_hash": "d6453c4b81be48a250cc2bfb5ceee7a41f3c69679c737b5016d934563f27a7e5",
+			"reviewed_at": "2026-07-11T09:32:51.313280858Z"
+		},
+		{
+			"function_name": "TestSpokeInitScriptErrors",
+			"documentation_hash": "37eb0c65196364440822759c1c5dd0e465791681c911ac6f44a232df575e0f29",
+			"definition_hash": "859694349d048cece7456733078164ab1ca4dbdf5b8c99686d74f8281a88a075",
+			"reviewed_at": "2026-07-11T09:32:51.313974154Z"
 		}
 	]
 }

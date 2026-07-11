@@ -17,8 +17,8 @@
 			"function_name": "Create",
 			"receiver": "Manager",
 			"documentation_hash": "9fb79ea35efefd670f42719ed63462337d73eac938423d675b7f83bf387566f1",
-			"definition_hash": "5d4cc8814279464069b203bc8f54f22c97c905f6ace85150aa86ba088ddb7afa",
-			"reviewed_at": "2026-07-09T21:42:06.890147954Z"
+			"definition_hash": "7105a9efb18ea4d9b14331551d91f8176be1a9ba1036b8a325b1b1c2d6bf1f14",
+			"reviewed_at": "2026-07-11T09:32:51.307908Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -68,6 +68,13 @@
 			"documentation_hash": "7d41be2079dcf4ed0a5ba6d8328811baf5371ff9e4fbbd8bcad2dac3a66fb3bb",
 			"definition_hash": "e4bb19dad87a890cd175c5f76b06d0e4075638d96b9a51830a3bafe684cfa75d",
 			"reviewed_at": "2026-07-04T20:12:47.82839037Z"
+		},
+		{
+			"function_name": "initContext",
+			"receiver": "Manager",
+			"documentation_hash": "00a01ac044cc1ef10880cdde638c9f4e643c7914ef576ac1acb7041c852c05be",
+			"definition_hash": "cafa1652ec410eb1d6eadf345f982297deb23b4c52fdd692e6f79dd71a466ae2",
+			"reviewed_at": "2026-07-11T09:32:51.308540347Z"
 		}
 	]
 }
