@@ -154,6 +154,7 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 			AuthorizeURL:     res.AuthorizeURL,
 			InitScriptFailed: res.InitScriptFailed,
 			InitScriptOutput: res.InitScriptOutput,
+			PublishPorts:     res.PublishPorts,
 		})
 	case methodSubmitCode:
 		var in submitCodeReq

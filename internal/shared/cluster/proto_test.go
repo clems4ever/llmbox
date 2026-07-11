@@ -13,6 +13,8 @@ func TestFrameRoundTrip(t *testing.T) {
 	cases := []any{
 		&createReq{Opts: sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge", Files: []sandbox.InjectFile{{Path: "/x", Content: []byte("hi"), Mode: 0o600}}}},
 		&createResp{ID: "abc123", AuthorizeURL: "https://auth"},
+		&createResp{ID: "abc123", PublishPorts: []sandbox.PublishPort{{Port: 8080, Description: "claude-control"}, {Port: 3000}}},
+		&createResp{ID: "abc123", InitScriptFailed: true, InitScriptOutput: "boom"},
 		&submitCodeReq{ID: "abc123", Code: "code-xyz"},
 		&submitCodeResp{SessionURL: "https://session"},
 		&listResp{Boxes: []sandbox.Box{{InstanceID: "c1", BoxID: "b1", Spoke: "edge"}}},

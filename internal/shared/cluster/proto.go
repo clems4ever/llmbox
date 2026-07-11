@@ -96,10 +96,11 @@ type createReq struct {
 	Opts sandbox.CreateOptions `json:"opts"`
 }
 type createResp struct {
-	ID               string `json:"id"`
-	AuthorizeURL     string `json:"authorize_url"`
-	InitScriptFailed bool   `json:"init_script_failed,omitempty"`
-	InitScriptOutput string `json:"init_script_output,omitempty"`
+	ID               string                `json:"id"`
+	AuthorizeURL     string                `json:"authorize_url"`
+	InitScriptFailed bool                  `json:"init_script_failed,omitempty"`
+	InitScriptOutput string                `json:"init_script_output,omitempty"`
+	PublishPorts     []sandbox.PublishPort `json:"publish_ports,omitempty"`
 }
 
 type submitCodeReq struct {

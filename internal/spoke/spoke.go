@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/shared/boxconfig"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/internal/spoke/box/backend"
 	_ "github.com/clems4ever/llmbox/internal/spoke/docker" // registers the "docker" box backend
@@ -86,6 +88,10 @@ type spokeOptions struct {
 	// rebuilding the image; empty runs nothing. initScriptTimeout bounds each run.
 	initScriptPath    string
 	initScriptTimeout time.Duration
+	// publishPorts are the raw --publish-port flag values ("PORT[:DESCRIPTION]",
+	// repeatable): in-box ports the hub should expose as an HTTP proxy for every box
+	// this spoke creates. Parsed by parsePublishPorts.
+	publishPorts []string
 	// backend is the box isolation backend this spoke runs ("docker" or
 	// "firecracker"); it is set from the chosen run subcommand, not a flag.
 	backend string
@@ -169,6 +175,39 @@ func (o spokeOptions) initScript() ([]byte, error) {
 		return nil, fmt.Errorf("--init-script %q is empty", o.initScriptPath)
 	}
 	return data, nil
+}
+
+// parsePublishPorts turns the raw --publish-port flag values into the port specs
+// the box manager returns on every create, validating each as "PORT[:DESCRIPTION]"
+// with a 1-65535 port and rejecting duplicates, so a typo fails the spoke at
+// startup rather than silently on every box. Returns nil when the flag is unset.
+//
+// @return []sandbox.PublishPort The parsed ports to publish, or nil when none are configured.
+// @error error if a value is malformed, out of range, or names a duplicate port.
+//
+// @testcase TestSpokeParsePublishPorts parses port and port:description forms and rejects bad input.
+func (o spokeOptions) parsePublishPorts() ([]sandbox.PublishPort, error) {
+	if len(o.publishPorts) == 0 {
+		return nil, nil
+	}
+	out := make([]sandbox.PublishPort, 0, len(o.publishPorts))
+	seen := make(map[int]bool, len(o.publishPorts))
+	for _, spec := range o.publishPorts {
+		portStr, desc := spec, ""
+		if i := strings.IndexByte(spec, ':'); i >= 0 {
+			portStr, desc = spec[:i], spec[i+1:]
+		}
+		port, err := strconv.Atoi(strings.TrimSpace(portStr))
+		if err != nil || port < 1 || port > 65535 {
+			return nil, fmt.Errorf("invalid --publish-port %q: want PORT[:DESCRIPTION] with PORT in 1-65535", spec)
+		}
+		if seen[port] {
+			return nil, fmt.Errorf("--publish-port %d is given more than once", port)
+		}
+		seen[port] = true
+		out = append(out, sandbox.PublishPort{Port: port, Description: strings.TrimSpace(desc)})
+	}
+	return out, nil
 }
 
 // hubTLS builds the TLS client config for the hub WebSocket dial. It returns nil
@@ -339,6 +378,7 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.remoteArgs, "remote-args", "", "args passed to `claude remote-control` in every box; empty uses the built-in default")
 	f.StringVar(&o.initScriptPath, "init-script", "", "host path to a script run inside every box on this spoke, once at creation before claude starts, as the box user; empty runs none")
 	f.DurationVar(&o.initScriptTimeout, "init-script-timeout", 5*time.Minute, "max time the --init-script may run before box creation fails")
+	f.StringArrayVar(&o.publishPorts, "publish-port", nil, "in-box TCP port to expose as an HTTP proxy for every box on this spoke, as PORT[:DESCRIPTION] (repeatable); needs proxying enabled on the hub")
 	f.IntVar(&o.box.MemoryMB, "box-memory-mb", boxconfig.DefaultBoxMemoryMB, "hard memory limit per box in MiB (0 = unlimited)")
 	f.Float64Var(&o.box.CPUs, "box-cpus", boxconfig.DefaultBoxCPUs, "CPU quota per box, fractional allowed (0 = unlimited)")
 	f.Int64Var(&o.box.PidsLimit, "box-pids-limit", boxconfig.DefaultBoxPidsLimit, "max processes/threads per box, blunts fork bombs (0 = unlimited)")
@@ -406,6 +446,12 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	if err != nil {
 		return err
 	}
+	// Ports this spoke exposes as HTTP proxies for every box it creates; parsed once
+	// here so a malformed --publish-port fails the spoke at startup.
+	publishPorts, err := o.parsePublishPorts()
+	if err != nil {
+		return err
+	}
 	// Select the box backend by name (Docker by default). Both Docker-specific
 	// (GPUs, registry auths) and microVM-specific (kernel/rootfs/state) fields are
 	// passed; each backend uses only the ones that apply. GPUs are machine-local,
@@ -446,6 +492,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 		MaxBoxes:          o.box.MaxBoxes,
 		InitScript:        initScript,
 		InitScriptTimeout: o.initScriptTimeout,
+		PublishPorts:      publishPorts,
 	})
 
 	creds, err := loadSpokeCreds(statePath)

@@ -299,6 +299,7 @@ func (r *remoteSpoke) Create(ctx context.Context, opts sandbox.CreateOptions) (s
 		AuthorizeURL:     resp.AuthorizeURL,
 		InitScriptFailed: resp.InitScriptFailed,
 		InitScriptOutput: resp.InitScriptOutput,
+		PublishPorts:     resp.PublishPorts,
 	}, nil
 }
 

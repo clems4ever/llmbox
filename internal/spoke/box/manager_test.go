@@ -74,6 +74,39 @@ func TestBoxManagerDialBox(t *testing.T) {
 	}
 }
 
+// TestBoxManagerReturnsConfiguredPublishPorts checks Create echoes the spoke's
+// configured publish ports on a successful create, and returns none for a box
+// whose init script failed (nothing is serving on it to expose).
+func TestBoxManagerReturnsConfiguredPublishPorts(t *testing.T) {
+	ports := []sandbox.PublishPort{{Port: 8080, Description: "claude-control"}, {Port: 3000}}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	ok := box.NewManager(conformance.NewFake(t), box.Config{PublishPorts: ports})
+	res, err := ok.Create(ctx, sandbox.CreateOptions{BoxID: "pp-box"})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if len(res.PublishPorts) != len(ports) || res.PublishPorts[0].Port != 8080 || res.PublishPorts[1].Port != 3000 {
+		t.Fatalf("PublishPorts = %+v, want %+v", res.PublishPorts, ports)
+	}
+
+	broken := box.NewManager(conformance.NewFake(t), box.Config{
+		InitScript:   []byte("#!/bin/sh\nexit 1\n"),
+		PublishPorts: ports,
+	})
+	res, err = broken.Create(ctx, sandbox.CreateOptions{BoxID: "broken-box"})
+	if err != nil {
+		t.Fatalf("Create (broken): %v", err)
+	}
+	if !res.InitScriptFailed {
+		t.Fatal("expected InitScriptFailed for a non-zero init script")
+	}
+	if len(res.PublishPorts) != 0 {
+		t.Fatalf("a broken box should publish no ports, got %+v", res.PublishPorts)
+	}
+}
+
 // stubProv is a box.Provisioner that returns canned results/errors, for driving
 // the Manager's error paths without a real backend.
 type stubProv struct {

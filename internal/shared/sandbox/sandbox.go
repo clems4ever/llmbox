@@ -81,6 +81,24 @@ type CreateResult struct {
 	// InitScriptOutput is the init script's captured output (and failure reason),
 	// set only when InitScriptFailed is true.
 	InitScriptOutput string `json:"init_script_output,omitempty"`
+	// PublishPorts are the in-box TCP ports the spoke is configured to expose as
+	// HTTP proxies for every box it creates (the spoke's --publish-port). They are
+	// returned so the hub — which owns proxy state — can publish them right after it
+	// registers the box, when the box id, spoke, and generation are all known. Empty
+	// for a spoke with no configured ports or a box that failed to come up.
+	PublishPorts []PublishPort `json:"publish_ports,omitempty"`
+}
+
+// PublishPort is one in-box TCP port a spoke publishes as an HTTP proxy for every
+// box it creates, with an optional human-readable description carried onto the
+// proxy record. It is spoke configuration (see the spoke's --publish-port), not a
+// per-request input, so it travels back from the spoke on CreateResult rather than
+// in on CreateOptions.
+type PublishPort struct {
+	// Port is the TCP port inside the box to expose (1-65535).
+	Port int `json:"port"`
+	// Description is an optional note recorded on the proxy (e.g. the service name).
+	Description string `json:"description,omitempty"`
 }
 
 // ExecResult is the captured outcome of a command run inside a box.
