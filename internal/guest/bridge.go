@@ -30,12 +30,24 @@ import (
 //
 // @testcase TestBoxAPIBridgeSplices splices bytes both ways between a client and the dialled host.
 // @testcase TestBoxAPIBridgeDialError closes the client connection when the host dial fails.
+// @testcase TestBoxAPIBridgePermitsBoxUser makes the socket dir traversable and the socket 0666 so the non-root box user can reach it.
 func RunBoxAPIBridge(ctx context.Context, socketPath string, dial func(ctx context.Context) (net.Conn, error), log *slog.Logger) error {
 	if log == nil {
 		log = slog.Default()
 	}
-	if err := os.MkdirAll(filepath.Dir(socketPath), 0o700); err != nil {
+	// The bridge runs only on the vsock (Firecracker) transport, where the box's
+	// claude runs as an unprivileged box user, not root. That user must be able to
+	// reach this socket to publish its own ports, so make the containing dir
+	// traversable and the socket world-connectable — the same access
+	// boxapi.ServeUnix grants the socket on the Docker/host side. MkdirAll leaves an
+	// existing dir's mode alone, so chmod it explicitly. There is no cross-tenant
+	// exposure to guard against here: each microVM hosts exactly one box.
+	dir := filepath.Dir(socketPath)
+	if err := os.MkdirAll(dir, 0o711); err != nil {
 		return fmt.Errorf("creating box API socket dir: %w", err)
+	}
+	if err := os.Chmod(dir, 0o711); err != nil {
+		return fmt.Errorf("making box API socket dir traversable: %w", err)
 	}
 	// Remove a stale socket left by a previous run so bind succeeds on restart.
 	if err := os.Remove(socketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -46,6 +58,11 @@ func RunBoxAPIBridge(ctx context.Context, socketPath string, dial func(ctx conte
 		return fmt.Errorf("listening on box API socket: %w", err)
 	}
 	defer ln.Close()
+	// The box user (not the root guest serving it) connects here, so the socket
+	// must be writable by non-owners.
+	if err := os.Chmod(socketPath, 0o666); err != nil {
+		return fmt.Errorf("setting box API socket mode: %w", err)
+	}
 
 	go func() {
 		<-ctx.Done()

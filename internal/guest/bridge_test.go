@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -132,6 +133,31 @@ func TestDialHostVsockDialer(t *testing.T) {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("dial neither returned nor failed within 5s")
+	}
+}
+
+// TestBoxAPIBridgePermitsBoxUser checks the bridge makes its socket reachable by
+// the unprivileged box user: the containing dir is traversable (o+x) and the
+// socket is world-connectable (0666). Without this, on Firecracker — where claude
+// runs as a non-root box user — the box cannot reach /run/llmbox/boxapi.sock to
+// publish its own ports.
+func TestBoxAPIBridgePermitsBoxUser(t *testing.T) {
+	dial := func(context.Context) (net.Conn, error) { return nil, errors.New("unused") }
+	sock := startBridge(t, dial)
+
+	si, err := os.Stat(sock)
+	if err != nil {
+		t.Fatalf("stat socket: %v", err)
+	}
+	if perm := si.Mode().Perm(); perm != 0o666 {
+		t.Errorf("socket mode = %#o, want 0666 (the box user must be able to connect)", perm)
+	}
+	di, err := os.Stat(filepath.Dir(sock))
+	if err != nil {
+		t.Fatalf("stat socket dir: %v", err)
+	}
+	if perm := di.Mode().Perm(); perm&0o001 == 0 {
+		t.Errorf("socket dir mode = %#o, want world-traversable (o+x) so the box user can reach the socket", perm)
 	}
 }
 
