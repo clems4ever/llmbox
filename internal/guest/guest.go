@@ -35,9 +35,15 @@ const (
 	// explicit timeout for, so a hung provisioning script cannot wedge Create.
 	defaultInitScriptTimeout = 5 * time.Minute
 	// defaultInitScriptPath is where handleInit writes the host-provided init script
-	// inside the box before running it, under the guest's own runtime dir. Tests
-	// override it via Options.InitScriptPath so they need no privileged location.
-	defaultInitScriptPath = "/run/llmbox/init-script"
+	// inside the box before running it. It sits directly under /run — deliberately
+	// NOT under the 0700 control-socket dir (/run/llmbox): the script runs as the
+	// unprivileged box user, which must be able to traverse to and exec it, whereas
+	// the socket dir is locked to the guest's own (root) user. Putting the script
+	// under the 0700 dir made execve fail with EACCES on backends that drop to a box
+	// user (Firecracker), while Docker slipped through only because it runs the guest
+	// as root. Tests override this via Options.InitScriptPath so they need no
+	// privileged location.
+	defaultInitScriptPath = "/run/llmbox-init-script"
 )
 
 // Options configure a Guest.
