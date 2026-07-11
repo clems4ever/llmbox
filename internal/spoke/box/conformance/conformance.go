@@ -65,12 +65,13 @@ func testLifecycle(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{})
 	ctx := opCtx(t)
 
-	id, authURL, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "life-box"})
+	created, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "life-box"})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if !strings.Contains(authURL, "oauth/authorize") {
-		t.Fatalf("authorize URL = %q", authURL)
+	id := created.InstanceID
+	if !strings.Contains(created.AuthorizeURL, "oauth/authorize") {
+		t.Fatalf("authorize URL = %q", created.AuthorizeURL)
 	}
 
 	session, err := m.SubmitCode(ctx, id, "the-code")
@@ -120,10 +121,11 @@ func testInitScript(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{InitScript: []byte(script)})
 	ctx := opCtx(t)
 
-	id, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "init-box"})
+	created, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "init-box"})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	id := created.InstanceID
 	res, err := m.Exec(ctx, id, []string{"sh", "-c", "cat \"$HOME/init-marker\""})
 	if err != nil {
 		t.Fatalf("Exec: %v", err)
@@ -133,26 +135,40 @@ func testInitScript(t *testing.T, newProv NewProvisioner) {
 	}
 }
 
-// testInitScriptFailure checks a non-zero init script fails Create and leaves no
-// box behind, so a broken provisioning step never yields a half-created box.
+// testInitScriptFailure checks a non-zero init script does not fail Create but
+// keeps the box for inspection, reporting the failure and the script's output in
+// the CreateResult. The box is still listed (spared from the reaper) and remains
+// reachable, so an operator can debug why provisioning broke rather than facing a
+// vanished box.
 //
 // @arg t The test to assert under.
 // @arg newProv Builds the provisioner under test.
 //
 // @testcase TestConformanceFake runs testInitScriptFailure as a subtest.
 func testInitScriptFailure(t *testing.T, newProv NewProvisioner) {
-	m := box.NewManager(newProv(t), box.Config{InitScript: []byte("#!/bin/sh\nexit 9\n")})
+	m := box.NewManager(newProv(t), box.Config{InitScript: []byte("#!/bin/sh\necho boom-in-init >&2\nexit 9\n")})
 	ctx := opCtx(t)
 
-	if _, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "bad-init"}); err == nil {
-		t.Fatal("Create should fail when the init script exits non-zero")
+	created, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "bad-init"})
+	if err != nil {
+		t.Fatalf("Create should keep a broken box, not error: %v", err)
+	}
+	if !created.InitScriptFailed {
+		t.Fatal("CreateResult should report InitScriptFailed for a non-zero init script")
+	}
+	if !strings.Contains(created.InitScriptOutput, "boom-in-init") {
+		t.Fatalf("InitScriptOutput = %q, want it to carry the script output", created.InitScriptOutput)
 	}
 	boxes, err := m.List(ctx)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
-	if len(boxes) != 0 {
-		t.Fatalf("failed init left %d boxes behind, want 0", len(boxes))
+	if len(boxes) != 1 {
+		t.Fatalf("failed init left %d boxes, want the broken box kept for inspection", len(boxes))
+	}
+	// The box was provisioned and its guest is up, so it stays reachable for debugging.
+	if res, err := m.Exec(ctx, created.InstanceID, []string{"echo", "still-here"}); err != nil || strings.TrimSpace(res.Stdout) != "still-here" {
+		t.Fatalf("broken box should stay reachable: err=%v res=%+v", err, res)
 	}
 }
 
@@ -171,10 +187,11 @@ func testPauseResume(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{})
 	ctx := opCtx(t)
 
-	id, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "pause-box"})
+	created, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "pause-box"})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	id := created.InstanceID
 	if _, err := m.SubmitCode(ctx, id, "the-code"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}
@@ -246,10 +263,11 @@ func findState(boxes []sandbox.Box, id string) string {
 func testDestroyIdempotent(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{})
 	ctx := opCtx(t)
-	id, _, err := m.Create(ctx, sandbox.CreateOptions{})
+	created, err := m.Create(ctx, sandbox.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	id := created.InstanceID
 	if err := m.Destroy(ctx, id); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
@@ -270,10 +288,10 @@ func testDestroyIdempotent(t *testing.T, newProv NewProvisioner) {
 func testListAndFind(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{})
 	ctx := opCtx(t)
-	if _, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "a"}); err != nil {
+	if _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "a"}); err != nil {
 		t.Fatalf("Create a: %v", err)
 	}
-	if _, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "b"}); err != nil {
+	if _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "b"}); err != nil {
 		t.Fatalf("Create b: %v", err)
 	}
 	boxes, err := m.List(ctx)
@@ -293,7 +311,7 @@ func testListAndFind(t *testing.T, newProv NewProvisioner) {
 // @testcase TestConformanceFake runs testInvalidBoxID as a subtest.
 func testInvalidBoxID(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{})
-	if _, _, err := m.Create(opCtx(t), sandbox.CreateOptions{BoxID: "Bad_ID"}); err == nil {
+	if _, err := m.Create(opCtx(t), sandbox.CreateOptions{BoxID: "Bad_ID"}); err == nil {
 		t.Fatal("Create with an invalid box id should fail")
 	}
 }
@@ -307,10 +325,10 @@ func testInvalidBoxID(t *testing.T, newProv NewProvisioner) {
 func testDuplicateBoxID(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{})
 	ctx := opCtx(t)
-	if _, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "dup"}); err != nil {
+	if _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "dup"}); err != nil {
 		t.Fatalf("first Create: %v", err)
 	}
-	if _, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "dup"}); err == nil {
+	if _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "dup"}); err == nil {
 		t.Fatal("second Create with the same box id should fail")
 	}
 }
@@ -324,10 +342,10 @@ func testDuplicateBoxID(t *testing.T, newProv NewProvisioner) {
 func testMaxBoxes(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{MaxBoxes: 1})
 	ctx := opCtx(t)
-	if _, _, err := m.Create(ctx, sandbox.CreateOptions{}); err != nil {
+	if _, err := m.Create(ctx, sandbox.CreateOptions{}); err != nil {
 		t.Fatalf("first Create: %v", err)
 	}
-	if _, _, err := m.Create(ctx, sandbox.CreateOptions{}); err == nil {
+	if _, err := m.Create(ctx, sandbox.CreateOptions{}); err == nil {
 		t.Fatal("Create past MaxBoxes should fail")
 	}
 }
@@ -342,14 +360,16 @@ func testReapOrphans(t *testing.T, newProv NewProvisioner) {
 	m := box.NewManager(newProv(t), box.Config{})
 	ctx := opCtx(t)
 
-	pendingID, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "pending"})
+	pending, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "pending"})
 	if err != nil {
 		t.Fatalf("Create pending: %v", err)
 	}
-	readyID, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "ready"})
+	pendingID := pending.InstanceID
+	ready, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "ready"})
 	if err != nil {
 		t.Fatalf("Create ready: %v", err)
 	}
+	readyID := ready.InstanceID
 	if _, err := m.SubmitCode(ctx, readyID, "code"); err != nil {
 		t.Fatalf("SubmitCode: %v", err)
 	}

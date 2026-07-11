@@ -39,9 +39,9 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 	rs := startSpoke(t, fake)
 	ctx := context.Background()
 
-	id, url, err := rs.Create(ctx, sandbox.CreateOptions{BoxID: "b1", SpokeName: "s"})
-	if err != nil || id != "cid" || url != "https://auth" {
-		t.Fatalf("Create = (%q,%q,%v)", id, url, err)
+	created, err := rs.Create(ctx, sandbox.CreateOptions{BoxID: "b1", SpokeName: "s"})
+	if err != nil || created.InstanceID != "cid" || created.AuthorizeURL != "https://auth" {
+		t.Fatalf("Create = (%+v,%v)", created, err)
 	}
 	if fake.lastCreate.BoxID != "b1" {
 		t.Errorf("spoke saw create box id %q", fake.lastCreate.BoxID)
@@ -113,7 +113,7 @@ func TestRemoteSpokeDisconnect(t *testing.T) {
 	// A call in flight (no serve loop answers) fails once the connection drops.
 	errc := make(chan error, 1)
 	go func() {
-		_, _, err := rs.Create(context.Background(), sandbox.CreateOptions{})
+		_, err := rs.Create(context.Background(), sandbox.CreateOptions{})
 		errc <- err
 	}()
 	// Let the call register, then drop the connection.

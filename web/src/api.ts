@@ -39,6 +39,9 @@ export interface BoxView {
   state: string;
   status: string;
   phase: string;
+  // The failure detail when the box failed to activate or its init script broke
+  // (phase "broken"): the init script's captured output. Empty otherwise.
+  last_error?: string;
   created: number;
   // When the hub last observed the box on its spoke (Unix seconds, 0 = never).
   last_seen?: number;

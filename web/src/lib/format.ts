@@ -51,7 +51,8 @@ export function boxId(b: BoxView): string {
 export type PhaseTone = "ready" | "pending" | "error";
 
 /** phaseTone classifies a box phase into a colour tone for its status badge:
- * ready is green, error/failed red, anything else a neutral "pending".
+ * ready is green, error/failed/broken red, anything else a neutral "pending".
+ * A broken box is one whose init script failed during creation.
  *
  * @arg phase The box's phase string.
  * @return PhaseTone The tone the badge should use.
@@ -59,7 +60,7 @@ export type PhaseTone = "ready" | "pending" | "error";
 export function phaseTone(phase: string): PhaseTone {
   const p = phase.toLowerCase();
   if (p === "ready" || p === "running") return "ready";
-  if (p.includes("error") || p.includes("fail")) return "error";
+  if (p === "broken" || p.includes("error") || p.includes("fail")) return "error";
   return "pending";
 }
 

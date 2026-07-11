@@ -20,9 +20,11 @@ import (
 type FakeMgr struct {
 	mu sync.Mutex
 
-	CreateID  string
-	CreateURL string
-	CreateErr error
+	CreateID               string
+	CreateURL              string
+	CreateErr              error
+	CreateInitScriptFailed bool
+	CreateInitScriptOutput string
 
 	SubmitURL string
 	SubmitErr error
@@ -57,24 +59,29 @@ type FakeMgr struct {
 	GotOpts sandbox.CreateOptions
 }
 
-// Create records the requested options and returns the canned ID/URL/error. On
-// success it also records the box so it appears in List, modelling a real spoke.
+// Create records the requested options and returns the canned result/error. On
+// success it also records the box so it appears in List, modelling a real spoke;
+// the canned CreateInitScriptFailed/Output model a spoke that kept a broken box.
 //
 // @arg ctx Context (unused by the fake).
 // @arg opts The create options, recorded into GotOpts.
-// @return string The canned container ID.
-// @return string The canned authorize URL.
+// @return sandbox.CreateResult The canned create result (ID, URL, and any init-script failure).
 // @error error The canned create error, if any.
 //
 // @testcase TestFakeMgr checks each verb records its inputs and returns the canned results.
-func (f *FakeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (string, string, error) {
+func (f *FakeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	f.mu.Lock()
 	f.GotOpts = opts
 	if f.CreateErr == nil {
 		f.created = append(f.created, sandbox.Box{BoxID: opts.BoxID, InstanceID: f.CreateID})
 	}
 	f.mu.Unlock()
-	return f.CreateID, f.CreateURL, f.CreateErr
+	return sandbox.CreateResult{
+		InstanceID:       f.CreateID,
+		AuthorizeURL:     f.CreateURL,
+		InitScriptFailed: f.CreateInitScriptFailed,
+		InitScriptOutput: f.CreateInitScriptOutput,
+	}, f.CreateErr
 }
 
 // SubmitCode records the submitted code and returns the canned URL/error.

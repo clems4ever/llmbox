@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"strings"
 	"sync"
@@ -79,19 +80,22 @@ func (m *Manager) client(inst Instance) *guest.Client {
 // Create provisions a new box, injects its files and parameters, launches claude,
 // and returns the box ID and the OAuth authorize URL to complete login with. The
 // uniqueness and box-count checks run under a lock; the slow login handshake does
-// not. On any post-provision failure the box is destroyed so a half-created box
-// is never left behind.
+// not. A transport-level failure (provisioning, file injection, launching claude)
+// tears the box down so a half-created box is never left behind. A failing init
+// script is the one exception: the box is kept and returned with
+// InitScriptFailed set (and the script's output) so an operator can inspect the
+// broken box rather than have it vanish; it is marked ready only so the orphan
+// reaper spares it (its broken-ness is tracked by the hub, not the backend).
 //
 // @arg ctx Context for the provision and login handshake.
 // @arg opts The caller-controlled inputs for the box.
-// @return id The new box's opaque generation token.
-// @return authorizeURL The OAuth authorize URL to complete login with.
-// @error error if the box id is invalid, already in use, the cap is reached, or provisioning/login fails.
+// @return sandbox.CreateResult The box's generation token and authorize URL, or the init-script failure and its output.
+// @error error if the box id is invalid, already in use, the cap is reached, or provisioning/injection/launch fails.
 //
-// @testcase TestBoxManager covers create plus box-id validation, duplicate rejection, and the box cap.
-func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (id, authorizeURL string, err error) {
+// @testcase TestBoxManager covers create plus box-id validation, duplicate rejection, the box cap, and (via the conformance init-script-failure case) a kept broken box.
+func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	if opts.BoxID != "" && !sandbox.ValidBoxID(opts.BoxID) {
-		return "", "", fmt.Errorf("invalid box id %q: must be 1-63 chars of lowercase letters, digits, or hyphens (not starting or ending with a hyphen)", opts.BoxID)
+		return sandbox.CreateResult{}, fmt.Errorf("invalid box id %q: must be 1-63 chars of lowercase letters, digits, or hyphens (not starting or ending with a hyphen)", opts.BoxID)
 	}
 
 	m.createMu.Lock()
@@ -99,30 +103,30 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (id, a
 		insts, lerr := m.prov.List(ctx)
 		if lerr != nil {
 			m.createMu.Unlock()
-			return "", "", fmt.Errorf("checking box uniqueness: %w", lerr)
+			return sandbox.CreateResult{}, fmt.Errorf("checking box uniqueness: %w", lerr)
 		}
 		if m.cfg.MaxBoxes > 0 && len(insts) >= m.cfg.MaxBoxes {
 			m.createMu.Unlock()
-			return "", "", fmt.Errorf("box limit reached (%d boxes already running); destroy a box before creating another", m.cfg.MaxBoxes)
+			return sandbox.CreateResult{}, fmt.Errorf("box limit reached (%d boxes already running); destroy a box before creating another", m.cfg.MaxBoxes)
 		}
 		for _, inst := range insts {
 			if opts.BoxID != "" && strings.EqualFold(inst.Meta().BoxID, opts.BoxID) {
 				m.createMu.Unlock()
-				return "", "", fmt.Errorf("box ID %q is already used by %s; choose a different box ID", opts.BoxID, inst.Meta().InstanceID)
+				return sandbox.CreateResult{}, fmt.Errorf("box ID %q is already used by %s; choose a different box ID", opts.BoxID, inst.Meta().InstanceID)
 			}
 		}
 	}
 	inst, err := m.prov.Provision(ctx, opts)
 	m.createMu.Unlock()
 	if err != nil {
-		return "", "", fmt.Errorf("provisioning box: %w", err)
+		return sandbox.CreateResult{}, fmt.Errorf("provisioning box: %w", err)
 	}
 
-	// From here on, tear the box down on any failure so a half-created box is
-	// never left running.
+	// From here on, tear the box down on any transport-level failure so a
+	// half-created box is never left running.
 	c := m.client(inst)
 	initCtx, cancel := m.initContext(ctx)
-	err = c.Init(initCtx, guest.InitReq{
+	initResp, err := c.Init(initCtx, guest.InitReq{
 		Files:             opts.Files,
 		RemoteArgs:        m.cfg.RemoteArgs,
 		BoxID:             opts.BoxID,
@@ -132,14 +136,42 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (id, a
 	cancel()
 	if err != nil {
 		_ = inst.Destroy(context.Background())
-		return "", "", fmt.Errorf("initialising box: %w", err)
+		return sandbox.CreateResult{}, fmt.Errorf("initialising box: %w", err)
+	}
+	if initResp.ScriptFailed {
+		// Keep the broken box for inspection instead of destroying it. It never
+		// started claude, so it cannot authenticate; mark it ready only so the reaper
+		// (which targets never-authenticated pending boxes) does not later remove it.
+		if err := inst.MarkReady(ctx); err != nil {
+			slog.Default().Warn("could not spare broken box from the reaper", "box", inst.Meta().InstanceID, "err", err)
+		}
+		return sandbox.CreateResult{
+			InstanceID:       inst.Meta().InstanceID,
+			InitScriptFailed: true,
+			InitScriptOutput: initScriptFailureDetail(initResp),
+		}, nil
 	}
 	start, err := c.Start(ctx)
 	if err != nil {
 		_ = inst.Destroy(context.Background())
-		return "", "", fmt.Errorf("starting box: %w", err)
+		return sandbox.CreateResult{}, fmt.Errorf("starting box: %w", err)
 	}
-	return inst.Meta().InstanceID, start.AuthorizeURL, nil
+	return sandbox.CreateResult{InstanceID: inst.Meta().InstanceID, AuthorizeURL: start.AuthorizeURL}, nil
+}
+
+// initScriptFailureDetail composes the human-readable detail stored for a broken
+// box: the failure reason followed by the script's captured output when there is
+// any, so the operator sees both why it failed and what it printed.
+//
+// @arg resp The init response reporting the script failure.
+// @return string The reason, with the captured output appended when non-empty.
+//
+// @testcase TestBoxManager reads back the composed detail via the conformance init-script-failure case.
+func initScriptFailureDetail(resp guest.InitResp) string {
+	if resp.ScriptOutput == "" {
+		return resp.ScriptError
+	}
+	return resp.ScriptError + "\n\n" + resp.ScriptOutput
 }
 
 // initContext derives the context for the guest Init call. When an init script is
@@ -272,8 +304,9 @@ func (m *Manager) Resume(ctx context.Context, idOrName string) (sessionURL strin
 	}
 	c := m.client(inst)
 	// No files or init script on resume: the box's disk already carries them, and
-	// the init script is a create-time provisioning step, not a per-boot one.
-	if err := c.Init(ctx, guest.InitReq{RemoteArgs: m.cfg.RemoteArgs, BoxID: inst.Meta().BoxID}); err != nil {
+	// the init script is a create-time provisioning step, not a per-boot one. With no
+	// init script the response can never report a script failure, so it is discarded.
+	if _, err := c.Init(ctx, guest.InitReq{RemoteArgs: m.cfg.RemoteArgs, BoxID: inst.Meta().BoxID}); err != nil {
 		return "", fmt.Errorf("re-initialising resumed box: %w", err)
 	}
 	start, err := c.Start(ctx)

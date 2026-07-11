@@ -55,10 +55,10 @@ func TestWriteInjectFileDefaultMode(t *testing.T) {
 // TestHandleInitTwiceErrors rejects a second Init.
 func TestHandleInitTwiceErrors(t *testing.T) {
 	a := New(Options{})
-	if err := a.handleInit(context.Background(), InitReq{}); err != nil {
+	if _, err := a.handleInit(context.Background(), InitReq{}); err != nil {
 		t.Fatalf("first Init: %v", err)
 	}
-	if err := a.handleInit(context.Background(), InitReq{}); err == nil {
+	if _, err := a.handleInit(context.Background(), InitReq{}); err == nil {
 		t.Fatal("second Init should fail")
 	}
 }
@@ -104,7 +104,7 @@ func TestGuestStartTwice(t *testing.T) {
 	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	if _, err := c.Start(ctx); err != nil {
@@ -129,7 +129,7 @@ func TestGuestExecEmptyCommand(t *testing.T) {
 // channel cannot be opened.
 func TestClientDialError(t *testing.T) {
 	c := &Client{Dial: func(context.Context) (net.Conn, error) { return nil, errBoom }}
-	if err := c.Init(context.Background(), InitReq{}); err == nil {
+	if _, err := c.Init(context.Background(), InitReq{}); err == nil {
 		t.Fatal("Init should fail when the control channel cannot be opened")
 	}
 	if _, err := c.DialPort(context.Background(), 80); err == nil {
@@ -186,7 +186,7 @@ func TestGuestStartNoURL(t *testing.T) {
 	_, c := startGuest(t, Options{ClaudeCmd: mock})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	if _, err := c.Start(ctx); err == nil {

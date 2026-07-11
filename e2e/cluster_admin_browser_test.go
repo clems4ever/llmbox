@@ -61,12 +61,12 @@ func newBrowserSpokeMgr(name string) *browserSpokeMgr {
 // @return string The fake container ID.
 // @return string A canned authorize URL.
 // @error error Always nil.
-func (m *browserSpokeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (string, string, error) {
+func (m *browserSpokeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := randGeneration()
 	m.boxes[id] = opts.BoxID
-	return id, "https://auth.example/", nil
+	return sandbox.CreateResult{InstanceID: id, AuthorizeURL: "https://auth.example/"}, nil
 }
 
 // SubmitCode returns a canned session URL.

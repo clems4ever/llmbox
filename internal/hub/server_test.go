@@ -165,6 +165,47 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	}
 }
 
+// TestCreateBoxRegistersBrokenBox checks that a box whose init script failed is
+// registered (not dropped) with the "broken" phase and the script output as its
+// error, and surfaces the same way — phase broken, last_error set, no auth URL —
+// through the box list the UI reads.
+func TestCreateBoxRegistersBrokenBox(t *testing.T) {
+	f := &testutils.FakeMgr{
+		CreateID:               "abcdef0123456789",
+		CreateInitScriptFailed: true,
+		CreateInitScriptOutput: "init script failed: exit status 9\n\nboom-in-init",
+	}
+	s := newTestServer(f)
+
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "bad-box"})
+	if err != nil {
+		t.Fatalf("createBox should keep a broken box, not error: %v", err)
+	}
+	if sess.Status != sandbox.PhaseBroken {
+		t.Errorf("status = %q, want %q", sess.Status, sandbox.PhaseBroken)
+	}
+	if sess.Err != "init script failed: exit status 9\n\nboom-in-init" {
+		t.Errorf("session error = %q, want the init script output", sess.Err)
+	}
+	if s.lookup(sess.plainToken) == nil {
+		t.Error("broken session not registered")
+	}
+
+	boxes, err := apiBackend{s}.ListBoxes(context.Background())
+	if err != nil || len(boxes) != 1 {
+		t.Fatalf("ListBoxes = %v, %v", boxes, err)
+	}
+	if boxes[0].Phase != sandbox.PhaseBroken {
+		t.Errorf("listed phase = %q, want broken", boxes[0].Phase)
+	}
+	if !strings.Contains(boxes[0].LastError, "boom-in-init") {
+		t.Errorf("listed last_error = %q, want the script output", boxes[0].LastError)
+	}
+	if boxes[0].AuthURL != "" {
+		t.Errorf("broken box should have no auth URL, got %q", boxes[0].AuthURL)
+	}
+}
+
 // TestCreateBoxDestroysOnTokenFailure checks a create error propagates.
 func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 	// Hard to force token failure; instead verify create error propagates.

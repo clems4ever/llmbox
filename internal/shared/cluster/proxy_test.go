@@ -313,8 +313,8 @@ func TestClientStreamDeadline(t *testing.T) {
 type bareManager struct{}
 
 // Create is a no-op stub.
-func (bareManager) Create(context.Context, sandbox.CreateOptions) (string, string, error) {
-	return "", "", nil
+func (bareManager) Create(context.Context, sandbox.CreateOptions) (sandbox.CreateResult, error) {
+	return sandbox.CreateResult{}, nil
 }
 
 // SubmitCode is a no-op stub.

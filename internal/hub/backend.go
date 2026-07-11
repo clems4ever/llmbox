@@ -107,6 +107,9 @@ func (b apiBackend) ListBoxes(_ context.Context) ([]api.BoxView, error) {
 		switch {
 		case ps.Lifecycle == store.LifecycleTerminated:
 			// A tombstone has nothing to activate or open.
+		case ps.Status == sandbox.PhaseBroken:
+			// A broken box (init script failed) never started, so it has no
+			// activation URL — only its error detail, already on the view.
 		case ps.Status == "ready":
 			view.SessionURL = ps.SessionURL
 		default:

@@ -315,7 +315,11 @@ func (a *Guest) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 		if err := json.Unmarshal(r.Data, &in); err != nil {
 			return nil, fmt.Errorf("decoding init: %w", err)
 		}
-		return nil, a.handleInit(ctx, in)
+		out, err := a.handleInit(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(out)
 	case verbStart:
 		out, err := a.handleStart()
 		if err != nil {
@@ -355,26 +359,29 @@ func (a *Guest) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 
 // handleInit records the box parameters, writes the injected files, and runs the
 // host-provided init script (if any) before the box is marked initialised. It must
-// be called once before Start. A failing init script leaves the box uninitialised
-// so Start never runs, and the manager tears the half-created box down.
+// be called once before Start. A failing init script is not a transport error: it
+// leaves the box uninitialised (so Start never runs) and is reported in the
+// returned InitResp so the host can keep the box as a broken one the operator can
+// inspect, with the script's output, rather than tearing it down silently.
 //
 // @arg ctx Context for the init script (its cancellation stops the script).
 // @arg in The init request carrying the files, remote args, box ID, env, and init script.
-// @error error if a file cannot be written, the init script fails, or Init was already called.
+// @return InitResp The init outcome; ScriptFailed is set (with the reason and output) when the init script fails.
+// @error error if a file cannot be written or Init was already called.
 //
 // @testcase TestGuestLifecycle injects files via Init before Start.
 // @testcase TestGuestInitWritesFiles writes each file with its mode and owner.
 // @testcase TestGuestInitRunsScript runs the init script as the box user before Start.
-// @testcase TestGuestInitScriptFailureFailsInit reports a non-zero init script and leaves the box uninitialised.
-func (a *Guest) handleInit(ctx context.Context, in InitReq) error {
+// @testcase TestGuestInitScriptFailureReportsBroken reports a non-zero init script as a broken box and leaves it uninitialised.
+func (a *Guest) handleInit(ctx context.Context, in InitReq) (InitResp, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.inited {
-		return errors.New("already initialised")
+		return InitResp{}, errors.New("already initialised")
 	}
 	for _, f := range in.Files {
 		if err := writeInjectFile(f); err != nil {
-			return err
+			return InitResp{}, err
 		}
 	}
 	// Record the params before running the init script so it (via entryEnv) sees
@@ -382,29 +389,35 @@ func (a *Guest) handleInit(ctx context.Context, in InitReq) error {
 	// failing script still leaves the box un-started.
 	a.initReq = in
 	if len(in.InitScript) > 0 {
-		if err := a.runInitScript(ctx, in); err != nil {
-			return err
+		if output, err := a.runInitScript(ctx, in); err != nil {
+			// Report the failure as data, not a transport error: inited stays false,
+			// so the box never starts, but the host keeps it and surfaces the script
+			// output as a broken box instead of destroying it.
+			return InitResp{ScriptFailed: true, ScriptError: err.Error(), ScriptOutput: output}, nil
 		}
 	}
 	a.inited = true
-	return nil
+	return InitResp{}, nil
 }
 
 // runInitScript writes the host-provided init script into the box and runs it to
 // completion as the same (unprivileged) credential claude runs as, with the box
 // environment and the box user's home as the working directory. Its combined
-// output is captured: a non-zero exit (or launch failure) returns an error
-// carrying a tail of that output, while a successful run is logged. The run is
-// bounded by in.InitScriptTimeout (or defaultInitScriptTimeout when unset), so a
-// hung script cannot wedge box creation. Callers hold a.mu.
+// output is captured and returned (as a bounded tail) alongside a descriptive
+// error on a non-zero exit, launch failure, or timeout, so the caller can surface
+// both the reason and the script's output; a successful run returns an empty
+// output and a nil error. The run is bounded by in.InitScriptTimeout (or
+// defaultInitScriptTimeout when unset), so a hung script cannot wedge box
+// creation. Callers hold a.mu.
 //
 // @arg ctx Context whose cancellation stops the script.
 // @arg in The init request carrying the script bytes and its timeout.
+// @return string The script's captured output tail (empty on success).
 // @error error if the script cannot be written or launched, or exits non-zero.
 //
 // @testcase TestGuestInitRunsScript runs the script as the box user before Start.
-// @testcase TestGuestInitScriptFailureFailsInit surfaces a non-zero exit with an output tail.
-func (a *Guest) runInitScript(ctx context.Context, in InitReq) error {
+// @testcase TestGuestInitScriptFailureReportsBroken surfaces a non-zero exit with its output.
+func (a *Guest) runInitScript(ctx context.Context, in InitReq) (string, error) {
 	uid, gid := 0, 0
 	if a.cred != nil {
 		uid, gid = int(a.cred.Uid), int(a.cred.Gid)
@@ -412,7 +425,7 @@ func (a *Guest) runInitScript(ctx context.Context, in InitReq) error {
 	if err := writeInjectFile(sandbox.InjectFile{
 		Path: a.initScriptPath, Content: in.InitScript, Mode: 0o755, UID: uid, GID: gid,
 	}); err != nil {
-		return fmt.Errorf("writing init script: %w", err)
+		return "", fmt.Errorf("writing init script: %w", err)
 	}
 
 	timeout := in.InitScriptTimeout
@@ -437,14 +450,11 @@ func (a *Guest) runInitScript(ctx context.Context, in InitReq) error {
 	if err != nil {
 		tail := strings.TrimSpace(capOutput(out.Bytes()))
 		if runCtx.Err() != nil {
-			return fmt.Errorf("init script did not finish within %s; box said: %s", timeout, tail)
+			return tail, fmt.Errorf("init script did not finish within %s", timeout)
 		}
-		if tail != "" {
-			return fmt.Errorf("init script failed: %w; box said: %s", err, tail)
-		}
-		return fmt.Errorf("init script failed: %w", err)
+		return tail, fmt.Errorf("init script failed: %w", err)
 	}
-	return nil
+	return "", nil
 }
 
 // homeFromEnv returns the value of the HOME assignment in env, or empty when none

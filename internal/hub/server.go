@@ -976,11 +976,12 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 		}
 	}
 
-	id, authorizeURL, err := mgr.Create(ctx, opts)
+	res, err := mgr.Create(ctx, opts)
 	if err != nil {
 		s.runDestroyHooks(box, hookState)
 		return nil, err
 	}
+	id := res.InstanceID
 	tok, err := newToken(rand.Reader)
 	if err != nil {
 		// Best effort: don't leave the box or hook state dangling if we can't track it.
@@ -990,6 +991,13 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 		s.runDestroyHooks(box, hookState)
 		return nil, fmt.Errorf("generating session token: %w", err)
 	}
+	// A box whose init script failed is provisioned but never started: register it
+	// as "broken" (carrying the script output) so it surfaces in the UI as a broken
+	// box to inspect, rather than a pending one awaiting a login it can never do.
+	status := "pending"
+	if res.InitScriptFailed {
+		status = sandbox.PhaseBroken
+	}
 	// The registry and store key a box by the hash of its token; the plaintext is
 	// kept only in memory (plainToken) to build the auth-page URL handed back now.
 	hash := store.HashToken(tok)
@@ -997,10 +1005,11 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 		Token:        hash,
 		plainToken:   tok,
 		Generation:   id,
-		AuthorizeURL: authorizeURL,
+		AuthorizeURL: res.AuthorizeURL,
 		CreatedAt:    time.Now(),
 		HookState:    hookState,
-		Status:       "pending",
+		Status:       status,
+		Err:          res.InitScriptOutput,
 		BoxID:        opts.BoxID,
 		Description:  opts.Description,
 		SpokeName:    spokeName,
@@ -1344,6 +1353,7 @@ func (s *Server) boxFromRecord(ps boxRecord, connected map[string]bool) sandbox.
 		State:       state,
 		Status:      status,
 		Phase:       phase,
+		LastError:   ps.LastError,
 		Created:     ps.CreatedAt.Unix(),
 		LastSeen:    lastSeen,
 	}
