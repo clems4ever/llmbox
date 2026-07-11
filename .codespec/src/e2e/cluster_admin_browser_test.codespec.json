@@ -181,6 +181,20 @@
 			"documentation_hash": "bc52f5a8a359e8642eddff8a52e2f661299b1134e5decc5948ecf253479f656f",
 			"definition_hash": "1268a7ba0d58fbeafc97448ae374abf06420b96ad33f10236044b6d6e28cf12e",
 			"reviewed_at": "2026-07-09T21:42:06.822171221Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "4bc13fd169c31690290f2353c377d8f610a0d52f215aac55f8532b8c6766071f",
+			"definition_hash": "c631e32793952ea5c695bc6a1142e62dac1240b27d1df4fc34ac145655e839c4",
+			"reviewed_at": "2026-07-11T11:59:03.744607918Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "browserSpokeMgr",
+			"documentation_hash": "d02ea684d4a2648bc1ec2d790dd7023be0d31b36c2a9ada630837b2315db3bc5",
+			"definition_hash": "ef36b513fe5359e89e942d4b57c36f92ea33f62fb0207fe167379542c06176b3",
+			"reviewed_at": "2026-07-11T11:59:03.748127325Z"
 		}
 	]
 }

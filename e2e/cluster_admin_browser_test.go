@@ -113,6 +113,25 @@ func (m *browserSpokeMgr) Destroy(ctx context.Context, idOrName string) error {
 	return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
+// Pause is a no-op in the simulation and always succeeds.
+//
+// @arg ctx Context (unused by the fake).
+// @arg idOrName The box identifier (ignored).
+// @error error Always nil.
+func (m *browserSpokeMgr) Pause(ctx context.Context, idOrName string) error {
+	return nil
+}
+
+// Resume is a no-op in the simulation and returns a canned session URL.
+//
+// @arg ctx Context (unused by the fake).
+// @arg idOrName The box identifier (ignored).
+// @return string A canned session URL.
+// @error error Always nil.
+func (m *browserSpokeMgr) Resume(ctx context.Context, idOrName string) (string, error) {
+	return "https://claude.ai/code/session", nil
+}
+
 // Logs returns canned output.
 //
 // @arg ctx Context (unused by the fake).
