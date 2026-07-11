@@ -2,7 +2,6 @@ package hub
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -32,16 +31,25 @@ const testSpoke = "spoke-1"
 func hashTok(plain string) string { return store.HashToken(plain) }
 
 // regSession registers sess in the registry under the readable plaintext token,
-// keying by the token's hash exactly as createBox does (Token is the hash,
-// plainToken the plaintext), and returns sess. It replaces the old direct
-// s.byToken[token] = sess seeding, which predated hashing the token at rest.
+// keying by the token's hash exactly as createBox does (Token is the hash), and
+// returns sess. It replaces the old direct s.byToken[token] = sess seeding, which
+// predated hashing the token at rest.
 func (s *Server) regSession(plain string, sess *session) *session {
 	sess.Token = hashTok(plain)
-	sess.plainToken = plain
 	s.mu.Lock()
 	s.byToken[sess.Token] = sess
 	s.mu.Unlock()
 	return sess
+}
+
+// lookupTok returns the registered session whose token is the hash of plain, or
+// nil when none is registered. It is the test seam that replaced the removed
+// lookup-by-plaintext helper: tests seed a session under a readable label with
+// regSession and resolve it back here.
+func (s *Server) lookupTok(plain string) *session {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.byToken[hashTok(plain)]
 }
 
 // testStore is a NoopStore that additionally keeps settings and API keys in
@@ -107,7 +115,7 @@ func wireSpoke(s *Server, mgr boxManager) *Server {
 // single connected spoke (testSpoke), set as the default, so a box created with no
 // explicit spoke routes to it. Hook integration is disabled (nil hooks).
 func newTestServer(f *testutils.FakeMgr) *Server {
-	return wireSpoke(New(nil, "https://boxes.example.com", 5*time.Minute, newTestStore(), nil), f)
+	return wireSpoke(New(nil, "https://boxes.example.com", newTestStore(), nil), f)
 }
 
 // fakeHooks is a stand-in for *hooks.Runner that records create/destroy calls.
@@ -135,16 +143,16 @@ func (f *fakeHooks) OnDestroy(_ context.Context, _ hooks.BoxInfo, state map[stri
 
 // --- core flow ---
 
-// TestCreateBoxRegistersSession checks the session, token, URL, and opts pass-through.
+// TestCreateBoxRegistersSession checks the session, token, and opts pass-through.
 func TestCreateBoxRegistersSession(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?x=1"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "my-box", Description: "scratch"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if sess.Generation != "abcdef0123456789" || sess.Status != "pending" {
+	if sess.Generation != "abcdef0123456789" || sess.Phase != "ready" {
 		t.Errorf("unexpected session %+v", sess)
 	}
 	// BoxID/description are recorded on the session and forwarded to the manager.
@@ -157,10 +165,7 @@ func TestCreateBoxRegistersSession(t *testing.T) {
 	if len(sess.Token) != 64 {
 		t.Errorf("token not 32 random bytes hex: len %d", len(sess.Token))
 	}
-	if got := s.AuthPageURL(sess.plainToken); got != "https://boxes.example.com/auth/"+sess.plainToken {
-		t.Errorf("AuthPageURL = %q", got)
-	}
-	if s.lookup(sess.plainToken) == nil {
+	if s.lookupByBoxID(sess.BoxID) == nil {
 		t.Error("session not registered")
 	}
 }
@@ -181,13 +186,13 @@ func TestCreateBoxRegistersBrokenBox(t *testing.T) {
 	if err != nil {
 		t.Fatalf("createBox should keep a broken box, not error: %v", err)
 	}
-	if sess.Status != sandbox.PhaseBroken {
-		t.Errorf("status = %q, want %q", sess.Status, sandbox.PhaseBroken)
+	if sess.Phase != sandbox.PhaseBroken {
+		t.Errorf("phase = %q, want %q", sess.Phase, sandbox.PhaseBroken)
 	}
-	if sess.Err != "init script failed: exit status 9\n\nboom-in-init" {
-		t.Errorf("session error = %q, want the init script output", sess.Err)
+	if sess.InitError != "init script failed: exit status 9\n\nboom-in-init" {
+		t.Errorf("session error = %q, want the init script output", sess.InitError)
 	}
-	if s.lookup(sess.plainToken) == nil {
+	if s.lookupByBoxID(sess.BoxID) == nil {
 		t.Error("broken session not registered")
 	}
 
@@ -200,9 +205,6 @@ func TestCreateBoxRegistersBrokenBox(t *testing.T) {
 	}
 	if !strings.Contains(boxes[0].LastError, "boom-in-init") {
 		t.Errorf("listed last_error = %q, want the script output", boxes[0].LastError)
-	}
-	if boxes[0].AuthURL != "" {
-		t.Errorf("broken box should have no auth URL, got %q", boxes[0].AuthURL)
 	}
 }
 
@@ -220,7 +222,7 @@ func TestCreateBoxDestroysOnTokenFailure(t *testing.T) {
 // its returned files are injected into the box, and its per-hook state is
 // persisted on the session.
 func TestCreateBoxRunsCreateHooks(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	h := &fakeHooks{
 		createState: map[string]string{"granular-hook": "subj-xyz"},
 		createFiles: []hooks.File{
@@ -228,7 +230,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 			{Path: "/home/node/.granular/github.yaml", Content: []byte("base_url: \"http://gh\"\n"), Mode: 0o644, UID: 1000, GID: 1000},
 		},
 	}
-	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
+	s := wireSpoke(New(h, "https://boxes.example.com", newTestStore(), nil), f)
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err != nil {
@@ -267,7 +269,7 @@ func TestCreateBoxRunsCreateHooks(t *testing.T) {
 func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 	f := &testutils.FakeMgr{CreateErr: errors.New("no image")}
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-doomed"}}
-	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
+	s := wireSpoke(New(h, "https://boxes.example.com", newTestStore(), nil), f)
 
 	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"}); err == nil {
 		t.Fatal("expected error")
@@ -280,9 +282,9 @@ func TestCreateBoxRunsDestroyHooksOnCreateFailure(t *testing.T) {
 // TestDestroyRunsDestroyHooks checks destroying a box replays its hook state to
 // the destroy hooks.
 func TestDestroyRunsDestroyHooks(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	h := &fakeHooks{createState: map[string]string{"granular-hook": "subj-live"}}
-	s := wireSpoke(New(h, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
+	s := wireSpoke(New(h, "https://boxes.example.com", newTestStore(), nil), f)
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err != nil {
@@ -296,181 +298,32 @@ func TestDestroyRunsDestroyHooks(t *testing.T) {
 	}
 }
 
-// TestSubmitCodeSuccess checks the code is forwarded and the session becomes ready.
-func TestSubmitCodeSuccess(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
-	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
-
-	if err := s.submitCode(context.Background(), sess.plainToken, "CODE"); err != nil {
-		t.Fatalf("SubmitCode: %v", err)
-	}
-	if f.GotCode != "CODE" {
-		t.Errorf("manager got code %q", f.GotCode)
-	}
-	status, url, _ := sess.snapshot()
-	if status != "ready" || url != "https://claude.ai/code/s/1" {
-		t.Errorf("session not ready: status=%q url=%q", status, url)
-	}
-}
-
-// TestSubmitCodeFailureRecorded checks a submit failure is recorded on the session.
-func TestSubmitCodeFailureRecorded(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u", SubmitErr: errors.New("invalid code")}
-	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
-
-	if err := s.submitCode(context.Background(), sess.plainToken, "BAD"); err == nil {
-		t.Fatal("expected error")
-	}
-	status, _, errMsg := sess.snapshot()
-	if status != "error" || !strings.Contains(errMsg, "invalid code") {
-		t.Errorf("session error not recorded: status=%q err=%q", status, errMsg)
-	}
-}
-
-// TestSubmitCodeUnknownToken checks SubmitCode errors for an unknown token.
-func TestSubmitCodeUnknownToken(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{})
-	if err := s.submitCode(context.Background(), "nope", "code"); err == nil {
-		t.Fatal("expected error for unknown token")
-	}
-}
-
-// TestSubmitCodeEmpty checks SubmitCode errors for an empty code.
-func TestSubmitCodeEmpty(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "u"}
-	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
-	if err := s.submitCode(context.Background(), sess.plainToken, "   "); err == nil {
-		t.Fatal("expected error for empty code")
-	}
-}
-
 // TestDestroyForgetsSession checks the session is forgotten after a destroy.
 func TestDestroyForgetsSession(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 
 	if err := s.destroyBox(context.Background(), "abcdef0123456789"); err != nil {
 		t.Fatalf("DestroyBox: %v", err)
 	}
-	if s.lookup(sess.plainToken) != nil {
+	if s.lookupByBoxID(sess.BoxID) != nil {
 		t.Error("session should be forgotten after destroy")
 	}
 }
 
 // TestPruneSessionsAfterReap checks a reaped box's session is pruned.
 func TestPruneSessionsAfterReap(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
 	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	s.pruneSessions([]string{"abcdef0123456789"}) // the box's generation token, as the reaper returns
-	if s.lookup(sess.plainToken) != nil {
+	if s.lookupByBoxID(sess.BoxID) != nil {
 		t.Error("session for reaped box should be pruned")
 	}
 }
 
 // --- web handlers ---
-
-// authStateJSON GETs an auth session's JSON state and decodes it.
-func authStateJSON(t *testing.T, h http.Handler, token string) (int, map[string]any) {
-	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/auth/"+token+"/state", nil)
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	var out map[string]any
-	if rec.Code == http.StatusOK {
-		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
-			t.Fatalf("decoding state: %v", err)
-		}
-	}
-	return rec.Code, out
-}
-
-// TestAuthPageRendersAndSubmits checks the activation state endpoint carries the
-// authorize URL and the code submit endpoint returns the session URL.
-func TestAuthPageRendersAndSubmits(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "id1", CreateURL: "https://claude.com/cai/oauth/authorize?a=b", SubmitURL: "https://claude.ai/code/s/9"}
-	s := newTestServer(f)
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
-	h := s.APIHandler()
-
-	// GET the state: with auth disabled, the full state (authorize URL) is open.
-	code, st := authStateJSON(t, h, sess.plainToken)
-	if code != http.StatusOK {
-		t.Fatalf("GET state status %d", code)
-	}
-	if st["authorize_url"] != "https://claude.com/cai/oauth/authorize?a=b" {
-		t.Errorf("authorize URL missing from state: %v", st)
-	}
-	if st["status"] != "pending" {
-		t.Errorf("status = %v, want pending", st["status"])
-	}
-
-	// POST the code: box becomes ready, the response carries the session URL.
-	preq := httptest.NewRequest(http.MethodPost, "/auth/"+sess.plainToken+"/code", strings.NewReader(`{"code":"THECODE"}`))
-	preq.Header.Set("Content-Type", "application/json")
-	prec := httptest.NewRecorder()
-	h.ServeHTTP(prec, preq)
-	if prec.Code != http.StatusOK {
-		t.Fatalf("POST status %d: %s", prec.Code, prec.Body.String())
-	}
-	if f.GotCode != "THECODE" {
-		t.Errorf("code not forwarded: %q", f.GotCode)
-	}
-	var out map[string]any
-	if err := json.Unmarshal(prec.Body.Bytes(), &out); err != nil {
-		t.Fatalf("decoding submit response: %v", err)
-	}
-	if out["status"] != "ready" || out["session_url"] != "https://claude.ai/code/s/9" {
-		t.Errorf("submit response = %v, want ready with session URL", out)
-	}
-}
-
-// TestAuthPageShowsBoxAndSpoke checks the activation state names the box and the
-// runner it runs on, so the user can tell which workspace they are activating.
-func TestAuthPageShowsBoxAndSpoke(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{CreateID: "id1", CreateURL: "https://c", SubmitURL: "https://s"})
-	sess, _ := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "refactor-auth"})
-
-	code, st := authStateJSON(t, s.APIHandler(), sess.plainToken)
-	if code != http.StatusOK {
-		t.Fatalf("GET state status %d", code)
-	}
-	if st["box_id"] != "refactor-auth" {
-		t.Errorf("box id missing from state: %v", st)
-	}
-	if st["spoke"] != testSpoke {
-		t.Errorf("runner (spoke) name missing from state: %v", st)
-	}
-}
-
-// TestAuthPageServesShell checks GET /auth/{token} serves the static activation
-// shell (the built web page) rather than any server-rendered state.
-func TestAuthPageServesShell(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{})
-	h := s.APIHandler()
-	req := httptest.NewRequest(http.MethodGet, "/auth/anytoken", nil)
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("GET shell status %d (is the web app built? run `make web`)", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "<!doctype html>") && !strings.Contains(rec.Body.String(), "<!DOCTYPE html>") {
-		t.Error("expected the HTML shell")
-	}
-}
-
-// TestAuthPageUnknownToken checks the state endpoint 404s for an unknown token.
-func TestAuthPageUnknownToken(t *testing.T) {
-	s := newTestServer(&testutils.FakeMgr{})
-	code, _ := authStateJSON(t, s.APIHandler(), "deadbeef")
-	if code != http.StatusNotFound {
-		t.Errorf("status = %d, want 404", code)
-	}
-}
 
 // TestHealthz checks the health endpoint returns ok.
 func TestHealthz(t *testing.T) {
@@ -545,31 +398,22 @@ func TestFaviconServed(t *testing.T) {
 }
 
 // TestGetByBoxID checks the MCP backend resolves a box by box ID
-// (case-insensitive), reflects its status changes, and misses an unknown box ID.
+// (case-insensitive), flattens its identity, and misses an unknown box ID.
 func TestGetByBoxID(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
 	b := s.boxBackend()
-	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box", Description: "d"})
-	if err != nil {
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box", Description: "d"}); err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
 
-	// Found, case-insensitive; the flattened session carries the box's state.
+	// Found, case-insensitive; the flattened session carries the box's identity.
 	got, ok := b.LookupByBoxID("WEB-BOX")
 	if !ok {
 		t.Fatal("expected to find box by box ID")
 	}
-	if got.Status != "pending" || got.BoxID != "web-box" || got.Description != "d" {
+	if got.BoxID != "web-box" || got.Description != "d" || got.Generation != "abcdef0123456789" {
 		t.Errorf("unexpected lookup: %+v", got)
-	}
-
-	// Reflects status changes via snapshot.
-	if err := s.submitCode(context.Background(), sess.plainToken, "CODE"); err != nil {
-		t.Fatalf("SubmitCode: %v", err)
-	}
-	if got, _ := b.LookupByBoxID("web-box"); got.Status != "ready" || got.SessionURL != "https://claude.ai/code/s/1" {
-		t.Errorf("expected ready with session URL, got %+v", got)
 	}
 
 	// Unknown box IDs miss.
@@ -610,41 +454,12 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 	}
 }
 
-// TestBoxLogsByBoxID checks the MCP backend resolves a box by box ID, forwards
-// the box ID and tail to the manager, and errors for an unknown box ID.
-func TestBoxLogsByBoxID(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", LogsResult: "Ready\nlistening\n"}
-	s := newTestServer(f)
-	b := s.boxBackend()
-	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"}); err != nil {
-		t.Fatalf("CreateBox: %v", err)
-	}
-
-	// Found, case-insensitive, with the tail forwarded to the manager.
-	logs, err := b.BoxLogs(context.Background(), "WEB-BOX", 25)
-	if err != nil {
-		t.Fatalf("BoxLogs: %v", err)
-	}
-	if logs != "Ready\nlistening\n" {
-		t.Errorf("unexpected logs: %q", logs)
-	}
-	if f.GotLogsID != "web-box" || f.GotLogsN != 25 {
-		t.Errorf("manager got id=%q tail=%d, want web-box/25 (the hub addresses boxes by box ID)", f.GotLogsID, f.GotLogsN)
-	}
-
-	// Unknown box IDs error.
-	if _, err := b.BoxLogs(context.Background(), "nope", 0); err == nil {
-		t.Error("expected error for unknown box ID")
-	}
-}
-
 // TestBoxExecByBoxID checks the MCP backend resolves a box by box ID, wraps the
 // command in /bin/sh -c, returns the captured output, and errors for an unknown
 // box ID and an empty command.
 func TestBoxExecByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{
 		CreateID:   "abcdef0123456789",
-		CreateURL:  "u",
 		ExecResult: sandbox.ExecResult{Stdout: "hi\n", Stderr: "", ExitCode: 0},
 	}
 	s := newTestServer(f)
@@ -680,9 +495,10 @@ func TestBoxExecByBoxID(t *testing.T) {
 
 // --- MCP wiring ---
 
-// TestBoxToolsOverBackend checks all tools are registered and create returns a safe auth URL.
+// TestBoxToolsOverBackend checks all tools are registered and create returns the
+// box's ID and instance ID.
 func TestBoxToolsOverBackend(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?z=1"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
 	cs := connectMCP(t, s)
 
@@ -694,13 +510,13 @@ func TestBoxToolsOverBackend(t *testing.T) {
 	for _, tl := range tools.Tools {
 		names[tl.Name] = true
 	}
-	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "destroy_llmbox", "get_llmbox_logs", "exec_llmbox"} {
+	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "destroy_llmbox", "exec_llmbox"} {
 		if !names[want] {
 			t.Errorf("tool %q not registered (have %v)", want, names)
 		}
 	}
 
-	// create_llmbox returns an auth URL on our public host, never a secret.
+	// create_llmbox returns the assigned box ID and the backend instance ID.
 	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "create_llmbox", Arguments: map[string]any{"box_id": "web-box"}})
 	if err != nil {
 		t.Fatalf("CallTool: %v", err)
@@ -709,19 +525,18 @@ func TestBoxToolsOverBackend(t *testing.T) {
 		t.Fatalf("tool error: %v", res.Content)
 	}
 	out, _ := res.StructuredContent.(map[string]any)
-	authURL, _ := out["auth_url"].(string)
-	if !strings.HasPrefix(authURL, "https://boxes.example.com/auth/") {
-		t.Errorf("auth_url = %q, want our public auth page", authURL)
+	if out["box_id"] != "web-box" {
+		t.Errorf("box_id = %v, want web-box", out["box_id"])
 	}
-	if strings.Contains(authURL, "oauth/authorize") {
-		t.Error("auth_url must not leak the raw OAuth URL into MCP output")
+	if out["instance_id"] != "abcdef0123456789" {
+		t.Errorf("instance_id = %v, want the backend generation", out["instance_id"])
 	}
 }
 
 // TestCreateRequiresBoxID checks create_llmbox rejects a call with an empty box
 // ID and does not create a box, so every box stays reachable by its box ID.
 func TestCreateRequiresBoxID(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
 	cs := connectMCP(t, s)
 

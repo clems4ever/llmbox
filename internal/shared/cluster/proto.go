@@ -44,15 +44,12 @@ const (
 
 // Verb method names carried in a frameReq.
 const (
-	methodCreate     = "create"
-	methodSubmitCode = "submit_code"
-	methodList       = "list"
-	methodDestroy    = "destroy"
-	methodPause      = "pause"
-	methodResume     = "resume"
-	methodLogs       = "logs"
-	methodExec       = "exec"
-	methodReap       = "reap"
+	methodCreate  = "create"
+	methodList    = "list"
+	methodDestroy = "destroy"
+	methodPause   = "pause"
+	methodResume  = "resume"
+	methodExec    = "exec"
 )
 
 // Verb method names carried in a frameSpokeReq (spoke→hub).
@@ -97,18 +94,9 @@ type createReq struct {
 }
 type createResp struct {
 	ID               string                `json:"id"`
-	AuthorizeURL     string                `json:"authorize_url"`
 	InitScriptFailed bool                  `json:"init_script_failed,omitempty"`
 	InitScriptOutput string                `json:"init_script_output,omitempty"`
 	PublishPorts     []sandbox.PublishPort `json:"publish_ports,omitempty"`
-}
-
-type submitCodeReq struct {
-	ID   string `json:"id"`
-	Code string `json:"code"`
-}
-type submitCodeResp struct {
-	SessionURL string `json:"session_url"`
 }
 
 type listResp struct {
@@ -126,28 +114,10 @@ type pauseReq struct {
 type resumeReq struct {
 	IDOrName string `json:"id_or_name"`
 }
-type resumeResp struct {
-	SessionURL string `json:"session_url"`
-}
-
-type logsReq struct {
-	IDOrName string `json:"id_or_name"`
-	Tail     int    `json:"tail"`
-}
-type logsResp struct {
-	Logs string `json:"logs"`
-}
 
 type execReq struct {
 	IDOrName string   `json:"id_or_name"`
 	Cmd      []string `json:"cmd"`
-}
-
-type reapReq struct {
-	TTLNanos int64 `json:"ttl_nanos"`
-}
-type reapResp struct {
-	Reaped []string `json:"reaped"`
 }
 
 // Box-port payloads (spoke→hub, carried in a frameSpokeReq). The BoxID is

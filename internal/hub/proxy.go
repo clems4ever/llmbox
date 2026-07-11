@@ -332,12 +332,12 @@ func (s *Server) proxySlugFromHost(host string) (string, bool) {
 	return label, true
 }
 
-// proxyAuthorized reports whether a request to a proxy may proceed. When
-// activation auth is configured, the visitor must be signed in with an identity
-// allowed to activate boxes (the same gate the activation page uses); the shared
-// login cookie (see auth.cookie_domain) carries that session across the proxy
-// sub-domains. When no provider is configured, proxying is open — matching the
-// rest of the server, which then relies on a front reverse proxy for authn.
+// proxyAuthorized reports whether a request to a proxy may proceed. When auth is
+// configured, the visitor must be signed in with an admin identity (the same gate
+// the admin UI uses); the shared login cookie (see auth.cookie_domain) carries
+// that session across the proxy sub-domains. When no provider is configured,
+// proxying is open — matching the rest of the server, which then relies on a front
+// reverse proxy for authn.
 //
 // @arg r The incoming proxy request.
 // @return bool True when the request is authorized to use the proxy.
@@ -353,7 +353,7 @@ func (s *Server) proxyAuthorized(r *http.Request) (bool, int) {
 	if !ok {
 		return false, http.StatusUnauthorized
 	}
-	if !ls.CanActivate {
+	if !ls.CanAdmin {
 		return false, http.StatusForbidden
 	}
 	return true, 0

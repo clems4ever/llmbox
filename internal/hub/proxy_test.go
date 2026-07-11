@@ -41,7 +41,7 @@ func newProxyServer(t *testing.T, mgr boxManager, a *auth.Authenticator) (*Serve
 		t.Fatalf("OpenStore: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	s := wireSpoke(New(nil, "https://boxes.example.com", 5*time.Minute, st, a), mgr)
+	s := wireSpoke(New(nil, "https://boxes.example.com", st, a), mgr)
 	s.SetProxyBaseDomain("proxy.example.com")
 	return s, st
 }
@@ -85,7 +85,7 @@ func TestCreateBoxPublishesConfiguredPorts(t *testing.T) {
 	f := &testutils.FakeMgr{
 		CreateID: "abcdef0123456789",
 		CreatePublishPorts: []sandbox.PublishPort{
-			{Port: 8080, Description: "claude-control"},
+			{Port: 8080, Description: "web-app"},
 			{Port: 3000},
 		},
 	}
@@ -109,7 +109,7 @@ func TestCreateBoxPublishesConfiguredPorts(t *testing.T) {
 	for _, want := range []struct {
 		port int
 		desc string
-	}{{8080, "claude-control"}, {3000, ""}} {
+	}{{8080, "web-app"}, {3000, ""}} {
 		p, ok := byPort[want.port]
 		if !ok {
 			t.Fatalf("no proxy for port %d", want.port)
@@ -152,7 +152,7 @@ func TestProxyURLCarriesPublicURLPort(t *testing.T) {
 		t.Fatalf("OpenStore: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	s := New(nil, "https://boxes.example.com:8443", 5*time.Minute, st, nil)
+	s := New(nil, "https://boxes.example.com:8443", st, nil)
 	s.SetProxyBaseDomain("proxy.example.com")
 	if got, want := s.proxyURL("abc123"), "https://abc123.proxy.example.com:8443/"; got != want {
 		t.Errorf("proxyURL = %q, want %q", got, want)
@@ -312,7 +312,7 @@ func TestCreateProxyRefusesTerminatedBox(t *testing.T) {
 	s, _ := newProxyServer(t, &testutils.FakeMgr{}, nil)
 	s.regSession("tok", &session{
 		BoxID: "dead-box", Generation: "cccccccccccc1111", SpokeName: testSpoke,
-		Status: "pending", BoxState: boxStateTerminated,
+		Phase: "ready", BoxState: boxStateTerminated,
 	})
 
 	if _, err := s.createProxy("dead-box", 8000, "", ""); err == nil {
@@ -590,8 +590,8 @@ func TestHandleProxyAuthorizedForwards(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Seed a signed-in box-activator session and present its cookie.
-	if err := st.PutIdentitySession(hashTok("SID"), store.IdentitySession{Email: "dev@corp.com", CanActivate: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+	// Seed a signed-in admin session and present its cookie.
+	if err := st.PutIdentitySession(hashTok("SID"), store.IdentitySession{Email: "dev@corp.com", CanAdmin: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
 		t.Fatal(err)
 	}
 

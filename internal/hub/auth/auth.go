@@ -1,7 +1,7 @@
-// Package auth gates box activation and the admin UI behind OIDC provider
-// sign-in. It owns the provider configuration and allow rules, the OIDC
-// login/callback handshake, and the login-session lookup the rest of the server
-// uses to learn who (if anyone) is signed in.
+// Package auth gates the admin UI and the per-box HTTP proxies behind OIDC
+// provider sign-in. It owns the provider configuration, the OIDC login/callback
+// handshake, and the login-session lookup the rest of the server uses to learn
+// who (if anyone) is signed in. Authorization is by the admin allow-list.
 //
 // The package depends only on internal/hub/store (for the durable login state) and
 // internal/hub/config, never on the server package, so authentication can evolve
@@ -52,68 +52,23 @@ type idTokenVerifier interface {
 
 // provider is one configured sign-in option (e.g. Google).
 type provider struct {
-	name           string // URL segment and config key, e.g. "google"
-	label          string // human label for the sign-in button, e.g. "Google"
-	oauth2         *oauth2.Config
-	verifier       idTokenVerifier
-	allowedDomains map[string]bool // lower-cased
-	allowedEmails  map[string]bool // lower-cased
+	name     string // URL segment and config key, e.g. "google"
+	label    string // human label for the sign-in button, e.g. "Google"
+	oauth2   *oauth2.Config
+	verifier idTokenVerifier
 }
 
-// authorize reports whether the verified claims are allowed to activate boxes.
-// The email must be verified, and either explicitly allow-listed or in an
-// allowed domain; for Google Workspace accounts the hd claim, when present, must
-// also be an allowed domain.
-//
-// @arg c The verified identity claims.
-// @return bool True when the identity may activate boxes.
-//
-// @testcase TestAuthorize allows allow-listed emails and domains and rejects others.
-func (p *provider) authorize(c idClaims) bool {
-	if !c.EmailVerified || c.Email == "" {
-		return false
-	}
-	email := strings.ToLower(c.Email)
-	if p.allowedEmails[email] {
-		return true
-	}
-	domain := emailDomain(email)
-	if domain == "" || !p.allowedDomains[domain] {
-		return false
-	}
-	// A hosted-domain claim, when present, is the authoritative Workspace domain;
-	// require it to also be allowed so a Workspace user with an external primary
-	// email can't slip through on the email domain alone.
-	if c.HostedDomain != "" && !p.allowedDomains[strings.ToLower(c.HostedDomain)] {
-		return false
-	}
-	return true
-}
-
-// emailDomain returns the lower-cased domain part of an email address, or "".
-//
-// @arg email The email address.
-// @return string The part after the last "@", lower-cased, or "" if none.
-//
-// @testcase TestAuthorize relies on domain extraction for domain matching.
-func emailDomain(email string) string {
-	at := strings.LastIndex(email, "@")
-	if at < 0 || at == len(email)-1 {
-		return ""
-	}
-	return strings.ToLower(email[at+1:])
-}
-
-// Authenticator gates box activation behind provider sign-in. A nil
-// *Authenticator means activation is unauthenticated (no provider configured).
+// Authenticator gates the admin UI and the per-box HTTP proxies behind provider
+// sign-in. A nil *Authenticator means those surfaces are unauthenticated (no
+// provider configured).
 type Authenticator struct {
 	providers  map[string]*provider
 	order      []string // provider names in config order, for stable button order
 	sessionTTL time.Duration
 
-	// adminEmails is the lower-cased set of identities allowed into the admin UI.
-	// Empty (nil) means the admin UI is disabled. This is independent of any
-	// provider's box-activation allow rule.
+	// adminEmails is the lower-cased set of identities allowed into the admin UI
+	// and the per-box HTTP proxies. Empty (nil) means the admin UI is disabled and
+	// no sign-in is authorized.
 	adminEmails map[string]bool
 
 	// cookieDomain, when non-empty, is set as the login cookie's Domain attribute
@@ -129,7 +84,7 @@ type Authenticator struct {
 	log *slog.Logger
 }
 
-// ProviderButton is one sign-in option rendered on an activation or admin page.
+// ProviderButton is one sign-in option rendered on the sign-in or admin page.
 type ProviderButton struct {
 	Label     string
 	LoginPath string
@@ -137,8 +92,8 @@ type ProviderButton struct {
 
 // New builds an Authenticator from the auth configuration, doing OIDC discovery
 // for each enabled provider. It returns (nil, nil) when no provider is enabled,
-// which leaves activation unauthenticated. Call Bind before serving to attach the
-// login store the handlers persist to.
+// which leaves the admin UI and proxies unauthenticated. Call Bind before serving
+// to attach the login store the handlers persist to.
 //
 // @arg ctx Context for provider discovery.
 // @arg cfg The auth configuration (providers, session TTL).
@@ -168,9 +123,7 @@ func New(ctx context.Context, cfg config.AuthConfig) (*Authenticator, error) {
 				RedirectURL:  cfg.Google.RedirectURL,
 				Scopes:       []string{oidc.ScopeOpenID, "email"},
 			},
-			verifier:       oidcVerifier{oidcProvider.Verifier(&oidc.Config{ClientID: cfg.Google.ClientID})},
-			allowedDomains: lowerSet(cfg.Google.AllowedDomains),
-			allowedEmails:  lowerSet(cfg.Google.AllowedEmails),
+			verifier: oidcVerifier{oidcProvider.Verifier(&oidc.Config{ClientID: cfg.Google.ClientID})},
 		}
 		a.order = append(a.order, "google")
 	}
@@ -258,27 +211,6 @@ func (a *Authenticator) provider(name string) (*provider, bool) {
 	return p, ok
 }
 
-// Buttons returns the sign-in buttons to render for an activation page, each
-// linking back to the given box token after login.
-//
-// @arg token The box auth token to return to after sign-in.
-// @return []ProviderButton One button per enabled provider, in config order.
-//
-// @testcase TestButtons builds a login button per provider carrying the box token.
-func (a *Authenticator) Buttons(token string) []ProviderButton {
-	if a == nil {
-		return nil
-	}
-	out := make([]ProviderButton, 0, len(a.order))
-	for _, name := range a.order {
-		out = append(out, ProviderButton{
-			Label:     a.providers[name].label,
-			LoginPath: "/auth/" + name + "/login?token=" + url.QueryEscape(token),
-		})
-	}
-	return out
-}
-
 // AdminEnabled reports whether the admin UI is enabled (an admin allow-list is
 // configured). It is false on a nil Authenticator.
 //
@@ -304,9 +236,8 @@ func (a *Authenticator) isAdmin(email string) bool {
 }
 
 // ReturnButtons returns the sign-in buttons for a flow that comes back to a fixed
-// destination after login (the admin UI, or the proxy sign-in page) rather than
-// to a box activation page. Each button carries returnTo as its post-login return
-// target.
+// destination after login (the admin UI, or the proxy sign-in page). Each button
+// carries returnTo as its post-login return target.
 //
 // @arg returnTo The target to return to after sign-in — a local path (e.g.
 //
@@ -415,13 +346,12 @@ func (o oidcVerifier) verify(ctx context.Context, rawIDToken, nonce string) (idC
 }
 
 // HandleLogin begins an OIDC handshake: it persists fresh state (PKCE verifier +
-// nonce + where to return) and redirects to the provider. The return target is
-// either a box activation token (?token=, the activation flow) or a safe return
-// URL (?return=, the admin and proxy sign-in flows — a local path or a proxy
-// sub-domain under the cookie domain, see SafeReturnURL); exactly one is required.
+// nonce + where to return) and redirects to the provider. The return target is a
+// safe return URL (?return=, the admin and proxy sign-in flows — a local path or a
+// proxy sub-domain under the cookie domain, see SafeReturnURL) and is required.
 //
 // @arg w The response writer (redirected to the provider).
-// @arg r The request carrying {provider} and either a token or return query param.
+// @arg r The request carrying {provider} and the return query param.
 //
 // @testcase TestProviderLoginRedirects redirects to the provider with state.
 // @testcase TestProviderLoginReturnPath accepts a safe return path for the admin flow.
@@ -431,10 +361,9 @@ func (a *Authenticator) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	token := r.URL.Query().Get("token")
 	returnTo := a.SafeReturnURL(r.URL.Query().Get("return"))
-	if token == "" && returnTo == "" {
-		http.Error(w, "missing box token or return path", http.StatusBadRequest)
+	if returnTo == "" {
+		http.Error(w, "missing return path", http.StatusBadRequest)
 		return
 	}
 	state, err1 := randToken(32)
@@ -447,7 +376,6 @@ func (a *Authenticator) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	verifier := oauth2.GenerateVerifier()
 	flow := store.OIDCFlow{
 		Provider:     p.name,
-		ReturnToken:  token,
 		ReturnTo:     returnTo,
 		Nonce:        nonce,
 		PKCEVerifier: verifier,
@@ -467,16 +395,15 @@ func (a *Authenticator) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleCallback completes an OIDC handshake: it consumes the stored flow,
 // exchanges the code, verifies the ID token, and on success creates an identity
-// session recording the identity's box-activation and admin capabilities, then
-// redirects to the flow's return target (a box auth page or the admin UI). It
-// rejects only an identity with neither capability.
+// session for an admin-allow-listed identity, then redirects to the flow's return
+// target (the admin UI or a per-proxy host). It rejects an identity that is not
+// on the admin allow-list.
 //
 // @arg w The response writer (redirected to the return target on success).
 // @arg r The request carrying {provider}, the code, and the state parameter.
 //
-// @testcase TestProviderCallbackActivates signs in an allowed identity and sets the cookie.
-// @testcase TestProviderCallbackRejectsUnauthorized 403s an identity in neither allow rule.
-// @testcase TestProviderCallbackAdminOnly signs in an admin who cannot activate boxes.
+// @testcase TestProviderCallbackActivates signs in an admin identity and sets the cookie.
+// @testcase TestProviderCallbackRejectsUnauthorized 403s an identity not on the admin allow-list.
 func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	p, ok := a.provider(r.PathValue("provider"))
 	if !ok {
@@ -515,14 +442,11 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sign-in failed", http.StatusBadGateway)
 		return
 	}
-	// A sign-in confers two independent capabilities: activating boxes (the
-	// provider's allow rule) and using the admin UI (the admin allow-list). The
-	// session records both so each surface enforces its own gate. We reject only
-	// when the identity has neither capability — an admin who cannot activate
-	// boxes (or vice versa) is still allowed to sign in for what they can do.
-	canActivate := p.authorize(claims)
-	isAdmin := a.isAdmin(claims.Email)
-	if !canActivate && !isAdmin {
+	// The admin allow-list is the sole authorization gate: an identity may sign in
+	// only if it may administer the hub (and, with it, reach the per-box proxies).
+	// The email must be verified so a forged unverified address cannot match.
+	isAdmin := claims.EmailVerified && a.isAdmin(claims.Email)
+	if !isAdmin {
 		a.logger().Info("sign-in denied for unauthorized identity", "provider", p.name, "email", claims.Email)
 		http.Error(w, fmt.Sprintf("Signed in as %s, but that account is not authorized here.", claims.Email), http.StatusForbidden)
 		return
@@ -539,12 +463,11 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	// The cookie carries the plaintext id; the store is keyed by its hash, so a
 	// stolen state file yields no replayable session cookie.
 	if err := a.store.PutIdentitySession(store.HashToken(id), store.IdentitySession{
-		Email:       claims.Email,
-		Provider:    p.name,
-		CSRFToken:   csrf,
-		ExpiresAt:   expires,
-		CanActivate: canActivate,
-		CanAdmin:    isAdmin,
+		Email:     claims.Email,
+		Provider:  p.name,
+		CSRFToken: csrf,
+		ExpiresAt: expires,
+		CanAdmin:  isAdmin,
 	}); err != nil {
 		a.logger().Error("saving identity session", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -553,9 +476,9 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:  LoginCookie,
 		Value: id,
-		// Scoped to the whole site so the cookie reaches both the activation pages
-		// under /auth and the admin UI under /admin. When a cookie domain is
-		// configured, it is also shared across sub-domains (the per-proxy hosts).
+		// Scoped to the whole site so the cookie reaches the admin UI under /admin.
+		// When a cookie domain is configured, it is also shared across sub-domains
+		// (the per-proxy hosts).
 		Domain:   a.cookieDomain,
 		Path:     "/",
 		Expires:  expires,
@@ -563,11 +486,7 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
-	if flow.ReturnTo != "" {
-		http.Redirect(w, r, flow.ReturnTo, http.StatusFound)
-		return
-	}
-	http.Redirect(w, r, "/auth/"+url.PathEscape(flow.ReturnToken), http.StatusFound)
+	http.Redirect(w, r, flow.ReturnTo, http.StatusFound)
 }
 
 // CurrentLogin returns the live, unexpired identity session for the request's
@@ -640,7 +559,7 @@ func randToken(nBytes int) (string, error) {
 // @arg items The strings to lower-case and collect.
 // @return map[string]bool A set keyed by the lower-cased items, or nil if none.
 //
-// @testcase TestAuthorize relies on the lower-cased allow sets.
+// @testcase TestAdminAllowlist relies on the lower-cased admin set.
 func lowerSet(items []string) map[string]bool {
 	if len(items) == 0 {
 		return nil

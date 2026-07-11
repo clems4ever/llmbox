@@ -20,22 +20,22 @@ describe("CreateWorkspaceModal", () => {
     expect(screen.getByDisplayValue("default (edge-1)")).toBeInTheDocument();
   });
 
-  it("creates a workspace and shows its activation link", async () => {
+  it("creates a workspace, refreshes, and closes", async () => {
     const api = mockApi({
-      createBox: vi.fn().mockResolvedValue({ box_id: "myws", token: "tok" }),
-      authPageURL: vi.fn().mockResolvedValue("https://hub/auth/tok"),
+      createBox: vi.fn().mockResolvedValue({ box_id: "myws" }),
     });
     const refresh = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
     const { user } = render(
-      <CreateWorkspaceModal api={api} spokes={[]} opened onClose={vi.fn()} refresh={refresh} />,
+      <CreateWorkspaceModal api={api} spokes={[]} opened onClose={onClose} refresh={refresh} />,
     );
     await user.type(screen.getByPlaceholderText("refactor-auth"), "myws");
     await user.click(screen.getByRole("button", { name: "Create workspace" }));
 
     await waitFor(() => expect(api.createBox).toHaveBeenCalledWith("myws", "", ""));
-    expect(api.authPageURL).toHaveBeenCalledWith("tok");
-    expect(await screen.findByDisplayValue("https://hub/auth/tok")).toBeInTheDocument();
-    expect(refresh).toHaveBeenCalled();
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(await screen.findByText("created workspace myws")).toBeInTheDocument();
   });
 
   it("closes via Cancel", async () => {

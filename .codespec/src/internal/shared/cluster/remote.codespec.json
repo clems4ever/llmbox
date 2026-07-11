@@ -44,16 +44,9 @@
 		{
 			"function_name": "Create",
 			"receiver": "remoteSpoke",
-			"documentation_hash": "c04fcc9ecf5726224dce1dec26c5a2226de95815e476055c3a634cc70cc2fe3f",
-			"definition_hash": "f11b24ed7c45bd394dd4cb7e8c70b76972a7853ef82f025af1c3494bc9e1f4e9",
-			"reviewed_at": "2026-07-09T21:42:06.888428559Z"
-		},
-		{
-			"function_name": "SubmitCode",
-			"receiver": "remoteSpoke",
-			"documentation_hash": "b1ab250deb87c859fb436415b1bad7d9936de2e451bc404fc9a317095c6520c6",
-			"definition_hash": "741e4e40e94500ce1a0d22e7912d51b98a74e5f4b03b2a413607fc98f3ae7cc0",
-			"reviewed_at": "2026-07-09T21:42:06.889113255Z"
+			"documentation_hash": "a5c50e30448ca978c2d976b3d93f5a3bf0413ec2b048914063b7218a7b3365f1",
+			"definition_hash": "186f000db93476e5a08ae32caee0046240dfb4204b122fe5dd327886ec178f48",
+			"reviewed_at": "2026-07-11T21:34:27.203316803Z"
 		},
 		{
 			"function_name": "List",
@@ -70,25 +63,11 @@
 			"reviewed_at": "2026-06-27T17:27:56.72974864Z"
 		},
 		{
-			"function_name": "Logs",
-			"receiver": "remoteSpoke",
-			"documentation_hash": "93bc06fa7302e3c2bb292374da76ca6bec518004e5e48ccc2b09dfbf184a76a1",
-			"definition_hash": "364392ccefe65e16e579ced424f6349ec5b16ee1188dce9be8b9d5354318a063",
-			"reviewed_at": "2026-06-27T17:27:56.730413178Z"
-		},
-		{
 			"function_name": "Exec",
 			"receiver": "remoteSpoke",
 			"documentation_hash": "07fa128d63c477ddcf652e80222f5d0447d466a8dcefb926d6d456f1ab71a1e2",
 			"definition_hash": "12ba297d8552c536f8ca45a73dd7550e58b3b42fb8701eb186eac500c054b466",
 			"reviewed_at": "2026-06-29T15:39:25.034052687Z"
-		},
-		{
-			"function_name": "ReapOrphans",
-			"receiver": "remoteSpoke",
-			"documentation_hash": "983cfa927cf26e370b4d8f6c5ddd1f6cc0822a4684352235024a448afc5a10a7",
-			"definition_hash": "c0e9cabf554141cfce36839f282f3c17720acaa8f7be3880ad31864321dc29d9",
-			"reviewed_at": "2026-07-09T21:42:06.88983685Z"
 		},
 		{
 			"function_name": "DialBox",
@@ -128,9 +107,9 @@
 		{
 			"function_name": "Resume",
 			"receiver": "remoteSpoke",
-			"documentation_hash": "75a4efbc69cb9e2466ec1b50b303c4f84554cf100d4ae826502fae483020a2d6",
-			"definition_hash": "9d3ee287c7218b13f0ea5cf7774765b973743a0efb1457027f209d891b0f1fc2",
-			"reviewed_at": "2026-07-11T11:13:33.507358758Z"
+			"documentation_hash": "51ff72eb8da7cbfb0f3423eec6ec71721dc44c16684d1550ca8befaa29fb9159",
+			"definition_hash": "9aa36f33ed1020fe23f9a4b7ad3f5def052062ea61236884ba2478aaf067082d",
+			"reviewed_at": "2026-07-11T21:34:27.203850105Z"
 		}
 	]
 }

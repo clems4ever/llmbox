@@ -47,12 +47,12 @@ func TestProxyThroughSpoke(t *testing.T) {
 		t.Fatalf("parse proxy url %q: %v", proxyURL, err)
 	}
 
-	// A proxy request must carry a signed-in box-activator session (the admin
-	// session has admin rights but not box-activation). Seed one and use its cookie.
+	// A proxy request must carry a signed-in admin session (proxy access is gated
+	// on CanAdmin). Seed one and use its cookie.
 	if err := f.store.PutIdentitySession(storepkg.HashToken("ACT"), storepkg.IdentitySession{
-		Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true,
+		Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanAdmin: true,
 	}); err != nil {
-		t.Fatalf("seed activator session: %v", err)
+		t.Fatalf("seed admin session: %v", err)
 	}
 	actCookie := &http.Cookie{Name: auth.LoginCookie, Value: "ACT"}
 
@@ -127,11 +127,11 @@ func TestWebSocketProxyThroughSpoke(t *testing.T) {
 		t.Fatalf("parse proxy url %q: %v", proxyURL, err)
 	}
 
-	// A box-activator session, presented as a cookie on the WebSocket handshake.
+	// An admin session, presented as a cookie on the WebSocket handshake.
 	if err := f.store.PutIdentitySession(storepkg.HashToken("ACT"), storepkg.IdentitySession{
-		Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanActivate: true,
+		Email: "dev@corp.com", ExpiresAt: time.Now().Add(time.Hour), CanAdmin: true,
 	}); err != nil {
-		t.Fatalf("seed activator session: %v", err)
+		t.Fatalf("seed admin session: %v", err)
 	}
 
 	// Dial the WebSocket at the proxy sub-domain host, but route the TCP connection

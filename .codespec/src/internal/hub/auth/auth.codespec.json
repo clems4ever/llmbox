@@ -1,23 +1,10 @@
 {
 	"functions": [
 		{
-			"function_name": "authorize",
-			"receiver": "provider",
-			"documentation_hash": "a716bd45d949327fdae054b01defbbfd69239adecb2fc8a755ad9cd1b33e9a28",
-			"definition_hash": "2cdb03f7ea69c51fedc42eae081280e8f541c7d1def751272f781a8bf5314201",
-			"reviewed_at": "2026-06-27T11:25:38.772957191Z"
-		},
-		{
-			"function_name": "emailDomain",
-			"documentation_hash": "69e7ab78ffabeb105e26ab2192b2615d7e4ab1b3e95f3de3776d807a175306f6",
-			"definition_hash": "a0dc521fdf88eaa800ae5b20caa4305cd8d7c0442f9fdecacfdef1b2805759d4",
-			"reviewed_at": "2026-06-27T11:25:38.798989727Z"
-		},
-		{
 			"function_name": "New",
-			"documentation_hash": "cf59020d96d974899ab625c190f25e3016ba5147f06f89958408546ff9c12fc7",
-			"definition_hash": "238675cbcd469ba33c5344b9fbfce3052ec94f4cc8b80fe8dad80b5bc6603cce",
-			"reviewed_at": "2026-06-27T17:02:38.490401937Z"
+			"documentation_hash": "5a708bb3b41b98af84f0b470836145f7f5719bc400d64b3b027e0a0ebda45af7",
+			"definition_hash": "10e76dce756eefff75b2eeba50e94e50a01190bef32cde8c674dd20ae824ce0e",
+			"reviewed_at": "2026-07-11T21:34:27.109532986Z"
 		},
 		{
 			"function_name": "NewTestAuthenticator",
@@ -45,13 +32,6 @@
 			"documentation_hash": "542b6736b6052615d5ba7207108e6ad28f720cd8c59e5a1ba778e70199963a92",
 			"definition_hash": "1278a7b2253c1a49f1256eb518d6a9b0dda0837a1976eb9643793630b4564435",
 			"reviewed_at": "2026-06-27T11:25:38.930417617Z"
-		},
-		{
-			"function_name": "Buttons",
-			"receiver": "Authenticator",
-			"documentation_hash": "518d538414d61152880354866bad2ef612e884899f1a3df55d1994629d06c444",
-			"definition_hash": "909a4d41fba045ca4502d4fd2a65dfc4878e8b700e866e287bcd206b2c8b95be",
-			"reviewed_at": "2026-06-27T17:07:44.987212989Z"
 		},
 		{
 			"function_name": "AdminEnabled",
@@ -83,16 +63,16 @@
 		{
 			"function_name": "HandleLogin",
 			"receiver": "Authenticator",
-			"documentation_hash": "5acbf87aa92fcfb9df27c0bdc377e6c8bffc365e297a3e8433f1861fbee9e745",
-			"definition_hash": "1efc3d6de4b4d1420031d495076fcc37167859adea015d69d9538a3d01b8b786",
-			"reviewed_at": "2026-07-10T10:15:11.411386446Z"
+			"documentation_hash": "306e3b44ba219e0f1fd5d5b82a69053831fb45f6be5d5a2fab1fb4ac3dd8fb22",
+			"definition_hash": "9e686706172a73b7957633469a9b4c38d47e2d48274e2cc684d584ff2eb56bad",
+			"reviewed_at": "2026-07-11T21:34:27.111319172Z"
 		},
 		{
 			"function_name": "HandleCallback",
 			"receiver": "Authenticator",
-			"documentation_hash": "22f5d7e0511738c161bd2324386ad2d346b217757252f54e8d6b104a83d2623f",
-			"definition_hash": "77d972b08ea0bf20c1116690343ff6ca1706459b11942475c1c65d891e74430c",
-			"reviewed_at": "2026-07-10T10:15:11.412652324Z"
+			"documentation_hash": "8fa386d26d37ea2da82cf125cba33540643535efb280f933bd3903a089a501d6",
+			"definition_hash": "aa9e2166bd6fa8e71ef7d54376c5afce71ddfb59790a429e65843ef9af41cb4f",
+			"reviewed_at": "2026-07-11T21:34:27.111950629Z"
 		},
 		{
 			"function_name": "CurrentLogin",
@@ -109,16 +89,16 @@
 		},
 		{
 			"function_name": "lowerSet",
-			"documentation_hash": "c377b834a539d07b0c21dbda74cc7457cc2e29c6a9c88c656c14bcbb73578389",
+			"documentation_hash": "c8e5182596b489ec0ebdd53ebb26caa535bc543e2e7694cec7f3e8a303ade936",
 			"definition_hash": "d529be2beeba1897d20ca9b4d1b68ba7d6c5ef24282d8d8e88880a7c66992557",
-			"reviewed_at": "2026-06-27T11:25:39.253650993Z"
+			"reviewed_at": "2026-07-11T21:34:27.11259123Z"
 		},
 		{
 			"function_name": "ReturnButtons",
 			"receiver": "Authenticator",
-			"documentation_hash": "b6fe8d1e201a076d4ee698ac62a19726e1a58085323eb97fbb5fb73cd7cdda1d",
+			"documentation_hash": "b82065a8af305265ac6836fdcd47734b83894c8295665286ab0a3563afbd442a",
 			"definition_hash": "7199512339a73d89b0501cb6b74516db7cc22774a359147d97f52047f02cdf39",
-			"reviewed_at": "2026-07-07T12:52:06.0654033Z"
+			"reviewed_at": "2026-07-11T21:34:27.110271763Z"
 		},
 		{
 			"function_name": "SafeReturnURL",

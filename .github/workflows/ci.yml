@@ -13,7 +13,7 @@ name: CI
 # references the badge by relative path, so it renders against whichever branch
 # is being viewed. The commit carries [skip ci] so it does not re-trigger this
 # workflow. Integration tests (the //go:build integration set, which need a
-# Docker daemon and a real Claude binary) are excluded here.
+# Docker daemon) are excluded here.
 #
 # The end-to-end workflow test (the //go:build e2e set) runs in its own `e2e`
 # job, kept separate from the fast unit suite: it drives the auth UI through a
@@ -203,14 +203,14 @@ jobs:
       - name: Run end-to-end workflow test
         run: make test-e2e
         env:
-          # The test saves screenshots of the auth page here when this is set.
+          # The test saves screenshots of the sign-in page here when this is set.
           LLMBOX_E2E_SCREENSHOT_DIR: .github/screenshots
 
-      - name: Upload auth-page screenshots
+      - name: Upload UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: auth-screenshots
+          name: ui-screenshots
           path: .github/screenshots/*.png
           if-no-files-found: ignore
 
@@ -278,10 +278,11 @@ jobs:
             echo "created screenshot preview comment"
           fi
 
-  # The Docker-backed conformance suite. It builds a mock-claude box image and
-  # runs the same backend-neutral box contract (internal/spoke/box/conformance) against
-  # real containers, validating the Docker provisioner, the per-box socket
-  # bind-mount, the in-container guest, and exec/logs/destroy/reaping.
+  # The Docker-backed conformance suite. It builds a box image and runs the same
+  # backend-neutral box contract (internal/spoke/box/conformance) against real
+  # containers, validating the Docker provisioner, the per-box socket bind-mount,
+  # the in-container guest, and the login-free Init/Exec/Dial control protocol
+  # (create/exec/destroy).
   # ubuntu-latest has a Docker daemon, so this needs no special runner. The
   # Firecracker backend would reuse the same conformance.Run on a KVM-capable
   # self-hosted runner.

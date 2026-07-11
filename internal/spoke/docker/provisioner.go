@@ -75,7 +75,7 @@ const (
 	NamespaceLabel = "com.llmbox.namespace"
 
 	// DefaultImage is launched when the caller does not specify one. It bakes in
-	// the standalone Claude binary, the llmbox-guest binary (its entrypoint),
+	// the box workload, the llmbox-guest binary (its entrypoint),
 	// tini, and a CA bundle (see Dockerfile.box).
 	DefaultImage = "ghcr.io/clems4ever/llmbox-box:latest"
 
@@ -94,7 +94,7 @@ const (
 	pausedMarkerFile = "paused"
 
 	// boxHome and boxWorkdir are the home and working directory forced on a box,
-	// so the baked ~/.claude.json trust seed and the credentials Claude writes land
+	// so the workload's config and the credentials it writes land
 	// in known, writable paths regardless of the base image's own user/WORKDIR.
 	boxHome    = "/root"
 	boxWorkdir = "/workspace"
@@ -109,7 +109,7 @@ const (
 	defaultBridgeNetwork = "bridge"
 
 	// stopTimeout is how long Docker waits after SIGTERM before SIGKILL when
-	// stopping a box, giving Claude a chance to deregister its session.
+	// stopping a box, giving the workload a chance to shut down cleanly.
 	stopTimeout = 10 * time.Second
 
 	// socketWait bounds how long Provision waits for the guest to create its
@@ -982,7 +982,7 @@ func (i *dockerInstance) Pause(ctx context.Context) error {
 
 // Resume restarts a paused box's container and waits for the guest to recreate its
 // control socket, then clears the paused marker. It restores only the compute; the
-// Manager re-drives the guest handshake to relaunch claude. The marker is cleared
+// Manager re-drives the guest handshake to restart the workload. The marker is cleared
 // last so a resume that fails before the guest is back stays reported as paused.
 //
 // @arg ctx Context for the start and the socket wait.

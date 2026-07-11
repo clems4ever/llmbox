@@ -30,15 +30,14 @@ func main() {
 	vsockPort := flag.Uint("vsock-port", 0, "guest AF_VSOCK port to serve on; when non-zero the guest serves over vsock instead of --socket")
 	boxapiSocket := flag.String("boxapi-socket", "/run/llmbox/boxapi.sock", "in-guest Unix socket bridged to the host box-port API (vsock mode only)")
 	boxapiPort := flag.Uint("boxapi-port", 0, "host vsock port the box-port API socket is bridged to; 0 disables the bridge (vsock mode only)")
-	claudeCmd := flag.String("claude", "claude", "the claude command used in the box entrypoint")
-	runAsUser := flag.String("user", "", "unprivileged box account to run claude and Exec commands as (must exist in the box's /etc/passwd); empty runs them as the guest's own user (root)")
+	runAsUser := flag.String("user", "", "unprivileged box account to run the init script and Exec commands as (must exist in the box's /etc/passwd); empty runs them as the guest's own user (root)")
 	flag.Parse()
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	if err := run(ctx, *socket, uint32(*vsockPort), *boxapiSocket, uint32(*boxapiPort), *claudeCmd, *runAsUser, log); err != nil {
+	if err := run(ctx, *socket, uint32(*vsockPort), *boxapiSocket, uint32(*boxapiPort), *runAsUser, log); err != nil {
 		log.Error("guest exited", "err", err)
 		os.Exit(1)
 	}
@@ -55,20 +54,19 @@ func main() {
 // @arg vsockPort The guest AF_VSOCK port to serve on; 0 selects the Unix socket.
 // @arg boxapiSocket The in-guest Unix socket bridged to the host box-port API (vsock mode only).
 // @arg boxapiPort The host vsock port the box-port API bridges to; 0 disables the bridge.
-// @arg claudeCmd The claude command used in the box entrypoint.
-// @arg runAsUser The unprivileged box account claude and Exec commands run as; empty runs them as the guest's own user.
+// @arg runAsUser The unprivileged box account the init script and Exec commands run as; empty runs them as the guest's own user.
 // @arg log The logger the guest uses.
 // @error error if runAsUser is set but absent from the box, or the guest cannot serve the selected transport.
 //
 // @testcase TestRunServesAndStops serves a socket then stops cleanly on cancel.
 // @testcase TestRunStartsBoxAPIBridge serves the box API bridge alongside the vsock control channel.
 // @testcase TestRunRejectsUnknownUser fails fast when runAsUser names no account.
-func run(ctx context.Context, socket string, vsockPort uint32, boxapiSocket string, boxapiPort uint32, claudeCmd, runAsUser string, log *slog.Logger) error {
+func run(ctx context.Context, socket string, vsockPort uint32, boxapiSocket string, boxapiPort uint32, runAsUser string, log *slog.Logger) error {
 	cred, home, err := lookupUser(runAsUser)
 	if err != nil {
 		return err
 	}
-	a := guest.New(guest.Options{ClaudeCmd: claudeCmd, Credential: cred, Home: home, Log: log})
+	a := guest.New(guest.Options{Credential: cred, Home: home, Log: log})
 	if vsockPort != 0 {
 		if boxapiPort != 0 {
 			// The bridge is best-effort: a box without its port API is degraded,
@@ -91,7 +89,7 @@ func run(ctx context.Context, socket string, vsockPort uint32, boxapiSocket stri
 // behaviour. The credential carries the account's supplementary groups (so the
 // box user keeps memberships like docker) when they can be read. A missing
 // account is an error, so a misconfigured --user aborts the guest loudly rather
-// than silently running claude as root.
+// than silently running box commands as root.
 //
 // @arg name The box account name, or empty to keep running as the guest's user.
 // @return *syscall.Credential The uid/gid/groups to run box processes as, or nil when name is empty.

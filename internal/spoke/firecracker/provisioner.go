@@ -3,7 +3,7 @@
 // rootfs whose init is the llmbox guest listening on AF_VSOCK. The host
 // reaches the guest over the VM's vsock (control and port-proxy), exactly as the
 // Docker backend reaches its guest over a bind-mounted Unix socket — so all box
-// behaviour (login, exec, logs, dialing) runs through the guest, not through the
+// behaviour (init, exec, dialing) runs through the guest, not through the
 // provisioner. Guest outbound traffic (egress) goes through a per-box TAP device
 // the host NATs; the guest is never in the egress path.
 //
@@ -86,7 +86,7 @@ type Provisioner struct {
 	kernelImage   string
 	defaultRootfs string
 	// payloadImage is an optional host path to a small read-only ext4 carrying the
-	// guest (plus the claude binary and trust seed). When set, every box
+	// guest binary and entrypoint. When set, every box
 	// attaches it as a second, shared, read-only drive (/dev/vdb) that the base
 	// rootfs's loader unit mounts and runs — so the guest can be updated by
 	// swapping this tiny image without rebuilding the multi-GiB base rootfs. Empty
@@ -196,7 +196,7 @@ func (p *Provisioner) SetPoolSize(n int) {
 }
 
 // SetPayloadImage sets an optional host path to a read-only ext4 carrying the
-// guest (and claude + trust seed). When non-empty, every box boots with it
+// guest binary and entrypoint. When non-empty, every box boots with it
 // attached as a shared read-only second drive (/dev/vdb) that the base rootfs's
 // loader unit mounts; this decouples the fast-changing guest from the slow,
 // multi-GiB base rootfs. Empty keeps the all-in-one rootfs (guest baked in).
@@ -817,8 +817,8 @@ func (i *fcInstance) Pause(ctx context.Context) error {
 
 // Resume boots a paused box's VM back up from its kept rootfs, reusing its pooled
 // network slot so it keeps the same IP/MAC, and re-establishes its box-port API
-// listener. It restores only the compute; the Manager re-drives the guest handshake
-// to relaunch claude. The paused state is cleared only after a successful boot, so a
+// listener. It restores only the compute; the box's workload comes back up via its
+// own boot. The paused state is cleared only after a successful boot, so a
 // resume that fails leaves the box paused and retryable. Resuming an already-gone
 // box returns a wrapped sandbox.ErrBoxNotFound.
 //

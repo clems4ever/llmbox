@@ -45,8 +45,8 @@
 		{
 			"function_name": "newClusterFixture",
 			"documentation_hash": "27f270b3b24a4c005fa040dc79089f96589bdd95b4ea37d1b710526b903c3327",
-			"definition_hash": "e9c120435211114d2ab48772be9fb8cbe313e9cd4df9c57ea979fc4569cbba7c",
-			"reviewed_at": "2026-07-08T14:50:26.473968895Z"
+			"definition_hash": "de4b8d61a15f230368b38b60598f8ac5242467471183cfdbddc21648adbb854e",
+			"reviewed_at": "2026-07-11T21:34:27.087869629Z"
 		},
 		{
 			"function_name": "boxOnSpokeViaAPI",

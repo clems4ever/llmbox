@@ -2,15 +2,9 @@
 	"functions": [
 		{
 			"function_name": "TestGuestFixtureDrivesLifecycle",
-			"documentation_hash": "a33e2e4256c4126de2519283f44ee9c4a2587c2937483e0487943da028f34dc5",
-			"definition_hash": "f0993e5eab964ea48ad47e15ca750c450e2bd1c5099209fd37d3a5a696bd8676",
-			"reviewed_at": "2026-07-09T18:52:37.5392473Z"
-		},
-		{
-			"function_name": "TestGuestFixtureSeedsCredentials",
-			"documentation_hash": "800c055a6c19eb277dc25793cae6b3af8c62b45d38e2dce688a3d7a55b25fc94",
-			"definition_hash": "4fe2bad604b5d36d9fe31b5e2f378d3d28a903e2f4b146ffe7208841026c115e",
-			"reviewed_at": "2026-07-09T18:52:37.545184721Z"
+			"documentation_hash": "dffc0388d4fa06def9f789c6f86618b9474ab9db927ac63bb3fe5097cb59c84b",
+			"definition_hash": "acfacd7b6bd4abc808483fb556db4b5ac3946a0ddb7282933a395fb0eb89ceb5",
+			"reviewed_at": "2026-07-11T21:34:27.225097128Z"
 		}
 	]
 }

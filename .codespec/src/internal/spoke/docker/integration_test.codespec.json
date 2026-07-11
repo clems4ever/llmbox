@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "TestDockerConformance",
-			"documentation_hash": "2a38171a7ba508b126b9dbe6547c00b4fe3626f2db2f1f1a89151fbafa832cc2",
+			"documentation_hash": "0668a1903bf25e0e0f2f6c6de3d74c99a93cedab082fa1d5b80e3b807b41c95d",
 			"definition_hash": "e884f39b94dbf4d3246d2053a276a43772ece5b3e08b827fdf0babe22c252291",
-			"reviewed_at": "2026-07-08T14:50:26.481574099Z"
+			"reviewed_at": "2026-07-11T21:34:27.215066922Z"
 		},
 		{
 			"function_name": "requireDocker",
@@ -14,9 +14,9 @@
 		},
 		{
 			"function_name": "buildMockImage",
-			"documentation_hash": "a945e76a0782e2640532accc08d94136ca95ed33f675c423cf7a536773cfce86",
-			"definition_hash": "6c86659041b90432f13d2ec5c87e59eb4a07fe65b82e75ac8b3ad49c5d706a89",
-			"reviewed_at": "2026-07-09T18:49:58.994459419Z"
+			"documentation_hash": "042f1e021a53a370b42d1e22ea17c5405d80b2fe66d1e1ff402f9a1a3675cc59",
+			"definition_hash": "e162a0952ea0e5cdf1582963b686892d4758f99f124f96dfea4f7fa82877a898",
+			"reviewed_at": "2026-07-11T21:34:27.215203689Z"
 		}
 	]
 }

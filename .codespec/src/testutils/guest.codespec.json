@@ -2,23 +2,23 @@
 	"functions": [
 		{
 			"function_name": "NewGuestFixture",
-			"documentation_hash": "b062d23426cd53b34369d3dc452e7bee4b34003f02858cb666dba943ac9d1547",
-			"definition_hash": "fef9f12ac13cacc63446876c7d59d7d4b4c20e90f0093bc8f9d931f9c30de6b5",
-			"reviewed_at": "2026-07-09T18:52:35.476385046Z"
+			"documentation_hash": "9419af5266c21cb0a2c399b11e5894745676218e30483a5c6302e16e3908ab70",
+			"definition_hash": "459f8f08f219649447dde4a2f1c58a88b02695c0c0b098435ba18c492b25ccbf",
+			"reviewed_at": "2026-07-11T21:34:27.22478716Z"
 		},
 		{
 			"function_name": "BoxEnv",
 			"receiver": "GuestFixture",
-			"documentation_hash": "415b883b4abcab7f5b4f22322367ee4bf282c4d95d17a8dc4e39517193d512cf",
-			"definition_hash": "38afdfd457f3b7c50b2458257edfe48614f337174f0cbb5f4f3ca92da657ede4",
-			"reviewed_at": "2026-07-09T18:52:35.484331111Z"
+			"documentation_hash": "1d3614d33800b841c941e2299a60c116de8b194fd52dd8ff897e414e4ba70f54",
+			"definition_hash": "5b881f2c39ee45dc44d9a263b799f1aa187cb1e441449a2dcade0bca6052461d",
+			"reviewed_at": "2026-07-11T21:34:27.224906227Z"
 		},
 		{
 			"function_name": "Close",
 			"receiver": "GuestFixture",
-			"documentation_hash": "fb5eff6908fd39e95f3b6fbbdc8550b09ded7c7f187b5ffdcafa36cdc223bff6",
-			"definition_hash": "3c9f34b42e4d55c19a7f30f26281886450df9ee32c24d95a758b296b12e57218",
-			"reviewed_at": "2026-07-09T18:52:35.494434489Z"
+			"documentation_hash": "31883df1c964138f53b63fca1885a7f936d23545043d7e1a83aff06bf7c50393",
+			"definition_hash": "282ac8e371eda4a407d3c720cf9b7ce9397dec4f8bc810cb27fb72f59ed84e92",
+			"reviewed_at": "2026-07-11T21:34:27.22502053Z"
 		}
 	]
 }

@@ -94,34 +94,6 @@ func (c *Client) Init(ctx context.Context, in InitReq) (InitResp, error) {
 	return out, err
 }
 
-// Start launches claude and returns the authorize URL (login needed) or session
-// URL (already authenticated).
-//
-// @arg ctx Context for the call.
-// @return StartResp The authorize or session URL.
-// @error error if the call fails.
-//
-// @testcase TestClientOverUnixSocket starts a box and reads back its authorize URL.
-func (c *Client) Start(ctx context.Context) (StartResp, error) {
-	var out StartResp
-	err := c.call(ctx, verbStart, nil, &out)
-	return out, err
-}
-
-// SubmitCode feeds the OAuth code and returns the session URL.
-//
-// @arg ctx Context for the call.
-// @arg code The OAuth code to submit.
-// @return string The remote-control session URL.
-// @error error if the call fails.
-//
-// @testcase TestClientOverUnixSocket submits the code and reads back the session URL.
-func (c *Client) SubmitCode(ctx context.Context, code string) (string, error) {
-	var out submitCodeResp
-	err := c.call(ctx, verbSubmitCode, submitCodeReq{Code: code}, &out)
-	return out.SessionURL, err
-}
-
 // Exec runs a command in the box and returns its captured result.
 //
 // @arg ctx Context for the call.
@@ -134,20 +106,6 @@ func (c *Client) Exec(ctx context.Context, cmd []string) (sandbox.ExecResult, er
 	var out sandbox.ExecResult
 	err := c.call(ctx, verbExec, execReq{Cmd: cmd}, &out)
 	return out, err
-}
-
-// Logs returns the trailing console transcript of the box.
-//
-// @arg ctx Context for the call.
-// @arg tail The maximum number of trailing lines (non-positive uses the guest default).
-// @return string The trailing transcript.
-// @error error if the call fails.
-//
-// @testcase TestClientOverUnixSocket reads back the box transcript through Logs.
-func (c *Client) Logs(ctx context.Context, tail int) (string, error) {
-	var out logsResp
-	err := c.call(ctx, verbLogs, logsReq{Tail: tail}, &out)
-	return out.Output, err
 }
 
 // DialPort opens a connection to a TCP port inside the box and returns it as a

@@ -4,15 +4,8 @@
 			"function_name": "Create",
 			"receiver": "bareManager",
 			"documentation_hash": "2f421531b1d1c9ff0fd5531afc18772dbf7592114b69cd995f8f7c6f212b66bf",
-			"definition_hash": "c4542fe211bb3927156ffecd6e3853450fd55e6f8d4ce20adf3d31820ba57ba2",
-			"reviewed_at": "2026-06-29T15:39:25.000291076Z"
-		},
-		{
-			"function_name": "SubmitCode",
-			"receiver": "bareManager",
-			"documentation_hash": "fbaa02d4111ea4140bc01a3750521063b14720a654bc426f798fb698c2d456cf",
-			"definition_hash": "a5298db7369719e9c5c4aaf0f4380de1cfc94d063da4c03543b80ecb7a8ad99d",
-			"reviewed_at": "2026-06-27T17:31:02.7999576Z"
+			"definition_hash": "c676bbc59f66b1055cffbac35a919c3eb263d274c91e53e38a68239be4360a34",
+			"reviewed_at": "2026-07-11T21:34:27.20226987Z"
 		},
 		{
 			"function_name": "List",
@@ -29,25 +22,11 @@
 			"reviewed_at": "2026-07-11T11:13:33.490167537Z"
 		},
 		{
-			"function_name": "Logs",
-			"receiver": "bareManager",
-			"documentation_hash": "401b028804112b848f00ad7252d3f08752cf7f13c11ad4a1cd469e896d618ca4",
-			"definition_hash": "a320a1e56bc26f3335958498a8c5da5f9dd74b51008468d7273e5d4df7f4e4ad",
-			"reviewed_at": "2026-06-27T17:31:02.800959106Z"
-		},
-		{
 			"function_name": "Exec",
 			"receiver": "bareManager",
 			"documentation_hash": "75a13d8cc2434fb102f3c9d5fe2bd7830d7a6b5f8b81187e79df0c795e287ad9",
 			"definition_hash": "db12ce552a2bf9fe235f59acc5da7e2fa4a4d81bf7161b6e7fd4ab48defecea7",
 			"reviewed_at": "2026-06-29T15:39:25.032509469Z"
-		},
-		{
-			"function_name": "ReapOrphans",
-			"receiver": "bareManager",
-			"documentation_hash": "d947c1014cbec39aedaf52f870d2d023df55fd6572b2a5d2e19df53e9f64dc07",
-			"definition_hash": "98aad61e16000bdd06074ad12cab54a2f599daf3d89f298afb9eea97f0521b47",
-			"reviewed_at": "2026-06-27T17:31:02.801460565Z"
 		},
 		{
 			"function_name": "echoListener",
@@ -132,8 +111,8 @@
 			"function_name": "Resume",
 			"receiver": "bareManager",
 			"documentation_hash": "6fece885ab5685a8691a12894c50308a9769e783b39049caaaad9185325e8384",
-			"definition_hash": "2bd782453c51667bf5ec48a7f0d59295b10bb04674a4f734720d09e0122bafdc",
-			"reviewed_at": "2026-07-11T11:13:33.504869709Z"
+			"definition_hash": "daec1dd4279d30009ae41a03591f88e68144b6de32e45a5156c07f9b2f73b284",
+			"reviewed_at": "2026-07-11T21:34:27.202840945Z"
 		}
 	]
 }

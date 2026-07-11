@@ -3,8 +3,8 @@
 		{
 			"function_name": "seedSession",
 			"documentation_hash": "c3dcb0fd6bff7c489537ab099342fa97826965b39571ced14b6dbe09212c639a",
-			"definition_hash": "362dd4c139aea5390436d0ab9c71f52291ee4fe2a793cae77a4c37a66d39064e",
-			"reviewed_at": "2026-07-10T10:16:08.994007255Z"
+			"definition_hash": "6da32687df9452c749461bc2aace77f283d00947e5877af00e795e215e46a534",
+			"reviewed_at": "2026-07-11T21:34:27.194095788Z"
 		},
 		{
 			"function_name": "mustSaveProxy",
@@ -33,8 +33,8 @@
 		{
 			"function_name": "TestLookupByBoxIDPrefersReachableSpoke",
 			"documentation_hash": "34858629d436766638bd220f0cfb6eb485ba525aa241138697b82ce32728e47f",
-			"definition_hash": "d51fe699bf7917fb83110848d941cd967e6a53ccc61f67300ce5b4d5cfd63af7",
-			"reviewed_at": "2026-07-10T10:16:08.99440096Z"
+			"definition_hash": "bbce67d66ba0e366fe82975f8bcd87a4ac2ecd712350383b7cb17898c1e5782b",
+			"reviewed_at": "2026-07-11T21:34:27.194441964Z"
 		},
 		{
 			"function_name": "TestPruneDepartedSpokesRemovesStaleObjects",

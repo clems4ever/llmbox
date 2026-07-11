@@ -36,16 +36,16 @@
 		{
 			"function_name": "servePage",
 			"receiver": "Server",
-			"documentation_hash": "9062725fda96a6004086b3a7e0c8241f6e284f5a69401e401702c656be2431ab",
+			"documentation_hash": "7a578a67e806313e18c220a2d27c00a2cf7c3c5b5c17851d35d6d2cdb18635a2",
 			"definition_hash": "86cd873c43a800ed416fd9a07373f23da14f3bc1188d99df05d013a297ac9984",
-			"reviewed_at": "2026-07-09T11:33:00.218799262Z"
+			"reviewed_at": "2026-07-11T21:34:27.107952285Z"
 		},
 		{
 			"function_name": "registerAssetRoutes",
 			"receiver": "Server",
-			"documentation_hash": "39457fd247bef5a8bc02f3675845790e76aa36746966acfefa8f975026b431e3",
+			"documentation_hash": "fbae476ec56d3d1fff9066f324c7b6ee1b30c403b0169bba66678f6cdc2e1a9e",
 			"definition_hash": "87958d80ec079d7c57936b04335dabf84c8e118241c497c05db03af1f60aefab",
-			"reviewed_at": "2026-07-09T11:33:00.219197527Z"
+			"reviewed_at": "2026-07-11T21:34:27.108137555Z"
 		}
 	]
 }

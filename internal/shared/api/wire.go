@@ -8,7 +8,6 @@ import (
 // single POST carrying a JSON body (an empty body for the no-argument methods).
 const (
 	PathCreateBox           = "/api/v1/create-box"
-	PathAuthPageURL         = "/api/v1/auth-page-url"
 	PathLookupBox           = "/api/v1/lookup-box"
 	PathListBoxes           = "/api/v1/list-boxes"
 	PathSpokeStatuses       = "/api/v1/spoke-statuses"
@@ -21,7 +20,6 @@ const (
 	PathDestroyBox          = "/api/v1/destroy-box"
 	PathPauseBox            = "/api/v1/pause-box"
 	PathResumeBox           = "/api/v1/resume-box"
-	PathBoxLogs             = "/api/v1/box-logs"
 	PathBoxExec             = "/api/v1/box-exec"
 	PathProxyEnabled        = "/api/v1/proxy-enabled"
 	PathCreateProxy         = "/api/v1/create-proxy"
@@ -44,13 +42,6 @@ type createBoxRequest struct {
 }
 type createBoxResponse struct {
 	Session BoxSession `json:"session"`
-}
-
-type authPageURLRequest struct {
-	Token string `json:"token"`
-}
-type authPageURLResponse struct {
-	URL string `json:"url"`
 }
 
 type lookupBoxRequest struct {
@@ -117,14 +108,6 @@ type pauseBoxRequest struct {
 
 type resumeBoxRequest struct {
 	BoxID string `json:"box_id"`
-}
-
-type boxLogsRequest struct {
-	BoxID string `json:"box_id"`
-	Tail  int    `json:"tail"`
-}
-type boxLogsResponse struct {
-	Logs string `json:"logs"`
 }
 
 type boxExecRequest struct {

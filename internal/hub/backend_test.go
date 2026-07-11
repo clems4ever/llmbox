@@ -2,82 +2,14 @@ package hub
 
 import (
 	"context"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
 )
-
-// TestListBoxesOmitsAuthURLForRestoredBox checks a pending box rehydrated from
-// the store after a restart lists with no auth URL: the store holds only the
-// token's hash, so the plaintext needed to build the URL is gone (the box stays
-// activatable via the link its creator already holds). A box created this run,
-// by contrast, still carries a working auth URL.
-func TestListBoxesOmitsAuthURLForRestoredBox(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "sessions.db")
-	st, err := OpenStore(path)
-	if err != nil {
-		t.Fatalf("OpenStore: %v", err)
-	}
-	defer st.Close()
-
-	// Persist a pending box exactly as production does — keyed by the token's hash,
-	// with no plaintext recoverable.
-	if err := st.PutBox(boxRecord{Token: hashTok("gone-token"), InstanceID: "aaaaaaaaaaaa1111", BoxID: "restored", Status: "pending"}); err != nil {
-		t.Fatalf("PutBox: %v", err)
-	}
-	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa1111"}}}
-	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, nil), f)
-	if _, err := s.Restore(); err != nil {
-		t.Fatalf("Restore: %v", err)
-	}
-
-	views, err := s.boxBackend().ListBoxes(context.Background())
-	if err != nil || len(views) != 1 {
-		t.Fatalf("ListBoxes = %+v (%v), want one box", views, err)
-	}
-	if views[0].AuthURL != "" {
-		t.Errorf("restored pending box AuthURL = %q, want empty", views[0].AuthURL)
-	}
-}
-
-// TestListBoxesCarriesSessionURLs checks the backend's box listing merges each
-// box's live session: the activation URL while pending, the session URL once
-// ready.
-func TestListBoxesCarriesSessionURLs(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u", SubmitURL: "https://claude.ai/code/s/1"}
-	s := newTestServer(f)
-	b := s.boxBackend()
-
-	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"})
-	if err != nil {
-		t.Fatalf("createBox: %v", err)
-	}
-
-	views, err := b.ListBoxes(context.Background())
-	if err != nil || len(views) != 1 {
-		t.Fatalf("ListBoxes = %+v (%v), want one box", views, err)
-	}
-	if views[0].AuthURL != s.AuthPageURL(sess.plainToken) || views[0].SessionURL != "" {
-		t.Errorf("pending view = %+v, want auth URL %q and no session URL", views[0], s.AuthPageURL(sess.plainToken))
-	}
-
-	if err := s.submitCode(context.Background(), sess.plainToken, "CODE"); err != nil {
-		t.Fatalf("submitCode: %v", err)
-	}
-	views, err = b.ListBoxes(context.Background())
-	if err != nil || len(views) != 1 {
-		t.Fatalf("ListBoxes (ready) = %+v (%v)", views, err)
-	}
-	if views[0].SessionURL != "https://claude.ai/code/s/1" || views[0].AuthURL != "" {
-		t.Errorf("ready view = %+v, want session URL and no auth URL", views[0])
-	}
-}
 
 // TestBackendCreateSpoke checks the backend mints a join token and returns the
 // per-backend start command, defaulting the backend to docker.

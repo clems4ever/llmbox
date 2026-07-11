@@ -39,11 +39,11 @@ const (
 	StatePaused = "paused"
 )
 
-// PhaseBroken is the auth phase of a box whose init script failed during
-// creation: the box was provisioned and is left running for inspection, but
-// claude never started, so it can never authenticate. It sits alongside the
-// handshake phases (pending/ready/error) in Box.Phase, and Box.LastError carries
-// the init script's captured output so an operator can see why it broke.
+// PhaseBroken marks a box whose init script failed during creation: the box was
+// provisioned and is left running for inspection, but its workload never started.
+// It is the only value the hub sets in Box.Phase (empty otherwise), and
+// Box.LastError carries the init script's captured output so an operator can see
+// why it broke.
 const PhaseBroken = "broken"
 
 // Box is a view of a managed box returned to callers.
@@ -56,25 +56,22 @@ type Box struct {
 	Image       string `json:"image" jsonschema:"the image or rootfs the box runs (may be empty for backends without an image concept)"`
 	State       string `json:"state" jsonschema:"the instance state, e.g. running or exited; unreachable when the box's spoke is offline, terminated when the box is confirmed gone from its spoke"`
 	Status      string `json:"status" jsonschema:"a human readable status string"`
-	Phase       string `json:"phase" jsonschema:"auth phase: pending (awaiting login), ready (authenticated), error (activation failed), or broken (init script failed)"`
-	LastError   string `json:"last_error,omitempty" jsonschema:"the error detail when the box failed to activate or its init script broke; empty otherwise"`
+	Phase       string `json:"phase,omitempty" jsonschema:"broken when the box's init script failed during creation; empty otherwise"`
+	LastError   string `json:"last_error,omitempty" jsonschema:"the init script's captured output when the box is broken; empty otherwise"`
 	Created     int64  `json:"created" jsonschema:"creation time as a unix timestamp"`
 	LastSeen    int64  `json:"last_seen,omitempty" jsonschema:"when the hub last observed the box on its spoke, as a unix timestamp (0 when never observed)"`
 }
 
 // CreateResult is the outcome of provisioning a box. On the happy path it carries
-// the box's generation token and the OAuth authorize URL to finish login with. If
-// the box's init script failed, InitScriptFailed is set and InitScriptOutput
-// carries the script's captured output: the box was provisioned and is left
-// running (as a broken box to inspect) but never started, so AuthorizeURL is
-// empty. It is returned instead of bare (id, url) so the init-script outcome can
-// cross the hub/spoke boundary as data rather than a flattened error.
+// the box's generation token and the ports the spoke publishes for it. If the
+// box's init script failed, InitScriptFailed is set and InitScriptOutput carries
+// the script's captured output: the box was provisioned and is left running (as a
+// broken box to inspect). It is returned instead of a bare id so the init-script
+// outcome and published ports can cross the hub/spoke boundary as data rather than
+// a flattened error.
 type CreateResult struct {
 	// InstanceID is the box's opaque backend generation token.
 	InstanceID string `json:"instance_id"`
-	// AuthorizeURL is the OAuth authorize URL to complete login with; empty for a
-	// box whose init script failed (it never started).
-	AuthorizeURL string `json:"authorize_url,omitempty"`
 	// InitScriptFailed is true when the box's init script failed. The box was still
 	// provisioned and is left running so the failure can be inspected.
 	InitScriptFailed bool `json:"init_script_failed,omitempty"`
@@ -114,9 +111,8 @@ type ExecResult struct {
 // about the image crosses the hub/spoke boundary.
 type CreateOptions struct {
 	// BoxID is the caller-assigned identifier for the box. When set, it is also
-	// applied as the box's hostname (what `hostname` reports inside it, and the
-	// name shown in claude.ai/code), so it must be a valid hostname label. It must
-	// be unique across managed boxes.
+	// applied as the box's hostname (what `hostname` reports inside it), so it must
+	// be a valid hostname label. It must be unique across managed boxes.
 	BoxID string
 	// Description is a free-form label shown by list/get to help the caller tell
 	// boxes apart. It has no effect on the box itself.

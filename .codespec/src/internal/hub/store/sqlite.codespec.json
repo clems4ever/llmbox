@@ -167,8 +167,8 @@
 			"function_name": "PutBox",
 			"receiver": "sqliteStore",
 			"documentation_hash": "0c0134ab30865606f1e40b8d95e8626f5e00b246cc25051dc5939536bab15ae2",
-			"definition_hash": "a177aa3da5aed4a6b8878067503a9e6d18ed95f71d732fb887887a82214e824d",
-			"reviewed_at": "2026-07-09T18:10:52.562851047Z"
+			"definition_hash": "f3f7e80aef3c7c6af2f128125961d8fd44a6cb2eb678614c8047a136438a0311",
+			"reviewed_at": "2026-07-11T21:34:27.183204446Z"
 		},
 		{
 			"function_name": "DeleteBox",
@@ -181,36 +181,36 @@
 			"function_name": "ListBoxes",
 			"receiver": "sqliteStore",
 			"documentation_hash": "37bdfcd86f73d3a381987435e332231aa102a78de5523840f7dd253fc4b26bf7",
-			"definition_hash": "c22c7acd0f5ff5170987bd9e42abbe3c0093dab2af2dedb7f1fcd5ce3d0473d3",
-			"reviewed_at": "2026-07-09T18:10:52.565288315Z"
+			"definition_hash": "03ff16448a7f0acf3924998c7fbc896ea08d8fda949bd01223da629962d9a030",
+			"reviewed_at": "2026-07-11T21:34:27.184598909Z"
 		},
 		{
 			"function_name": "PutOIDCFlow",
 			"receiver": "sqliteStore",
 			"documentation_hash": "49340fabbd9d999e1a9cbe41eac1c94643f11b62feeeed2ccc3c73eb782262bb",
-			"definition_hash": "bc4468660529019ea66d44bfd094b86aa6bbb8ac540a5f687a21f990aae90e42",
-			"reviewed_at": "2026-07-09T18:10:52.566682932Z"
+			"definition_hash": "0ac731ca2e53e8f81466cf9ea11a4df67c8ef79cee4339117cada96393cc1008",
+			"reviewed_at": "2026-07-11T21:34:27.185992148Z"
 		},
 		{
 			"function_name": "TakeOIDCFlow",
 			"receiver": "sqliteStore",
 			"documentation_hash": "0ebe2337853e9e50ad869a245802a7908fdaacb3054e02fa0524e2cc05333cb5",
-			"definition_hash": "20bf648aaadc09b0dc4b0811a54cc7c6dead42ce2763247384c960185b00215a",
-			"reviewed_at": "2026-07-09T18:10:52.568015155Z"
+			"definition_hash": "50af04d902d46c3f9dfe065b01cb61f30d1d982b9b02f01bc963fbaad210638c",
+			"reviewed_at": "2026-07-11T21:34:27.18726499Z"
 		},
 		{
 			"function_name": "PutIdentitySession",
 			"receiver": "sqliteStore",
 			"documentation_hash": "cae8563fdc1b168518edb5d54a8c46742782e7a67601ce53bdcc441a6616c9f8",
-			"definition_hash": "5b5d2f565075b112e8cb5b1f868cf15fa20cec4992c11e5c28ace13b872f0f6d",
-			"reviewed_at": "2026-07-09T18:10:52.569287902Z"
+			"definition_hash": "0a1e4fa917b784de73b5f3ca074df048d97c4b13b0b5f926d907f9c1d6c1700a",
+			"reviewed_at": "2026-07-11T21:34:27.188514632Z"
 		},
 		{
 			"function_name": "GetIdentitySession",
 			"receiver": "sqliteStore",
 			"documentation_hash": "003604aeed33105bdfea5f17b5a0b3ce50bd0be078c9efda6df8b329a4434ec5",
-			"definition_hash": "24482ad6ea9ae8d3cb56c3f7685012c1b4981db73003ab5c66f601b07dbb8c70",
-			"reviewed_at": "2026-07-09T18:10:52.57079065Z"
+			"definition_hash": "81a032a95ad37e086c41d1662f1cc8ceb9a60c853452f9f0d426b6b7862e3583",
+			"reviewed_at": "2026-07-11T21:34:27.189671666Z"
 		},
 		{
 			"function_name": "DeleteIdentitySession",
@@ -229,8 +229,14 @@
 		{
 			"function_name": "migrate",
 			"documentation_hash": "3d41d30687c078eaf6866485331384b584913791068162a9a65fa6b1c1a8afee",
-			"definition_hash": "e64c1a25adeaa11aef76d14e7e6a2225132bee8b87eb7a91b54c19a652aa7279",
-			"reviewed_at": "2026-07-10T15:06:02.895397258Z"
+			"definition_hash": "800c8679b14c1106291472f8f88a488987c4c8b45a4f2ed013289e63b2911921",
+			"reviewed_at": "2026-07-11T21:34:27.180773157Z"
+		},
+		{
+			"function_name": "dropColumns",
+			"documentation_hash": "1284710fd15dbc1b0e161148ec1713886dcd10c59cdfe3d909bbccd9946348fc",
+			"definition_hash": "e47261b08e926ab0d52fcdfdd1e531446066e7c5f2e9c5064b981c4f997a0d90",
+			"reviewed_at": "2026-07-11T21:34:27.182095273Z"
 		}
 	]
 }

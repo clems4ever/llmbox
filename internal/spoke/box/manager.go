@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"strings"
 	"sync"
@@ -14,19 +13,17 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
-// Config tunes a Manager. The zero value is valid: no remote-control args, no
-// box-count cap, and no init script.
+// Config tunes a Manager. The zero value is valid: no box-count cap and no init
+// script.
 type Config struct {
-	// RemoteArgs is passed through to the box entrypoint's `claude remote-control`
-	// invocation (the guest appends a --name for the default session).
-	RemoteArgs string
 	// MaxBoxes caps how many managed boxes may exist at once; Create rejects a new
 	// box once the count is reached (0 = unlimited). It bounds the by-design
 	// unauthenticated create path.
 	MaxBoxes int
 	// InitScript is an optional host-provided provisioning script the guest runs
-	// inside every box during Init, before claude starts, as the box user. Nil runs
-	// nothing. It lets a spoke customise its boxes without rebuilding the image.
+	// inside every box during Init, as the box user. Nil runs nothing. It lets a
+	// spoke customise its boxes (install and start a workload) without rebuilding
+	// the image.
 	InitScript []byte
 	// InitScriptTimeout bounds how long the init script may run before Create fails
 	// the box. Non-positive uses the guest default (five minutes).
@@ -82,20 +79,18 @@ func (m *Manager) client(inst Instance) *guest.Client {
 	return &guest.Client{Dial: inst.Control}
 }
 
-// Create provisions a new box, injects its files and parameters, launches claude,
-// and returns the box ID and the OAuth authorize URL to complete login with. The
-// uniqueness and box-count checks run under a lock; the slow login handshake does
-// not. A transport-level failure (provisioning, file injection, launching claude)
-// tears the box down so a half-created box is never left behind. A failing init
-// script is the one exception: the box is kept and returned with
+// Create provisions a new box and runs its init script, returning the box's
+// generation token (and the ports the spoke publishes for it). The uniqueness and
+// box-count checks run under a lock. A transport-level failure (provisioning or
+// file injection) tears the box down so a half-created box is never left behind. A
+// failing init script is the one exception: the box is kept and returned with
 // InitScriptFailed set (and the script's output) so an operator can inspect the
-// broken box rather than have it vanish; it is marked ready only so the orphan
-// reaper spares it (its broken-ness is tracked by the hub, not the backend).
+// broken box rather than have it vanish.
 //
-// @arg ctx Context for the provision and login handshake.
+// @arg ctx Context for the provision and init.
 // @arg opts The caller-controlled inputs for the box.
-// @return sandbox.CreateResult The box's generation token and authorize URL, or the init-script failure and its output.
-// @error error if the box id is invalid, already in use, the cap is reached, or provisioning/injection/launch fails.
+// @return sandbox.CreateResult The box's generation token and published ports, or the init-script failure and its output.
+// @error error if the box id is invalid, already in use, the cap is reached, or provisioning/injection fails.
 //
 // @testcase TestBoxManager covers create plus box-id validation, duplicate rejection, the box cap, and (via the conformance init-script-failure case) a kept broken box.
 func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
@@ -127,14 +122,12 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (sandb
 		return sandbox.CreateResult{}, fmt.Errorf("provisioning box: %w", err)
 	}
 
-	// From here on, tear the box down on any transport-level failure so a
-	// half-created box is never left running.
+	// Tear the box down on any transport-level failure so a half-created box is
+	// never left running.
 	c := m.client(inst)
 	initCtx, cancel := m.initContext(ctx)
 	initResp, err := c.Init(initCtx, guest.InitReq{
 		Files:             opts.Files,
-		RemoteArgs:        m.cfg.RemoteArgs,
-		BoxID:             opts.BoxID,
 		InitScript:        m.cfg.InitScript,
 		InitScriptTimeout: m.cfg.InitScriptTimeout,
 	})
@@ -144,29 +137,19 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (sandb
 		return sandbox.CreateResult{}, fmt.Errorf("initialising box: %w", err)
 	}
 	if initResp.ScriptFailed {
-		// Keep the broken box for inspection instead of destroying it. It never
-		// started claude, so it cannot authenticate; mark it ready only so the reaper
-		// (which targets never-authenticated pending boxes) does not later remove it.
-		if err := inst.MarkReady(ctx); err != nil {
-			slog.Default().Warn("could not spare broken box from the reaper", "box", inst.Meta().InstanceID, "err", err)
-		}
+		// Keep the broken box for inspection instead of destroying it, carrying the
+		// init script's output so the operator can see why provisioning failed.
 		return sandbox.CreateResult{
 			InstanceID:       inst.Meta().InstanceID,
 			InitScriptFailed: true,
 			InitScriptOutput: initScriptFailureDetail(initResp),
 		}, nil
 	}
-	start, err := c.Start(ctx)
-	if err != nil {
-		_ = inst.Destroy(context.Background())
-		return sandbox.CreateResult{}, fmt.Errorf("starting box: %w", err)
-	}
 	// The box came up, so hand the hub the ports this spoke publishes for every box
 	// (empty when none are configured). The hub creates the proxies once it has
 	// registered the box; a broken box (handled above) returns no ports.
 	return sandbox.CreateResult{
 		InstanceID:   inst.Meta().InstanceID,
-		AuthorizeURL: start.AuthorizeURL,
 		PublishPorts: m.cfg.PublishPorts,
 	}, nil
 }
@@ -207,33 +190,6 @@ func (m *Manager) initContext(ctx context.Context) (context.Context, context.Can
 		timeout = defaultInitScriptTimeout
 	}
 	return context.WithTimeout(ctx, timeout+initScriptClientMargin)
-}
-
-// SubmitCode writes the OAuth code to a pending box, waits for the session URL,
-// and marks the box ready so the reaper spares it.
-//
-// @arg ctx Context for the login handshake.
-// @arg idOrName The ID or name identifying the pending box.
-// @arg code The OAuth code to submit.
-// @return sessionURL The remote-control session URL printed once login completes.
-// @error error if no managed box matches, login does not complete, or the box cannot be marked ready.
-//
-// @testcase TestBoxManager submits the code and returns the session URL.
-func (m *Manager) SubmitCode(ctx context.Context, idOrName, code string) (sessionURL string, err error) {
-	inst, err := m.prov.Find(ctx, idOrName)
-	if err != nil {
-		return "", err
-	}
-	url, err := m.client(inst).SubmitCode(ctx, code)
-	if err != nil {
-		return "", err
-	}
-	if err := inst.MarkReady(ctx); err != nil {
-		// Non-fatal: the box is authenticated; the only risk is the reaper later
-		// removing it as if still pending.
-		return url, fmt.Errorf("box authenticated but could not be marked ready: %w", err)
-	}
-	return url, nil
 }
 
 // List returns a view of every managed box.
@@ -279,7 +235,7 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 
 // Pause stops a managed box's compute to save CPU/RAM while keeping its disk, so it
 // can be resumed later. The box keeps existing (it still appears in List, reported
-// as paused); its running claude session ends.
+// as paused); its running workload ends.
 //
 // @arg ctx Context for the resolve and pause.
 // @arg idOrName The ID or name identifying the box to pause.
@@ -294,55 +250,22 @@ func (m *Manager) Pause(ctx context.Context, idOrName string) error {
 	return inst.Pause(ctx)
 }
 
-// Resume restarts a paused box's compute from its kept disk and re-drives the guest
-// handshake to relaunch claude, returning the new remote-control session URL. It
-// re-runs Init (with no injected files and no init script — the box's disk already
-// carries them) then Start; because the box's credentials persist on disk, Start
-// goes straight to a ready session rather than a fresh login.
+// Resume restarts a paused box's compute from its kept disk. The box's disk (and
+// any files/credentials its init script wrote) survives, but the init script is a
+// create-time step and is not re-run, so a workload that does not restart itself
+// on boot must be restarted by the operator.
 //
-// @arg ctx Context for the resolve, resume, and guest handshake.
+// @arg ctx Context for the resolve and resume.
 // @arg idOrName The ID or name identifying the box to resume.
-// @return sessionURL The remote-control session URL of the relaunched box.
-// @error error if no managed box matches, the box cannot be resumed, or the guest handshake fails.
+// @error error if no managed box matches or the box cannot be resumed.
 //
-// @testcase TestBoxManager resumes a paused box and returns its session URL.
-func (m *Manager) Resume(ctx context.Context, idOrName string) (sessionURL string, err error) {
+// @testcase TestBoxManager resumes a paused box.
+func (m *Manager) Resume(ctx context.Context, idOrName string) error {
 	inst, err := m.prov.Find(ctx, idOrName)
 	if err != nil {
-		return "", err
+		return err
 	}
-	if err := inst.Resume(ctx); err != nil {
-		return "", err
-	}
-	c := m.client(inst)
-	// No files or init script on resume: the box's disk already carries them, and
-	// the init script is a create-time provisioning step, not a per-boot one. With no
-	// init script the response can never report a script failure, so it is discarded.
-	if _, err := c.Init(ctx, guest.InitReq{RemoteArgs: m.cfg.RemoteArgs, BoxID: inst.Meta().BoxID}); err != nil {
-		return "", fmt.Errorf("re-initialising resumed box: %w", err)
-	}
-	start, err := c.Start(ctx)
-	if err != nil {
-		return "", fmt.Errorf("relaunching resumed box: %w", err)
-	}
-	return start.SessionURL, nil
-}
-
-// Logs returns the recent console transcript of a managed box.
-//
-// @arg ctx Context for the resolve and the guest call.
-// @arg idOrName The ID or name identifying the box.
-// @arg tail The maximum number of trailing lines (non-positive uses the guest default).
-// @return string The box's trailing transcript.
-// @error error if no managed box matches or the guest call fails.
-//
-// @testcase TestBoxManager reads back a box transcript.
-func (m *Manager) Logs(ctx context.Context, idOrName string, tail int) (string, error) {
-	inst, err := m.prov.Find(ctx, idOrName)
-	if err != nil {
-		return "", err
-	}
-	return m.client(inst).Logs(ctx, tail)
+	return inst.Resume(ctx)
 }
 
 // Exec runs a command inside a managed box and returns its captured result.
@@ -380,33 +303,4 @@ func (m *Manager) DialBox(ctx context.Context, idOrName string, port int) (net.C
 		return nil, err
 	}
 	return m.client(inst).DialPort(ctx, port)
-}
-
-// ReapOrphans destroys pending (never-authenticated) boxes older than ttl,
-// sparing ready ones, and returns the IDs reaped. It is generic over the backend:
-// it reads each box's phase and creation time from its Meta and destroys the
-// stale pending ones.
-//
-// @arg ctx Context for the list and destroys.
-// @arg ttl The maximum age a pending box may reach before it is reaped.
-// @return []string The IDs of the boxes that were reaped.
-// @error error if listing boxes fails.
-//
-// @testcase TestBoxManager reaps old pending boxes while sparing ready and fresh ones.
-func (m *Manager) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error) {
-	insts, err := m.prov.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-	cutoff := time.Now().Add(-ttl).Unix()
-	var reaped []string
-	for _, inst := range insts {
-		meta := inst.Meta()
-		if meta.Phase == "pending" && meta.Created < cutoff {
-			if err := inst.Destroy(ctx); err == nil || errors.Is(err, sandbox.ErrBoxNotFound) {
-				reaped = append(reaped, meta.InstanceID)
-			}
-		}
-	}
-	return reaped, nil
 }

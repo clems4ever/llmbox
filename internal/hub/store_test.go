@@ -12,19 +12,19 @@ import (
 
 // TestServerWithoutStore checks the server functions with a no-op store.
 func TestServerWithoutStore(t *testing.T) {
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "u"}
-	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, newTestStore(), nil), f)
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
+	s := wireSpoke(New(nil, "https://boxes.example.com", newTestStore(), nil), f)
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "box-1"})
 	if err != nil {
 		t.Fatalf("CreateBox: %v", err)
 	}
-	if s.lookup(sess.plainToken) == nil {
+	if s.lookupByBoxID(sess.BoxID) == nil {
 		t.Error("session not registered with no-op store")
 	}
 }
 
 // TestCreateBoxPersistsSession checks CreateBox writes the session to the store
-// and SubmitCode persists the updated status.
+// as a ready box.
 func TestCreateBoxPersistsSession(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sessions.db")
 	st, err := OpenStore(path)
@@ -33,8 +33,8 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	}
 	defer st.Close()
 
-	f := &testutils.FakeMgr{CreateID: "abcdef0123456789", CreateURL: "https://claude.com/cai/oauth/authorize?z=1", SubmitURL: "https://claude.ai/code/s/1"}
-	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, nil), f)
+	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
+	s := wireSpoke(New(nil, "https://boxes.example.com", st, nil), f)
 
 	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "h", Description: "d"})
 	if err != nil {
@@ -45,19 +45,11 @@ func TestCreateBoxPersistsSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadAll: %v", err)
 	}
-	if len(saved) != 1 || saved[0].Token != sess.Token || saved[0].Status != "pending" {
-		t.Fatalf("create not persisted as pending: %+v", saved)
+	if len(saved) != 1 || saved[0].Token != sess.Token || saved[0].Status != "ready" {
+		t.Fatalf("create not persisted as ready: %+v", saved)
 	}
 	if saved[0].BoxID != "h" || saved[0].Description != "d" {
 		t.Errorf("box ID/description not persisted: %+v", saved[0])
-	}
-
-	if err := s.submitCode(context.Background(), sess.plainToken, "CODE"); err != nil {
-		t.Fatalf("SubmitCode: %v", err)
-	}
-	saved, _ = st.ListBoxes()
-	if len(saved) != 1 || saved[0].Status != "ready" || saved[0].SessionURL != "https://claude.ai/code/s/1" {
-		t.Errorf("ready status not persisted: %+v", saved)
 	}
 }
 
@@ -83,7 +75,7 @@ func TestRestoreLoadsWithoutSpokes(t *testing.T) {
 	// The spoke only reports the live box, but Restore must not care: it never
 	// lists a spoke.
 	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa"}}}
-	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, nil), f)
+	s := wireSpoke(New(nil, "https://boxes.example.com", st, nil), f)
 
 	n, err := s.Restore()
 	if err != nil {
@@ -92,7 +84,7 @@ func TestRestoreLoadsWithoutSpokes(t *testing.T) {
 	if n != 2 {
 		t.Errorf("restored %d sessions, want 2", n)
 	}
-	if s.lookup("live") == nil || s.lookup("dead") == nil {
+	if s.lookupTok("live") == nil || s.lookupTok("dead") == nil {
 		t.Error("Restore should rehydrate every record, spoke state notwithstanding")
 	}
 	if f.ListCalls() != 0 {
@@ -120,7 +112,7 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 
 	// The spoke reports only the live box (by its generation token).
 	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa1111", Name: "n1", Image: "img:1", State: "running"}}}
-	s := wireSpoke(New(nil, "https://boxes.example.com", time.Minute, st, nil), f)
+	s := wireSpoke(New(nil, "https://boxes.example.com", st, nil), f)
 	if _, err := s.Restore(); err != nil {
 		t.Fatalf("Restore: %v", err)
 	}
@@ -128,12 +120,12 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 	s.syncSpokes(context.Background())
 
 	// Both records survive; the vanished one is a terminated tombstone.
-	if sess := s.lookup("dead"); sess == nil {
+	if sess := s.lookupTok("dead"); sess == nil {
 		t.Fatal("terminated record should be kept as a tombstone")
 	} else if !sess.terminated() {
 		t.Error("vanished box's record should be marked terminated")
 	}
-	if sess := s.lookup("live"); sess == nil || sess.terminated() {
+	if sess := s.lookupTok("live"); sess == nil || sess.terminated() {
 		t.Error("live box's record should stay running")
 	}
 	// The transition is persisted, and the live record carries observed metadata.
@@ -156,11 +148,11 @@ func TestSyncMarksVanishedBoxTerminated(t *testing.T) {
 func TestSyncGraceKeepsFreshRecord(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: nil}
 	s := newTestServer(f)
-	s.regSession("fresh", &session{Generation: "cccccccccccc3333", CreatedAt: time.Now(), SpokeName: testSpoke, Status: "pending"})
+	s.regSession("fresh", &session{Generation: "cccccccccccc3333", CreatedAt: time.Now(), SpokeName: testSpoke, Phase: "ready"})
 
 	s.syncSpokes(context.Background())
 
-	if sess := s.lookup("fresh"); sess == nil || sess.terminated() {
+	if sess := s.lookupTok("fresh"); sess == nil || sess.terminated() {
 		t.Error("a just-created record must not be tombstoned by a stale listing")
 	}
 }
@@ -171,11 +163,11 @@ func TestSyncGraceKeepsFreshRecord(t *testing.T) {
 func TestSyncRefreshesObservedMetadata(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "aaaaaaaaaaaa1111", Name: "n1", Image: "img:2", State: "exited"}}}
 	s := newTestServer(f)
-	s.regSession("tok", &session{Generation: "aaaaaaaaaaaa1111", SpokeName: testSpoke, Status: "pending"})
+	s.regSession("tok", &session{Generation: "aaaaaaaaaaaa1111", SpokeName: testSpoke, Phase: "ready"})
 
 	s.syncSpokes(context.Background())
 
-	ps := s.lookup("tok").persist()
+	ps := s.lookupTok("tok").persist()
 	if ps.ObservedName != "n1" || ps.ObservedImage != "img:2" || ps.ObservedState != "exited" || ps.ObservedAt.IsZero() {
 		t.Errorf("observed metadata not recorded: %+v", ps)
 	}
@@ -193,11 +185,11 @@ func TestSyncRefreshesObservedMetadata(t *testing.T) {
 func TestSyncSkipsUnreachableSpoke(t *testing.T) {
 	f := &testutils.FakeMgr{} // the connected spoke (testSpoke) reports no boxes
 	s := newTestServer(f)
-	s.regSession("tok", &session{Generation: "aaaaaaaaaaaa1111", SpokeName: "offline-spoke", Status: "pending"})
+	s.regSession("tok", &session{Generation: "aaaaaaaaaaaa1111", SpokeName: "offline-spoke", Phase: "ready"})
 
 	s.syncSpokes(context.Background())
 
-	if sess := s.lookup("tok"); sess == nil || sess.terminated() {
+	if sess := s.lookupTok("tok"); sess == nil || sess.terminated() {
 		t.Error("a record on an unreachable spoke must be left untouched by sync")
 	}
 }
@@ -207,11 +199,11 @@ func TestSyncSkipsUnreachableSpoke(t *testing.T) {
 func TestSyncRevivesReappearedBox(t *testing.T) {
 	f := &testutils.FakeMgr{ListResult: []sandbox.Box{{InstanceID: "dddddddddddd4444", State: "running"}}}
 	s := newTestServer(f)
-	s.regSession("back", &session{Generation: "dddddddddddd4444", SpokeName: testSpoke, Status: "pending", BoxState: boxStateTerminated})
+	s.regSession("back", &session{Generation: "dddddddddddd4444", SpokeName: testSpoke, Phase: "ready", BoxState: boxStateTerminated})
 
 	s.syncSpokes(context.Background())
 
-	if sess := s.lookup("back"); sess == nil || sess.terminated() {
+	if sess := s.lookupTok("back"); sess == nil || sess.terminated() {
 		t.Error("a reappeared box's tombstone should be revived to running")
 	}
 }

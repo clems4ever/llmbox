@@ -109,22 +109,6 @@ func (c *Client) CreateBox(ctx context.Context, opts sandbox.CreateOptions) (Box
 	return r.Session, err
 }
 
-// AuthPageURL asks the upstream server for the auth page URL of token. Because the
-// Backend contract returns no error, a transport failure yields "" — this is only
-// ever called immediately after a successful CreateBox, so the upstream is up.
-//
-// @arg token The session token to build the auth page URL for.
-// @return string The auth page URL, or "" if the upstream call fails.
-//
-// @testcase TestBackendAPIRoundTrip resolves an auth page URL through the client.
-func (c *Client) AuthPageURL(token string) string {
-	r, err := post[authPageURLRequest, authPageURLResponse](context.Background(), c, PathAuthPageURL, authPageURLRequest{Token: token})
-	if err != nil {
-		return ""
-	}
-	return r.URL
-}
-
 // LookupByBoxID resolves a box by its box ID on the upstream server.
 //
 // @arg boxID The box ID to look up.
@@ -143,7 +127,7 @@ func (c *Client) LookupByBoxID(boxID string) (BoxSession, bool) {
 // ListBoxes returns all boxes managed by the upstream server.
 //
 // @arg ctx Context for the request.
-// @return []BoxView The managed boxes with their activation/session URLs.
+// @return []BoxView The managed boxes.
 // @error error if listing boxes fails.
 //
 // @testcase TestBackendAPIRoundTrip lists boxes through the client.
@@ -286,20 +270,6 @@ func (c *Client) PauseBox(ctx context.Context, boxID string) error {
 func (c *Client) ResumeBox(ctx context.Context, boxID string) error {
 	_, err := post[resumeBoxRequest, emptyResponse](ctx, c, PathResumeBox, resumeBoxRequest{BoxID: boxID})
 	return err
-}
-
-// BoxLogs returns the recent console output of a box by its box ID.
-//
-// @arg ctx Context for the request.
-// @arg boxID The box ID of the box to read logs from.
-// @arg tail The maximum number of trailing log lines to return.
-// @return string The box's recent console output.
-// @error error if the logs cannot be read.
-//
-// @testcase TestBackendAPIRoundTrip reads box logs through the client.
-func (c *Client) BoxLogs(ctx context.Context, boxID string, tail int) (string, error) {
-	r, err := post[boxLogsRequest, boxLogsResponse](ctx, c, PathBoxLogs, boxLogsRequest{BoxID: boxID, Tail: tail})
-	return r.Logs, err
 }
 
 // BoxExec runs a shell command inside a box by its box ID.

@@ -29,29 +29,18 @@ func startSpoke(t *testing.T, mgr BoxManager) *remoteSpoke {
 func TestRemoteSpokeRoundTrip(t *testing.T) {
 	fake := &fakeManager{
 		createID:   "cid",
-		createURL:  "https://auth",
-		sessionURL: "https://session",
 		boxes:      []sandbox.Box{{InstanceID: "c1", BoxID: "b1"}},
-		logsOut:    "log output",
 		execResult: sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 3},
-		reaped:     []string{"r1", "r2"},
 	}
 	rs := startSpoke(t, fake)
 	ctx := context.Background()
 
 	created, err := rs.Create(ctx, sandbox.CreateOptions{BoxID: "b1", SpokeName: "s"})
-	if err != nil || created.InstanceID != "cid" || created.AuthorizeURL != "https://auth" {
+	if err != nil || created.InstanceID != "cid" {
 		t.Fatalf("Create = (%+v,%v)", created, err)
 	}
 	if fake.lastCreate.BoxID != "b1" {
 		t.Errorf("spoke saw create box id %q", fake.lastCreate.BoxID)
-	}
-
-	if url, err := rs.SubmitCode(ctx, "cid", "code-1"); err != nil || url != "https://session" {
-		t.Fatalf("SubmitCode = (%q,%v)", url, err)
-	}
-	if fake.lastSubmit != [2]string{"cid", "code-1"} {
-		t.Errorf("spoke saw submit %v", fake.lastSubmit)
 	}
 
 	boxes, err := rs.List(ctx)
@@ -67,16 +56,8 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 		t.Fatalf("Pause err=%v lastPause=%q", err, fake.lastPause)
 	}
 
-	if url, err := rs.Resume(ctx, "b1"); err != nil || url != "https://session" || fake.lastResume != "b1" {
-		t.Fatalf("Resume = (%q,%v) lastResume=%q", url, err, fake.lastResume)
-	}
-
-	logs, err := rs.Logs(ctx, "b1", 42)
-	if err != nil || logs != "log output" {
-		t.Fatalf("Logs = (%q,%v)", logs, err)
-	}
-	if fake.lastLogs != [2]any{"b1", 42} {
-		t.Errorf("spoke saw logs %v", fake.lastLogs)
+	if err := rs.Resume(ctx, "b1"); err != nil || fake.lastResume != "b1" {
+		t.Fatalf("Resume = %v lastResume=%q", err, fake.lastResume)
 	}
 
 	res, err := rs.Exec(ctx, "b1", []string{"/bin/sh", "-c", "echo hi"})
@@ -85,14 +66,6 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 	}
 	if !reflect.DeepEqual(fake.lastExec.cmd, []string{"/bin/sh", "-c", "echo hi"}) {
 		t.Errorf("spoke saw exec cmd %v", fake.lastExec.cmd)
-	}
-
-	reaped, err := rs.ReapOrphans(ctx, 5*time.Second)
-	if err != nil || !reflect.DeepEqual(reaped, []string{"r1", "r2"}) {
-		t.Fatalf("ReapOrphans = (%v,%v)", reaped, err)
-	}
-	if fake.lastReap != 5*time.Second {
-		t.Errorf("spoke saw reap ttl %v", fake.lastReap)
 	}
 }
 
@@ -153,12 +126,8 @@ func TestRemoteSpokeContextCancel(t *testing.T) {
 func TestDispatchHandlesVerbs(t *testing.T) {
 	fake := &fakeManager{
 		createID:   "cid",
-		createURL:  "https://auth",
-		sessionURL: "https://session",
 		boxes:      []sandbox.Box{{InstanceID: "c1"}},
-		logsOut:    "logz",
 		execResult: sandbox.ExecResult{Stdout: "o", ExitCode: 1},
-		reaped:     []string{"x"},
 	}
 	ctx := context.Background()
 
@@ -188,14 +157,10 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 		t.Errorf("pause reached fake with %q", fake.lastPause)
 	}
 
-	// Resume returns the box's session URL.
+	// Resume returns a nil payload.
 	p, err = dispatch(ctx, fake, mustReq(methodResume, resumeReq{IDOrName: "b1"}))
-	if err != nil {
-		t.Fatalf("resume dispatch: %v", err)
-	}
-	var rr resumeResp
-	if err := decodePayload(p, &rr); err != nil || rr.SessionURL != fake.sessionURL {
-		t.Fatalf("resume resp = %+v (%v)", rr, err)
+	if err != nil || p != nil {
+		t.Fatalf("resume dispatch = (%s,%v)", p, err)
 	}
 	if fake.lastResume != "b1" {
 		t.Errorf("resume reached fake with %q", fake.lastResume)

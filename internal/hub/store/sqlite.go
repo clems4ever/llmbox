@@ -21,10 +21,10 @@ import (
 //
 // No usable bearer secret is stored in the clear. The api-key and spoke-credential
 // hashes live in secret_hash columns; the remaining server-minted secrets — a
-// box's activation token, an identity session's cookie id, and an OIDC flow's
+// box's bearer token, an identity session's cookie id, and an OIDC flow's
 // state — are keyed by their SHA-256 hash (see store.HashToken), so the primary
 // key holds the hash, not the token. The short-lived flow payload an OIDC
-// handshake must replay verbatim (nonce, pkce_verifier, and the return token it
+// handshake must replay verbatim (nonce, pkce_verifier, and the return target it
 // bounces back to) stays reversible by necessity; it is guarded by the file's
 // 0600 mode and a 10-minute expiry rather than hashing.
 const schema = `
@@ -33,10 +33,7 @@ CREATE TABLE IF NOT EXISTS boxes (
 	instance_id    TEXT NOT NULL,
 	box_id         TEXT NOT NULL,
 	spoke          TEXT NOT NULL,
-	owner          TEXT NOT NULL,
 	description    TEXT NOT NULL,
-	authorize_url  TEXT NOT NULL,
-	session_url    TEXT NOT NULL,
 	status         TEXT NOT NULL,
 	last_error     TEXT NOT NULL,
 	hook_state     TEXT,
@@ -53,13 +50,11 @@ CREATE TABLE IF NOT EXISTS identity_sessions (
 	provider     TEXT NOT NULL,
 	csrf_token   TEXT NOT NULL,
 	expires_at   TEXT NOT NULL,
-	can_activate INTEGER NOT NULL,
 	can_admin    INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS oidc_flows (
 	state         TEXT PRIMARY KEY,
 	provider      TEXT NOT NULL,
-	return_token  TEXT NOT NULL,
 	return_to     TEXT NOT NULL,
 	nonce         TEXT NOT NULL,
 	pkce_verifier TEXT NOT NULL,
@@ -180,6 +175,44 @@ func migrate(db *sql.DB) error {
 			return fmt.Errorf("adding spoke_join_tokens.backend: %w", err)
 		}
 	}
+	// The box-activation handshake was removed when llmbox was reduced to pure box
+	// infrastructure; its columns are dropped from databases created by an earlier
+	// build so the schema matches what PutBox/GetIdentitySession now read and write.
+	if err := dropColumns(db, "boxes", "owner", "authorize_url", "session_url"); err != nil {
+		return err
+	}
+	if err := dropColumns(db, "identity_sessions", "can_activate"); err != nil {
+		return err
+	}
+	if err := dropColumns(db, "oidc_flows", "return_token"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// dropColumns removes each named column from table when the live schema still has
+// it, so the drop is idempotent and safe on databases already at the new schema.
+//
+// @arg db The opened database to alter.
+// @arg table The table to drop columns from.
+// @arg cols The columns to drop when present.
+// @error error if probing the schema or dropping a column fails.
+//
+// @testcase TestOpenDropsActivationColumns opens a pre-reduction database and finds the columns gone.
+func dropColumns(db *sql.DB, table string, cols ...string) error {
+	for _, col := range cols {
+		var n int
+		if err := db.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`, table, col).Scan(&n); err != nil {
+			return fmt.Errorf("probing %s.%s: %w", table, col, err)
+		}
+		if n == 0 {
+			continue
+		}
+		if _, err := db.Exec(fmt.Sprintf(`ALTER TABLE %s DROP COLUMN %s`, table, col)); err != nil {
+			return fmt.Errorf("dropping %s.%s: %w", table, col, err)
+		}
+	}
 	return nil
 }
 
@@ -233,21 +266,20 @@ func (s *sqliteStore) PutBox(b Box) error {
 		observedAt = encodeTime(b.ObservedAt)
 	}
 	_, err := s.db.Exec(`
-		INSERT INTO boxes (token, instance_id, box_id, spoke, owner, description,
-			authorize_url, session_url, status, last_error, hook_state, lifecycle,
+		INSERT INTO boxes (token, instance_id, box_id, spoke, description,
+			status, last_error, hook_state, lifecycle,
 			created_at, observed_name, observed_image, observed_state, observed_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(token) DO UPDATE SET
 			instance_id=excluded.instance_id, box_id=excluded.box_id,
-			spoke=excluded.spoke, owner=excluded.owner, description=excluded.description,
-			authorize_url=excluded.authorize_url, session_url=excluded.session_url,
+			spoke=excluded.spoke, description=excluded.description,
 			status=excluded.status, last_error=excluded.last_error,
 			hook_state=excluded.hook_state, lifecycle=excluded.lifecycle,
 			created_at=excluded.created_at, observed_name=excluded.observed_name,
 			observed_image=excluded.observed_image, observed_state=excluded.observed_state,
 			observed_at=excluded.observed_at`,
-		b.Token, b.InstanceID, b.BoxID, b.Spoke, b.Owner, b.Description,
-		b.AuthorizeURL, b.SessionURL, b.Status, b.LastError, hookState, string(b.Lifecycle),
+		b.Token, b.InstanceID, b.BoxID, b.Spoke, b.Description,
+		b.Status, b.LastError, hookState, string(b.Lifecycle),
 		encodeTime(b.CreatedAt), b.ObservedName, b.ObservedImage, b.ObservedState, observedAt)
 	if err != nil {
 		return fmt.Errorf("saving box: %w", err)
@@ -276,8 +308,8 @@ func (s *sqliteStore) DeleteBox(token string) error {
 // @testcase TestSQLiteStoreRoundTrip loads the stored boxes back.
 func (s *sqliteStore) ListBoxes() ([]Box, error) {
 	rows, err := s.db.Query(`
-		SELECT token, instance_id, box_id, spoke, owner, description,
-			authorize_url, session_url, status, last_error, hook_state, lifecycle,
+		SELECT token, instance_id, box_id, spoke, description,
+			status, last_error, hook_state, lifecycle,
 			created_at, observed_name, observed_image, observed_state, observed_at
 		FROM boxes`)
 	if err != nil {
@@ -293,8 +325,8 @@ func (s *sqliteStore) ListBoxes() ([]Box, error) {
 			hookState  sql.NullString
 			observedAt sql.NullString
 		)
-		if err := rows.Scan(&b.Token, &b.InstanceID, &b.BoxID, &b.Spoke, &b.Owner, &b.Description,
-			&b.AuthorizeURL, &b.SessionURL, &b.Status, &b.LastError, &hookState, &lifecycle,
+		if err := rows.Scan(&b.Token, &b.InstanceID, &b.BoxID, &b.Spoke, &b.Description,
+			&b.Status, &b.LastError, &hookState, &lifecycle,
 			&createdAt, &b.ObservedName, &b.ObservedImage, &b.ObservedState, &observedAt); err != nil {
 			return nil, fmt.Errorf("scanning box: %w", err)
 		}
@@ -333,13 +365,13 @@ func (s *sqliteStore) Close() error { return s.db.Close() }
 // @testcase TestIdentityStoreFlowRoundTrip saves a flow and takes it back once.
 func (s *sqliteStore) PutOIDCFlow(state string, f OIDCFlow) error {
 	_, err := s.db.Exec(`
-		INSERT INTO oidc_flows (state, provider, return_token, return_to, nonce, pkce_verifier, expires_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO oidc_flows (state, provider, return_to, nonce, pkce_verifier, expires_at)
+		VALUES (?, ?, ?, ?, ?, ?)
 		ON CONFLICT(state) DO UPDATE SET
-			provider=excluded.provider, return_token=excluded.return_token,
+			provider=excluded.provider,
 			return_to=excluded.return_to, nonce=excluded.nonce,
 			pkce_verifier=excluded.pkce_verifier, expires_at=excluded.expires_at`,
-		state, f.Provider, f.ReturnToken, f.ReturnTo, f.Nonce, f.PKCEVerifier, encodeTime(f.ExpiresAt))
+		state, f.Provider, f.ReturnTo, f.Nonce, f.PKCEVerifier, encodeTime(f.ExpiresAt))
 	if err != nil {
 		return fmt.Errorf("saving oidc flow: %w", err)
 	}
@@ -364,8 +396,8 @@ func (s *sqliteStore) TakeOIDCFlow(state string) (OIDCFlow, bool, error) {
 	)
 	err := s.db.QueryRow(`
 		DELETE FROM oidc_flows WHERE state = ?
-		RETURNING provider, return_token, return_to, nonce, pkce_verifier, expires_at`, state).
-		Scan(&f.Provider, &f.ReturnToken, &f.ReturnTo, &f.Nonce, &f.PKCEVerifier, &expiresAt)
+		RETURNING provider, return_to, nonce, pkce_verifier, expires_at`, state).
+		Scan(&f.Provider, &f.ReturnTo, &f.Nonce, &f.PKCEVerifier, &expiresAt)
 	if err == sql.ErrNoRows {
 		return OIDCFlow{}, false, nil
 	}
@@ -387,12 +419,12 @@ func (s *sqliteStore) TakeOIDCFlow(state string) (OIDCFlow, bool, error) {
 // @testcase TestIdentityStoreSessionRoundTrip saves and reads back an identity session.
 func (s *sqliteStore) PutIdentitySession(id string, sess IdentitySession) error {
 	_, err := s.db.Exec(`
-		INSERT INTO identity_sessions (session_id, email, provider, csrf_token, expires_at, can_activate, can_admin)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO identity_sessions (session_id, email, provider, csrf_token, expires_at, can_admin)
+		VALUES (?, ?, ?, ?, ?, ?)
 		ON CONFLICT(session_id) DO UPDATE SET
 			email=excluded.email, provider=excluded.provider, csrf_token=excluded.csrf_token,
-			expires_at=excluded.expires_at, can_activate=excluded.can_activate, can_admin=excluded.can_admin`,
-		id, sess.Email, sess.Provider, sess.CSRFToken, encodeTime(sess.ExpiresAt), sess.CanActivate, sess.CanAdmin)
+			expires_at=excluded.expires_at, can_admin=excluded.can_admin`,
+		id, sess.Email, sess.Provider, sess.CSRFToken, encodeTime(sess.ExpiresAt), sess.CanAdmin)
 	if err != nil {
 		return fmt.Errorf("saving identity session: %w", err)
 	}
@@ -413,9 +445,9 @@ func (s *sqliteStore) GetIdentitySession(id string) (IdentitySession, bool, erro
 		expiresAt string
 	)
 	err := s.db.QueryRow(`
-		SELECT email, provider, csrf_token, expires_at, can_activate, can_admin
+		SELECT email, provider, csrf_token, expires_at, can_admin
 		FROM identity_sessions WHERE session_id = ?`, id).
-		Scan(&sess.Email, &sess.Provider, &sess.CSRFToken, &expiresAt, &sess.CanActivate, &sess.CanAdmin)
+		Scan(&sess.Email, &sess.Provider, &sess.CSRFToken, &expiresAt, &sess.CanAdmin)
 	if err == sql.ErrNoRows {
 		return IdentitySession{}, false, nil
 	}

@@ -5,22 +5,17 @@
 [![ui coverage](.github/badges/ui-coverage.svg)](https://github.com/clems4ever/llmbox/actions/workflows/ci.yml)
 
 An [MCP](https://modelcontextprotocol.io) server for spinning up **sandboxed
-Claude instances** ("llmboxes") on demand. From a chatbot you say *"create an
-llmbox"*; you get back a URL; you open it, sign in with **your own** Claude
-account, and the sandbox activates — driveable from claude.ai/code or the mobile
-app via Claude's Remote Control.
+boxes** ("llmboxes") on demand. From a chatbot you say *"create an llmbox"* and
+get back a box you can `exec` into, dial ports on, and expose over HTTP. llmbox
+is pure box infrastructure: it provides the sandbox lifecycle
+(create/destroy/pause/resume/exec/dial) plus an HTTP proxy for a box's ports.
+Built with the official [Go SDK](https://github.com/modelcontextprotocol/go-sdk).
 
-Each box is a container running Claude Code in remote-control mode, authenticated
-by the end user. Built with the official
-[Go SDK](https://github.com/modelcontextprotocol/go-sdk).
-
-```
-"create an llmbox"  ──▶  auth URL  ──▶  you sign in with Claude  ──▶  session URL
-```
-
-The OAuth code exchanges for a full-scope account token, so it **never** enters
-the model's context: the chatbot only ever sees the box ID and the auth-page URL,
-while the code travels browser → server → container out of band. See
+Each box is a container (or [Firecracker microVM](docs/firecracker.md)) on its
+own isolated network. **The box's workload is installed and started by the
+spoke's init script** (`--init-script`), not by llmbox — llmbox only provides the
+sandbox and, optionally, exposes the box's ports to a browser via the
+[proxy](docs/proxy.md) (`--publish-port` or the `*_llmbox_proxy` tools). See
 [Architecture](docs/architecture.md) for the full design.
 
 ## Quick start
@@ -40,8 +35,8 @@ docker run -d --name llmbox \
 ```
 
 One port (`8080`) serves everything: the box-control JSON API (under `/api/v1/`)
-and the UI (auth pages, admin, health). The MCP protocol itself is served by a
-separate binary, **`llmbox-mcp`**, which forwards every tool call to that
+and the UI (admin dashboard, sign-in, health). The MCP protocol itself is served
+by a separate binary, **`llmbox-mcp`**, which forwards every tool call to that
 box-control API:
 
 ```bash
@@ -80,8 +75,8 @@ Archives are also published for `llmbox-server`, `llmbox-mcp`, and the in-box
 
 ## MCP tools
 
-`create_llmbox`, `get_llmbox`, `list_llmboxes`, `destroy_llmbox`,
-`get_llmbox_logs`, `exec_llmbox`, plus `create_llmbox_proxy` /
+`create_llmbox`, `get_llmbox`, `list_llmboxes`, `list_spokes`,
+`destroy_llmbox`, `exec_llmbox`, plus `create_llmbox_proxy` /
 `delete_llmbox_proxy` / `list_llmbox_proxies` for exposing a box's HTTP ports.
 See [MCP tools](docs/mcp-tools.md) for arguments and return values.
 
@@ -89,38 +84,29 @@ See [MCP tools](docs/mcp-tools.md) for arguments and return values.
 
 | Doc | What's in it |
 |-----|--------------|
-| [Architecture](docs/architecture.md) | The auth-secret split, the activation flow, the activation page, and the code components. |
+| [Architecture](docs/architecture.md) | How the pieces fit together: the box-control API, the spoke init script, and the code components. |
 | [MCP tools](docs/mcp-tools.md) | Full reference for every tool's arguments and results. |
 | [Running & configuration](docs/configuration.md) | Running the server, connecting a chatbot, and the YAML config reference. |
-| [Authenticating activation](docs/authentication.md) | Gating activation behind a sign-in provider (OIDC) so a leaked token can't hijack a box. |
+| [Authentication](docs/authentication.md) | Admin OIDC sign-in gating the admin UI and the per-box HTTP proxies, plus API keys and the single-tenant trust model. |
 | [Box lifecycle hooks](docs/hooks.md) | Injecting per-box secrets/files via `box.create`/`box.destroy` hooks, plus box networking and isolation. |
 | [Firecracker backend](docs/firecracker.md) | Running each box as a Firecracker microVM instead of a Docker container: vsock control, TAP/NAT egress, and building a guest rootfs. |
-| [Operations](docs/operations.md) | Session persistence, box credentials across restarts, and orphan cleanup. |
+| [Operations](docs/operations.md) | State persistence, pausing boxes, and orphan cleanup. |
 | [Development](docs/development.md) | Building, CI, and the unit / integration / end-to-end test suites. |
 
 ## Status & caveats
 
-- The create → authorize-URL → auth-page path is verified end-to-end (including a
-  real container and the live HTTP/MCP stack). The final **code → session URL**
-  exchange needs a human to authorize in a browser; the in-box wrapper that runs
-  `claude auth login` then `claude remote-control` is in
-  [`internal/guest/guest.go`](internal/guest/guest.go) and is easy to tweak
-  if your Claude version's prompts differ.
-- Each box consumes a session on the **end user's** Claude subscription. That is
-  the intended model; be deliberate about who you let create boxes.
-- [Activation auth](docs/authentication.md) gates *activation* (closing the
-  leaked-token hijack), and every box-control API call (creation included)
-  requires an API key or an admin session.
+- A box's workload is provisioned by the spoke's `--init-script`, which runs once
+  at creation. A box whose init script fails is surfaced with phase **`broken`**
+  and the captured script output, so a bad provisioning step is loud rather than
+  silent.
+- The only human sign-in is **admin OIDC** (`auth.admin.emails`). It gates the
+  admin dashboard/API **and** the per-box HTTP proxies. Every box-control API call
+  (creation included) requires an API key or an admin session.
 - The box-control API is **single-tenant by design**: it authenticates the
   caller but does not authorize per box, so any valid API key or admin can
-  `exec`/`logs`/`destroy` **any** box. This is safe only when a single trusted
+  `exec`/`destroy` **any** box. This is safe only when a single trusted
   tenant sits behind the API (typically an authenticating proxy in front of
   `llmbox-mcp`); do not share one hub across mutually-distrusting users. See
   [the trust model](docs/authentication.md#trust-model-the-box-control-api-is-single-tenant).
   Per-user MCP clients and binding a box to its initiator are the natural
   follow-ups for multi-tenant use.
-- The box image bakes in a `~/.claude.json` seed that pre-answers the
-  workspace-trust dialog, since `claude remote-control` otherwise aborts with
-  "Workspace not trusted" in a fresh box. If a `SubmitCode` fails, the box's
-  actual message (invalid code, trust, eligibility, …) is surfaced on the auth
-  page instead of a bare EOF.

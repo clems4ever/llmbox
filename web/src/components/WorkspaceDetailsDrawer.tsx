@@ -87,11 +87,6 @@ export function WorkspaceDetailsDrawer({
 
 /** Metadata renders the workspace's descriptive fields as a compact grid. */
 function Metadata({ box }: { box: BoxView }): JSX.Element {
-  const link = box.auth_url
-    ? { label: "Activate", href: box.auth_url }
-    : box.session_url
-      ? { label: "Open", href: box.session_url }
-      : null;
   return (
     <Stack gap="sm">
       {box.description && <Text size="sm">{box.description}</Text>}
@@ -102,11 +97,6 @@ function Metadata({ box }: { box: BoxView }): JSX.Element {
         <Field label="Created" value={createdAt(box.created) || "—"} />
       </SimpleGrid>
       {box.phase === "broken" && <InitScriptFailure output={box.last_error} />}
-      {link && (
-        <Anchor href={link.href} target="_blank" rel="noopener">
-          <Button variant="light" size="sm">{link.label} workspace</Button>
-        </Anchor>
-      )}
     </Stack>
   );
 }

@@ -146,9 +146,9 @@
 		{
 			"function_name": "SetPayloadImage",
 			"receiver": "Provisioner",
-			"documentation_hash": "bffbe30b028d9964b4ab3340bb31a55c658d24f40ffc04fe39178cf66bb2c624",
+			"documentation_hash": "f635d7da591973bede397a0a2c71df2eb9ffd7a9bebeeace2f51d5284b3708c9",
 			"definition_hash": "aebdee73ac97c7f6c245d333fcfe0d99d9ed49a32a55796e90225c031b156923",
-			"reviewed_at": "2026-07-09T18:49:59.01548595Z"
+			"reviewed_at": "2026-07-11T21:34:27.218344245Z"
 		},
 		{
 			"function_name": "waitForGuest",
@@ -173,9 +173,9 @@
 		{
 			"function_name": "Resume",
 			"receiver": "fcInstance",
-			"documentation_hash": "1788782fcc5c02156de821806df80ed1995fde193e632fc4f73feea3f8f76cc8",
+			"documentation_hash": "cb602f59b9e446988aa1322c2070eaafea1530670de0c1f702d03d958be15d74",
 			"definition_hash": "953ca9d21bbd145d55796cfe9adc75b0c888a334606ba3025f8b162e2244df11",
-			"reviewed_at": "2026-07-11T11:13:34.279397885Z"
+			"reviewed_at": "2026-07-11T21:34:27.219695345Z"
 		}
 	]
 }

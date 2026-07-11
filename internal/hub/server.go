@@ -1,12 +1,10 @@
-// Package server ties the Docker box manager to the HTTP front-ends that share
-// one process and one port:
+// Package server ties the box manager to the HTTP front-ends that share one
+// process and one port:
 //
 //   - the box-control JSON API (under /api/v1/), used by the UI and by callers
-//     like the llmbox-mcp binary to create/list/destroy boxes. It only ever
-//     exchanges box IDs and the *auth page URL* — never the OAuth secret.
-//   - the auth web page where the user pastes their OAuth code. The code goes
-//     browser -> this server -> container stdin, so it never enters the caller's
-//     context.
+//     like the llmbox-mcp binary to create/list/destroy/exec boxes.
+//   - the admin web UI (/admin) and the OIDC sign-in that gates it and the
+//     per-box HTTP proxies.
 package hub
 
 import (
@@ -69,26 +67,18 @@ type boxHooks interface {
 	OnDestroy(ctx context.Context, box hooks.BoxInfo, state map[string]string) error
 }
 
-// session tracks one box through the auth handshake.
+// session tracks one box the hub manages.
 type session struct {
-	// Token is the box's stable identity: the SHA-256 hash of the activation
+	// Token is the box's stable identity: the SHA-256 hash of the box's bearer
 	// token, used as the registry key and persisted, so a stolen state file holds
 	// no usable token. It is never the value handed to a user.
 	Token string
-	// plainToken is the plaintext activation token, held in memory only (never
-	// persisted). It is set when this process mints the box and is what builds the
-	// auth-page URL. It is empty for a session rehydrated from the store after a
-	// restart — such a box is still activatable via the link its creator already
-	// holds (lookup hashes the incoming token), but its auth URL cannot be
-	// re-emitted (e.g. in list views).
-	plainToken string
 	// Generation is the box's opaque backend generation token (its current
 	// incarnation). It is used only as a staleness/reap equality key — never
 	// parsed, prefix-matched, or used to address the box (addressing is by BoxID).
 	// A box recreated with the same BoxID gets a new Generation.
-	Generation   string
-	AuthorizeURL string
-	CreatedAt    time.Time
+	Generation string
+	CreatedAt  time.Time
 
 	// HookState is the opaque per-hook state returned by the box.create hooks
 	// (nil when no hooks are configured), keyed by hook executable. It is replayed
@@ -107,11 +97,13 @@ type session struct {
 	// it needs no locking; per-box verbs route to this spoke.
 	SpokeName string
 
-	mu          sync.Mutex
-	Status      string // "pending" | "ready" | "error"
-	SessionURL  string
-	Err         string
-	ActivatedBy string // identity (email) that submitted the code, when auth is enabled
+	// Phase is the box's provisioning phase, set once at creation and immutable:
+	// "broken" when its init script failed (with the captured output in InitError),
+	// "ready" otherwise. It needs no locking.
+	Phase     string
+	InitError string
+
+	mu sync.Mutex
 
 	// BoxState is the box's persisted runtime state (boxStateRunning or
 	// boxStateTerminated; "" from an older record means running). LastSeen is
@@ -152,21 +144,8 @@ func (s *session) paused() bool {
 	return s.InstanceState == sandbox.StatePaused
 }
 
-// snapshot reads the session's mutable state under its lock.
-//
-// @return status The current auth status: pending, ready, or error.
-// @return sessionURL The remote-control session URL, set once ready.
-// @return errMsg The error detail, set when status is error.
-//
-// @testcase TestSubmitCodeSuccess reads the session state via snapshot.
-func (s *session) snapshot() (status, sessionURL, errMsg string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.Status, s.SessionURL, s.Err
-}
-
 // persistLocked builds the on-disk form of the session. The caller must hold
-// s.mu, as it reads the mutable status fields.
+// s.mu, as it reads the mutable observed fields.
 //
 // @return boxRecord A snapshot of the session's durable fields.
 //
@@ -175,16 +154,13 @@ func (s *session) persistLocked() boxRecord {
 	return boxRecord{
 		Token:         s.Token,
 		InstanceID:    s.Generation,
-		AuthorizeURL:  s.AuthorizeURL,
 		CreatedAt:     s.CreatedAt,
 		HookState:     s.HookState,
 		BoxID:         s.BoxID,
 		Description:   s.Description,
 		Spoke:         s.SpokeName,
-		Status:        s.Status,
-		SessionURL:    s.SessionURL,
-		LastError:     s.Err,
-		Owner:         s.ActivatedBy,
+		Status:        s.Phase,
+		LastError:     s.InitError,
 		Lifecycle:     store.Lifecycle(s.BoxState),
 		ObservedAt:    s.LastSeen,
 		ObservedName:  s.Name,
@@ -214,16 +190,13 @@ func sessionFromPersisted(ps boxRecord) *session {
 	return &session{
 		Token:         ps.Token,
 		Generation:    ps.InstanceID,
-		AuthorizeURL:  ps.AuthorizeURL,
 		CreatedAt:     ps.CreatedAt,
 		HookState:     ps.HookState,
 		BoxID:         ps.BoxID,
 		Description:   ps.Description,
 		SpokeName:     ps.Spoke,
-		Status:        ps.Status,
-		SessionURL:    ps.SessionURL,
-		Err:           ps.LastError,
-		ActivatedBy:   ps.Owner,
+		Phase:         ps.Status,
+		InitError:     ps.LastError,
 		BoxState:      string(ps.Lifecycle),
 		LastSeen:      ps.ObservedAt,
 		Name:          ps.ObservedName,
@@ -236,8 +209,7 @@ func sessionFromPersisted(ps boxRecord) *session {
 type Server struct {
 	hooks     boxHooks // runs lifecycle hooks per box; nil when none configured
 	publicURL string   // external base URL, e.g. https://boxes.example.com
-	authTTL   time.Duration
-	store     Store // persists the registry across restarts
+	store     Store    // persists the registry across restarts
 
 	mu      sync.Mutex
 	byToken map[string]*session
@@ -253,8 +225,8 @@ type Server struct {
 	// once at startup via SetHub before serving (always set in a running server).
 	hub clusterHub
 
-	// auth gates box activation behind provider sign-in (Google, …). nil leaves
-	// activation unauthenticated (no provider configured).
+	// auth gates the admin UI and per-box HTTP proxies behind provider sign-in
+	// (Google, …). nil leaves those surfaces unauthenticated (no provider configured).
 	auth *auth.Authenticator
 
 	// proxyBaseDomain is the parent domain per-box HTTP proxies hang off (e.g.
@@ -280,28 +252,25 @@ func (s *Server) logger() *slog.Logger {
 }
 
 // New builds a Server. publicURL is the externally reachable base URL used to
-// construct auth page links; authTTL is how long a box may stay un-authenticated
-// before the reaper destroys it. store persists the session registry; pass a
-// no-op store to disable persistence. hooks runs lifecycle hooks per box; pass
-// nil to disable hook integration. auth gates box activation behind provider
-// sign-in; pass nil to leave activation unauthenticated. The server routes every
-// box to a remote spoke, so attach the cluster hub via SetHub before serving. Call
-// Restore to load any saved sessions.
+// construct proxy and admin links. store persists the box registry; pass a no-op
+// store to disable persistence. hooks runs lifecycle hooks per box; pass nil to
+// disable hook integration. auth gates the admin UI and per-box proxies behind
+// provider sign-in; pass nil to leave them unauthenticated. The server routes
+// every box to a remote spoke, so attach the cluster hub via SetHub before
+// serving. Call Restore to load any saved sessions.
 //
 // @arg hooks The box lifecycle hook runner; nil disables hook integration.
-// @arg publicURL The externally reachable base URL for auth page links.
-// @arg authTTL How long a box may stay un-authenticated before being reaped.
-// @arg store The session store used to persist the registry; a no-op store disables it.
-// @arg auth The activation authenticator; nil leaves activation unauthenticated.
+// @arg publicURL The externally reachable base URL for proxy and admin links.
+// @arg store The box store used to persist the registry; a no-op store disables it.
+// @arg auth The admin/proxy authenticator; nil leaves those surfaces unauthenticated.
 // @return *Server A ready-to-use Server with an empty in-memory session registry.
 //
 // @testcase TestCreateBoxRegistersSession builds a Server via New.
 // @testcase TestCreateBoxRunsCreateHooks builds a Server with a hook runner.
-func New(hooks boxHooks, publicURL string, authTTL time.Duration, store Store, auth *auth.Authenticator) *Server {
+func New(hooks boxHooks, publicURL string, store Store, auth *auth.Authenticator) *Server {
 	s := &Server{
 		hooks:         hooks,
 		publicURL:     strings.TrimRight(publicURL, "/"),
-		authTTL:       authTTL,
 		store:         store,
 		auth:          auth,
 		byToken:       make(map[string]*session),
@@ -557,11 +526,11 @@ func (s *Server) spoke(name string) (boxManager, error) {
 }
 
 // allSpokes returns every connected remote spoke to fan a cluster-wide operation
-// (list, reap) across, keyed by name.
+// (list, sync) across, keyed by name.
 //
 // @return map[string]boxManager The connected remote spokes, keyed by name.
 //
-// @testcase TestReapFansOutAcrossSpokes fans a cluster-wide operation across every spoke.
+// @testcase TestListBoxesFromRecords fans a cluster-wide operation across every spoke.
 func (s *Server) allSpokes() map[string]boxManager {
 	out := map[string]boxManager{}
 	if s.hub != nil {
@@ -898,7 +867,7 @@ func (s *Server) reconcileProxies(boxesBySpoke map[string][]sandbox.Box) {
 // they return (e.g. a granular hook's subject token, config, and CLIs), and
 // records their opaque state on the session; that state is replayed to the
 // box.destroy hooks if box creation later fails so nothing is left dangling. It
-// returns the session so callers can build the auth page URL. opts carries the
+// returns the registered session for the new box. opts carries the
 // box ID, description, and the spoke to place the box on (empty resolves to the
 // admin-chosen default spoke); the box image is not a hub input — each spoke
 // launches its own configured image.
@@ -991,28 +960,26 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 		s.runDestroyHooks(box, hookState)
 		return nil, fmt.Errorf("generating session token: %w", err)
 	}
-	// A box whose init script failed is provisioned but never started: register it
-	// as "broken" (carrying the script output) so it surfaces in the UI as a broken
-	// box to inspect, rather than a pending one awaiting a login it can never do.
-	status := "pending"
+	// A successfully created box is usable immediately (its init script installs and
+	// starts whatever workload it needs). A box whose init script failed is
+	// registered as "broken", carrying the script output, so it surfaces in the UI
+	// as a broken box to inspect rather than a running one.
+	status := "ready"
 	if res.InitScriptFailed {
 		status = sandbox.PhaseBroken
 	}
-	// The registry and store key a box by the hash of its token; the plaintext is
-	// kept only in memory (plainToken) to build the auth-page URL handed back now.
+	// The registry and store key a box by the hash of its token (an internal handle).
 	hash := store.HashToken(tok)
 	sess := &session{
-		Token:        hash,
-		plainToken:   tok,
-		Generation:   id,
-		AuthorizeURL: res.AuthorizeURL,
-		CreatedAt:    time.Now(),
-		HookState:    hookState,
-		Status:       status,
-		Err:          res.InitScriptOutput,
-		BoxID:        opts.BoxID,
-		Description:  opts.Description,
-		SpokeName:    spokeName,
+		Token:       hash,
+		Generation:  id,
+		CreatedAt:   time.Now(),
+		HookState:   hookState,
+		Phase:       status,
+		InitError:   res.InitScriptOutput,
+		BoxID:       opts.BoxID,
+		Description: opts.Description,
+		SpokeName:   spokeName,
 		// The spoke just created the box, so it was observed alive this instant.
 		BoxState: boxStateRunning,
 		LastSeen: time.Now(),
@@ -1121,51 +1088,6 @@ func (s *Server) runDestroyHooks(box hooks.BoxInfo, state map[string]string) {
 	}
 }
 
-// AuthPageURL is the URL the user opens to finish authentication.
-//
-// @arg tok The session token identifying the auth session.
-// @return string The absolute auth page URL for the token.
-//
-// @testcase TestCreateBoxRegistersSession checks the auth page URL format.
-func (s *Server) AuthPageURL(tok string) string {
-	return s.publicURL + "/auth/" + tok
-}
-
-// authURLForRecord returns the auth-page URL for a box record when this process
-// still holds the box's plaintext token, or "" when it does not. Only the live
-// session carries the plaintext (the record's Token is the hash), so a box
-// rehydrated from the store after a restart has no plaintext to build a fresh
-// URL — its creator reaches it via the link they already hold.
-//
-// @arg rec The box record whose auth URL to build.
-// @return string The auth-page URL, or "" when the plaintext token is not held.
-//
-// @testcase TestListBoxesOmitsAuthURLForRestoredBox omits the URL for a rehydrated pending box.
-func (s *Server) authURLForRecord(rec boxRecord) string {
-	s.mu.Lock()
-	sess := s.byToken[rec.Token]
-	s.mu.Unlock()
-	if sess == nil || sess.plainToken == "" {
-		return ""
-	}
-	return s.AuthPageURL(sess.plainToken)
-}
-
-// lookup returns the session for a plaintext activation token, or nil. The
-// registry is keyed by the token's hash (so the store holds no usable token), so
-// the presented token is hashed before the lookup — a box created this run and
-// one rehydrated from the store after a restart both resolve the same way.
-//
-// @arg tok The plaintext session token to look up.
-// @return *session The matching session, or nil if none is registered.
-//
-// @testcase TestCreateBoxRegistersSession checks a created session is found by lookup.
-func (s *Server) lookup(tok string) *session {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.byToken[store.HashToken(tok)]
-}
-
 // lookupByBoxID returns the session for a box's caller-assigned box ID
 // (case-insensitive), or nil. Box IDs are unique across live boxes (enforced at
 // create time against the spokes' box list), so normally at most one matches.
@@ -1255,50 +1177,6 @@ func betterBoxIDMatch(c *session, cRank boxIDMatchRank, best *session, bestRank 
 	return c.Token < best.Token
 }
 
-// submitCode feeds the user's OAuth code to the box's login process and waits
-// for the box to become ready. It is called by the web handler, never by the API.
-//
-// @arg ctx Context for the code submission.
-// @arg tok The session token identifying the box.
-// @arg code The OAuth code pasted by the user.
-// @error error if the session is unknown, the code is empty, its spoke is not connected, or login fails.
-//
-// @testcase TestSubmitCodeSuccess marks the session ready on success.
-// @testcase TestSubmitCodeFailureRecorded records the error on failure.
-// @testcase TestSubmitCodeUnknownToken errors for an unknown token.
-// @testcase TestSubmitCodeEmpty errors for an empty code.
-func (s *Server) submitCode(ctx context.Context, tok, code string) error {
-	sess := s.lookup(tok)
-	if sess == nil {
-		return fmt.Errorf("unknown or expired auth session")
-	}
-	if strings.TrimSpace(code) == "" {
-		return fmt.Errorf("the code is empty")
-	}
-	mgr, err := s.spoke(sess.SpokeName)
-	if err != nil {
-		return err
-	}
-
-	url, err := mgr.SubmitCode(ctx, sess.BoxID, code)
-	sess.mu.Lock()
-	if err != nil {
-		sess.Status = "error"
-		sess.Err = err.Error()
-	} else {
-		sess.Status = "ready"
-		sess.SessionURL = url
-		sess.Err = ""
-	}
-	ps := sess.persistLocked()
-	sess.mu.Unlock()
-	// Persist the new status so a restart sees the box as ready (or errored).
-	if serr := s.store.PutBox(ps); serr != nil {
-		s.logger().Warn("failed to persist session status", "box", ps.BoxID, "err", serr)
-	}
-	return err
-}
-
 // boxRecords returns a stable snapshot of every tracked session in its
 // persisted form, newest first (then by token, so equal timestamps still order
 // deterministically). It is the read path of the box list: records come from
@@ -1378,9 +1256,13 @@ func (s *Server) boxFromRecord(ps boxRecord, connected map[string]bool) sandbox.
 	if !ps.ObservedAt.IsZero() {
 		lastSeen = ps.ObservedAt.Unix()
 	}
-	phase := ps.Status
-	if phase == "" {
-		phase = "pending"
+	// The record's status carries the box's provisioning phase. Only "broken" is
+	// surfaced as a phase; a healthy ("ready") box has no phase, matching
+	// sandbox.Box.Phase's contract (broken when the init script failed, empty
+	// otherwise).
+	var phase string
+	if ps.Status == sandbox.PhaseBroken {
+		phase = sandbox.PhaseBroken
 	}
 	return sandbox.Box{
 		InstanceID:  shortInstanceID(ps.InstanceID),
@@ -1432,36 +1314,6 @@ func (s *Server) listBoxes(_ context.Context) ([]sandbox.Box, error) {
 		out = append(out, s.boxFromRecord(ps, connected))
 	}
 	return out, nil
-}
-
-// boxLogs returns the recent console output of the box with the given box ID.
-// Like get and destroy, it is keyed by the box ID supplied at create time, so
-// a box created without one is not reachable here. tail bounds how many trailing
-// lines are returned and is passed through to the manager.
-//
-// @arg ctx Context for the logs request.
-// @arg boxID The box ID of the box to read logs from.
-// @arg tail The maximum number of trailing log lines to return; the manager applies a default when non-positive.
-// @return string The box's recent console output.
-// @error error if no box has that box ID, its spoke is not connected, or the logs cannot be read.
-//
-// @testcase TestBoxLogsByBoxID returns a box's logs looked up by box ID.
-func (s *Server) boxLogs(ctx context.Context, boxID string, tail int) (string, error) {
-	sess := s.lookupByBoxID(boxID)
-	if sess == nil {
-		return "", fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
-	}
-	if sess.terminated() {
-		return "", fmt.Errorf("box %q is terminated (it no longer exists on its spoke); its logs are gone", boxID)
-	}
-	if sess.paused() {
-		return "", fmt.Errorf("box %q is paused; resume it to read its logs", boxID)
-	}
-	mgr, err := s.spoke(sess.SpokeName)
-	if err != nil {
-		return "", err
-	}
-	return mgr.Logs(ctx, sess.BoxID, tail)
 }
 
 // boxExec runs a shell command inside the box with the given box ID and returns
@@ -1528,9 +1380,8 @@ func (s *Server) pauseBox(ctx context.Context, boxID string) error {
 	return nil
 }
 
-// resumeBox restarts a paused box's compute from its kept disk, relaunches claude,
-// and records the box's new remote-control session URL so the UI can open it again.
-// It then folds the spoke's inventory back in so the box shows running right away.
+// resumeBox restarts a paused box's compute from its kept disk. It then folds the
+// spoke's inventory back in so the box shows running right away.
 //
 // @arg ctx Context for the resume request.
 // @arg boxID The box ID of the box to resume.
@@ -1549,20 +1400,8 @@ func (s *Server) resumeBox(ctx context.Context, boxID string) error {
 	if err != nil {
 		return err
 	}
-	url, err := mgr.Resume(ctx, sess.BoxID)
-	if err != nil {
+	if err := mgr.Resume(ctx, sess.BoxID); err != nil {
 		return err
-	}
-	// The resumed box relaunched claude to a fresh session URL; record it so the
-	// list view opens the live session, not the stale pre-pause one.
-	if url != "" {
-		sess.mu.Lock()
-		sess.SessionURL = url
-		ps := sess.persistLocked()
-		sess.mu.Unlock()
-		if err := s.store.PutBox(ps); err != nil {
-			s.logger().Warn("persisting resumed box session URL", "box", boxID, "err", err)
-		}
 	}
 	s.syncSpoke(ctx, sess.SpokeName, mgr)
 	return nil
@@ -1781,42 +1620,11 @@ func (s *Server) ReapLoop(ctx context.Context, every time.Duration, log func(str
 			} else if len(purged) > 0 && log != nil {
 				log(fmt.Sprintf("reaper: purged %d box(es) on departed spoke(s): %s", len(purged), strings.Join(purged, ", ")))
 			}
-			reaped := s.reapAllSpokes(ctx, log)
-			if len(reaped) > 0 {
-				s.pruneSessions(reaped)
-				if log != nil {
-					log(fmt.Sprintf("reaper: destroyed %d orphaned box(es): %s", len(reaped), strings.Join(reaped, ", ")))
-				}
-			}
-			// Converge the records with reality last, so the tick ends with the
-			// post-reap state folded in.
+			// Converge the records with reality, folding each connected spoke's live
+			// inventory into the box records and tombstoning any that have vanished.
 			s.syncSpokes(ctx)
 		}
 	}
-}
-
-// reapAllSpokes reaps orphaned boxes on every spoke (local plus each connected
-// remote spoke) and returns the combined short IDs of the reaped boxes. A
-// spoke's reap error is reported via log (if set) and does not stop the others.
-//
-// @arg ctx Context for the reap requests.
-// @arg log Optional sink for per-spoke reaper errors; may be nil.
-// @return []string The combined short IDs of boxes reaped across all spokes.
-//
-// @testcase TestReapFansOutAcrossSpokes reaps orphans on every spoke.
-func (s *Server) reapAllSpokes(ctx context.Context, log func(string)) []string {
-	var reaped []string
-	for name, bm := range s.allSpokes() {
-		ids, err := bm.ReapOrphans(ctx, s.authTTL)
-		if err != nil {
-			if log != nil {
-				log(fmt.Sprintf("reaper: spoke %q: %v", name, err))
-			}
-			continue
-		}
-		reaped = append(reaped, ids...)
-	}
-	return reaped
 }
 
 // pruneSessions drops sessions whose box was reaped.
@@ -1855,7 +1663,7 @@ func (s *Server) pruneSessions(reapedIDs []string) {
 	}
 }
 
-// newToken returns a 256-bit unguessable hex token for an auth page URL.
+// newToken returns a 256-bit unguessable hex token for a box's bearer credential.
 //
 // @arg randSource The reader supplying cryptographic randomness.
 // @return string A 64-character hex-encoded random token.

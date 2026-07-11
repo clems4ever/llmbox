@@ -28,7 +28,7 @@ import (
 // @arg t The test, failed on any setup, navigation, or assertion error.
 func TestAdminRemoveBoxInBrowser(t *testing.T) {
 	s, _, st := newAdminServer(t)
-	cookie := signIn(t, st, true, false) // admin session "SID" with CSRF "CSRF"
+	cookie := signIn(t, st, true) // admin session "SID" with CSRF "CSRF"
 
 	httpSrv := httptest.NewServer(s.APIHandler())
 	t.Cleanup(httpSrv.Close)

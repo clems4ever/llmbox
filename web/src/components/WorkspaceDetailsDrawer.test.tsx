@@ -72,11 +72,6 @@ describe("WorkspaceDetailsDrawer", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("shows the activation link for a pending box", () => {
-    renderDrawer({ box: box({ box_id: "alpha", auth_url: "https://hub/auth", phase: "pending" }) });
-    expect(screen.getByText("Activate workspace").closest("a")).toHaveAttribute("href", "https://hub/auth");
-  });
-
   it("shows the init-script output for a broken box", () => {
     renderDrawer({
       box: box({
@@ -90,7 +85,7 @@ describe("WorkspaceDetailsDrawer", () => {
   });
 
   it("does not show the init-script panel for a healthy box", () => {
-    renderDrawer({ box: box({ box_id: "alpha", phase: "ready" }) });
+    renderDrawer({ box: box({ box_id: "alpha", phase: "" }) });
     expect(screen.queryByText("Init script failed")).not.toBeInTheDocument();
   });
 });

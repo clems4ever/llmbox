@@ -1,13 +1,12 @@
-// Package guest implements the in-box guest and its host-side client. The
-// guest runs inside a box (as the entrypoint, under tini), owns the `claude`
-// process on a PTY, and serves the box-operation verbs over a Unix-domain
-// control socket: Init (write per-box files), Start (launch claude and capture
-// the OAuth authorize URL or, if already authenticated, the session URL),
-// SubmitCode (feed the OAuth code and capture the session URL), Exec, Logs, and
-// Dial (a data-plane verb that splices the connection to a localhost port inside
-// the box). The host reaches the socket through a per-box bind mount, so the
-// same client drives any backend — container today, microVM or remote VM later —
-// without host→box bridge networking.
+// Package guest implements the in-box guest and its host-side client. The guest
+// runs inside a box (as the entrypoint, under tini) and serves the box-operation
+// verbs over a Unix-domain control socket: Init (write per-box files and run the
+// host-provided init script), Exec (run a command), and Dial (a data-plane verb
+// that splices the connection to a localhost port inside the box). The host
+// reaches the socket through a per-box bind mount, so the same client drives any
+// backend — container today, microVM or remote VM later — without host→box bridge
+// networking. The box's own workload is installed and started by the init script,
+// not by the guest.
 package guest
 
 import (
@@ -23,12 +22,9 @@ import (
 // The control-plane verbs. Each is the Verb of a request frame; Dial is special
 // in that, after its response, the connection becomes a raw byte pipe.
 const (
-	verbInit       = "init"
-	verbStart      = "start"
-	verbSubmitCode = "submit_code"
-	verbExec       = "exec"
-	verbLogs       = "logs"
-	verbDial       = "dial"
+	verbInit = "init"
+	verbExec = "exec"
+	verbDial = "dial"
 )
 
 // maxFrame bounds a single control frame so a malformed length prefix cannot make
@@ -52,20 +48,16 @@ type resp struct {
 	Data json.RawMessage `json:"data,omitempty"`
 }
 
-// InitReq carries everything the guest needs to prepare the box before launching
-// claude: the per-box files to write, the remote-control args, the box ID (used
-// to name the default session), the environment for the claude process, and an
-// optional host-provided init script run once inside the box before claude
-// starts (with its own timeout) so a spoke can customise every box without
-// rebuilding the image.
+// InitReq carries everything the guest needs to provision the box: the per-box
+// files to write, the environment for the box's processes, and an optional
+// host-provided init script run once inside the box (with its own timeout) so a
+// spoke can customise every box without rebuilding the image.
 type InitReq struct {
-	Files      []sandbox.InjectFile `json:"files,omitempty"`
-	RemoteArgs string               `json:"remote_args,omitempty"`
-	BoxID      string               `json:"box_id,omitempty"`
-	Env        []string             `json:"env,omitempty"`
+	Files []sandbox.InjectFile `json:"files,omitempty"`
+	Env   []string             `json:"env,omitempty"`
 	// InitScript is an optional provisioning script run inside the box during Init,
-	// before claude starts, as the same (unprivileged) user claude runs as. Empty
-	// runs nothing. A non-zero exit fails Init, so the box is never started.
+	// as the same (unprivileged) user the box's workload runs as. Empty runs
+	// nothing. A non-zero exit reports a broken box (see InitResp.ScriptFailed).
 	InitScript []byte `json:"init_script,omitempty"`
 	// InitScriptTimeout bounds how long the init script may run. A non-positive
 	// value uses the guest default (defaultInitScriptTimeout).
@@ -76,50 +68,19 @@ type InitReq struct {
 // failure is a transport error (an error frame), not this payload; this payload
 // reports the one failure the host must NOT treat as a torn-down box: a failing
 // init script. When ScriptFailed is true the box was provisioned and is left
-// running (claude never started, so it is inert), and ScriptError/ScriptOutput
-// carry the reason and the script's captured output so the host can surface a
-// broken box the operator can inspect instead of a vanished one. The zero value
-// (ScriptFailed false) means Init succeeded and Start may proceed.
+// running, and ScriptError/ScriptOutput carry the reason and the script's
+// captured output so the host can surface a broken box the operator can inspect
+// instead of a vanished one. The zero value (ScriptFailed false) means Init
+// succeeded.
 type InitResp struct {
 	ScriptFailed bool   `json:"script_failed,omitempty"`
 	ScriptError  string `json:"script_error,omitempty"`
 	ScriptOutput string `json:"script_output,omitempty"`
 }
 
-// StartResp reports the outcome of launching claude: exactly one field is set.
-// AuthorizeURL means the box needs an OAuth login (the caller must follow up with
-// SubmitCode); SessionURL means the box already had credentials and went straight
-// to a ready remote-control session.
-type StartResp struct {
-	AuthorizeURL string `json:"authorize_url,omitempty"`
-	SessionURL   string `json:"session_url,omitempty"`
-}
-
-// submitCodeReq carries the OAuth code to write to claude's login prompt.
-type submitCodeReq struct {
-	Code string `json:"code"`
-}
-
-// submitCodeResp carries the remote-control session URL printed once login
-// completes.
-type submitCodeResp struct {
-	SessionURL string `json:"session_url"`
-}
-
 // execReq is a command to run inside the box.
 type execReq struct {
 	Cmd []string `json:"cmd"`
-}
-
-// logsReq requests the last Tail lines of the box's console transcript; a
-// non-positive Tail uses the guest default.
-type logsReq struct {
-	Tail int `json:"tail"`
-}
-
-// logsResp carries the requested transcript tail.
-type logsResp struct {
-	Output string `json:"output"`
 }
 
 // dialReq names a TCP port on localhost inside the box to splice the control

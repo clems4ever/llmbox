@@ -9,32 +9,26 @@
 		{
 			"function_name": "TestBoxManagerDialBox",
 			"documentation_hash": "3b6ec8d18f0c21ce3e89e9ee030d2b6bc38f8f729dce57dca82f5ff4d63e2c00",
-			"definition_hash": "6b1687a4593b7fa119791199d57a6501cd290268ccac088870478cad344066dc",
-			"reviewed_at": "2026-07-09T18:49:58.99374212Z"
+			"definition_hash": "64ccb1acd5721e8f46b58a89157947803b101f0861dfb8ec800d280d608e5892",
+			"reviewed_at": "2026-07-11T21:34:27.212643499Z"
 		},
 		{
 			"function_name": "TestManagerCreateUniquenessListError",
 			"documentation_hash": "03528964b8865dc5f4b50410ca17fa9d6e31a0ec495d16c567c915b93692aae3",
-			"definition_hash": "5c9fa50875eb6b8fa8e1d10785e553f079905a3907f20b98b30c0dc50fa23c75",
-			"reviewed_at": "2026-06-30T16:36:13.717559552Z"
+			"definition_hash": "d0be418389a561cc397671645c51c2dacbc396cfe7b532e27f0944bdc730489d",
+			"reviewed_at": "2026-07-11T21:34:27.213709919Z"
 		},
 		{
 			"function_name": "TestManagerCreateProvisionError",
 			"documentation_hash": "812ba066947b7b57162e0bfd5644be2402d9c56d77e92e32d762b29a46ccc60b",
-			"definition_hash": "32d9ba98f2efa40df9043d253a3a1951cc4edc54e7f0cbed262c073df9f6be0c",
-			"reviewed_at": "2026-06-30T16:36:13.717969294Z"
-		},
-		{
-			"function_name": "TestManagerSubmitCodeFindError",
-			"documentation_hash": "045dab6fbccb7cc95b1ebe5f40f9bed20357ccf599669b8dcdb5b8b6ea751a7c",
-			"definition_hash": "68789d8e4ce342e721943233167851f8a57de770430ba7b9532f057665a32a8a",
-			"reviewed_at": "2026-06-30T16:36:13.766701039Z"
+			"definition_hash": "989537507db410619e94e1d054b2f21e7e69255bf4008c7e5e9c9d5c5bd29921",
+			"reviewed_at": "2026-07-11T21:34:27.214110324Z"
 		},
 		{
 			"function_name": "TestManagerVerbsFindError",
-			"documentation_hash": "6f6288075de2c031c7f598316a2d88d3f672223dddf5e3b353691b23bdb67c91",
-			"definition_hash": "174010e6f6ea4cab9e5ec2d97f30e6fb74cee438ed45b30516d6aef77b0af642",
-			"reviewed_at": "2026-06-30T16:36:13.80109767Z"
+			"documentation_hash": "6a51b260689c468b82b0c3b07e284ca2d997cdcd0d38a28def4fe1459373c298",
+			"definition_hash": "1b54a1e7f9d03348bef8d4eec1100fb06207178ae827f5f03d94c82819820759",
+			"reviewed_at": "2026-07-11T21:34:27.214902657Z"
 		},
 		{
 			"function_name": "TestManagerListError",
@@ -106,8 +100,8 @@
 		{
 			"function_name": "TestManagerCreateGuestError",
 			"documentation_hash": "0e7510e7d4ccfd90df0b23180e8900091abc9e30e6f9f1e500e7c9f6863d4312",
-			"definition_hash": "dcd3ba676c349eec5d9ce01d6b64e80bc2095bba124b1d3293e9e9f12e76e26b",
-			"reviewed_at": "2026-07-09T18:49:58.994135759Z"
+			"definition_hash": "3f0029ea728d1f20a3e4cd1d6adb9f1c2751115a17c6510d20512930e55f2253",
+			"reviewed_at": "2026-07-11T21:34:27.214504254Z"
 		},
 		{
 			"function_name": "Pause",
@@ -122,6 +116,12 @@
 			"documentation_hash": "55b729fe30429c00ee146a5f9791dc46dc66e10ac6ec66a3ea0455d17cb64cf4",
 			"definition_hash": "894fb22ea2dd9d300b2aea0baa5589a1aedc16b684594c35a211d2bf151267a7",
 			"reviewed_at": "2026-07-11T11:13:34.022104292Z"
+		},
+		{
+			"function_name": "TestBoxManagerReturnsConfiguredPublishPorts",
+			"documentation_hash": "88de62adc55bee82561d7f189f6f5411341bdb5db319915b94a33259bee1ac7a",
+			"definition_hash": "786b36a736cff02778d36fdafeca1556e93be7e6575348d35eecba76e804fa8f",
+			"reviewed_at": "2026-07-11T21:34:27.213233823Z"
 		}
 	]
 }

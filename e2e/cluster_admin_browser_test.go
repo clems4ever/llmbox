@@ -54,30 +54,19 @@ func newBrowserSpokeMgr(name string) *browserSpokeMgr {
 	return &browserSpokeMgr{name: name, boxes: map[string]string{}}
 }
 
-// Create records a box and returns a fake container ID and authorize URL.
+// Create records a box and returns a fake container ID. A box is ready as soon
+// as it is created; there is no activation step.
 //
 // @arg ctx Context (unused by the fake).
 // @arg opts The create options; only the box ID is recorded.
-// @return string The fake container ID.
-// @return string A canned authorize URL.
+// @return sandbox.CreateResult The fake container ID.
 // @error error Always nil.
 func (m *browserSpokeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := randGeneration()
 	m.boxes[id] = opts.BoxID
-	return sandbox.CreateResult{InstanceID: id, AuthorizeURL: "https://auth.example/"}, nil
-}
-
-// SubmitCode returns a canned session URL.
-//
-// @arg ctx Context (unused by the fake).
-// @arg idOrName The box identifier (ignored).
-// @arg code The OAuth code (ignored).
-// @return string A canned session URL.
-// @error error Always nil.
-func (m *browserSpokeMgr) SubmitCode(ctx context.Context, idOrName, code string) (string, error) {
-	return "https://claude.ai/code/session", nil
+	return sandbox.CreateResult{InstanceID: id}, nil
 }
 
 // List returns the spoke's in-memory boxes as ready boxes.
@@ -122,25 +111,13 @@ func (m *browserSpokeMgr) Pause(ctx context.Context, idOrName string) error {
 	return nil
 }
 
-// Resume is a no-op in the simulation and returns a canned session URL.
+// Resume is a no-op in the simulation and always succeeds.
 //
 // @arg ctx Context (unused by the fake).
 // @arg idOrName The box identifier (ignored).
-// @return string A canned session URL.
 // @error error Always nil.
-func (m *browserSpokeMgr) Resume(ctx context.Context, idOrName string) (string, error) {
-	return "https://claude.ai/code/session", nil
-}
-
-// Logs returns canned output.
-//
-// @arg ctx Context (unused by the fake).
-// @arg idOrName The box identifier (ignored).
-// @arg tail The tail count (ignored).
-// @return string Canned log output.
-// @error error Always nil.
-func (m *browserSpokeMgr) Logs(ctx context.Context, idOrName string, tail int) (string, error) {
-	return "log from " + m.name, nil
+func (m *browserSpokeMgr) Resume(ctx context.Context, idOrName string) error {
+	return nil
 }
 
 // Exec returns canned output.
@@ -152,16 +129,6 @@ func (m *browserSpokeMgr) Logs(ctx context.Context, idOrName string, tail int) (
 // @error error Always nil.
 func (m *browserSpokeMgr) Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error) {
 	return sandbox.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
-}
-
-// ReapOrphans reaps nothing in the simulation.
-//
-// @arg ctx Context (unused by the fake).
-// @arg ttl The orphan TTL (ignored).
-// @return []string Always nil.
-// @error error Always nil.
-func (m *browserSpokeMgr) ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error) {
-	return nil, nil
 }
 
 // humanDestroy simulates an operator removing a box's container directly on the
@@ -226,7 +193,7 @@ func newClusterBrowserEnv(t *testing.T) *clusterBrowserEnv {
 
 	a := auth.NewTestAuthenticator("admin@corp.com")
 	clusterHub := cluster.NewHub(ctx, st, nil, nil, nil)
-	srv := hub.New(nil, "https://boxes.example.com", time.Minute, st, a)
+	srv := hub.New(nil, "https://boxes.example.com", st, a)
 	srv.SetHub(clusterHub)
 
 	httpSrv := httptest.NewServer(srv.APIHandler())
@@ -239,7 +206,7 @@ func newClusterBrowserEnv(t *testing.T) *clusterBrowserEnv {
 		store:   st,
 		httpSrv: httpSrv,
 		wsURL:   "ws" + strings.TrimPrefix(httpSrv.URL, "http") + "/spoke/connect",
-		cookie:  signIn(t, st, true, false),
+		cookie:  signIn(t, st, true),
 	}
 }
 
@@ -401,9 +368,9 @@ func (e *clusterBrowserEnv) waitSpokeStatus(b *browser, name string, connected b
 }
 
 // createBox opens the "New workspace" modal, fills the create-box form for the
-// given spoke and submits, closes the resulting activation-link panel, then waits
-// for the box's row to appear in the Workspaces list. It reloads first so the
-// modal's spoke picker reflects the freshly-connected spoke.
+// given spoke and submits, then waits for the box's row to appear in the
+// Workspaces list. It reloads first so the modal's spoke picker reflects the
+// freshly-connected spoke.
 //
 // @arg b The browser session to drive.
 // @arg boxID The box ID to create.
@@ -428,12 +395,7 @@ func (e *clusterBrowserEnv) createBox(b *browser, boxID, spoke string) {
 	if err := btn.Click(); err != nil {
 		e.t.Fatalf("clicking Create: %v", err)
 	}
-	// Creation swaps the modal to the activation-link panel; Done closes it and
-	// refreshes the list, where the new row then appears.
-	done := b.waitFor(e.t, selenium.ByXPATH, `//button[normalize-space()='Done']`)
-	if err := done.Click(); err != nil {
-		e.t.Fatalf("closing the activation panel: %v", err)
-	}
+	// Creation closes the modal and refreshes the list, where the new row appears.
 	b.waitFor(e.t, selenium.ByXPATH, boxCellXPath(boxID))
 }
 

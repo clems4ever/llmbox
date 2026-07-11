@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
@@ -151,21 +150,10 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 		}
 		return encodePayload(createResp{
 			ID:               res.InstanceID,
-			AuthorizeURL:     res.AuthorizeURL,
 			InitScriptFailed: res.InitScriptFailed,
 			InitScriptOutput: res.InitScriptOutput,
 			PublishPorts:     res.PublishPorts,
 		})
-	case methodSubmitCode:
-		var in submitCodeReq
-		if err := decodePayload(req.Payload, &in); err != nil {
-			return nil, err
-		}
-		url, err := mgr.SubmitCode(ctx, in.ID, in.Code)
-		if err != nil {
-			return nil, err
-		}
-		return encodePayload(submitCodeResp{SessionURL: url})
 	case methodList:
 		boxes, err := mgr.List(ctx)
 		if err != nil {
@@ -195,21 +183,10 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 		if err := decodePayload(req.Payload, &in); err != nil {
 			return nil, err
 		}
-		url, err := mgr.Resume(ctx, in.IDOrName)
-		if err != nil {
+		if err := mgr.Resume(ctx, in.IDOrName); err != nil {
 			return nil, err
 		}
-		return encodePayload(resumeResp{SessionURL: url})
-	case methodLogs:
-		var in logsReq
-		if err := decodePayload(req.Payload, &in); err != nil {
-			return nil, err
-		}
-		logs, err := mgr.Logs(ctx, in.IDOrName, in.Tail)
-		if err != nil {
-			return nil, err
-		}
-		return encodePayload(logsResp{Logs: logs})
+		return nil, nil
 	case methodExec:
 		var in execReq
 		if err := decodePayload(req.Payload, &in); err != nil {
@@ -220,16 +197,6 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 			return nil, err
 		}
 		return encodePayload(res)
-	case methodReap:
-		var in reapReq
-		if err := decodePayload(req.Payload, &in); err != nil {
-			return nil, err
-		}
-		reaped, err := mgr.ReapOrphans(ctx, time.Duration(in.TTLNanos))
-		if err != nil {
-			return nil, err
-		}
-		return encodePayload(reapResp{Reaped: reaped})
 	default:
 		return nil, fmt.Errorf("unknown method %q", req.Method)
 	}

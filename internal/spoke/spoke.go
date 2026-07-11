@@ -82,10 +82,10 @@ type spokeOptions struct {
 	tlsCAFile   string
 	tlsInsecure bool
 	boxGPUs     string
-	remoteArgs  string
 	// initScriptPath is a host file run inside every box this spoke spawns, once at
-	// creation, before claude starts, so a spoke can customise its boxes without
-	// rebuilding the image; empty runs nothing. initScriptTimeout bounds each run.
+	// creation, before the box's workload starts, so a spoke can install and start
+	// that workload without rebuilding the image; empty runs nothing.
+	// initScriptTimeout bounds each run.
 	initScriptPath    string
 	initScriptTimeout time.Duration
 	// publishPorts are the raw --publish-port flag values ("PORT[:DESCRIPTION]",
@@ -99,9 +99,9 @@ type spokeOptions struct {
 	// kernel, default rootfs image, and state directory; unused for Docker.
 	fcKernelImage string
 	fcRootfsImage string
-	// fcPayloadImage is an optional read-only ext4 carrying the guest (plus
-	// claude and its trust seed), attached to every box as a shared second drive so
-	// the guest updates without rebuilding the base rootfs; unused for Docker.
+	// fcPayloadImage is an optional read-only ext4 carrying the guest binary,
+	// attached to every box as a shared second drive so the guest updates without
+	// rebuilding the base rootfs; unused for Docker.
 	fcPayloadImage  string
 	fcStateDir      string
 	fcDisableEgress bool
@@ -375,8 +375,7 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.tlsCAFile, "tls-ca", "", "PEM CA bundle to trust for a wss:// hub with a private-CA or self-signed certificate")
 	f.BoolVar(&o.tlsInsecure, "tls-insecure", false, "skip TLS certificate verification when dialing a wss:// hub (testing only; prefer --tls-ca)")
 	f.StringVar(&o.box.Namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one host without collapsing each other's boxes; empty is unscoped")
-	f.StringVar(&o.remoteArgs, "remote-args", "", "args passed to `claude remote-control` in every box; empty uses the built-in default")
-	f.StringVar(&o.initScriptPath, "init-script", "", "host path to a script run inside every box on this spoke, once at creation before claude starts, as the box user; empty runs none")
+	f.StringVar(&o.initScriptPath, "init-script", "", "host path to a script run inside every box on this spoke, once at creation before the box's workload starts, as the box user; empty runs none")
 	f.DurationVar(&o.initScriptTimeout, "init-script-timeout", 5*time.Minute, "max time the --init-script may run before box creation fails")
 	f.StringArrayVar(&o.publishPorts, "publish-port", nil, "in-box TCP port to expose as an HTTP proxy for every box on this spoke, as PORT[:DESCRIPTION] (repeatable); needs proxying enabled on the hub")
 	f.IntVar(&o.box.MemoryMB, "box-memory-mb", boxconfig.DefaultBoxMemoryMB, "hard memory limit per box in MiB (0 = unlimited)")
@@ -411,7 +410,7 @@ func addDockerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 func addFirecrackerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.fcKernelImage, "kernel", "", "host path to the guest kernel (vmlinux); empty pulls the published kernel from the registry")
 	f.StringVar(&o.fcRootfsImage, "rootfs", "", "host path to the default guest rootfs; empty pulls the published base rootfs from the registry")
-	f.StringVar(&o.fcPayloadImage, "payload", "", "host path to a read-only ext4 carrying the guest (+claude), attached as a shared second drive so the guest updates without rebuilding the rootfs; empty pulls the published payload (unless --rootfs is a custom all-in-one image)")
+	f.StringVar(&o.fcPayloadImage, "payload", "", "host path to a read-only ext4 carrying the guest binary, attached as a shared second drive so the guest updates without rebuilding the rootfs; empty pulls the published payload (unless --rootfs is a custom all-in-one image)")
 	f.StringVar(&o.fcStateDir, "state-dir", "", "directory for per-box state; empty uses the backend default")
 	f.BoolVar(&o.fcDisableEgress, "disable-egress", false, "boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network")
 	f.IntVar(&o.fcPoolSize, "pool-size", 0, "number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default")
@@ -488,7 +487,6 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 		}
 	}()
 	mgr := box.NewManager(prov, box.Config{
-		RemoteArgs:        o.remoteArgs,
 		MaxBoxes:          o.box.MaxBoxes,
 		InitScript:        initScript,
 		InitScriptTimeout: o.initScriptTimeout,

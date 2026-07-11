@@ -1,5 +1,5 @@
 // Package boxapi serves the box-facing port-publishing API: a small HTTP/JSON
-// API on a per-box unix socket that lets the Claude process inside a box open,
+// API on a per-box unix socket that lets the workload inside a box open,
 // close, and list public URLs for ports of ITS OWN box only. The handler is
 // bound to one box's identity at construction — the request body carries only
 // a port and description, never a box or spoke identity — so whichever channel

@@ -10,20 +10,14 @@
 		{
 			"function_name": "googleTestProvider",
 			"documentation_hash": "713687acca491cff6e8a81f9060039f21a9d2128ffa0bc1c41a5b470810d5125",
-			"definition_hash": "a62d36250c1e889086fbec43118c2c129643868bd582ef46fec26fd51fc8c0c4",
-			"reviewed_at": "2026-06-27T11:26:36.044485348Z"
+			"definition_hash": "039268d318c20569935621d83597efd57b5f9fe48cc7e9db10bb285d7925afe6",
+			"reviewed_at": "2026-07-11T21:34:27.113043409Z"
 		},
 		{
 			"function_name": "newTestAuth",
 			"documentation_hash": "25477728f1fa19af68e1a17f62c13ea999a73102dd3ea113b31b891ee3e8b495",
-			"definition_hash": "8ccdfa2c4bc3773e760a53fd2e91961d57860b4e3c17b221ce4ace201461e0ae",
-			"reviewed_at": "2026-06-30T21:45:26.166486822Z"
-		},
-		{
-			"function_name": "TestAuthorize",
-			"documentation_hash": "c33949385682aeee7c4503daa89888f119a9f9dd9679d9b6f19434b6b649f510",
-			"definition_hash": "2218239d528f828dced775841175fdb7f2df0f451ec996a4a3b86806f6d78195",
-			"reviewed_at": "2026-06-27T11:26:36.097672167Z"
+			"definition_hash": "766a80f084e0a0db62bcc069842b24d18a7c24d10ffb937f79ae16a58c4a8e4d",
+			"reviewed_at": "2026-07-11T21:34:27.113867538Z"
 		},
 		{
 			"function_name": "TestNewDisabled",
@@ -34,32 +28,26 @@
 		{
 			"function_name": "TestProviderLoginRedirects",
 			"documentation_hash": "ed380cc7dfa26526a63c8034fa2e4bbe3dc756163b86bc80eaa4eb97cfb69fd5",
-			"definition_hash": "b3fba3429ea9622eac6ade6d9d976155a8399797bf65b30323afc97fd5a6fad1",
-			"reviewed_at": "2026-07-10T10:15:11.41424867Z"
+			"definition_hash": "712a851c9fdc6c2f922df8dc232a17765276b429107acb61d43cf6d43ec25b5a",
+			"reviewed_at": "2026-07-11T21:34:27.114394649Z"
 		},
 		{
 			"function_name": "TestProviderLoginReturnPath",
 			"documentation_hash": "2aab51eb1aa039b3c57800a92ee3412f704cc03259c42ca7b149fc1b30d16c6c",
-			"definition_hash": "c695f1be027efda150444c89af938bc2c57dc1a679619c5a569f436b33a7ff4d",
-			"reviewed_at": "2026-07-10T10:15:11.414848852Z"
+			"definition_hash": "c6d89d3c74d3acacd494bc264b69db50cf7ec1ff9c467d56d8d2cb9091dbd7ba",
+			"reviewed_at": "2026-07-11T21:34:27.114900979Z"
 		},
 		{
 			"function_name": "TestProviderCallbackActivates",
-			"documentation_hash": "be865bce82dcd31326b7b807c6d8d6fe84f9d9b29249936e722b51d0dff5cc91",
-			"definition_hash": "8810824c644e91e508293cfeb41418aaedf753ffc69cde2faca2de09c64f4267",
-			"reviewed_at": "2026-07-10T10:15:43.523442641Z"
+			"documentation_hash": "79e8b512cb13c0a07db691c05aa2679d555b62a1a70ccedbb63576de395ed279",
+			"definition_hash": "efd48cca2c432869f345e3304985fdb1d4cf263b0938d027b15c0f3a4e5cffce",
+			"reviewed_at": "2026-07-11T21:34:27.115408171Z"
 		},
 		{
 			"function_name": "TestProviderCallbackRejectsUnauthorized",
-			"documentation_hash": "e3b315c661abc3e366db6ab1e230b2f287bde5f5a98d199b9974d8f6f2d8b6d6",
-			"definition_hash": "e61c1a490af54f7164a1f3eecd5fe230d0874569f161c89e500cc13a65a0955e",
-			"reviewed_at": "2026-07-10T10:15:43.524175148Z"
-		},
-		{
-			"function_name": "TestProviderCallbackAdminOnly",
-			"documentation_hash": "cdddc698487d92abb3f604ef111928e58dfe1cf05e533a00628c326279f67158",
-			"definition_hash": "041e28d765686229d3866540b284e8def1a6029222f7a57b8a23325f31b403dd",
-			"reviewed_at": "2026-07-10T10:15:43.533671405Z"
+			"documentation_hash": "b5ea8611299bc9b3b2d7fee92cf0825a1295783f22e2de48eb268f5b3267a1a0",
+			"definition_hash": "c5411180d2d8c67e357c3964f75682eea803d533679a527dda9b241e058c18eb",
+			"reviewed_at": "2026-07-11T21:34:27.115906042Z"
 		},
 		{
 			"function_name": "TestAdminAllowlist",
@@ -80,16 +68,10 @@
 			"reviewed_at": "2026-06-27T21:48:10.862414528Z"
 		},
 		{
-			"function_name": "TestButtons",
-			"documentation_hash": "84b4661c7fcb3aa59be8f130d01769bd6a5f450a4a2aced6852dd88a6989b0c1",
-			"definition_hash": "2e94f93535fe9fdc296eeedcc9b6de09b497b29999ff403bf16bd701614a6745",
-			"reviewed_at": "2026-06-27T17:07:44.989965374Z"
-		},
-		{
 			"function_name": "TestCurrentLogin",
 			"documentation_hash": "5b0499a4ff58b8f4f693988cfe2a80fc0bae1ab1791977b2d7f12f07efdaa895",
-			"definition_hash": "1de250969382bd71a4c7fb9c6a5117e17134f78330f602c8eacf5820b23dc546",
-			"reviewed_at": "2026-07-10T10:15:43.534468675Z"
+			"definition_hash": "21e9790613475779c3f295737d1cb9cd8e1af416fd6130e1296147dbf3f8f6f2",
+			"reviewed_at": "2026-07-11T21:34:27.116559606Z"
 		},
 		{
 			"function_name": "TestReturnButtonsPath",

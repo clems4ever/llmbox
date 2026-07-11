@@ -61,7 +61,7 @@ func TestClusterEndToEnd(t *testing.T) {
 	// The hub: real server with clustering enabled, on a real listener. It runs no
 	// box backend of its own — every box runs on a remote spoke.
 	clusterHub := cluster.NewHub(ctx, store, nil, nil, nil)
-	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, nil)
+	srv := hub.New(nil, "http://placeholder", store, nil)
 	srv.SetHub(clusterHub)
 
 	// A single listener carries everything: /spoke/connect, /healthz, and the
@@ -188,7 +188,7 @@ func (m *fakeSpokeMgr) Create(_ context.Context, opts sandbox.CreateOptions) (sa
 	m.createCount++
 	// The spoke launches its own configured image; the create request names none.
 	m.launched = m.img
-	return sandbox.CreateResult{InstanceID: id, AuthorizeURL: "https://auth.example/"}, nil
+	return sandbox.CreateResult{InstanceID: id}, nil
 }
 
 // image returns the image launched for the most recent create call, under the lock.
@@ -196,11 +196,6 @@ func (m *fakeSpokeMgr) image() string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.launched
-}
-
-// SubmitCode simulates a completed activation, returning a session URL.
-func (m *fakeSpokeMgr) SubmitCode(_ context.Context, _, _ string) (string, error) {
-	return "https://claude.ai/code/session", nil
 }
 
 // List returns the spoke's in-memory boxes.
@@ -234,9 +229,9 @@ func (m *fakeSpokeMgr) Pause(_ context.Context, _ string) error {
 	return nil
 }
 
-// Resume is a no-op in the simulation and returns a canned session URL.
-func (m *fakeSpokeMgr) Resume(_ context.Context, _ string) (string, error) {
-	return "https://claude.ai/code/session", nil
+// Resume is a no-op in the simulation and always succeeds.
+func (m *fakeSpokeMgr) Resume(_ context.Context, _ string) error {
+	return nil
 }
 
 // humanDestroy simulates an operator removing a box's container directly on the
@@ -264,22 +259,12 @@ func (m *fakeSpokeMgr) hasBox(boxID string) bool {
 	return false
 }
 
-// Logs returns canned output identifying this spoke.
-func (m *fakeSpokeMgr) Logs(_ context.Context, _ string, _ int) (string, error) {
-	return "log from " + m.name, nil
-}
-
 // Exec records the call and returns canned output identifying this spoke.
 func (m *fakeSpokeMgr) Exec(_ context.Context, _ string, _ []string) (sandbox.ExecResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.execCount++
 	return sandbox.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
-}
-
-// ReapOrphans reaps nothing in the simulation.
-func (m *fakeSpokeMgr) ReapOrphans(_ context.Context, _ time.Duration) ([]string, error) {
-	return nil, nil
 }
 
 // setDialTarget points DialBox at addr (a real loopback server standing in for a

@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewFake",
 			"documentation_hash": "6b93ae28fe6005989033928f5a9ebb63fddfcfd490909a35174b521d4fc49978",
-			"definition_hash": "f90cc2579ad4e92e1783d6d1f9c1a7c368988b9c20fae9c7fc51882518b45f91",
-			"reviewed_at": "2026-06-30T15:27:10.706026118Z"
+			"definition_hash": "9efb440fd906dbd1f7fcd4ecd6b4303f67683d1d8ad5b605981e24ba82079d39",
+			"reviewed_at": "2026-07-11T21:34:27.20973786Z"
 		},
 		{
 			"function_name": "shutdown",
@@ -16,9 +16,9 @@
 		{
 			"function_name": "Provision",
 			"receiver": "Fake",
-			"documentation_hash": "776cb596a2529efe24190d73ff7bd0982d583e50594080a85dfaca3049d31b92",
+			"documentation_hash": "bf9388af3539365a1783194a524ff1c8261493d0def60c2527e7a38da59314f2",
 			"definition_hash": "dd24adf0f4b0268a4186542bc416b3002cd5a2d2c140a4cb4992d3ee6920db63",
-			"reviewed_at": "2026-07-11T11:13:33.762784027Z"
+			"reviewed_at": "2026-07-11T21:34:27.210216667Z"
 		},
 		{
 			"function_name": "List",
@@ -80,15 +80,15 @@
 			"function_name": "serve",
 			"receiver": "fakeInstance",
 			"documentation_hash": "7423286db961b2d987c8f303849141d229eab3c3b824840aac6a24b5b819f09b",
-			"definition_hash": "6998c57e637f6b4646d051a5b72e8dac96c3317a0ac610049b681a98874d4934",
-			"reviewed_at": "2026-07-11T11:13:33.770398625Z"
+			"definition_hash": "272ccd962b7b3bb37644ea5eef4f30fab4fb92bcef3dbe28740795f4a3530eaa",
+			"reviewed_at": "2026-07-11T21:34:27.210581842Z"
 		},
 		{
 			"function_name": "stopGuest",
 			"receiver": "fakeInstance",
 			"documentation_hash": "8fc2c4db0bb3676752624dacc2616a9fbfa1cf6d53ccd9c412647674b5bf1559",
-			"definition_hash": "5adefd4f1f8322f8973a1f1ecc2152d889fad5dc5afccbeb64141db85bd1a381",
-			"reviewed_at": "2026-07-11T11:13:33.772698813Z"
+			"definition_hash": "b1d8c30f3985fd702d16045d5c018f5a517d3d60b50ffe7e9ce15c23ff34d650",
+			"reviewed_at": "2026-07-11T21:34:27.210940787Z"
 		}
 	]
 }

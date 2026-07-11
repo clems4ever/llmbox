@@ -20,13 +20,6 @@
 			"reviewed_at": "2026-07-01T13:11:50.350004834Z"
 		},
 		{
-			"function_name": "AuthPageURL",
-			"receiver": "Client",
-			"documentation_hash": "a13c12e7aff0f3cce18b9bc2fae54895d90247015b8e7d5b19234957f2370811",
-			"definition_hash": "2e13661bf108ccf91d9e09b442b975fb8412ebb6717210fde0e00a0af9c9c848",
-			"reviewed_at": "2026-07-01T10:31:18.813703485Z"
-		},
-		{
 			"function_name": "LookupByBoxID",
 			"receiver": "Client",
 			"documentation_hash": "3d16c4b6c27488ba12f50301d5dbad75cc30ba4a3c32dec8e59e937764fd66b3",
@@ -36,9 +29,9 @@
 		{
 			"function_name": "ListBoxes",
 			"receiver": "Client",
-			"documentation_hash": "dc4b3e8f5127fc9e9c9e1fb4cf19c7a7f7229e7592421693708488c60d817d4b",
+			"documentation_hash": "9a3e3676d1a45aa486015bf949c4823348447c805726812fb0aaddf40416a0e1",
 			"definition_hash": "d77c682b09dd9e82f4bbbd2960de607683ca71d14f76880002690b59f84b3f84",
-			"reviewed_at": "2026-07-08T12:57:12.260877468Z"
+			"reviewed_at": "2026-07-11T21:34:27.200072034Z"
 		},
 		{
 			"function_name": "SpokeStatuses",
@@ -53,13 +46,6 @@
 			"documentation_hash": "3057fad6ae5934990a42aee652a45dfbf94aef8385e68879dd382889fc5799a2",
 			"definition_hash": "d2a8c9e3d2fa12df8c9fdbc3a890eba9036326efd342ab59da239206a978a973",
 			"reviewed_at": "2026-07-09T21:42:06.887693953Z"
-		},
-		{
-			"function_name": "BoxLogs",
-			"receiver": "Client",
-			"documentation_hash": "c2deaf38660b5165be9ee3bdcb18d31b7c54fb231c48c8a8e56aac2121ee27e4",
-			"definition_hash": "62d0b07fbfdd24c999722a2a1f005ec4b6e33a2d13f353864592fe191cf313d1",
-			"reviewed_at": "2026-07-01T10:31:18.815728267Z"
 		},
 		{
 			"function_name": "BoxExec",

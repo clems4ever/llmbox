@@ -46,16 +46,10 @@ describe("WorkspacesView", () => {
     expect(screen.getByText("alpha")).toBeInTheDocument();
   });
 
-  it("shows an Activate link for a pending box and Open for a live one", () => {
-    const data = dashboardData({
-      boxes: [
-        box({ box_id: "pending", auth_url: "https://hub/auth", phase: "pending" }),
-        box({ box_id: "live", session_url: "https://hub/session" }),
-      ],
-    });
+  it("marks a broken box with a broken badge", () => {
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", phase: "broken" })] });
     render(<WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={vi.fn()} />);
-    expect(screen.getByText("Activate").closest("a")).toHaveAttribute("href", "https://hub/auth");
-    expect(screen.getByText("Open").closest("a")).toHaveAttribute("href", "https://hub/session");
+    expect(screen.getByText("broken")).toBeInTheDocument();
   });
 
   it("confirms and removes a workspace", async () => {
@@ -73,10 +67,10 @@ describe("WorkspacesView", () => {
     expect(await screen.findByText("removed workspace alpha")).toBeInTheDocument();
   });
 
-  it("pauses a running, activated workspace without a confirm dialog", async () => {
+  it("pauses a running workspace without a confirm dialog", async () => {
     const api = mockApi();
     const refresh = vi.fn().mockResolvedValue(undefined);
-    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "running", phase: "ready" })] });
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "running" })] });
     const { user } = render(
       <WorkspacesView api={api} data={data} refresh={refresh} onSelect={vi.fn()} />,
     );
@@ -89,7 +83,7 @@ describe("WorkspacesView", () => {
   it("shows Resume (not Pause) for a paused workspace and resumes it", async () => {
     const api = mockApi();
     const refresh = vi.fn().mockResolvedValue(undefined);
-    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "paused", phase: "ready" })] });
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "paused" })] });
     const { user } = render(
       <WorkspacesView api={api} data={data} refresh={refresh} onSelect={vi.fn()} />,
     );
@@ -100,8 +94,8 @@ describe("WorkspacesView", () => {
     expect(await screen.findByText("resumed workspace alpha")).toBeInTheDocument();
   });
 
-  it("offers neither Pause nor Resume for a pending workspace", () => {
-    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "running", phase: "pending" })] });
+  it("offers neither Pause nor Resume for an unreachable workspace", () => {
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "unreachable" })] });
     render(<WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "Pause alpha" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Resume alpha" })).toBeNull();

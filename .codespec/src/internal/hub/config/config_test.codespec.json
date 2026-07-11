@@ -9,14 +9,14 @@
 		{
 			"function_name": "TestDefault",
 			"documentation_hash": "510cdb5ceeaaf95ba8843427dd3831652c32f25ac1114a0f2d23a6e3c3bacfef",
-			"definition_hash": "2166df270c6174765f47b8b0cd089ff3515bf12df40e124b1bea5ff3d3e2456f",
-			"reviewed_at": "2026-07-07T19:47:49.675996906Z"
+			"definition_hash": "35fe0cb8f1135a19bbde8fc7fd47792933add3b790037afa23fb42ad7382d23a",
+			"reviewed_at": "2026-07-11T21:34:27.126813279Z"
 		},
 		{
 			"function_name": "TestLoad",
 			"documentation_hash": "a99b8ef269ef1371f85d255c1bddc9aede16586adc848343e03823d7dacce5d9",
-			"definition_hash": "ee364b5d01757eaed572ed58f742f3c51c6527b32c66db94ce7ef058bc50d91e",
-			"reviewed_at": "2026-07-08T09:43:14.696138284Z"
+			"definition_hash": "a15990c70c845a5f7f4a738883aaa8cbb94c4328c7b9fe51941b9dc0f91ff2cc",
+			"reviewed_at": "2026-07-11T21:34:27.127344708Z"
 		},
 		{
 			"function_name": "TestLoadAdminEmails",
@@ -27,8 +27,8 @@
 		{
 			"function_name": "TestLoadAppliesDefaults",
 			"documentation_hash": "60e0219e260c50503756f9bdd49ad0d61a6ffc9f58ac71255154c849e61a9383",
-			"definition_hash": "553c356ce4dc64262225438479e638ac3abfff465b365909692946911b9f4b2c",
-			"reviewed_at": "2026-07-07T19:47:49.685108601Z"
+			"definition_hash": "75a54795e8d7f31b23e83b046d0bb89f3d4e2a237fbf16796439a48344c9c46f",
+			"reviewed_at": "2026-07-11T21:34:27.128760964Z"
 		},
 		{
 			"function_name": "TestLoadMissingFile",
@@ -45,14 +45,14 @@
 		{
 			"function_name": "TestLoadParsesDuration",
 			"documentation_hash": "c0972013b819325f6fe74ea329221a5525ee9a41f5cde1ad52962e130312dfac",
-			"definition_hash": "aa3f1a169d58bbba5062bd16e19ff44e975c619147498a301b163b8d623627f0",
-			"reviewed_at": "2026-07-07T19:47:49.694707462Z"
+			"definition_hash": "744e11fe8bb4568e895e4d53cbfb12621bde1b976a90ee5287dd0a8a4e27d22b",
+			"reviewed_at": "2026-07-11T21:34:27.129292099Z"
 		},
 		{
 			"function_name": "TestLoadRejectsBadDuration",
 			"documentation_hash": "e227345700e18455c462cc6d3041cf66708862ce7af166bcb6570726035042be",
-			"definition_hash": "4777d60302f2a19bf0a25d0df51c7e7f1a8ecbbf350855a87e62ced3af3b07b5",
-			"reviewed_at": "2026-07-07T19:47:49.698415673Z"
+			"definition_hash": "efc105a1598676f196e06da93c1bb68886bb10bdf9594e74455a7bd1c760d547",
+			"reviewed_at": "2026-07-11T21:34:27.12981687Z"
 		},
 		{
 			"function_name": "TestLoadEmptyFile",
@@ -69,20 +69,14 @@
 		{
 			"function_name": "TestLoadGoogleAuth",
 			"documentation_hash": "64de70ee57ffd1df07f96f56c99dc63fdd31a89c2a719a08efc11b772a2b95b6",
-			"definition_hash": "a5eb77011ab0acd1b20ad51e84e081df78ac15fc1d03e4269a0c3b75731fe841",
-			"reviewed_at": "2026-07-07T19:47:49.70881452Z"
-		},
-		{
-			"function_name": "TestLoadGoogleRequiresAllowlist",
-			"documentation_hash": "8d46a47620f90b8ab9f4cf75447e1ff23ed71f346b3bdc9c41a0a8096c649d03",
-			"definition_hash": "de7e1e6877474d3f459a99282ad9ff7eebb3e98d2a26cf2d8166da360ab1cfaa",
-			"reviewed_at": "2026-07-07T19:47:49.712733784Z"
+			"definition_hash": "3ae5e44b175c5425d1c82050eb2fe8988bab3a511259cce48742e8be25bbc7dc",
+			"reviewed_at": "2026-07-11T21:34:27.130333037Z"
 		},
 		{
 			"function_name": "TestLoadGoogleMissingSecretFile",
 			"documentation_hash": "0568aae507e0be6c854ca70d49b4a89f48d4ec35d33b202501541eac0d39f882",
-			"definition_hash": "23e110ad1126a7119a68fc88585e008f26ffe93cdc4e795daa7258e4998bb879",
-			"reviewed_at": "2026-07-07T19:47:49.716169801Z"
+			"definition_hash": "90de8c21c9e2e3f12515f007f7e5c3b08d8f7233dc5646fe8011347f38fea936",
+			"reviewed_at": "2026-07-11T21:34:27.131310114Z"
 		},
 		{
 			"function_name": "TestLoadTLS",
@@ -117,8 +111,8 @@
 		{
 			"function_name": "TestLoadRejectsBoxRunningKey",
 			"documentation_hash": "7522c12aa4494a85e29fd28920c2ed55950f4920f1826f60600e5a0e5376062e",
-			"definition_hash": "3361333b8f27f9df562491d35e41ab8cc951ef1767ddad64f21540df323a2389",
-			"reviewed_at": "2026-07-08T09:43:14.697193889Z"
+			"definition_hash": "ce0b84953aef70a9a0eb8a2eafccdc4e549f456878974c1f261aec3243c887c7",
+			"reviewed_at": "2026-07-11T21:34:27.128173704Z"
 		},
 		{
 			"function_name": "TestExampleConfigParses",

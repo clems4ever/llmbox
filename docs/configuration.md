@@ -23,7 +23,7 @@ docker run -d --name llmbox \
 ```
 
 llmbox listens on a single port (`8080`): it serves the box-control JSON API
-(under `/api/v1/`) and the UI (auth pages, admin, health) together. The API is
+(under `/api/v1/`) and the UI (admin dashboard, sign-in, health) together. The API is
 authenticated: headless callers (llmbox-mcp, scripts) present an API key as a
 bearer token, and the admin web app authenticates with the signed-in admin's
 login cookie plus a CSRF header. Mint keys on the hub host with
@@ -34,14 +34,13 @@ chatbot](#connecting-a-chatbot)), which forwards to this box-control API.
 
 Or use [`docker-compose.yml`](../docker-compose.yml) (`docker compose up --build`),
 which wires up the Docker socket, the docker group, and a persisted session
-volume — see [Session persistence](operations.md#session-persistence) for the
+volume — see [State persistence](operations.md#state-persistence) for the
 one-time `chown` the mounted volume needs.
 
-Serve over TLS in production: the auth page receives the OAuth code, and the
-auth URL — though it carries a 256-bit unguessable token — should not travel in
-clear text. Either terminate TLS at a reverse proxy in front, or set the `tls:`
-block (`enabled`, `cert_file`, `key_file`) to have llmbox serve HTTPS directly.
-A loud warning is logged at startup whenever it serves plaintext.
+Serve over TLS in production: the admin sign-in and login cookie should not
+travel in clear text. Either terminate TLS at a reverse proxy in front, or set the
+`tls:` block (`enabled`, `cert_file`, `key_file`) to have llmbox serve HTTPS
+directly. A loud warning is logged at startup whenever it serves plaintext.
 
 ## Connecting a chatbot
 
@@ -76,12 +75,11 @@ optional:
 
 | YAML key       | Default                   | Purpose |
 |----------------|---------------------------|---------|
-| `http_addr`    | `:8080`                   | Single listen address for the whole server: the box-control API (`/api/v1/`, authenticated by API key or admin session) and the UI (auth pages, admin app, health). |
-| `public_url`   | `http://localhost:8080`   | External base URL used to build auth links. **Set this in production.** |
-| `auth_ttl`     | `5m`                      | Destroy un-authenticated boxes after this long (a Go duration string, e.g. `300s`, `5m`). |
-| `state_file`   | `llmbox-sessions.db`      | SQLite file persisting the box/session registry, API keys, and cluster records across restarts (see [Session persistence](operations.md#session-persistence)). |
+| `http_addr`    | `:8080`                   | Single listen address for the whole server: the box-control API (`/api/v1/`, authenticated by API key or admin session) and the UI (admin dashboard, sign-in, health). |
+| `public_url`   | `http://localhost:8080`   | External base URL used to build sign-in redirect links. **Set this in production.** |
+| `state_file`   | `llmbox-sessions.db`      | SQLite file persisting the box registry, API keys, login sessions, and cluster records across restarts (see [State persistence](operations.md#state-persistence)). |
 | `hooks`        | (empty)                   | List of [box lifecycle hook](hooks.md) executables. |
-| `auth`         | (disabled)                | Require sign-in before a box can be activated (see [Authenticating activation](authentication.md)). |
+| `auth`         | (disabled)                | Admin OIDC sign-in gating the admin UI and the per-box HTTP proxies (see [Authentication](authentication.md)). |
 | `proxy`        | (disabled)                | Expose box HTTP ports at `<slug>.<base_domain>` (see [Proxying box HTTP ports](proxy.md)). |
 | `tls`          | (disabled)                | Serve HTTPS directly (`cert_file`/`key_file`) instead of behind a TLS-terminating proxy. |
 

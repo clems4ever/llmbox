@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
@@ -16,24 +15,15 @@ import (
 func TestFakeMgr(t *testing.T) {
 	var m cluster.BoxManager = &FakeMgr{}
 	f := m.(*FakeMgr)
-	f.CreateID, f.CreateURL = "cid", "https://auth"
-	f.SubmitURL = "https://session"
+	f.CreateID = "cid"
 	f.ListResult = []sandbox.Box{{BoxID: "b1"}}
-	f.LogsResult = "logs"
 	f.ExecResult = sandbox.ExecResult{ExitCode: 0}
-	f.Reaped = []string{"r1"}
 
-	if res, err := m.Create(context.Background(), sandbox.CreateOptions{BoxID: "b1"}); err != nil || res.InstanceID != "cid" || res.AuthorizeURL != "https://auth" {
+	if res, err := m.Create(context.Background(), sandbox.CreateOptions{BoxID: "b1"}); err != nil || res.InstanceID != "cid" {
 		t.Errorf("Create = %+v, %v", res, err)
 	}
 	if f.GotOpts.BoxID != "b1" {
 		t.Errorf("GotOpts.BoxID = %q, want b1", f.GotOpts.BoxID)
-	}
-	if url, err := m.SubmitCode(context.Background(), "b1", "code"); err != nil || url != "https://session" {
-		t.Errorf("SubmitCode = %q, %v", url, err)
-	}
-	if f.GotCode != "code" {
-		t.Errorf("GotCode = %q, want code", f.GotCode)
 	}
 	// ListResult seeded one box and the Create above added another, so List returns
 	// both — created boxes track through the fake like a real spoke.
@@ -43,26 +33,19 @@ func TestFakeMgr(t *testing.T) {
 	if f.ListCalls() != 1 {
 		t.Errorf("ListCalls = %d, want 1", f.ListCalls())
 	}
-	if logs, err := m.Logs(context.Background(), "b1", 5); err != nil || logs != "logs" {
-		t.Errorf("Logs = %q, %v", logs, err)
-	}
 	if _, err := m.Exec(context.Background(), "b1", []string{"echo"}); err != nil {
 		t.Errorf("Exec: %v", err)
 	}
-	if reaped, err := m.ReapOrphans(context.Background(), time.Minute); err != nil || len(reaped) != 1 {
-		t.Errorf("ReapOrphans = %v, %v", reaped, err)
-	}
 
-	// Pause records the ID; Resume records the ID and returns the canned URL.
-	f.ResumeURL = "https://session2"
+	// Pause records the ID; Resume records the ID.
 	if err := m.Pause(context.Background(), "b1"); err != nil {
 		t.Errorf("Pause: %v", err)
 	}
 	if len(f.Paused) != 1 || f.Paused[0] != "b1" {
 		t.Errorf("Paused = %v, want [b1]", f.Paused)
 	}
-	if url, err := m.Resume(context.Background(), "b1"); err != nil || url != "https://session2" {
-		t.Errorf("Resume = %q, %v", url, err)
+	if err := m.Resume(context.Background(), "b1"); err != nil {
+		t.Errorf("Resume: %v", err)
 	}
 	if len(f.Resumed) != 1 || f.Resumed[0] != "b1" {
 		t.Errorf("Resumed = %v, want [b1]", f.Resumed)

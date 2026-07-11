@@ -1,8 +1,8 @@
 # Proxying box HTTP ports
 
 llmbox can expose an HTTP server running **inside a box** to a human's browser,
-so a user can ask Claude to "start a dev server and let me see it" and get back a
-working URL. Proxies are **default-deny**: nothing is reachable until the guest
+so a service running in the box (say a dev server) can be reached at a working
+URL. Proxies are **default-deny**: nothing is reachable until the guest
 explicitly enables a proxy (over MCP or the admin UI).
 
 ## How it works
@@ -45,11 +45,11 @@ and provide, at your TLS-terminating reverse proxy in front of the hub:
 
 ## Authentication
 
-When activation auth is configured, a proxy request must carry a signed-in
-session allowed to activate boxes — the same gate as box activation. The login
-cookie is host-scoped by default, so to share one sign-in between the main UI and
-the per-proxy sub-domains, set the bare parent domain both share (no leading dot,
-no port):
+When admin sign-in is configured, a proxy request must carry a signed-in **admin**
+session — the same gate as the admin UI (see [Authentication](authentication.md)).
+The login cookie is host-scoped by default, so to share one sign-in between the
+main UI and the per-proxy sub-domains, set the bare parent domain both share (no
+leading dot, no port):
 
 ```yaml
 auth:
@@ -62,17 +62,16 @@ the shared cookie lets the same URL through and the user lands back where they
 started. (Non-browser requests — XHR, WebSocket, anything that isn't a top-level
 navigation — get a plain `401` instead, so a redirect to HTML can't corrupt
 them.) The sign-in page is responsive, dropping the card framing to fill a phone
-screen. Like the [activation page](architecture.md#the-activation-page), these
-images are **captured by the end-to-end test** and refreshed by CI on the pull
-request that changes the UI; see [Testing](development.md#testing).
+screen. These images are **captured by the end-to-end test** and refreshed by CI
+on the pull request that changes the UI; see [Testing](development.md#testing).
 
 | Sign in | On mobile |
 |---------|-----------|
 | ![The proxy sign-in page](../.github/screenshots/signin-page.png) | ![The proxy sign-in page on a phone-sized screen](../.github/screenshots/signin-page-mobile.png) |
 
-With no auth provider configured, proxying is open (like the rest of the server,
-which then relies on a front authenticating proxy) — do not expose it to
-untrusted networks in that mode.
+With no auth provider configured, proxying is open (like the admin UI, which then
+relies on a front authenticating proxy) — do not expose it to untrusted networks
+in that mode.
 
 ## How the box is reached
 
@@ -86,12 +85,11 @@ own boxes — never an arbitrary host address.
 
 ## Box-initiated port publishing
 
-The Claude running **inside** a box can publish, list, and unpublish its own
+The workload running **inside** a box can publish, list, and unpublish its own
 box's ports without any credential: every box gets a local control socket at
 `/run/llmbox/boxapi.sock` (served from **outside** the sandbox — by the spoke
-through the Docker bind mount, or via a per-VM vsock listener on Firecracker),
-and a `box-ports` Claude Code skill baked into the box image teaches Claude to
-`curl` it (`/v1/open_port`, `/v1/close_port`, `/v1/list_ports`).
+through the Docker bind mount, or via a per-VM vsock listener on Firecracker) that
+it `curl`s (`/v1/open_port`, `/v1/close_port`, `/v1/list_ports`).
 
 The request body carries only a port and description — never a box or spoke
 identity. Scoping is enforced twice, both outside the sandbox:
@@ -116,7 +114,7 @@ A spoke can expose a port on **every** box it creates, without anything running
 inside the box, with the `--publish-port` flag (repeatable):
 
 ```
-llmbox-spoke docker ... --publish-port 8080:claude-control --publish-port 3000
+llmbox-spoke docker ... --publish-port 8080:web-app --publish-port 3000
 ```
 
 Each value is `PORT[:DESCRIPTION]`. On a successful create the spoke returns

@@ -68,7 +68,7 @@ func newClusterFixture(t *testing.T) *clusterFixture {
 	t.Cleanup(func() { _ = store.Close() })
 
 	a := auth.NewTestAuthenticator("admin@corp.com")
-	srv := hub.New(nil, "http://placeholder", 5*time.Minute, store, a)
+	srv := hub.New(nil, "http://placeholder", store, a)
 	// srv implements cluster.BoxPortService, mirroring the production wiring in
 	// internal/hub/serve.go, so spoke-originated box-port requests are served.
 	srv.SetHub(cluster.NewHub(ctx, store, nil, nil, srv))

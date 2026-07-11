@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build a generic Debian *base* rootfs for Firecracker boxes: a full bookworm base
 # with systemd as PID 1, Docker, Node, and net tooling. It is deliberately
-# GUEST-AGNOSTIC — it contains nothing about llmbox, claude, or any particular
-# guest. Everything guest-specific rides on a separate read-only "payload" drive
+# GUEST-AGNOSTIC — it contains nothing about llmbox or any particular guest.
+# Everything guest-specific rides on a separate read-only "payload" drive
 # (build-payload-drive.sh) that this base mounts and runs at boot.
 #
 # The only contract the base defines is a generic payload loader:
@@ -102,9 +102,9 @@ WAIT
   # Let root log in on the serial console with no password, for debugging.
   chroot /rootfs passwd -d root >/dev/null 2>&1 || true
 
-  # A generic unprivileged account box workloads run as. Claude Code refuses to
-  # bypass approvals while running as root, so the payload runs claude (and Exec)
-  # as 'agent' via the guest's --user flag. Passwordless sudo keeps the box a
+  # A generic unprivileged account box workloads run as. The payload runs the
+  # box workload (and Exec) as 'agent' via the guest's --user flag rather than as
+  # root. Passwordless sudo keeps the box a
   # single-tenant, full-access environment (the real isolation boundary is the
   # microVM, not this in-guest uid); docker-group membership lets the box user
   # drive the baked-in dockerd without sudo. The account is defined here, in the

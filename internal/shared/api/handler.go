@@ -29,9 +29,6 @@ func NewHandler(b Backend) http.Handler {
 		sess, err := b.CreateBox(ctx, req.Opts)
 		return createBoxResponse{Session: sess}, err
 	}))
-	mux.Handle("POST "+PathAuthPageURL, jsonHandler(func(_ context.Context, req authPageURLRequest) (authPageURLResponse, error) {
-		return authPageURLResponse{URL: b.AuthPageURL(req.Token)}, nil
-	}))
 	mux.Handle("POST "+PathLookupBox, jsonHandler(func(_ context.Context, req lookupBoxRequest) (lookupBoxResponse, error) {
 		sess, ok := b.LookupByBoxID(req.BoxID)
 		return lookupBoxResponse{Session: sess, Found: ok}, nil
@@ -80,10 +77,6 @@ func NewHandler(b Backend) http.Handler {
 	}))
 	mux.Handle("POST "+PathResumeBox, jsonHandler(func(ctx context.Context, req resumeBoxRequest) (emptyResponse, error) {
 		return emptyResponse{}, b.ResumeBox(ctx, req.BoxID)
-	}))
-	mux.Handle("POST "+PathBoxLogs, jsonHandler(func(ctx context.Context, req boxLogsRequest) (boxLogsResponse, error) {
-		logs, err := b.BoxLogs(ctx, req.BoxID, req.Tail)
-		return boxLogsResponse{Logs: logs}, err
 	}))
 	mux.Handle("POST "+PathBoxExec, jsonHandler(func(ctx context.Context, req boxExecRequest) (boxExecResponse, error) {
 		res, err := b.BoxExec(ctx, req.BoxID, req.Command)

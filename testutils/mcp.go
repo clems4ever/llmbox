@@ -14,10 +14,6 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
-// defaultAuthBase is the auth-page URL prefix FakeBackend.AuthPageURL uses when
-// AuthBase is left empty.
-const defaultAuthBase = "https://boxes.example.com/auth/"
-
 // FakeBackend is a stand-in for the server's box-control backend: it records the
 // calls it receives and returns canned results, satisfying api.Backend. Pair it
 // with api.NewHandler (to serve the HTTP API) or ConnectMCP (to drive the MCP
@@ -28,7 +24,6 @@ type FakeBackend struct {
 	// Canned results.
 	CreateSess        api.BoxSession
 	CreateErr         error
-	AuthBase          string                    // AuthPageURL returns AuthBase+token; empty uses defaultAuthBase
 	Sessions          map[string]api.BoxSession // LookupByBoxID source, keyed by lowercased box ID
 	Boxes             []api.BoxView
 	ListErr           error
@@ -46,8 +41,6 @@ type FakeBackend struct {
 	DestroyErr        error
 	PauseErr          error
 	ResumeErr         error
-	LogsResult        string
-	LogsErr           error
 	ExecResult        sandbox.ExecResult
 	ExecErr           error
 	ProxyOn           bool
@@ -59,7 +52,6 @@ type FakeBackend struct {
 
 	// Recorded inputs.
 	GotCreate         sandbox.CreateOptions
-	GotAuthToken      string
 	GotLookup         string
 	GotCreateSpoke    string
 	GotCreateSpokeBk  string
@@ -71,8 +63,6 @@ type FakeBackend struct {
 	GotDestroyID      string
 	GotPauseID        string
 	GotResumeID       string
-	GotLogsID         string
-	GotLogsTail       int
 	GotExecID         string
 	GotExecCmd        string
 	GotProxyBoxID     string
@@ -96,24 +86,6 @@ func (f *FakeBackend) CreateBox(ctx context.Context, opts sandbox.CreateOptions)
 	f.GotCreate = opts
 	f.mu.Unlock()
 	return f.CreateSess, f.CreateErr
-}
-
-// AuthPageURL records the token and returns AuthBase+token (defaultAuthBase when
-// AuthBase is empty).
-//
-// @arg token The session token, recorded into GotAuthToken.
-// @return string The auth page URL for the token.
-//
-// @testcase TestFakeBackend checks AuthPageURL records the token and builds the URL.
-func (f *FakeBackend) AuthPageURL(token string) string {
-	f.mu.Lock()
-	f.GotAuthToken = token
-	f.mu.Unlock()
-	base := f.AuthBase
-	if base == "" {
-		base = defaultAuthBase
-	}
-	return base + token
 }
 
 // LookupByBoxID records the box ID and returns the canned session from Sessions
@@ -281,23 +253,6 @@ func (f *FakeBackend) ResumeBox(ctx context.Context, boxID string) error {
 	f.GotResumeID = boxID
 	f.mu.Unlock()
 	return f.ResumeErr
-}
-
-// BoxLogs records the box ID and tail and returns the canned output/error.
-//
-// @arg ctx Context (unused by the fake).
-// @arg boxID The box ID, recorded into GotLogsID.
-// @arg tail The tail count, recorded into GotLogsTail.
-// @return string The canned LogsResult.
-// @error error The canned LogsErr, if any.
-//
-// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
-func (f *FakeBackend) BoxLogs(ctx context.Context, boxID string, tail int) (string, error) {
-	f.mu.Lock()
-	f.GotLogsID = boxID
-	f.GotLogsTail = tail
-	f.mu.Unlock()
-	return f.LogsResult, f.LogsErr
 }
 
 // BoxExec records the box ID and command and returns the canned result/error.

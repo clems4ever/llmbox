@@ -78,7 +78,7 @@ func TestBoxManagerDialBox(t *testing.T) {
 // configured publish ports on a successful create, and returns none for a box
 // whose init script failed (nothing is serving on it to expose).
 func TestBoxManagerReturnsConfiguredPublishPorts(t *testing.T) {
-	ports := []sandbox.PublishPort{{Port: 8080, Description: "claude-control"}, {Port: 3000}}
+	ports := []sandbox.PublishPort{{Port: 8080, Description: "web-app"}, {Port: 3000}}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -193,23 +193,12 @@ func TestManagerCreateGuestError(t *testing.T) {
 	}
 }
 
-// TestManagerSubmitCodeFindError surfaces a Find error.
-func TestManagerSubmitCodeFindError(t *testing.T) {
-	m := box.NewManager(&stubProv{findErr: sandbox.ErrBoxNotFound}, box.Config{})
-	if _, err := m.SubmitCode(context.Background(), "x", "code"); err == nil {
-		t.Fatal("SubmitCode should fail when the box is not found")
-	}
-}
-
-// TestManagerVerbsFindError checks Exec, Logs, and DialBox surface a Find error.
+// TestManagerVerbsFindError checks Exec and DialBox surface a Find error.
 func TestManagerVerbsFindError(t *testing.T) {
 	m := box.NewManager(&stubProv{findErr: sandbox.ErrBoxNotFound}, box.Config{})
 	ctx := context.Background()
 	if _, err := m.Exec(ctx, "x", []string{"echo"}); err == nil {
 		t.Fatal("Exec should fail when the box is not found")
-	}
-	if _, err := m.Logs(ctx, "x", 0); err == nil {
-		t.Fatal("Logs should fail when the box is not found")
 	}
 	if _, err := m.DialBox(ctx, "x", 80); err == nil {
 		t.Fatal("DialBox should fail when the box is not found")

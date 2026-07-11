@@ -14,8 +14,9 @@ isolated.
 - **Control channel**: the host reaches the guest over the VM's **vsock** (guest
   `AF_VSOCK` port 5000), performing Firecracker's `CONNECT` handshake over the
   hypervisor's Unix socket. This is the microVM analogue of the Docker backend's
-  bind-mounted control socket. All box behaviour — login, exec, logs, port proxy —
-  runs through the guest over this channel, never through the provisioner.
+  bind-mounted control socket. All box behaviour — init-script provisioning, exec,
+  and the port-proxy byte stream (dial) — runs through the guest over this
+  channel, never through the provisioner.
 - **Egress**: guest outbound traffic goes through a **TAP device** the host NATs
   (`iptables MASQUERADE`), with the guest's `eth0` configured statically via the
   kernel `ip=` boot arg. Each box gets its own `/30` (and an inter-guest `DROP`
@@ -109,7 +110,7 @@ with the llmbox guest as its init, listening on vsock. Its `init` mounts `/proc`
 ### Full Debian server (recommended for real use)
 
 For a box that behaves like a real machine — systemd, Docker, services, whatever
-Claude wants to run — use the full-server pair:
+the box's workload needs — use the full-server pair:
 
 - **`scripts/firecracker/build-kernel.sh`** builds a Firecracker guest kernel
   (`vmlinux-full`) with the container-runtime + systemd features the minimal CI
@@ -121,7 +122,7 @@ update never rebuilds the multi-GiB OS:
 
 - **`scripts/firecracker/build-base-rootfs.sh`** builds a generic, **guest-agnostic**
   Debian bookworm **base** (`base-rootfs.ext4`) with **systemd as PID 1**, Docker,
-  Node, and net tooling. It contains **nothing** about llmbox, `claude`, or any
+  Node, and net tooling. It contains **nothing** about llmbox or any
   particular guest — only a generic *payload loader* that at boot mounts the payload
   drive (`/dev/vdb`) read-only at `/payload` and runs `/payload/entrypoint`. Because
   it is guest-agnostic it is slow-changing and cacheable: in CI it is built once and
@@ -131,13 +132,14 @@ update never rebuilds the multi-GiB OS:
   passwordless `sudo`, member of the `docker` group) that box workloads run as.
 - **`scripts/firecracker/build-payload-drive.sh`** builds the tiny read-only
   **payload** (`payload.ext4`) carrying **everything llmbox-specific**: the static
-  guest, the standalone `claude`, its trust seed, and an `entrypoint` that seeds a
-  writable copy of the trust file and execs the guest on vsock. This half is cheap
-  and rebuilt on every guest change, and is attached to every box as a shared
-  read-only second drive. The guest runs `claude` (and `Exec`) as the base's
-  unprivileged **`agent`** user — Claude Code refuses to bypass approvals as root —
-  while the guest itself stays root to serve the control channel; `agent` escalates
-  with passwordless `sudo` when a command genuinely needs it.
+  guest and an `entrypoint` that execs the guest on vsock. (llmbox itself runs no
+  workload — the box's workload is installed and started by the spoke's
+  [init script](hub-and-spoke.md#customising-boxes-with-an-init-script).) This half
+  is cheap and rebuilt on every guest change, and is attached to every box as a
+  shared read-only second drive. The guest runs the init script (and `Exec`) as
+  the base's unprivileged **`agent`** user — while the guest itself stays root to
+  serve the control channel; `agent` escalates with passwordless `sudo` when a
+  command genuinely needs it.
 - **`scripts/firecracker/build-debian-rootfs.sh`** is a convenience wrapper that
   builds both.
 
@@ -152,7 +154,7 @@ The base's systemd does all the mounts and reaps the payload's children.
 llmbox-spoke firecracker --hub … --token … \
   --kernel  ~/fc-assets/vmlinux-full \
   --rootfs  ~/fc-assets/base-rootfs.ext4 \  # the Debian base (no guest)
-  --payload ~/fc-assets/payload.ext4 \      # guest + claude, shared read-only
+  --payload ~/fc-assets/payload.ext4 \      # the guest, shared read-only
   --disable-egress=false                    # egress on; run the spoke as root
 ```
 
@@ -169,14 +171,14 @@ For the conformance test, a simpler script builds a busybox/container-fs rootfs
 with the guest as PID 1 (no systemd, no Docker):
 
 - **`scripts/firecracker/build-conformance-rootfs.sh`** — a minimal BusyBox rootfs
-  with a **mock** `claude` (prints fake auth/session URLs). Used only by the
-  conformance test; it proves the plumbing but is not a real Claude.
+  with the guest as init. Used only by the conformance test; it proves the box
+  plumbing (init, exec, dial, lifecycle) but is not a real workload host.
 
-For real sessions use the full Debian server pair above. A real Claude session
-needs egress enabled (the default, i.e. no `--disable-egress`), because the box
-must reach the Anthropic API and OAuth — which means running the spoke with
+For real workloads use the full Debian server pair above. A workload that reaches
+the internet (an API, a package registry, an image pull) needs egress enabled (the
+default, i.e. no `--disable-egress`), which means running the spoke with
 `CAP_NET_ADMIN` (root). With egress disabled (control-only) a box boots and its
-guest is reachable, but `claude` cannot authenticate.
+guest is reachable, but the box has no outbound network.
 
 ## Running the conformance suite
 
@@ -196,7 +198,7 @@ LLMBOX_FC_ROOTFS=$HOME/fc-assets/rootfs.ext4 \
 
 The test skips cleanly when the env vars, the firecracker binary, or `/dev/kvm`
 are absent, so a normal `go test` is unaffected. When run as a non-root user it
-boots **control-only** boxes (loopback + vsock, no TAP/NAT); the mock `claude` the
-conformance rootfs ships needs no network, so the full box lifecycle is exercised
-either way. The real TAP/NAT egress path is covered by the root-only
+boots **control-only** boxes (loopback + vsock, no TAP/NAT); the conformance
+contract needs no network, so the full box lifecycle is exercised either way. The
+real TAP/NAT egress path is covered by the root-only
 `TestHostEgressSetupTeardownSkipsWithoutTools`.

@@ -16,9 +16,9 @@
 		{
 			"function_name": "Create",
 			"receiver": "Manager",
-			"documentation_hash": "9fb79ea35efefd670f42719ed63462337d73eac938423d675b7f83bf387566f1",
-			"definition_hash": "7105a9efb18ea4d9b14331551d91f8176be1a9ba1036b8a325b1b1c2d6bf1f14",
-			"reviewed_at": "2026-07-11T09:32:51.307908Z"
+			"documentation_hash": "87187bbb02f1d32dbe51a511b0a98ebe021389b83f6cf1a001cb77587ba4fdcc",
+			"definition_hash": "6f508407b5e75fe5f3daceb7dcd0bf8b75e313396c2bebbc0283248d92650f9e",
+			"reviewed_at": "2026-07-11T21:34:27.211261769Z"
 		},
 		{
 			"function_name": "SubmitCode",
@@ -79,16 +79,22 @@
 		{
 			"function_name": "Pause",
 			"receiver": "Manager",
-			"documentation_hash": "b2f76aecae03f7b4b23ec39d2c29dc2be151ee1d2a8e6badf192ae3cba3e0197",
+			"documentation_hash": "c8f2df9c00d593c530f2624ed16b5b29326f34bf9df2d3759aa72a9dfc904717",
 			"definition_hash": "7765f89895c07b0c1b6185028ee82e6b2cd3aff0b41ce7f45277c06ac8cfcf58",
-			"reviewed_at": "2026-07-11T11:13:33.75844329Z"
+			"reviewed_at": "2026-07-11T21:34:27.211974577Z"
 		},
 		{
 			"function_name": "Resume",
 			"receiver": "Manager",
-			"documentation_hash": "7b2c11ef7777cc2cbba582a93799e69e7667263b78963f9734e05f99c5d29c4e",
-			"definition_hash": "c62bf677aaff15053970505f48c9f28d228a5413329d1a30f102b5da1b692ca6",
-			"reviewed_at": "2026-07-11T11:13:33.767578714Z"
+			"documentation_hash": "c0afa7f8c79a50cb64041b9a53fd47ae8d183dc8c646ad1bcd05069b039f406c",
+			"definition_hash": "771738ec21da6aa0dc65150fb4fdfb2f01d63938906bde88a7bbee829cbb662f",
+			"reviewed_at": "2026-07-11T21:34:27.212305885Z"
+		},
+		{
+			"function_name": "initScriptFailureDetail",
+			"documentation_hash": "38a334591ca9be6c005ebfe84cdc049f297beddced369d2e05ed78869eede6e6",
+			"definition_hash": "d3c8918371e7af3c6178aad06e4894486d22a24046a961cb51129c9857d1fd8d",
+			"reviewed_at": "2026-07-11T21:34:27.211617245Z"
 		}
 	]
 }

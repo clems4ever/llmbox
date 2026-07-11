@@ -2,9 +2,9 @@
 	"functions": [
 		{
 			"function_name": "NewServer",
-			"documentation_hash": "957a8c39c7ff98c7bf90c9e182e0c23df8b64993a30ac108eecf271ab7a7303e",
-			"definition_hash": "821423c923dfda019623387fc5e31ee8991e78e6eebe849a53f1bb9f5788faff",
-			"reviewed_at": "2026-06-28T14:33:00.025653Z"
+			"documentation_hash": "5281f863aa39aa033f436127d22bdeb6060ef3a46a31d9a6651d1b962c06fdc6",
+			"definition_hash": "4379886a18b1871f74ed811e779ec787c3b3207843c873b3bd6d886d2af5f239",
+			"reviewed_at": "2026-07-11T21:34:27.194817422Z"
 		},
 		{
 			"function_name": "shortID",
@@ -15,16 +15,16 @@
 		{
 			"function_name": "toolCreate",
 			"receiver": "handlers",
-			"documentation_hash": "db652525a225e774e37c424f2470e92e20218573c11406ce4362a313c18336be",
-			"definition_hash": "157fe82d1a14d0bb139594347b9f752271f029f1ea5d40d429afdcc45d6ad2c7",
-			"reviewed_at": "2026-07-09T21:42:06.882977658Z"
+			"documentation_hash": "f0812bd5288dde2398e909472252d8350950bba80f117460ed6c6094ea2a3605",
+			"definition_hash": "3e63e43fc9497dd6d37c416e2ea3d99d368a87c3fb537ee150d7c1f216bcd241",
+			"reviewed_at": "2026-07-11T21:34:27.195243225Z"
 		},
 		{
 			"function_name": "toolGet",
 			"receiver": "handlers",
-			"documentation_hash": "9769a5fd425307bc6aa8d7b190b007d0df7200396cc26c9e2cbafcbca8d58453",
-			"definition_hash": "ebeb2410d6f52640697bace6c987a1cb6c71b7b2162f72566262f846afe5ddd4",
-			"reviewed_at": "2026-06-25T11:48:57.866355021Z"
+			"documentation_hash": "cdcc372e1a6ce8edafece1d181719ef8d718d5721d6f8ebf8ab2f7d5f016178c",
+			"definition_hash": "94c26598b1f5ecd93bb187ac1ee84b30af2ca3b6f116f14a806547d2033f8bfc",
+			"reviewed_at": "2026-07-11T21:34:27.195916872Z"
 		},
 		{
 			"function_name": "toolList",
@@ -46,13 +46,6 @@
 			"documentation_hash": "c03c22424604a1c229a1c962a2a34da722b3da3e914defc2669ab8269a2e4afd",
 			"definition_hash": "055aa1793dfd04bef6b7f6797ad232cebfb7ff4f0c220006e56feb6184de3cab",
 			"reviewed_at": "2026-07-09T21:42:06.883526037Z"
-		},
-		{
-			"function_name": "toolLogs",
-			"receiver": "handlers",
-			"documentation_hash": "f431f1852f05742fcc40f2acaf65790d27b6c4203875c14b6f0b0fca3596deca",
-			"definition_hash": "83510d07b744e5f5415030708291d9679271acb31bc59a78bad6a3f123cb7370",
-			"reviewed_at": "2026-06-25T11:48:57.877029724Z"
 		},
 		{
 			"function_name": "toolExec",

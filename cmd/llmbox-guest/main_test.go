@@ -20,7 +20,7 @@ func TestRunServesAndStops(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	errc := make(chan error, 1)
-	go func() { errc <- run(ctx, sock, 0, "", 0, "/bin/true", "", log) }()
+	go func() { errc <- run(ctx, sock, 0, "", 0, "", log) }()
 
 	deadline := time.Now().Add(3 * time.Second)
 	for {
@@ -54,7 +54,7 @@ func TestRunStartsBoxAPIBridge(t *testing.T) {
 	defer cancel()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	go func() { _ = run(ctx, "", 1, boxapiSock, 5001, "/bin/true", "", log) }()
+	go func() { _ = run(ctx, "", 1, boxapiSock, 5001, "", log) }()
 
 	deadline := time.Now().Add(3 * time.Second)
 	for {
@@ -73,7 +73,7 @@ func TestRunStartsBoxAPIBridge(t *testing.T) {
 func TestRunRejectsUnknownUser(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	sock := filepath.Join(t.TempDir(), "control.sock")
-	err := run(context.Background(), sock, 0, "", 0, "/bin/true", "no-such-box-user-xyz", log)
+	err := run(context.Background(), sock, 0, "", 0, "no-such-box-user-xyz", log)
 	if err == nil || !strings.Contains(err.Error(), "no-such-box-user-xyz") {
 		t.Fatalf("run err = %v, want a lookup failure naming the user", err)
 	}

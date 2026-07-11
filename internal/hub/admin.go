@@ -35,7 +35,7 @@ func uiAssets() fs.FS {
 	return assets
 }
 
-// servePage writes one built page shell (e.g. auth.html) from the web dist.
+// servePage writes one built page shell (e.g. index.html) from the web dist.
 // Every shell is a secret-free static page whose live state travels over JSON
 // endpoints; the shell references content-hashed assets, so it is served
 // no-cache while the assets themselves are immutable (see registerAssetRoutes).
@@ -44,7 +44,7 @@ func uiAssets() fs.FS {
 // @arg r The request (used only for content negotiation by the file server).
 // @arg page The shell file name inside the web dist.
 //
-// @testcase TestAuthPageServesShell serves the activation page shell via this helper.
+// @testcase TestAdminSPAServed serves the admin page shell via this helper.
 func (s *Server) servePage(w http.ResponseWriter, r *http.Request, page string) {
 	w.Header().Set("Cache-Control", "no-cache")
 	http.ServeFileFS(w, r, uiAssets(), page)
@@ -52,9 +52,9 @@ func (s *Server) servePage(w http.ResponseWriter, r *http.Request, page string) 
 
 // registerAssetRoutes mounts the web app's content-hashed assets under
 // /admin/assets/ (the bundler's base path, shared by every page shell — admin,
-// activation, sign-in). They are registered unconditionally: the activation
-// page must render even when the admin UI is disabled, and the assets are
-// public static files carrying no data.
+// sign-in). They are registered unconditionally: the proxy sign-in page must
+// render even when the admin UI is disabled, and the assets are public static
+// files carrying no data.
 //
 // @arg mux The mux the asset route is added to.
 //

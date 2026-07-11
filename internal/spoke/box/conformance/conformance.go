@@ -36,7 +36,6 @@ func Run(t *testing.T, newProv NewProvisioner) {
 	t.Run("InvalidBoxID", func(t *testing.T) { testInvalidBoxID(t, newProv) })
 	t.Run("DuplicateBoxID", func(t *testing.T) { testDuplicateBoxID(t, newProv) })
 	t.Run("MaxBoxes", func(t *testing.T) { testMaxBoxes(t, newProv) })
-	t.Run("ReapOrphans", func(t *testing.T) { testReapOrphans(t, newProv) })
 	t.Run("InitScript", func(t *testing.T) { testInitScript(t, newProv) })
 	t.Run("InitScriptFailure", func(t *testing.T) { testInitScriptFailure(t, newProv) })
 	t.Run("PauseResume", func(t *testing.T) { testPauseResume(t, newProv) })
@@ -55,7 +54,8 @@ func opCtx(t *testing.T) context.Context {
 	return ctx
 }
 
-// testLifecycle runs the full create/login/exec/logs lifecycle.
+// testLifecycle runs the create/list/exec lifecycle: a box is created, appears in
+// List, and is reachable via Exec.
 //
 // @arg t The test to assert under.
 // @arg newProv Builds the provisioner under test.
@@ -70,24 +70,10 @@ func testLifecycle(t *testing.T, newProv NewProvisioner) {
 		t.Fatalf("Create: %v", err)
 	}
 	id := created.InstanceID
-	if !strings.Contains(created.AuthorizeURL, "oauth/authorize") {
-		t.Fatalf("authorize URL = %q", created.AuthorizeURL)
-	}
-
-	session, err := m.SubmitCode(ctx, id, "the-code")
-	if err != nil {
-		t.Fatalf("SubmitCode: %v", err)
-	}
-	if !strings.HasPrefix(session, "https://claude.ai/") {
-		t.Fatalf("session URL = %q", session)
-	}
 
 	boxes, err := m.List(ctx)
 	if err != nil || len(boxes) != 1 {
 		t.Fatalf("List = %v, %v", boxes, err)
-	}
-	if boxes[0].Phase != "ready" {
-		t.Fatalf("phase = %q, want ready after SubmitCode", boxes[0].Phase)
 	}
 
 	res, err := m.Exec(ctx, id, []string{"echo", "hello-box"})
@@ -97,20 +83,12 @@ func testLifecycle(t *testing.T, newProv NewProvisioner) {
 	if strings.TrimSpace(res.Stdout) != "hello-box" || res.ExitCode != 0 {
 		t.Fatalf("Exec = %+v", res)
 	}
-
-	logs, err := m.Logs(ctx, id, 0)
-	if err != nil {
-		t.Fatalf("Logs: %v", err)
-	}
-	if !strings.Contains(logs, "Remote control session ready") {
-		t.Fatalf("logs missing remote-control banner:\n%s", logs)
-	}
 }
 
 // testInitScript checks a host-provided init script runs inside the box during
-// Create, before claude starts, as the box user: its side effect (a file written
-// into the box) is observable afterwards via Exec. It is part of the shared
-// contract so every backend proves the provisioning hook fires in a real box.
+// Create, as the box user: its side effect (a file written into the box) is
+// observable afterwards via Exec. It is part of the shared contract so every
+// backend proves the provisioning hook fires in a real box.
 //
 // @arg t The test to assert under.
 // @arg newProv Builds the provisioner under test.
@@ -137,9 +115,8 @@ func testInitScript(t *testing.T, newProv NewProvisioner) {
 
 // testInitScriptFailure checks a non-zero init script does not fail Create but
 // keeps the box for inspection, reporting the failure and the script's output in
-// the CreateResult. The box is still listed (spared from the reaper) and remains
-// reachable, so an operator can debug why provisioning broke rather than facing a
-// vanished box.
+// the CreateResult. The box is still listed and remains reachable, so an operator
+// can debug why provisioning broke rather than facing a vanished box.
 //
 // @arg t The test to assert under.
 // @arg newProv Builds the provisioner under test.
@@ -172,12 +149,11 @@ func testInitScriptFailure(t *testing.T, newProv NewProvisioner) {
 	}
 }
 
-// testPauseResume checks the pause/resume lifecycle end to end on a real box:
-// a ready box is paused (freeing compute — its guest goes away, so it reports
-// paused and Exec no longer reaches it), then resumed (its compute reboots from the
-// kept disk and claude relaunches to a fresh session URL, no re-login, since the
-// creds seeded on disk survive). It is part of the shared contract so every backend
-// proves pause frees compute while keeping disk, and resume brings the box back.
+// testPauseResume checks the pause/resume lifecycle end to end on a real box: a
+// box is paused (freeing compute — its guest goes away, so it reports paused and
+// Exec no longer reaches it), then resumed (its compute reboots from the kept
+// disk). It is part of the shared contract so every backend proves pause frees
+// compute while keeping disk, and resume brings the box back with its disk intact.
 //
 // @arg t The test to assert under.
 // @arg newProv Builds the provisioner under test.
@@ -192,14 +168,9 @@ func testPauseResume(t *testing.T, newProv NewProvisioner) {
 		t.Fatalf("Create: %v", err)
 	}
 	id := created.InstanceID
-	if _, err := m.SubmitCode(ctx, id, "the-code"); err != nil {
-		t.Fatalf("SubmitCode: %v", err)
-	}
-	// Seed a credentials file on the box's disk so that, after a resume reboots the
-	// box from that disk, claude comes straight up to a session without re-login —
-	// exactly as a real authenticated box would.
-	if res, err := m.Exec(ctx, id, []string{"sh", "-c", `mkdir -p "$HOME/.claude" && printf '{"t":"x"}' > "$HOME/.claude/.credentials.json"`}); err != nil || res.ExitCode != 0 {
-		t.Fatalf("seeding creds: err=%v res=%+v", err, res)
+	// Write a marker on the box's disk so we can prove the disk survives the resume.
+	if res, err := m.Exec(ctx, id, []string{"sh", "-c", `printf survived > "$HOME/marker"`}); err != nil || res.ExitCode != 0 {
+		t.Fatalf("writing marker: err=%v res=%+v", err, res)
 	}
 
 	if err := m.Pause(ctx, id); err != nil {
@@ -217,12 +188,8 @@ func testPauseResume(t *testing.T, newProv NewProvisioner) {
 		t.Fatal("Exec should fail on a paused box (its guest is stopped)")
 	}
 
-	sessionURL, err := m.Resume(ctx, id)
-	if err != nil {
+	if err := m.Resume(ctx, id); err != nil {
 		t.Fatalf("Resume: %v", err)
-	}
-	if !strings.HasPrefix(sessionURL, "https://claude.ai/") {
-		t.Fatalf("resume session URL = %q, want a claude.ai session URL (box should come up authenticated)", sessionURL)
 	}
 	boxes, err = m.List(ctx)
 	if err != nil {
@@ -231,8 +198,8 @@ func testPauseResume(t *testing.T, newProv NewProvisioner) {
 	if s := findState(boxes, id); s != "running" {
 		t.Fatalf("state after resume = %q, want running", s)
 	}
-	// Compute is back: Exec reaches the box again.
-	if res, err := m.Exec(ctx, id, []string{"echo", "back"}); err != nil || strings.TrimSpace(res.Stdout) != "back" {
+	// Compute is back and the disk survived: Exec reaches the box and reads the marker.
+	if res, err := m.Exec(ctx, id, []string{"sh", "-c", `cat "$HOME/marker"`}); err != nil || strings.TrimSpace(res.Stdout) != "survived" {
 		t.Fatalf("Exec after resume: err=%v res=%+v", err, res)
 	}
 }
@@ -298,8 +265,8 @@ func testListAndFind(t *testing.T, newProv NewProvisioner) {
 	if err != nil || len(boxes) != 2 {
 		t.Fatalf("List = %v (%d), %v", boxes, len(boxes), err)
 	}
-	if _, err := m.Logs(ctx, "no-such-box", 0); !errors.Is(err, sandbox.ErrBoxNotFound) {
-		t.Fatalf("Logs of unknown box err = %v, want ErrBoxNotFound", err)
+	if _, err := m.Exec(ctx, "no-such-box", []string{"echo"}); !errors.Is(err, sandbox.ErrBoxNotFound) {
+		t.Fatalf("Exec of unknown box err = %v, want ErrBoxNotFound", err)
 	}
 }
 
@@ -347,49 +314,5 @@ func testMaxBoxes(t *testing.T, newProv NewProvisioner) {
 	}
 	if _, err := m.Create(ctx, sandbox.CreateOptions{}); err == nil {
 		t.Fatal("Create past MaxBoxes should fail")
-	}
-}
-
-// testReapOrphans checks orphan reaping by phase and age.
-//
-// @arg t The test to assert under.
-// @arg newProv Builds the provisioner under test.
-//
-// @testcase TestConformanceFake runs testReapOrphans as a subtest.
-func testReapOrphans(t *testing.T, newProv NewProvisioner) {
-	m := box.NewManager(newProv(t), box.Config{})
-	ctx := opCtx(t)
-
-	pending, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "pending"})
-	if err != nil {
-		t.Fatalf("Create pending: %v", err)
-	}
-	pendingID := pending.InstanceID
-	ready, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "ready"})
-	if err != nil {
-		t.Fatalf("Create ready: %v", err)
-	}
-	readyID := ready.InstanceID
-	if _, err := m.SubmitCode(ctx, readyID, "code"); err != nil {
-		t.Fatalf("SubmitCode: %v", err)
-	}
-
-	// A fresh pending box is within any positive ttl, so nothing is reaped.
-	if reaped, err := m.ReapOrphans(ctx, time.Hour); err != nil || len(reaped) != 0 {
-		t.Fatalf("ReapOrphans(1h) = %v, %v, want none reaped", reaped, err)
-	}
-
-	// A negative ttl puts the cutoff in the future, so every *pending* box is
-	// stale; the ready box must still be spared.
-	reaped, err := m.ReapOrphans(ctx, -time.Hour)
-	if err != nil {
-		t.Fatalf("ReapOrphans(-1h): %v", err)
-	}
-	if len(reaped) != 1 || reaped[0] != pendingID {
-		t.Fatalf("reaped = %v, want only the pending box %q", reaped, pendingID)
-	}
-	boxes, _ := m.List(ctx)
-	if len(boxes) != 1 || boxes[0].BoxID != "ready" {
-		t.Fatalf("after reap, boxes = %v, want only the ready box", boxes)
 	}
 }

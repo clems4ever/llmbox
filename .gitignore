@@ -1,6 +1,5 @@
 # Local env / credentials (referenced by docker-compose.yml)
 .env
-.claude-config.seed.json
 
 # VSCode configuration
 .vscode/

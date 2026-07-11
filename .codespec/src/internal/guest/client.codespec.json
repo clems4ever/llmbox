@@ -16,9 +16,9 @@
 		{
 			"function_name": "Init",
 			"receiver": "Client",
-			"documentation_hash": "f8bdfd4dd4dc6c702e1ee0b786cee3fe491922e07609c70b80da9abba923efb0",
-			"definition_hash": "a9ed96813d4e918240c85a425f425268b87538efa5c415985148e08ae569f3fa",
-			"reviewed_at": "2026-07-09T18:52:18.047816996Z"
+			"documentation_hash": "a4761b0214585ce18830fa165f3aa27353274a5437857f6351e5ee4604d00801",
+			"definition_hash": "7b23f34938dcf31d770009bdae71318349a124f818e63aad3431cbf3186b4f06",
+			"reviewed_at": "2026-07-11T21:34:27.094372718Z"
 		},
 		{
 			"function_name": "Start",

@@ -93,7 +93,7 @@ func TestConformanceFirecracker(t *testing.T) {
 	kernel, rootfs := fcArtifacts(t)
 	// TAP/NAT egress setup needs CAP_NET_ADMIN. When not root, boot control-only
 	// boxes (loopback + vsock): the conformance flow drives the guest over vsock
-	// and its mock claude needs no network, so it exercises the full box lifecycle
+	// (Init/Exec/Dial) and needs no network, so it exercises the full box lifecycle
 	// either way. The real egress path is covered by the root-only egress test.
 	networking := os.Geteuid() == 0
 	stateRoot := os.Getenv("LLMBOX_FC_STATE_DIR")
@@ -149,7 +149,7 @@ func TestBoxAPIOverVsock(t *testing.T) {
 		t.Fatalf("Provision: %v", err)
 	}
 
-	// Drive the in-guest side over the guest's Exec verb, exactly as Claude
+	// Drive the in-guest side over the guest's Exec verb, exactly as a workload
 	// would from a shell inside the box.
 	mgr := box.NewManager(p, box.Config{})
 	res, err := mgr.Exec(context.Background(), inst.Meta().InstanceID, []string{
@@ -173,15 +173,15 @@ func TestBoxAPIOverVsock(t *testing.T) {
 	}
 }
 
-// TestBoxRunsClaudeUserWithSudo proves the production base+payload boot runs box
-// commands as the unprivileged 'agent' user — claude refuses to bypass approvals
-// as root, so the payload passes --user agent to the guest — while passwordless
-// sudo still escalates to root. It needs the base rootfs plus the guest payload;
-// point LLMBOX_FC_ROOTFS at the base rootfs and set LLMBOX_FC_PAYLOAD to run it,
-// else it skips.
+// TestBoxRunsAsUnprivilegedUserWithSudo proves the production base+payload boot
+// runs box commands as the unprivileged 'agent' user — the payload passes
+// --user agent to the guest so the workload never runs as root — while
+// passwordless sudo still escalates to root. It needs the base rootfs plus the
+// guest payload; point LLMBOX_FC_ROOTFS at the base rootfs and set
+// LLMBOX_FC_PAYLOAD to run it, else it skips.
 //
-// @testcase TestBoxRunsClaudeUserWithSudo runs Exec as agent and escalates via sudo to root on a live microVM.
-func TestBoxRunsClaudeUserWithSudo(t *testing.T) {
+// @testcase TestBoxRunsAsUnprivilegedUserWithSudo runs Exec as agent and escalates via sudo to root on a live microVM.
+func TestBoxRunsAsUnprivilegedUserWithSudo(t *testing.T) {
 	kernel, rootfs := fcArtifacts(t)
 	payload := os.Getenv("LLMBOX_FC_PAYLOAD")
 	if payload == "" {

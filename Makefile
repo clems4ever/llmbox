@@ -115,7 +115,7 @@ test: $(WEBDIST) ## Run the unit test suite.
 	go test ./...
 
 .PHONY: test-integration
-test-integration: ## Run integration tests (needs Docker + a Claude binary; see integration_test.go).
+test-integration: ## Run integration tests (needs Docker; builds a minimal guest-only box image; see integration_test.go).
 	go test -tags integration ./...
 
 # Live Firecracker box conformance + regression tests. Needs a KVM host: the

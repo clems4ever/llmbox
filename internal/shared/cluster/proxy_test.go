@@ -317,9 +317,6 @@ func (bareManager) Create(context.Context, sandbox.CreateOptions) (sandbox.Creat
 	return sandbox.CreateResult{}, nil
 }
 
-// SubmitCode is a no-op stub.
-func (bareManager) SubmitCode(context.Context, string, string) (string, error) { return "", nil }
-
 // List is a no-op stub.
 func (bareManager) List(context.Context) ([]sandbox.Box, error) { return nil, nil }
 
@@ -330,15 +327,9 @@ func (bareManager) Destroy(context.Context, string) error { return nil }
 func (bareManager) Pause(context.Context, string) error { return nil }
 
 // Resume is an unused stub so bareManager satisfies BoxManager.
-func (bareManager) Resume(context.Context, string) (string, error) { return "", nil }
-
-// Logs is a no-op stub.
-func (bareManager) Logs(context.Context, string, int) (string, error) { return "", nil }
+func (bareManager) Resume(context.Context, string) error { return nil }
 
 // Exec is a no-op stub.
 func (bareManager) Exec(context.Context, string, []string) (sandbox.ExecResult, error) {
 	return sandbox.ExecResult{}, nil
 }
-
-// ReapOrphans is a no-op stub.
-func (bareManager) ReapOrphans(context.Context, time.Duration) ([]string, error) { return nil, nil }

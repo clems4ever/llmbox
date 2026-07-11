@@ -1,29 +1,34 @@
-# Authenticating activation
+# Authentication
 
-The auth-page URL is handed back from `create_llmbox` and therefore travels
-**through the chatbot** (claude.ai's servers). The 256-bit token in it is the only
-thing gating activation, so anyone who can see that traffic — and reaches the box
-before the requester does — can activate the box with **their own** Claude
-account, hijacking it and any per-box secrets your [hooks](hooks.md) inject. See
-[Status & caveats](../README.md#status--caveats) for the residual gaps.
+llmbox has two authentication surfaces:
 
-To close this, enable a sign-in provider under `auth`. Activation then requires
-the visitor to authenticate over a channel that **never** touches the chatbot
-(OIDC, browser ↔ provider ↔ llmbox) and be in an allowed domain or email
-allowlist; an unauthenticated visitor sees only the sign-in buttons, never the
-code form or the session URL. Each provider is a dedicated config block so more
-can be added later.
+- **API authentication** for the box-control API (`/api/v1/*`) — API keys or an
+  admin login session.
+- **Admin OIDC sign-in** for humans — a single sign-in provider that gates both
+  the **admin dashboard** and the per-box [HTTP proxies](proxy.md).
+
+## Admin sign-in (OIDC)
+
+Enable a sign-in provider under `auth`. A visitor authenticates over a channel
+that **never** touches the chatbot (OIDC, browser ↔ provider ↔ llmbox), and is
+authorized **only** if their verified email is in the **admin allow-list**
+(`auth.admin.emails`). There is no per-provider domain/email allow-list — the
+admin list is the single source of authorization.
 
 ```yaml
 auth:
   session_ttl: "1h"
+  cookie_domain: "example.com"   # share the login cookie across proxy sub-domains
+  admin:
+    emails: ["you@example.com", "teammate@example.com"]
   google:
     enabled: true
     client_id: "xxxxxxxx.apps.googleusercontent.com"
     client_secret_file: "/etc/llmbox/google-client-secret"  # secret read from file, never inlined
-    allowed_domains: ["your-company.com"]
-    allowed_emails: []
 ```
+
+A signed-in admin can reach the admin dashboard and any box proxy; an
+unauthenticated visitor sees only the sign-in page.
 
 Setup notes:
 - In the Google Cloud console, create an **OAuth 2.0 Client ID** (type *Web
@@ -31,13 +36,15 @@ Setup notes:
   (the `redirect_url` field defaults to this).
 - The client secret is **read from a file** (`client_secret_file`); it is never
   written in the YAML. Mount it read-only.
-- Enabling a provider with no `allowed_domains` **and** no `allowed_emails` is a
-  hard error — it would otherwise authorize every Google account.
 - Login sessions are persisted server-side (in the `state_file` SQLite DB) so they
   survive restarts; `session_ttl` bounds their lifetime.
+- `cookie_domain` sets the bare parent domain the login cookie is scoped to (no
+  leading dot, no port), so one sign-in is shared between the main UI and the
+  per-proxy sub-domains. See [Proxy authentication](proxy.md#authentication).
 
-When `auth` is omitted, activation is unauthenticated (the server logs a warning
-at startup) and behaves as before.
+When `auth` is omitted, the admin UI and the box proxies are unauthenticated (the
+server logs a warning at startup) — rely on a front authenticating proxy in that
+mode.
 
 ## API authentication
 
@@ -60,9 +67,9 @@ With no sign-in provider configured, only API keys can authenticate API calls.
 API authentication proves **who** is calling; it is not per-box
 **authorization**. Every authenticated principal — any valid API key, and any
 signed-in admin — can act on **every** box: `exec_llmbox` runs an arbitrary
-`/bin/sh -c` command in any box, `get_llmbox_logs` reads any box's console, and
-`destroy_llmbox` removes any box. There is deliberately no per-box ownership
-check: a box is not bound to the caller that created it.
+`/bin/sh -c` command in any box, and `destroy_llmbox` removes any box. There is
+deliberately no per-box ownership check: a box is not bound to the caller that
+created it.
 
 This is safe under one assumption, which llmbox **requires**: a single trusted
 tenant sits behind the box-control API. In the intended deployment `llmbox-mcp`
@@ -75,8 +82,9 @@ lets through — as **fully privileged over every box on the hub**.
 Two consequences follow from this boundary:
 
 - **`exec_llmbox` is credential-equivalent.** A command run in a box can read
-  that box's Claude credentials, so a caller with box-control access can reach
-  every box's secrets. Scope and guard API keys accordingly.
+  that box's secrets (whatever the init script or [hooks](hooks.md) injected), so
+  a caller with box-control access can reach every box's secrets. Scope and guard
+  API keys accordingly.
 - **Do not put mutually-distrusting users behind one hub.** Because there is no
   per-box isolation, sharing a single hub (or a single API key) across several
   users lets any of them exec into the others' boxes. For a multi-tenant setup,
