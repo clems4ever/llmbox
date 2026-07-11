@@ -31,6 +31,11 @@ type Config struct {
 	// InitScriptTimeout bounds how long the init script may run before Create fails
 	// the box. Non-positive uses the guest default (five minutes).
 	InitScriptTimeout time.Duration
+	// PublishPorts are the in-box TCP ports this spoke exposes as HTTP proxies for
+	// every box it creates (the spoke's --publish-port). They are echoed back on a
+	// successful Create so the hub can publish them once it has registered the box.
+	// Nil publishes nothing.
+	PublishPorts []sandbox.PublishPort
 }
 
 const (
@@ -156,7 +161,14 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (sandb
 		_ = inst.Destroy(context.Background())
 		return sandbox.CreateResult{}, fmt.Errorf("starting box: %w", err)
 	}
-	return sandbox.CreateResult{InstanceID: inst.Meta().InstanceID, AuthorizeURL: start.AuthorizeURL}, nil
+	// The box came up, so hand the hub the ports this spoke publishes for every box
+	// (empty when none are configured). The hub creates the proxies once it has
+	// registered the box; a broken box (handled above) returns no ports.
+	return sandbox.CreateResult{
+		InstanceID:   inst.Meta().InstanceID,
+		AuthorizeURL: start.AuthorizeURL,
+		PublishPorts: m.cfg.PublishPorts,
+	}, nil
 }
 
 // initScriptFailureDetail composes the human-readable detail stored for a broken

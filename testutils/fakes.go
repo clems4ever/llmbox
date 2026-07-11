@@ -25,6 +25,7 @@ type FakeMgr struct {
 	CreateErr              error
 	CreateInitScriptFailed bool
 	CreateInitScriptOutput string
+	CreatePublishPorts     []sandbox.PublishPort
 
 	SubmitURL string
 	SubmitErr error
@@ -81,6 +82,7 @@ func (f *FakeMgr) Create(ctx context.Context, opts sandbox.CreateOptions) (sandb
 		AuthorizeURL:     f.CreateURL,
 		InitScriptFailed: f.CreateInitScriptFailed,
 		InitScriptOutput: f.CreateInitScriptOutput,
+		PublishPorts:     f.CreatePublishPorts,
 	}, f.CreateErr
 }
 

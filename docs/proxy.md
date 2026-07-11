@@ -110,6 +110,34 @@ own control API. A box created **without a box ID** cannot publish ports
 proxying is disabled hub-wide, opening a port fails with the disabled message,
 but closing still works so a box can always clean up after itself.
 
+## Spoke-configured port publishing (`--publish-port`)
+
+A spoke can expose a port on **every** box it creates, without anything running
+inside the box, with the `--publish-port` flag (repeatable):
+
+```
+llmbox-spoke docker ... --publish-port 8080:claude-control --publish-port 3000
+```
+
+Each value is `PORT[:DESCRIPTION]`. On a successful create the spoke returns
+these ports to the hub, which — right after it registers the box, when the box
+ID, spoke, and generation are all known — creates a proxy for each (recorded as
+`spoke:<spoke name>`). The service does not need to be listening yet: the proxy
+is just a slug→port mapping the reverse proxy dials on demand, so the URL is live
+in the UI the moment the box appears and starts working as soon as something
+listens on the port.
+
+This is the deterministic counterpart to box-initiated publishing: use it to
+expose a service a spoke's `--init-script` installs into every box (the init
+script only needs to install and start the service — it should **not** try to
+call `open_port` itself, because the box is not yet registered on the hub while
+the init script runs). Publishing is best-effort: if proxying is disabled
+hub-wide, or the box has no box ID, the ports are skipped with a log line rather
+than failing box creation. Note that, like `--init-script`, this runs at box
+**creation**; a paused box that is resumed keeps its proxy record but nothing
+re-runs the init script, so restart the in-box service yourself if you rely on
+resume.
+
 ## Other notes
 
 - The hub never touches a box's network directly: the spoke reaches its own boxes

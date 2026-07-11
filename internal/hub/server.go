@@ -1031,7 +1031,46 @@ func (s *Server) createBox(ctx context.Context, opts sandbox.CreateOptions) (*se
 	// Fold the spoke's inventory in right away so the record carries the box's
 	// observed name/image/state without waiting for the next periodic sync.
 	s.syncSpoke(ctx, spokeName, mgr)
+	// Publish the ports the spoke exposes for every box (its --publish-port), now
+	// that the box is registered and its generation is known. Best-effort: it does
+	// not fail an otherwise-good box.
+	s.publishConfiguredPorts(sess, res.PublishPorts)
 	return sess, nil
+}
+
+// publishConfiguredPorts creates an HTTP proxy for each port the spoke asked to
+// expose for the box (its --publish-port), recorded as created by the spoke. It
+// is deliberately best-effort and called only after the box is registered: a box
+// whose service is up but whose proxy failed to register is a far lesser failure
+// than one that never gets created, so a publish error is logged, not returned.
+// It no-ops when no ports are configured, the box has no id (proxies are keyed by
+// box id), or proxying is disabled hub-wide.
+//
+// @arg sess The freshly registered session for the new box.
+// @arg ports The ports the spoke returned to publish (its --publish-port config).
+//
+// @testcase TestCreateBoxPublishesConfiguredPorts registers a proxy per configured port.
+// @testcase TestCreateBoxPublishPortsProxyDisabled skips publishing (without failing) when proxying is off.
+func (s *Server) publishConfiguredPorts(sess *session, ports []sandbox.PublishPort) {
+	if len(ports) == 0 {
+		return
+	}
+	if sess.BoxID == "" {
+		s.logger().Warn("spoke asked to publish ports but the box has no box id (proxies are keyed by box id); skipping", "count", len(ports))
+		return
+	}
+	if !s.ProxyEnabled() {
+		s.logger().Warn("spoke asked to publish ports but proxying is disabled on this hub (no proxy base domain configured); skipping", "box", sess.BoxID, "count", len(ports))
+		return
+	}
+	for _, p := range ports {
+		rec, err := s.createProxy(sess.BoxID, p.Port, "spoke:"+s.resolveStoredSpoke(sess.SpokeName), p.Description)
+		if err != nil {
+			s.logger().Warn("failed to publish configured port", "box", sess.BoxID, "port", p.Port, "err", err)
+			continue
+		}
+		s.logger().Info("published configured port", "box", sess.BoxID, "port", p.Port, "url", s.proxyURL(rec.Slug))
+	}
 }
 
 // dropTerminatedRecords deletes every terminated record holding boxID (there is

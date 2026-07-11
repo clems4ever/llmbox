@@ -78,6 +78,71 @@ func TestCreateProxyRegistersAndBuildsURL(t *testing.T) {
 	}
 }
 
+// TestCreateBoxPublishesConfiguredPorts checks a box created on a spoke that
+// configured --publish-port comes up with an HTTP proxy already registered for
+// each of those ports, recorded as created by the spoke.
+func TestCreateBoxPublishesConfiguredPorts(t *testing.T) {
+	f := &testutils.FakeMgr{
+		CreateID: "abcdef0123456789",
+		CreatePublishPorts: []sandbox.PublishPort{
+			{Port: 8080, Description: "claude-control"},
+			{Port: 3000},
+		},
+	}
+	s, st := newProxyServer(t, f, nil)
+
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "cc-box", SpokeName: ""}); err != nil {
+		t.Fatalf("createBox: %v", err)
+	}
+
+	proxies, err := st.ListProxies()
+	if err != nil {
+		t.Fatalf("ListProxies: %v", err)
+	}
+	byPort := map[int]store.ProxyRecord{}
+	for _, p := range proxies {
+		byPort[p.Port] = p
+	}
+	if len(byPort) != 2 {
+		t.Fatalf("published %d proxies, want 2: %+v", len(byPort), proxies)
+	}
+	for _, want := range []struct {
+		port int
+		desc string
+	}{{8080, "claude-control"}, {3000, ""}} {
+		p, ok := byPort[want.port]
+		if !ok {
+			t.Fatalf("no proxy for port %d", want.port)
+		}
+		if p.BoxID != "cc-box" || p.InstanceID != "abcdef0123456789" {
+			t.Errorf("proxy %d bound to %q/%q, want cc-box/abcdef0123456789", want.port, p.BoxID, p.InstanceID)
+		}
+		if p.Description != want.desc {
+			t.Errorf("proxy %d description = %q, want %q", want.port, p.Description, want.desc)
+		}
+		if p.Owner != "spoke:"+testSpoke {
+			t.Errorf("proxy %d owner = %q, want spoke:%s", want.port, p.Owner, testSpoke)
+		}
+	}
+}
+
+// TestCreateBoxPublishPortsProxyDisabled checks that configured publish ports on
+// a hub without proxying enabled are skipped without failing box creation.
+func TestCreateBoxPublishPortsProxyDisabled(t *testing.T) {
+	f := &testutils.FakeMgr{
+		CreateID:           "abcdef0123456789",
+		CreatePublishPorts: []sandbox.PublishPort{{Port: 8080}},
+	}
+	// newTestServer does not enable proxying (no base domain).
+	s := newTestServer(f)
+	if s.ProxyEnabled() {
+		t.Fatal("test server unexpectedly has proxying enabled")
+	}
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "cc-box"}); err != nil {
+		t.Fatalf("createBox should not fail when proxying is disabled: %v", err)
+	}
+}
+
 // TestProxyURLCarriesPublicURLPort checks proxyURL appends the public URL's port
 // so the advertised URL is reachable when the hub runs on a non-standard port,
 // while the base domain itself stays port-free.

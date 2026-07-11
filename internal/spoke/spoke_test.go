@@ -290,6 +290,35 @@ func TestSpokeInitScriptFromFlag(t *testing.T) {
 	}
 }
 
+// TestSpokeParsePublishPorts checks --publish-port parses the bare-port and
+// port:description forms, and rejects malformed, out-of-range, and duplicate
+// values so a typo fails the spoke at startup rather than on every box create.
+func TestSpokeParsePublishPorts(t *testing.T) {
+	// Unset: no ports, no error.
+	if p, err := (spokeOptions{}).parsePublishPorts(); err != nil || p != nil {
+		t.Fatalf("parsePublishPorts(unset) = (%v, %v), want (nil, nil)", p, err)
+	}
+
+	got, err := (spokeOptions{publishPorts: []string{"8080", "3000:vite dev server"}}).parsePublishPorts()
+	if err != nil {
+		t.Fatalf("parsePublishPorts: %v", err)
+	}
+	if len(got) != 2 ||
+		got[0].Port != 8080 || got[0].Description != "" ||
+		got[1].Port != 3000 || got[1].Description != "vite dev server" {
+		t.Fatalf("parsed = %+v, want [{8080 } {3000 vite dev server}]", got)
+	}
+
+	for _, bad := range []string{"", "abc", "0", "70000", "-1", "99999", "8x:desc"} {
+		if _, err := (spokeOptions{publishPorts: []string{bad}}).parsePublishPorts(); err == nil {
+			t.Errorf("parsePublishPorts(%q) = nil error, want error", bad)
+		}
+	}
+	if _, err := (spokeOptions{publishPorts: []string{"8080", "8080:again"}}).parsePublishPorts(); err == nil {
+		t.Error("parsePublishPorts(duplicate) = nil error, want error")
+	}
+}
+
 // TestSpokeInitScriptErrors checks --init-script rejects a missing file and an
 // empty (whitespace-only) script, so a misconfigured provisioning file fails the
 // spoke at startup rather than silently on every box create.
