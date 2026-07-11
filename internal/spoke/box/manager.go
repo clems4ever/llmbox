@@ -13,8 +13,8 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
-// Config tunes a Manager. The zero value is valid: no remote-control args and no
-// box-count cap.
+// Config tunes a Manager. The zero value is valid: no remote-control args, no
+// box-count cap, and no init script.
 type Config struct {
 	// RemoteArgs is passed through to the box entrypoint's `claude remote-control`
 	// invocation (the guest appends a --name for the default session).
@@ -23,7 +23,25 @@ type Config struct {
 	// box once the count is reached (0 = unlimited). It bounds the by-design
 	// unauthenticated create path.
 	MaxBoxes int
+	// InitScript is an optional host-provided provisioning script the guest runs
+	// inside every box during Init, before claude starts, as the box user. Nil runs
+	// nothing. It lets a spoke customise its boxes without rebuilding the image.
+	InitScript []byte
+	// InitScriptTimeout bounds how long the init script may run before Create fails
+	// the box. Non-positive uses the guest default (five minutes).
+	InitScriptTimeout time.Duration
 }
+
+const (
+	// initScriptClientMargin is the extra slack added to InitScriptTimeout for the
+	// Init call's own deadline, so the guest's own timeout fires first and returns a
+	// descriptive error rather than the host giving up on the connection mid-script.
+	initScriptClientMargin = 30 * time.Second
+	// defaultInitScriptTimeout mirrors the guest's own default so the bounded Init
+	// deadline matches the script timeout the guest applies when Config leaves it
+	// unset. Keep it in sync with guest.defaultInitScriptTimeout.
+	defaultInitScriptTimeout = 5 * time.Minute
+)
 
 // Manager drives box lifecycle over a Provisioner and the in-box guest. It
 // implements cluster.BoxManager (and the BoxDialer the proxy layer uses) without
@@ -103,11 +121,16 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (id, a
 	// From here on, tear the box down on any failure so a half-created box is
 	// never left running.
 	c := m.client(inst)
-	if err := c.Init(ctx, guest.InitReq{
-		Files:      opts.Files,
-		RemoteArgs: m.cfg.RemoteArgs,
-		BoxID:      opts.BoxID,
-	}); err != nil {
+	initCtx, cancel := m.initContext(ctx)
+	err = c.Init(initCtx, guest.InitReq{
+		Files:             opts.Files,
+		RemoteArgs:        m.cfg.RemoteArgs,
+		BoxID:             opts.BoxID,
+		InitScript:        m.cfg.InitScript,
+		InitScriptTimeout: m.cfg.InitScriptTimeout,
+	})
+	cancel()
+	if err != nil {
 		_ = inst.Destroy(context.Background())
 		return "", "", fmt.Errorf("initialising box: %w", err)
 	}
@@ -117,6 +140,29 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (id, a
 		return "", "", fmt.Errorf("starting box: %w", err)
 	}
 	return inst.Meta().InstanceID, start.AuthorizeURL, nil
+}
+
+// initContext derives the context for the guest Init call. When an init script is
+// configured it bounds the call to the script timeout plus a margin, so the host
+// waits long enough for a slow provisioning script yet still gives up if the guest
+// hangs entirely (the guest's own, shorter timeout fires first with a descriptive
+// error). With no init script it returns the parent context and a no-op cancel, so
+// the common path is unchanged.
+//
+// @arg ctx The parent context for the create.
+// @return context.Context The context to pass to the Init call.
+// @return context.CancelFunc The cancel to call once Init returns (never nil).
+//
+// @testcase TestBoxManager covers create with no init script (the unbounded path).
+func (m *Manager) initContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if len(m.cfg.InitScript) == 0 {
+		return ctx, func() {}
+	}
+	timeout := m.cfg.InitScriptTimeout
+	if timeout <= 0 {
+		timeout = defaultInitScriptTimeout
+	}
+	return context.WithTimeout(ctx, timeout+initScriptClientMargin)
 }
 
 // SubmitCode writes the OAuth code to a pending box, waits for the session URL,

@@ -3,8 +3,8 @@
 		{
 			"function_name": "New",
 			"documentation_hash": "afe79c50b8f6ab9a7fc22d54910d6ae5329b54d176b5f9f4e9d10058b250304d",
-			"definition_hash": "b7ca2a82a64e6156740d6a7fdb834dc5c7bd92dffb763abb5fd4ba7a567cfbef",
-			"reviewed_at": "2026-07-11T07:31:34.556009285Z"
+			"definition_hash": "a165b01e8d0a4f3a2f14ffe578f839af977eacfac8e5c87fe6fd683b2897ba62",
+			"reviewed_at": "2026-07-11T09:32:51.297540588Z"
 		},
 		{
 			"function_name": "entryEnv",
@@ -58,15 +58,15 @@
 			"function_name": "dispatch",
 			"receiver": "Guest",
 			"documentation_hash": "71ae0abd79e2133ee431d1f00d0a14e387ca454246180f7943fa75680d6eea05",
-			"definition_hash": "8b064fc2dc034de5104b655dbc21db86436934f01fa2aa9c9ae09138e5936038",
-			"reviewed_at": "2026-07-09T18:51:40.279592751Z"
+			"definition_hash": "91bbc398a182d0931f7a15fb008f7446a5ca4596a6012ecd8877d363faba543e",
+			"reviewed_at": "2026-07-11T09:33:03.196161927Z"
 		},
 		{
 			"function_name": "handleInit",
 			"receiver": "Guest",
-			"documentation_hash": "aa75d5d2120e442545a72df4bb2cda20b1480903c7b7cd009ae2cfdd6a08f40b",
-			"definition_hash": "60edfd76f4a365b0cbc48b601e1f02366236d8cc25839a0c7afddc8ba0c3aecd",
-			"reviewed_at": "2026-07-09T18:51:40.284274755Z"
+			"documentation_hash": "199182b2c7e425d920471da7acdf79ba6c8f1560310d59a11ad713cd9096e056",
+			"definition_hash": "25034233f648650fbbfc073462c8ed9ee76e2cea8330118bedcc9fac41637895",
+			"reviewed_at": "2026-07-11T09:32:51.300341281Z"
 		},
 		{
 			"function_name": "handleStart",
@@ -127,6 +127,19 @@
 			"documentation_hash": "35fa931939b0d5d4aa98381fa91b9c43b1d67e408962734ea0c5fcb97121193e",
 			"definition_hash": "c3a989810d46a4937a99a1b2f37e58c0654e220b7223b2be742d9b2a218bb1cd",
 			"reviewed_at": "2026-07-09T18:51:40.543527562Z"
+		},
+		{
+			"function_name": "runInitScript",
+			"receiver": "Guest",
+			"documentation_hash": "2c0422017562733100f373e11a254d7afb85a0f383c14ac5cb646a2527b1beb5",
+			"definition_hash": "55096629f70b02c69624f64b8138258c3f074e8cfe3e13e75a4e00301e2a8520",
+			"reviewed_at": "2026-07-11T09:32:51.302282016Z"
+		},
+		{
+			"function_name": "homeFromEnv",
+			"documentation_hash": "67d6f7f8371f9edff08515ab448b2d7b60b4390cc65778e5b214a45bcd031b25",
+			"definition_hash": "42dfe29dc55cc1350facefa48a90a892deac096782cbb23def22a824a5584f95",
+			"reviewed_at": "2026-07-11T09:32:51.304572684Z"
 		}
 	]
 }

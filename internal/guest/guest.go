@@ -31,6 +31,13 @@ const (
 	// submitTimeout bounds how long SubmitCode waits for the session URL after the
 	// OAuth code is written.
 	submitTimeout = 90 * time.Second
+	// defaultInitScriptTimeout bounds an init script that the host did not give an
+	// explicit timeout for, so a hung provisioning script cannot wedge Create.
+	defaultInitScriptTimeout = 5 * time.Minute
+	// defaultInitScriptPath is where handleInit writes the host-provided init script
+	// inside the box before running it, under the guest's own runtime dir. Tests
+	// override it via Options.InitScriptPath so they need no privileged location.
+	defaultInitScriptPath = "/run/llmbox/init-script"
 )
 
 // Options configure a Guest.
@@ -46,6 +53,10 @@ type Options struct {
 	// HOME=/root); the in-process test fake sets a per-box home so concurrent
 	// boxes stay isolated.
 	Home string
+	// InitScriptPath is where the host-provided init script is written inside the
+	// box before it is run. Empty uses defaultInitScriptPath; tests override it to a
+	// writable temp path so they need no privileged location.
+	InitScriptPath string
 	// Credential, when non-nil, is the OS credential (uid/gid and supplementary
 	// groups) the guest drops to when launching the box's claude process and Exec
 	// commands. The guest itself keeps its own privileges (root, to serve the
@@ -63,11 +74,12 @@ type Options struct {
 // lifetime; lifecycle verbs (Init then Start then SubmitCode) are serialised,
 // while Exec, Logs, and Dial may run concurrently once started.
 type Guest struct {
-	claudeCmd string
-	shell     string
-	home      string
-	cred      *syscall.Credential
-	log       *slog.Logger
+	claudeCmd      string
+	shell          string
+	home           string
+	initScriptPath string
+	cred           *syscall.Credential
+	log            *slog.Logger
 
 	mu      sync.Mutex // guards the init/start lifecycle fields below
 	initReq InitReq
@@ -86,17 +98,21 @@ type Guest struct {
 // @testcase TestGuestLifecycle drives a guest built by New through its verbs.
 func New(opts Options) *Guest {
 	a := &Guest{
-		claudeCmd: opts.ClaudeCmd,
-		shell:     opts.Shell,
-		home:      opts.Home,
-		cred:      opts.Credential,
-		log:       opts.Log,
+		claudeCmd:      opts.ClaudeCmd,
+		shell:          opts.Shell,
+		home:           opts.Home,
+		initScriptPath: opts.InitScriptPath,
+		cred:           opts.Credential,
+		log:            opts.Log,
 	}
 	if a.claudeCmd == "" {
 		a.claudeCmd = "claude"
 	}
 	if a.shell == "" {
 		a.shell = "/bin/sh"
+	}
+	if a.initScriptPath == "" {
+		a.initScriptPath = defaultInitScriptPath
 	}
 	if a.log == nil {
 		a.log = slog.Default()
@@ -299,7 +315,7 @@ func (a *Guest) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 		if err := json.Unmarshal(r.Data, &in); err != nil {
 			return nil, fmt.Errorf("decoding init: %w", err)
 		}
-		return nil, a.handleInit(in)
+		return nil, a.handleInit(ctx, in)
 	case verbStart:
 		out, err := a.handleStart()
 		if err != nil {
@@ -337,15 +353,20 @@ func (a *Guest) dispatch(ctx context.Context, r req) (json.RawMessage, error) {
 	}
 }
 
-// handleInit records the box parameters and writes the injected files. It must be
-// called once before Start.
+// handleInit records the box parameters, writes the injected files, and runs the
+// host-provided init script (if any) before the box is marked initialised. It must
+// be called once before Start. A failing init script leaves the box uninitialised
+// so Start never runs, and the manager tears the half-created box down.
 //
-// @arg in The init request carrying the files, remote args, box ID, and env.
-// @error error if a file cannot be written, or Init was already called.
+// @arg ctx Context for the init script (its cancellation stops the script).
+// @arg in The init request carrying the files, remote args, box ID, env, and init script.
+// @error error if a file cannot be written, the init script fails, or Init was already called.
 //
 // @testcase TestGuestLifecycle injects files via Init before Start.
 // @testcase TestGuestInitWritesFiles writes each file with its mode and owner.
-func (a *Guest) handleInit(in InitReq) error {
+// @testcase TestGuestInitRunsScript runs the init script as the box user before Start.
+// @testcase TestGuestInitScriptFailureFailsInit reports a non-zero init script and leaves the box uninitialised.
+func (a *Guest) handleInit(ctx context.Context, in InitReq) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.inited {
@@ -356,9 +377,90 @@ func (a *Guest) handleInit(in InitReq) error {
 			return err
 		}
 	}
+	// Record the params before running the init script so it (via entryEnv) sees
+	// the box's HOME/PATH/env. inited stays false until the script succeeds, so a
+	// failing script still leaves the box un-started.
 	a.initReq = in
+	if len(in.InitScript) > 0 {
+		if err := a.runInitScript(ctx, in); err != nil {
+			return err
+		}
+	}
 	a.inited = true
 	return nil
+}
+
+// runInitScript writes the host-provided init script into the box and runs it to
+// completion as the same (unprivileged) credential claude runs as, with the box
+// environment and the box user's home as the working directory. Its combined
+// output is captured: a non-zero exit (or launch failure) returns an error
+// carrying a tail of that output, while a successful run is logged. The run is
+// bounded by in.InitScriptTimeout (or defaultInitScriptTimeout when unset), so a
+// hung script cannot wedge box creation. Callers hold a.mu.
+//
+// @arg ctx Context whose cancellation stops the script.
+// @arg in The init request carrying the script bytes and its timeout.
+// @error error if the script cannot be written or launched, or exits non-zero.
+//
+// @testcase TestGuestInitRunsScript runs the script as the box user before Start.
+// @testcase TestGuestInitScriptFailureFailsInit surfaces a non-zero exit with an output tail.
+func (a *Guest) runInitScript(ctx context.Context, in InitReq) error {
+	uid, gid := 0, 0
+	if a.cred != nil {
+		uid, gid = int(a.cred.Uid), int(a.cred.Gid)
+	}
+	if err := writeInjectFile(sandbox.InjectFile{
+		Path: a.initScriptPath, Content: in.InitScript, Mode: 0o755, UID: uid, GID: gid,
+	}); err != nil {
+		return fmt.Errorf("writing init script: %w", err)
+	}
+
+	timeout := in.InitScriptTimeout
+	if timeout <= 0 {
+		timeout = defaultInitScriptTimeout
+	}
+	runCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(runCtx, a.initScriptPath)
+	cmd.Env = a.entryEnv()
+	if home := homeFromEnv(cmd.Env); home != "" {
+		cmd.Dir = home
+	}
+	if a.cred != nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{Credential: a.cred}
+	}
+	var out bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &out
+	err := cmd.Run()
+	a.log.Info("box init script finished", "err", err, "output_bytes", out.Len())
+	if err != nil {
+		tail := strings.TrimSpace(capOutput(out.Bytes()))
+		if runCtx.Err() != nil {
+			return fmt.Errorf("init script did not finish within %s; box said: %s", timeout, tail)
+		}
+		if tail != "" {
+			return fmt.Errorf("init script failed: %w; box said: %s", err, tail)
+		}
+		return fmt.Errorf("init script failed: %w", err)
+	}
+	return nil
+}
+
+// homeFromEnv returns the value of the HOME assignment in env, or empty when none
+// is present, so the init script runs from the box user's home directory.
+//
+// @arg env The environment slice to search.
+// @return string The HOME value, or empty when env sets no HOME.
+//
+// @testcase TestGuestInitRunsScript relies on homeFromEnv to run the script from HOME.
+func homeFromEnv(env []string) string {
+	for _, e := range env {
+		if v, ok := strings.CutPrefix(e, "HOME="); ok {
+			return v
+		}
+	}
+	return ""
 }
 
 // handleStart launches the claude entrypoint on a PTY and waits for either the

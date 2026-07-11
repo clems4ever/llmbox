@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
@@ -53,12 +54,22 @@ type resp struct {
 
 // InitReq carries everything the guest needs to prepare the box before launching
 // claude: the per-box files to write, the remote-control args, the box ID (used
-// to name the default session), and the environment for the claude process.
+// to name the default session), the environment for the claude process, and an
+// optional host-provided init script run once inside the box before claude
+// starts (with its own timeout) so a spoke can customise every box without
+// rebuilding the image.
 type InitReq struct {
 	Files      []sandbox.InjectFile `json:"files,omitempty"`
 	RemoteArgs string               `json:"remote_args,omitempty"`
 	BoxID      string               `json:"box_id,omitempty"`
 	Env        []string             `json:"env,omitempty"`
+	// InitScript is an optional provisioning script run inside the box during Init,
+	// before claude starts, as the same (unprivileged) user claude runs as. Empty
+	// runs nothing. A non-zero exit fails Init, so the box is never started.
+	InitScript []byte `json:"init_script,omitempty"`
+	// InitScriptTimeout bounds how long the init script may run. A non-positive
+	// value uses the guest default (defaultInitScriptTimeout).
+	InitScriptTimeout time.Duration `json:"init_script_timeout,omitempty"`
 }
 
 // StartResp reports the outcome of launching claude: exactly one field is set.
