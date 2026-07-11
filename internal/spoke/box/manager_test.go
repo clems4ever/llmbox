@@ -51,10 +51,11 @@ func TestBoxManagerDialBox(t *testing.T) {
 	m := box.NewManager(conformance.NewFake(t), box.Config{})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	id, _, err := m.Create(ctx, sandbox.CreateOptions{})
+	created, err := m.Create(ctx, sandbox.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	id := created.InstanceID
 
 	conn, err := m.DialBox(ctx, id, port)
 	if err != nil {
@@ -136,7 +137,7 @@ func errOr(e error) error {
 // the uniqueness check.
 func TestManagerCreateUniquenessListError(t *testing.T) {
 	m := box.NewManager(&stubProv{listErr: errors.New("list boom")}, box.Config{})
-	if _, _, err := m.Create(context.Background(), sandbox.CreateOptions{BoxID: "x"}); err == nil {
+	if _, err := m.Create(context.Background(), sandbox.CreateOptions{BoxID: "x"}); err == nil {
 		t.Fatal("Create should fail when the uniqueness check cannot list boxes")
 	}
 }
@@ -144,7 +145,7 @@ func TestManagerCreateUniquenessListError(t *testing.T) {
 // TestManagerCreateProvisionError surfaces a provisioning error.
 func TestManagerCreateProvisionError(t *testing.T) {
 	m := box.NewManager(&stubProv{provErr: errors.New("prov boom")}, box.Config{})
-	if _, _, err := m.Create(context.Background(), sandbox.CreateOptions{}); err == nil {
+	if _, err := m.Create(context.Background(), sandbox.CreateOptions{}); err == nil {
 		t.Fatal("Create should fail when provisioning fails")
 	}
 }
@@ -154,7 +155,7 @@ func TestManagerCreateProvisionError(t *testing.T) {
 func TestManagerCreateGuestError(t *testing.T) {
 	inst := &stubInst{controlErr: errors.New("no guest")}
 	m := box.NewManager(&stubProv{provInst: inst}, box.Config{})
-	if _, _, err := m.Create(context.Background(), sandbox.CreateOptions{}); err == nil {
+	if _, err := m.Create(context.Background(), sandbox.CreateOptions{}); err == nil {
 		t.Fatal("Create should fail when the guest is unreachable")
 	}
 }

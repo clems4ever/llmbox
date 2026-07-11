@@ -123,7 +123,7 @@ func TestGuestLifecycle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if err := c.Init(ctx, InitReq{BoxID: "my-box", Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{BoxID: "my-box", Env: boxEnv(t, false)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 
@@ -178,7 +178,7 @@ func TestGuestRunsAsCredential(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if err := c.Init(ctx, InitReq{BoxID: "cred-box", Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{BoxID: "cred-box", Env: boxEnv(t, false)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	// handleStart must still bring the box up with a credential set on the PTY.
@@ -242,7 +242,7 @@ func TestGuestStartAlreadyAuthenticated(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if err := c.Init(ctx, InitReq{BoxID: "authed", Env: boxEnv(t, true)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{BoxID: "authed", Env: boxEnv(t, true)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	start, err := c.Start(ctx)
@@ -270,7 +270,7 @@ func TestGuestInitWritesFiles(t *testing.T) {
 	defer cancel()
 
 	target := filepath.Join(t.TempDir(), "nested", "seed.json")
-	if err := c.Init(ctx, InitReq{
+	if _, err := c.Init(ctx, InitReq{
 		Env:   boxEnv(t, false),
 		Files: []sandbox.InjectFile{{Path: target, Content: []byte(`{"ok":true}`), Mode: 0o600}},
 	}); err != nil {
@@ -303,7 +303,7 @@ func TestGuestInitRunsScript(t *testing.T) {
 	home := t.TempDir()
 	sentinel := filepath.Join(home, "provisioned")
 	script := "#!/bin/sh\necho customising box\ntouch \"$HOME/provisioned\"\n"
-	if err := c.Init(ctx, InitReq{
+	if _, err := c.Init(ctx, InitReq{
 		Env:        []string{"HOME=" + home, "PATH=" + os.Getenv("PATH")},
 		InitScript: []byte(script),
 	}); err != nil {
@@ -317,10 +317,11 @@ func TestGuestInitRunsScript(t *testing.T) {
 	}
 }
 
-// TestGuestInitScriptFailureFailsInit checks a non-zero init script fails Init
-// (carrying a tail of its output) and leaves the box uninitialised so Start
-// refuses to run.
-func TestGuestInitScriptFailureFailsInit(t *testing.T) {
+// TestGuestInitScriptFailureReportsBroken checks a non-zero init script does not
+// fail Init at the transport level but reports a broken box in the InitResp
+// (carrying the reason and its output), and leaves the box uninitialised so Start
+// refuses to run — the host keeps the box for inspection rather than tearing it down.
+func TestGuestInitScriptFailureReportsBroken(t *testing.T) {
 	_, c := startGuest(t, Options{
 		ClaudeCmd:      writeMockClaude(t),
 		InitScriptPath: filepath.Join(t.TempDir(), "init-script"),
@@ -329,15 +330,21 @@ func TestGuestInitScriptFailureFailsInit(t *testing.T) {
 	defer cancel()
 
 	script := "#!/bin/sh\necho boom-provisioning-error 1>&2\nexit 7\n"
-	err := c.Init(ctx, InitReq{
+	resp, err := c.Init(ctx, InitReq{
 		Env:        boxEnv(t, false),
 		InitScript: []byte(script),
 	})
-	if err == nil {
-		t.Fatal("Init should have failed on a non-zero init script")
+	if err != nil {
+		t.Fatalf("Init should report a broken box as data, not error: %v", err)
 	}
-	if !strings.Contains(err.Error(), "boom-provisioning-error") {
-		t.Fatalf("error missing script output tail: %v", err)
+	if !resp.ScriptFailed {
+		t.Fatal("InitResp.ScriptFailed should be set for a non-zero init script")
+	}
+	if !strings.Contains(resp.ScriptError, "exit status 7") {
+		t.Fatalf("ScriptError = %q, want the exit reason", resp.ScriptError)
+	}
+	if !strings.Contains(resp.ScriptOutput, "boom-provisioning-error") {
+		t.Fatalf("ScriptOutput missing the script's output: %q", resp.ScriptOutput)
 	}
 	if _, err := c.Start(ctx); err == nil {
 		t.Fatal("Start should refuse to run after a failed init script")
@@ -349,7 +356,7 @@ func TestGuestExecNonZeroExit(t *testing.T) {
 	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	res, err := c.Exec(ctx, []string{"/bin/sh", "-c", "echo out; echo err 1>&2; exit 3"})
@@ -380,7 +387,7 @@ func TestGuestSubmitCodeBeforeStart(t *testing.T) {
 	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t)})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
+	if _, err := c.Init(ctx, InitReq{Env: boxEnv(t, false)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	if _, err := c.SubmitCode(ctx, "x"); err == nil || !strings.Contains(err.Error(), "not started") {

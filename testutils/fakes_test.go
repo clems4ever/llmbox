@@ -23,8 +23,8 @@ func TestFakeMgr(t *testing.T) {
 	f.ExecResult = sandbox.ExecResult{ExitCode: 0}
 	f.Reaped = []string{"r1"}
 
-	if id, url, err := m.Create(context.Background(), sandbox.CreateOptions{BoxID: "b1"}); err != nil || id != "cid" || url != "https://auth" {
-		t.Errorf("Create = %q, %q, %v", id, url, err)
+	if res, err := m.Create(context.Background(), sandbox.CreateOptions{BoxID: "b1"}); err != nil || res.InstanceID != "cid" || res.AuthorizeURL != "https://auth" {
+		t.Errorf("Create = %+v, %v", res, err)
 	}
 	if f.GotOpts.BoxID != "b1" {
 		t.Errorf("GotOpts.BoxID = %q, want b1", f.GotOpts.BoxID)

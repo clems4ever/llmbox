@@ -9,6 +9,7 @@ import {
   Anchor,
   Box,
   Button,
+  Code,
   CopyButton,
   Divider,
   Drawer,
@@ -100,12 +101,30 @@ function Metadata({ box }: { box: BoxView }): JSX.Element {
         <Field label="State" value={box.state} />
         <Field label="Created" value={createdAt(box.created) || "—"} />
       </SimpleGrid>
+      {box.phase === "broken" && <InitScriptFailure output={box.last_error} />}
       {link && (
         <Anchor href={link.href} target="_blank" rel="noopener">
           <Button variant="light" size="sm">{link.label} workspace</Button>
         </Anchor>
       )}
     </Stack>
+  );
+}
+
+/** InitScriptFailure surfaces why a broken workspace's init script failed: the
+ * captured output the spoke reported, so an operator can diagnose it without
+ * shelling into the box. */
+function InitScriptFailure({ output }: { output?: string }): JSX.Element {
+  return (
+    <Paper withBorder radius="md" p="sm" data-broken-init-script>
+      <Text size="xs" c="red" tt="uppercase" fw={700} mb={4}>
+        Init script failed
+      </Text>
+      <Text size="xs" c="dimmed" mb="xs">
+        The workspace's provisioning script failed, so it never started. Its output:
+      </Text>
+      <Code block>{output?.trim() || "(no output captured)"}</Code>
+    </Paper>
   );
 }
 

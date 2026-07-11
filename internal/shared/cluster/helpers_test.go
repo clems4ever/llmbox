@@ -111,14 +111,14 @@ func (f *fakeManager) DialBox(ctx context.Context, _ string, _ int) (net.Conn, e
 }
 
 // Create is a test helper.
-func (f *fakeManager) Create(_ context.Context, opts sandbox.CreateOptions) (string, string, error) {
+func (f *fakeManager) Create(_ context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.lastCreate = opts
 	if f.err != nil {
-		return "", "", f.err
+		return sandbox.CreateResult{}, f.err
 	}
-	return f.createID, f.createURL, nil
+	return sandbox.CreateResult{InstanceID: f.createID, AuthorizeURL: f.createURL}, nil
 }
 
 // SubmitCode is a test helper.

@@ -145,11 +145,16 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 		if in.Opts.BoxID != "" && !sandbox.ValidBoxID(in.Opts.BoxID) {
 			return nil, fmt.Errorf("invalid box id %q: must be 1-63 chars of lowercase letters, digits, or hyphens (not starting or ending with a hyphen)", in.Opts.BoxID)
 		}
-		id, url, err := mgr.Create(ctx, in.Opts)
+		res, err := mgr.Create(ctx, in.Opts)
 		if err != nil {
 			return nil, err
 		}
-		return encodePayload(createResp{ID: id, AuthorizeURL: url})
+		return encodePayload(createResp{
+			ID:               res.InstanceID,
+			AuthorizeURL:     res.AuthorizeURL,
+			InitScriptFailed: res.InitScriptFailed,
+			InitScriptOutput: res.InitScriptOutput,
+		})
 	case methodSubmitCode:
 		var in submitCodeReq
 		if err := decodePayload(req.Payload, &in); err != nil {

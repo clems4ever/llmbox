@@ -72,6 +72,20 @@ type InitReq struct {
 	InitScriptTimeout time.Duration `json:"init_script_timeout,omitempty"`
 }
 
+// InitResp reports the outcome of Init. A file-write or already-initialised
+// failure is a transport error (an error frame), not this payload; this payload
+// reports the one failure the host must NOT treat as a torn-down box: a failing
+// init script. When ScriptFailed is true the box was provisioned and is left
+// running (claude never started, so it is inert), and ScriptError/ScriptOutput
+// carry the reason and the script's captured output so the host can surface a
+// broken box the operator can inspect instead of a vanished one. The zero value
+// (ScriptFailed false) means Init succeeded and Start may proceed.
+type InitResp struct {
+	ScriptFailed bool   `json:"script_failed,omitempty"`
+	ScriptError  string `json:"script_error,omitempty"`
+	ScriptOutput string `json:"script_output,omitempty"`
+}
+
 // StartResp reports the outcome of launching claude: exactly one field is set.
 // AuthorizeURL means the box needs an OAuth login (the caller must follow up with
 // SubmitCode); SessionURL means the box already had credentials and went straight

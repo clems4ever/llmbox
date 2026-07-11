@@ -180,7 +180,7 @@ func newFakeSpokeMgr(name, img string) *fakeSpokeMgr {
 }
 
 // Create simulates launching a box, recording the call and returning a fake container ID.
-func (m *fakeSpokeMgr) Create(_ context.Context, opts sandbox.CreateOptions) (string, string, error) {
+func (m *fakeSpokeMgr) Create(_ context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := randHex(20)
@@ -188,7 +188,7 @@ func (m *fakeSpokeMgr) Create(_ context.Context, opts sandbox.CreateOptions) (st
 	m.createCount++
 	// The spoke launches its own configured image; the create request names none.
 	m.launched = m.img
-	return id, "https://auth.example/", nil
+	return sandbox.CreateResult{InstanceID: id, AuthorizeURL: "https://auth.example/"}, nil
 }
 
 // image returns the image launched for the most recent create call, under the lock.

@@ -285,17 +285,21 @@ func (r *remoteSpoke) call(ctx context.Context, method string, req, resp any) er
 //
 // @arg ctx Context for the call.
 // @arg opts The box creation options.
-// @return id The new box's opaque generation token on the spoke.
-// @return authorizeURL The OAuth authorize URL captured on the spoke.
+// @return sandbox.CreateResult The box's generation token and authorize URL, or the init-script failure and its output.
 // @error error if the call fails or the spoke returns an error.
 //
 // @testcase TestRemoteSpokeRoundTrip creates a box through the remote spoke.
-func (r *remoteSpoke) Create(ctx context.Context, opts sandbox.CreateOptions) (id, authorizeURL string, err error) {
+func (r *remoteSpoke) Create(ctx context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	var resp createResp
 	if err := r.call(ctx, methodCreate, createReq{Opts: opts}, &resp); err != nil {
-		return "", "", err
+		return sandbox.CreateResult{}, err
 	}
-	return resp.ID, resp.AuthorizeURL, nil
+	return sandbox.CreateResult{
+		InstanceID:       resp.ID,
+		AuthorizeURL:     resp.AuthorizeURL,
+		InitScriptFailed: resp.InitScriptFailed,
+		InitScriptOutput: resp.InitScriptOutput,
+	}, nil
 }
 
 // SubmitCode forwards an OAuth code submission to the spoke.

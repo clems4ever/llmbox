@@ -69,20 +69,20 @@ func newFakeBoxManager(platform *fakeAnthropic) *fakeBoxManager {
 // @return id The simulated container ID of the new box.
 // @return authorizeURL The OAuth authorize URL for the box's login.
 // @error error if the requested box ID is already in use.
-func (m *fakeBoxManager) Create(_ context.Context, opts sandbox.CreateOptions) (id, authorizeURL string, err error) {
+func (m *fakeBoxManager) Create(_ context.Context, opts sandbox.CreateOptions) (sandbox.CreateResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if opts.BoxID != "" {
 		for _, b := range m.boxes {
 			if strings.EqualFold(b.boxID, opts.BoxID) {
-				return "", "", fmt.Errorf("box ID %q is already used by container %s; choose a different box ID", opts.BoxID, b.containerID[:12])
+				return sandbox.CreateResult{}, fmt.Errorf("box ID %q is already used by container %s; choose a different box ID", opts.BoxID, b.containerID[:12])
 			}
 		}
 	}
 	// The spoke owns the image: every box launches the spoke's configured default,
 	// not one named by the create request.
 	image := docker.DefaultImage
-	id = randHex(m.miscRand, 20)
+	id := randHex(m.miscRand, 20)
 	state, authorizeURL := m.platform.beginLogin()
 	m.boxes[id] = &fakeBox{
 		containerID: id,
@@ -92,7 +92,7 @@ func (m *fakeBoxManager) Create(_ context.Context, opts sandbox.CreateOptions) (
 		authState:   state,
 		created:     time.Now().Unix(),
 	}
-	return id, authorizeURL, nil
+	return sandbox.CreateResult{InstanceID: id, AuthorizeURL: authorizeURL}, nil
 }
 
 // SubmitCode simulates feeding the user's code to the box's login process: it

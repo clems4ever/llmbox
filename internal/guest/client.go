@@ -77,15 +77,21 @@ func (c *Client) call(ctx context.Context, verb string, in, out any) error {
 	return nil
 }
 
-// Init writes the box's per-create files and records its parameters.
+// Init writes the box's per-create files, records its parameters, and runs the
+// init script (if any). A file-write or already-initialised failure is a returned
+// error; a failing init script is reported in the InitResp (ScriptFailed set),
+// not as an error, so the caller can keep the box as a broken one to inspect.
 //
 // @arg ctx Context for the call.
 // @arg in The init request.
-// @error error if the call fails.
+// @return InitResp The init outcome; ScriptFailed is set (with the reason and output) when the init script fails.
+// @error error if the call fails at the transport level (dial, framing, file write, or double-init).
 //
 // @testcase TestClientOverUnixSocket initialises a box through the client.
-func (c *Client) Init(ctx context.Context, in InitReq) error {
-	return c.call(ctx, verbInit, in, nil)
+func (c *Client) Init(ctx context.Context, in InitReq) (InitResp, error) {
+	var out InitResp
+	err := c.call(ctx, verbInit, in, &out)
+	return out, err
 }
 
 // Start launches claude and returns the authorize URL (login needed) or session

@@ -49,6 +49,10 @@ describe("phaseTone", () => {
     expect(phaseTone("error")).toBe("error");
     expect(phaseTone("provision-failed")).toBe("error");
   });
+  it("maps a broken box (init script failed) to error", () => {
+    expect(phaseTone("broken")).toBe("error");
+    expect(phaseTone("Broken")).toBe("error");
+  });
   it("maps anything else to pending", () => {
     expect(phaseTone("pending")).toBe("pending");
     expect(phaseTone("")).toBe("pending");

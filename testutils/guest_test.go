@@ -16,7 +16,7 @@ func TestGuestFixtureDrivesLifecycle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if err := f.Client.Init(ctx, guest.InitReq{BoxID: "fix-box", Env: f.BoxEnv(t, false)}); err != nil {
+	if _, err := f.Client.Init(ctx, guest.InitReq{BoxID: "fix-box", Env: f.BoxEnv(t, false)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 
@@ -64,7 +64,7 @@ func TestGuestFixtureSeedsCredentials(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if err := f.Client.Init(ctx, guest.InitReq{BoxID: "authed-box", Env: f.BoxEnv(t, true)}); err != nil {
+	if _, err := f.Client.Init(ctx, guest.InitReq{BoxID: "authed-box", Env: f.BoxEnv(t, true)}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	start, err := f.Client.Start(ctx)
