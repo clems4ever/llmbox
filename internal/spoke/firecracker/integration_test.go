@@ -173,5 +173,56 @@ func TestBoxAPIOverVsock(t *testing.T) {
 	}
 }
 
+// TestBoxRunsClaudeUserWithSudo proves the production base+payload boot runs box
+// commands as the unprivileged 'agent' user — claude refuses to bypass approvals
+// as root, so the payload passes --user agent to the guest — while passwordless
+// sudo still escalates to root. It needs the base rootfs plus the guest payload;
+// point LLMBOX_FC_ROOTFS at the base rootfs and set LLMBOX_FC_PAYLOAD to run it,
+// else it skips.
+//
+// @testcase TestBoxRunsClaudeUserWithSudo runs Exec as agent and escalates via sudo to root on a live microVM.
+func TestBoxRunsClaudeUserWithSudo(t *testing.T) {
+	kernel, rootfs := fcArtifacts(t)
+	payload := os.Getenv("LLMBOX_FC_PAYLOAD")
+	if payload == "" {
+		t.Skip("set LLMBOX_FC_PAYLOAD (with LLMBOX_FC_ROOTFS pointing at the base rootfs) to run the box-user test")
+	}
+	stateDir, err := os.MkdirTemp("/tmp", "fc-agent-")
+	if err != nil {
+		t.Fatalf("state dir: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(stateDir) })
+
+	p, err := NewProvisioner(kernel, rootfs, stateDir, nil)
+	if err != nil {
+		t.Fatalf("NewProvisioner: %v", err)
+	}
+	p.SetNetworking(false) // control-only: vsock needs no egress
+	p.SetPayloadImage(payload)
+	t.Cleanup(func() { _ = p.Close() })
+
+	inst, err := p.Provision(context.Background(), sandbox.CreateOptions{BoxID: "agent-box"})
+	if err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+
+	mgr := box.NewManager(p, box.Config{})
+	who, err := mgr.Exec(context.Background(), inst.Meta().InstanceID, []string{"id", "-un"})
+	if err != nil {
+		t.Fatalf("Exec id -un: %v", err)
+	}
+	if got := strings.TrimSpace(who.Stdout); got != "agent" {
+		t.Fatalf("box user = %q, want agent (stderr: %q)", got, who.Stderr)
+	}
+
+	root, err := mgr.Exec(context.Background(), inst.Meta().InstanceID, []string{"sudo", "-n", "id", "-un"})
+	if err != nil {
+		t.Fatalf("Exec sudo -n id -un: %v", err)
+	}
+	if got := strings.TrimSpace(root.Stdout); got != "root" {
+		t.Fatalf("sudo id -un = %q, want root (stderr: %q)", got, root.Stderr)
+	}
+}
+
 // compile-time check that *Provisioner satisfies the provisioner contract.
 var _ box.Provisioner = (*Provisioner)(nil)

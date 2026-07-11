@@ -127,12 +127,17 @@ update never rebuilds the multi-GiB OS:
   it is guest-agnostic it is slow-changing and cacheable: in CI it is built once and
   cached in GHCR keyed on its inputs (`.github/workflows/firecracker-assets.yml`);
   `make firecracker-debian-assets` pulls the cached base before building locally.
+  It also provisions a generic unprivileged **`agent`** account (home `/home/agent`,
+  passwordless `sudo`, member of the `docker` group) that box workloads run as.
 - **`scripts/firecracker/build-payload-drive.sh`** builds the tiny read-only
   **payload** (`payload.ext4`) carrying **everything llmbox-specific**: the static
   guest, the standalone `claude`, its trust seed, and an `entrypoint` that seeds a
   writable copy of the trust file and execs the guest on vsock. This half is cheap
   and rebuilt on every guest change, and is attached to every box as a shared
-  read-only second drive.
+  read-only second drive. The guest runs `claude` (and `Exec`) as the base's
+  unprivileged **`agent`** user — Claude Code refuses to bypass approvals as root —
+  while the guest itself stays root to serve the control channel; `agent` escalates
+  with passwordless `sudo` when a command genuinely needs it.
 - **`scripts/firecracker/build-debian-rootfs.sh`** is a convenience wrapper that
   builds both.
 

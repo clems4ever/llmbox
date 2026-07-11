@@ -5,7 +5,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -158,6 +160,38 @@ func TestGuestLifecycle(t *testing.T) {
 	}
 	if !strings.Contains(logs, "Remote control session ready") {
 		t.Fatalf("logs missing remote-control banner:\n%s", logs)
+	}
+}
+
+// TestGuestRunsAsCredential launches the box under an explicit OS credential and
+// checks both the PTY entrypoint (handleStart) and Exec (handleExec) run as that
+// uid. It targets the running user's own uid/gid — a no-op drop any non-root
+// process may perform — so the credential plumbing is exercised without root;
+// NoSetGroups skips the privileged setgroups call a non-root test cannot make.
+func TestGuestRunsAsCredential(t *testing.T) {
+	cred := &syscall.Credential{
+		Uid:         uint32(os.Getuid()),
+		Gid:         uint32(os.Getgid()),
+		NoSetGroups: true,
+	}
+	_, c := startGuest(t, Options{ClaudeCmd: writeMockClaude(t), Credential: cred})
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err := c.Init(ctx, InitReq{BoxID: "cred-box", Env: boxEnv(t, false)}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	// handleStart must still bring the box up with a credential set on the PTY.
+	if _, err := c.Start(ctx); err != nil {
+		t.Fatalf("Start with credential: %v", err)
+	}
+	// handleExec must run the command as the configured uid.
+	res, err := c.Exec(ctx, []string{"id", "-u"})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+	if got := strings.TrimSpace(res.Stdout); got != strconv.Itoa(os.Getuid()) {
+		t.Fatalf("id -u = %q, want %d", got, os.Getuid())
 	}
 }
 

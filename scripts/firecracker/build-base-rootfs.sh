@@ -65,7 +65,7 @@ docker run --rm --privileged -v "$OUT":/out debian:bookworm bash -euc "
 
   echo '>> mmdebstrap ${SUITE} base (systemd, docker, node, net tooling)'
   mmdebstrap --mode=root --variant=important \
-    --include=systemd-sysv,systemd-timesyncd,dbus,udev,ca-certificates,iproute2,iptables,nftables,kmod,procps,less,nano,curl,gnupg,openssh-client,git,nodejs,npm,docker.io,uidmap,dbus-user-session \
+    --include=systemd-sysv,systemd-timesyncd,dbus,udev,ca-certificates,iproute2,iptables,nftables,kmod,procps,less,nano,curl,gnupg,openssh-client,git,nodejs,npm,docker.io,sudo,uidmap,dbus-user-session \
     --components=main \
     ${SUITE} /rootfs http://deb.debian.org/debian
 
@@ -101,6 +101,19 @@ WAIT
   echo box > /rootfs/etc/hostname
   # Let root log in on the serial console with no password, for debugging.
   chroot /rootfs passwd -d root >/dev/null 2>&1 || true
+
+  # A generic unprivileged account box workloads run as. Claude Code refuses to
+  # bypass approvals while running as root, so the payload runs claude (and Exec)
+  # as 'agent' via the guest's --user flag. Passwordless sudo keeps the box a
+  # single-tenant, full-access environment (the real isolation boundary is the
+  # microVM, not this in-guest uid); docker-group membership lets the box user
+  # drive the baked-in dockerd without sudo. The account is defined here, in the
+  # generic base, because it is OS-level setup; the payload only seeds its home.
+  chroot /rootfs groupadd -f docker
+  chroot /rootfs useradd --create-home --shell /bin/bash --groups sudo,docker agent
+  install -d -m0755 /rootfs/etc/sudoers.d
+  printf 'agent ALL=(ALL) NOPASSWD:ALL\n' > /rootfs/etc/sudoers.d/agent
+  chmod 0440 /rootfs/etc/sudoers.d/agent
 
   # The provisioner boots with init=/init; point it at systemd.
   ln -sf /sbin/init /rootfs/init

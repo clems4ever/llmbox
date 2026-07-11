@@ -101,6 +101,12 @@
 			"documentation_hash": "0a60db8bba74e4217cac336bb827b47810fcb36b512cd45680632fc001e73126",
 			"definition_hash": "c7856436c73fea2ef729304f0627852c0fbebebe88207a50f01cbddf73eec730",
 			"reviewed_at": "2026-07-09T18:52:23.203519355Z"
+		},
+		{
+			"function_name": "TestGuestRunsAsCredential",
+			"documentation_hash": "5463c5e49842c45c34f71dc67777aa25b63c08f2c7f7078459b40bf9883f007c",
+			"definition_hash": "cba0e750ab41224cb011e50aac578bc35482452b944f7d1b02958037a1ea9f65",
+			"reviewed_at": "2026-07-11T07:31:34.558570202Z"
 		}
 	]
 }
