@@ -33,6 +33,11 @@ type fakeBackend struct {
 	destroyedID string
 	destroyErr  error
 
+	pausedID  string
+	pauseErr  error
+	resumedID string
+	resumeErr error
+
 	logs        string
 	gotLogsID   string
 	gotLogsTail int
@@ -115,6 +120,18 @@ func (f *fakeBackend) RegenerateJoinToken(context.Context, string) (api.SpokeEnr
 func (f *fakeBackend) DestroyBox(_ context.Context, containerID string) error {
 	f.destroyedID = containerID
 	return f.destroyErr
+}
+
+// PauseBox records the paused box ID and returns the canned error.
+func (f *fakeBackend) PauseBox(_ context.Context, boxID string) error {
+	f.pausedID = boxID
+	return f.pauseErr
+}
+
+// ResumeBox records the resumed box ID and returns the canned error.
+func (f *fakeBackend) ResumeBox(_ context.Context, boxID string) error {
+	f.resumedID = boxID
+	return f.resumeErr
 }
 
 // BoxLogs records the box ID and tail and returns the canned logs/error.

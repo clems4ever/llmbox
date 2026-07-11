@@ -127,6 +127,12 @@ type Backend interface {
 	RegenerateJoinToken(ctx context.Context, id string) (SpokeEnrollment, error)
 	// DestroyBox stops and removes the box with the given box ID.
 	DestroyBox(ctx context.Context, boxID string) error
+	// PauseBox stops the compute of the box with the given box ID to save CPU/RAM,
+	// keeping its disk so it can be resumed later.
+	PauseBox(ctx context.Context, boxID string) error
+	// ResumeBox restarts a paused box's compute and relaunches claude; the box comes
+	// back with a fresh session URL, observable on the next ListBoxes.
+	ResumeBox(ctx context.Context, boxID string) error
 	// BoxLogs returns the recent console output of the box with the given box ID.
 	BoxLogs(ctx context.Context, boxID string, tail int) (string, error)
 	// BoxExec runs a shell command inside the box with the given box ID.

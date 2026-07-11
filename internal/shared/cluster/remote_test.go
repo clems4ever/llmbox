@@ -63,6 +63,14 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 		t.Fatalf("Destroy err=%v lastDestroy=%q", err, fake.lastDestroy)
 	}
 
+	if err := rs.Pause(ctx, "b1"); err != nil || fake.lastPause != "b1" {
+		t.Fatalf("Pause err=%v lastPause=%q", err, fake.lastPause)
+	}
+
+	if url, err := rs.Resume(ctx, "b1"); err != nil || url != "https://session" || fake.lastResume != "b1" {
+		t.Fatalf("Resume = (%q,%v) lastResume=%q", url, err, fake.lastResume)
+	}
+
 	logs, err := rs.Logs(ctx, "b1", 42)
 	if err != nil || logs != "log output" {
 		t.Fatalf("Logs = (%q,%v)", logs, err)
@@ -169,6 +177,28 @@ func TestDispatchHandlesVerbs(t *testing.T) {
 	}
 	if fake.lastDestroy != "b1" {
 		t.Errorf("destroy reached fake with %q", fake.lastDestroy)
+	}
+
+	// Pause returns a nil payload.
+	p, err = dispatch(ctx, fake, mustReq(methodPause, pauseReq{IDOrName: "b1"}))
+	if err != nil || p != nil {
+		t.Fatalf("pause dispatch = (%s,%v)", p, err)
+	}
+	if fake.lastPause != "b1" {
+		t.Errorf("pause reached fake with %q", fake.lastPause)
+	}
+
+	// Resume returns the box's session URL.
+	p, err = dispatch(ctx, fake, mustReq(methodResume, resumeReq{IDOrName: "b1"}))
+	if err != nil {
+		t.Fatalf("resume dispatch: %v", err)
+	}
+	var rr resumeResp
+	if err := decodePayload(p, &rr); err != nil || rr.SessionURL != fake.sessionURL {
+		t.Fatalf("resume resp = %+v (%v)", rr, err)
+	}
+	if fake.lastResume != "b1" {
+		t.Errorf("resume reached fake with %q", fake.lastResume)
 	}
 
 	// List returns boxes.

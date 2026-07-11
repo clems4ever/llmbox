@@ -45,6 +45,12 @@ func TestFakeBackend(t *testing.T) {
 	if err := f.DestroyBox(ctx, "cid"); err != nil || f.GotDestroyID != "cid" {
 		t.Errorf("DestroyBox err=%v id=%q", err, f.GotDestroyID)
 	}
+	if err := f.PauseBox(ctx, "pz"); err != nil || f.GotPauseID != "pz" {
+		t.Errorf("PauseBox err=%v id=%q", err, f.GotPauseID)
+	}
+	if err := f.ResumeBox(ctx, "pz"); err != nil || f.GotResumeID != "pz" {
+		t.Errorf("ResumeBox err=%v id=%q", err, f.GotResumeID)
+	}
 	if _, _ = f.BoxLogs(ctx, "web", 5); f.GotLogsID != "web" || f.GotLogsTail != 5 {
 		t.Errorf("BoxLogs recorded %q/%d", f.GotLogsID, f.GotLogsTail)
 	}

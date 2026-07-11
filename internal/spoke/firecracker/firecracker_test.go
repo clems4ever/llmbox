@@ -208,6 +208,77 @@ func TestProvisionerBookkeeping(t *testing.T) {
 	}
 }
 
+// TestPauseResumeFirecrackerBox checks the pause/resume lifecycle: Pause stops the
+// VM, reports the box paused, persists that, and keeps the box listed and its slot
+// reserved; Resume boots a fresh VM from the kept rootfs, reports running again, and
+// clears the persisted paused flag.
+func TestPauseResumeFirecrackerBox(t *testing.T) {
+	eg := &fakeEgress{}
+	p, machines := newFakeProvisioner(t, eg)
+	ctx := context.Background()
+
+	inst, err := p.Provision(ctx, sandbox.CreateOptions{BoxID: "pz"})
+	if err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+	if inst.Meta().State != "running" {
+		t.Fatalf("state = %q, want running", inst.Meta().State)
+	}
+
+	if err := inst.Pause(ctx); err != nil {
+		t.Fatalf("Pause: %v", err)
+	}
+	if inst.Meta().State != sandbox.StatePaused {
+		t.Fatalf("state after pause = %q, want %q", inst.Meta().State, sandbox.StatePaused)
+	}
+	if !(*machines)[0].stopped {
+		t.Fatal("the VM was not stopped on pause")
+	}
+	// A paused box stays listed (so the hub never tombstones it) with its slot held.
+	if boxes, _ := p.List(ctx); len(boxes) != 1 {
+		t.Fatalf("List after pause = %d boxes, want 1", len(boxes))
+	}
+	if metas, _ := loadMetas(p.stateDir); len(metas) != 1 || !metas[0].Paused {
+		t.Fatalf("paused state not persisted: %+v", metas)
+	}
+
+	if err := inst.Resume(ctx); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if inst.Meta().State != "running" {
+		t.Fatalf("state after resume = %q, want running", inst.Meta().State)
+	}
+	if len(*machines) != 2 {
+		t.Fatalf("machines booted = %d, want 2 (a fresh VM on resume)", len(*machines))
+	}
+	if metas, _ := loadMetas(p.stateDir); len(metas) != 1 || metas[0].Paused {
+		t.Fatalf("paused flag not cleared after resume: %+v", metas)
+	}
+	// Resume reused the box's slot rather than allocating a new one, so egress was
+	// still provisioned only once.
+	if eg.ensures != 1 {
+		t.Fatalf("egress ensures = %d, want 1 (resume reuses the slot)", eg.ensures)
+	}
+}
+
+// TestPauseAlreadyGoneFirecracker reports ErrBoxNotFound when the box was destroyed
+// out from under a pause.
+func TestPauseAlreadyGoneFirecracker(t *testing.T) {
+	eg := &fakeEgress{}
+	p, _ := newFakeProvisioner(t, eg)
+	ctx := context.Background()
+	inst, err := p.Provision(ctx, sandbox.CreateOptions{BoxID: "g"})
+	if err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+	if err := inst.Destroy(ctx); err != nil {
+		t.Fatalf("Destroy: %v", err)
+	}
+	if err := inst.Pause(ctx); !errors.Is(err, sandbox.ErrBoxNotFound) {
+		t.Fatalf("Pause err = %v, want ErrBoxNotFound", err)
+	}
+}
+
 // mustFind resolves id through the provisioner or fails the test.
 func mustFind(t *testing.T, p *Provisioner, id string) interface{ Meta() sandbox.Box } {
 	t.Helper()

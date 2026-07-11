@@ -45,6 +45,17 @@ type Instance interface {
 	// MarkReady moves the box from the pending auth phase to ready, once it has
 	// authenticated, so the orphan reaper spares it.
 	MarkReady(ctx context.Context) error
+	// Pause stops the box's compute to free CPU/RAM while keeping its disk (auth,
+	// workspace) and identity, so it can later be resumed. The box keeps appearing
+	// in List (reported with sandbox.StatePaused) and its running guest/claude
+	// process is lost. Pausing an already-gone box returns a wrapped
+	// sandbox.ErrBoxNotFound.
+	Pause(ctx context.Context) error
+	// Resume restarts a paused box's compute from its kept disk and blocks until the
+	// guest's control channel is reachable again. It restores only the compute; the
+	// caller (the Manager) re-drives the guest handshake to relaunch claude. Resuming
+	// an already-gone box returns a wrapped sandbox.ErrBoxNotFound.
+	Resume(ctx context.Context) error
 	// Destroy stops and removes the box. Destroying an already-gone box returns a
 	// wrapped sandbox.ErrBoxNotFound, which the Manager treats as success.
 	Destroy(ctx context.Context) error

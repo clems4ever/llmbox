@@ -4,7 +4,7 @@
 // a WebSocket and the hub pushes box verbs down that connection; the spoke
 // executes them against its local *box.Manager and replies.
 //
-// The wire surface is deliberately the seven box verbs (BoxManager) and nothing
+// The wire surface is deliberately the box verbs of BoxManager and nothing
 // more: a spoke is never a generic Docker proxy. See docs/hub-and-spoke.md.
 package cluster
 
@@ -25,6 +25,8 @@ type BoxManager interface {
 	SubmitCode(ctx context.Context, idOrName, code string) (sessionURL string, err error)
 	List(ctx context.Context) ([]sandbox.Box, error)
 	Destroy(ctx context.Context, idOrName string) error
+	Pause(ctx context.Context, idOrName string) error
+	Resume(ctx context.Context, idOrName string) (sessionURL string, err error)
 	Logs(ctx context.Context, idOrName string, tail int) (string, error)
 	Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error)
 	ReapOrphans(ctx context.Context, ttl time.Duration) ([]string, error)

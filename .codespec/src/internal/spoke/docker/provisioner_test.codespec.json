@@ -276,6 +276,36 @@
 			"documentation_hash": "ae4143ae072bfc3c79a9701623377cd0e66d01141653d50a4798299dc9f0e1ea",
 			"definition_hash": "ab09fcf17eb93d5d84a02c7656bb2302d59b50c6cea8abed8e672648e7004669",
 			"reviewed_at": "2026-07-09T18:49:59.0080361Z"
+		},
+		{
+			"function_name": "TestPauseAlreadyGone",
+			"documentation_hash": "b6cf8676ae1f2d989498ffe73ffb45f1b29b6c11c8eadcb4805c4a2d96488f75",
+			"definition_hash": "31871caeda6c39f9757a65cb1df774839b375113e3f96b2e7703133587da300a",
+			"reviewed_at": "2026-07-11T11:13:34.028485712Z"
+		},
+		{
+			"function_name": "TestPauseResumeReportsPausedState",
+			"documentation_hash": "f26bb49490243c161de0a976df721995ac1fb924a7d24542d315df9dfd44420b",
+			"definition_hash": "090a964752eb1be5d27030b4e2a11f9054d5c2e68897919e57b62b9a2e2742fc",
+			"reviewed_at": "2026-07-11T11:13:34.031846032Z"
+		},
+		{
+			"function_name": "TestPauseStopsAndMarksBox",
+			"documentation_hash": "d0ea2002db251769ed37952f7a4ad410de62dbf894d4ae4a8ef4f12bfa70405d",
+			"definition_hash": "d228aa204fe539a3bff34cc82894face610a74c555fcb7f2fd6ee3c4db6c95b4",
+			"reviewed_at": "2026-07-11T11:13:34.035224106Z"
+		},
+		{
+			"function_name": "TestResumeStartsAndUnmarksBox",
+			"documentation_hash": "a2ce4050fca3524723e222a645eb0e5a77254017e8f0e561a911f22d01bcd0a4",
+			"definition_hash": "656dc51b140bf39ee14ef6f5a0f5a1d2ec5ad857b41b88a527aceec72dba44c6",
+			"reviewed_at": "2026-07-11T11:13:34.0387848Z"
+		},
+		{
+			"function_name": "TestResumeAlreadyGone",
+			"documentation_hash": "4606388de86e6d6410da2bbf8ae04c092905eefb7bbc1d674d71a931083e50c0",
+			"definition_hash": "4a374cd908aea0da51de52449109b58595f7cdacaf1eb2b56fa07a79eed3bfd1",
+			"reviewed_at": "2026-07-11T11:13:34.291645586Z"
 		}
 	]
 }

@@ -63,12 +63,13 @@ export function phaseTone(phase: string): PhaseTone {
   return "pending";
 }
 
-export type StateTone = "running" | "unreachable" | "terminated" | "stopped";
+export type StateTone = "running" | "unreachable" | "terminated" | "paused" | "stopped";
 
 /** stateTone classifies a box state for its badge colour: running is healthy,
  * unreachable means the box's spoke is offline (the box itself may be fine),
- * terminated is a tombstone for a box confirmed gone, and anything else
- * (exited, paused, …) is a stopped-ish backend state.
+ * terminated is a tombstone for a box confirmed gone, paused is a box
+ * deliberately stopped to save compute (resumable), and anything else (exited,
+ * …) is a stopped-ish backend state.
  *
  * @arg state The box's state string.
  * @return StateTone The tone the state badge should use.
@@ -78,6 +79,7 @@ export function stateTone(state: string): StateTone {
   if (s === "running") return "running";
   if (s === "unreachable") return "unreachable";
   if (s === "terminated") return "terminated";
+  if (s === "paused") return "paused";
   return "stopped";
 }
 

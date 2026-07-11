@@ -233,6 +233,56 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 	return nil
 }
 
+// Pause stops a managed box's compute to save CPU/RAM while keeping its disk, so it
+// can be resumed later. The box keeps existing (it still appears in List, reported
+// as paused); its running claude session ends.
+//
+// @arg ctx Context for the resolve and pause.
+// @arg idOrName The ID or name identifying the box to pause.
+// @error error if no managed box matches or the box cannot be paused.
+//
+// @testcase TestBoxManager pauses a box and sees it reported paused.
+func (m *Manager) Pause(ctx context.Context, idOrName string) error {
+	inst, err := m.prov.Find(ctx, idOrName)
+	if err != nil {
+		return err
+	}
+	return inst.Pause(ctx)
+}
+
+// Resume restarts a paused box's compute from its kept disk and re-drives the guest
+// handshake to relaunch claude, returning the new remote-control session URL. It
+// re-runs Init (with no injected files and no init script — the box's disk already
+// carries them) then Start; because the box's credentials persist on disk, Start
+// goes straight to a ready session rather than a fresh login.
+//
+// @arg ctx Context for the resolve, resume, and guest handshake.
+// @arg idOrName The ID or name identifying the box to resume.
+// @return sessionURL The remote-control session URL of the relaunched box.
+// @error error if no managed box matches, the box cannot be resumed, or the guest handshake fails.
+//
+// @testcase TestBoxManager resumes a paused box and returns its session URL.
+func (m *Manager) Resume(ctx context.Context, idOrName string) (sessionURL string, err error) {
+	inst, err := m.prov.Find(ctx, idOrName)
+	if err != nil {
+		return "", err
+	}
+	if err := inst.Resume(ctx); err != nil {
+		return "", err
+	}
+	c := m.client(inst)
+	// No files or init script on resume: the box's disk already carries them, and
+	// the init script is a create-time provisioning step, not a per-boot one.
+	if err := c.Init(ctx, guest.InitReq{RemoteArgs: m.cfg.RemoteArgs, BoxID: inst.Meta().BoxID}); err != nil {
+		return "", fmt.Errorf("re-initialising resumed box: %w", err)
+	}
+	start, err := c.Start(ctx)
+	if err != nil {
+		return "", fmt.Errorf("relaunching resumed box: %w", err)
+	}
+	return start.SessionURL, nil
+}
+
 // Logs returns the recent console transcript of a managed box.
 //
 // @arg ctx Context for the resolve and the guest call.

@@ -175,6 +175,25 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 			return nil, err
 		}
 		return nil, nil
+	case methodPause:
+		var in pauseReq
+		if err := decodePayload(req.Payload, &in); err != nil {
+			return nil, err
+		}
+		if err := mgr.Pause(ctx, in.IDOrName); err != nil {
+			return nil, err
+		}
+		return nil, nil
+	case methodResume:
+		var in resumeReq
+		if err := decodePayload(req.Payload, &in); err != nil {
+			return nil, err
+		}
+		url, err := mgr.Resume(ctx, in.IDOrName)
+		if err != nil {
+			return nil, err
+		}
+		return encodePayload(resumeResp{SessionURL: url})
 	case methodLogs:
 		var in logsReq
 		if err := decodePayload(req.Payload, &in); err != nil {

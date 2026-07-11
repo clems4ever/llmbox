@@ -53,6 +53,21 @@ func TestFakeMgr(t *testing.T) {
 		t.Errorf("ReapOrphans = %v, %v", reaped, err)
 	}
 
+	// Pause records the ID; Resume records the ID and returns the canned URL.
+	f.ResumeURL = "https://session2"
+	if err := m.Pause(context.Background(), "b1"); err != nil {
+		t.Errorf("Pause: %v", err)
+	}
+	if len(f.Paused) != 1 || f.Paused[0] != "b1" {
+		t.Errorf("Paused = %v, want [b1]", f.Paused)
+	}
+	if url, err := m.Resume(context.Background(), "b1"); err != nil || url != "https://session2" {
+		t.Errorf("Resume = %q, %v", url, err)
+	}
+	if len(f.Resumed) != 1 || f.Resumed[0] != "b1" {
+		t.Errorf("Resumed = %v, want [b1]", f.Resumed)
+	}
+
 	// Destroy records the ID and surfaces the canned DestroyErr.
 	sentinel := errors.New("gone")
 	f.DestroyErr = sentinel

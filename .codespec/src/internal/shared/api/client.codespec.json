@@ -144,6 +144,20 @@
 			"documentation_hash": "a92b258a36da175a600acf6ab004209f92365c9285103aece94fcc68bd21f1d6",
 			"definition_hash": "33db2d638bc16f0fe42e39c26acada1669633469ae675c255e529317f238970a",
 			"reviewed_at": "2026-07-10T15:19:22.255531421Z"
+		},
+		{
+			"function_name": "PauseBox",
+			"receiver": "Client",
+			"documentation_hash": "08dd1a05457d6758229fba35660fb935ea11b6c22d735f86442545145743fea2",
+			"definition_hash": "aa8dfd83c3b3cd046e1f38738262e61686b01c3def5be0179529922d102cc854",
+			"reviewed_at": "2026-07-11T11:12:12.902114988Z"
+		},
+		{
+			"function_name": "ResumeBox",
+			"receiver": "Client",
+			"documentation_hash": "8f1261d81def5ad79b2380113deb2a92ddee4c958de67b288266cb797bfac7fc",
+			"definition_hash": "14dd7503520f13fae5d547dcb1bede522569bae54404553788a91cd3da707dc1",
+			"reviewed_at": "2026-07-11T11:12:12.902913173Z"
 		}
 	]
 }

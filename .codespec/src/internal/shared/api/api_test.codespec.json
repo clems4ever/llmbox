@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestBackendAPIRoundTrip",
 			"documentation_hash": "c07e66b0f5701d550d273bd81136a2713fb52b00e84989ec4aeb8c8d9a056465",
-			"definition_hash": "b4f67a20e6526eeb33761d7f0cc7682a4c2bac6e820f4036dce3134d8d78f724",
-			"reviewed_at": "2026-07-10T15:19:22.248261092Z"
+			"definition_hash": "036446883538b250e5be4496d76c3ff34efca944e1031ddd9f374d5a62936edd",
+			"reviewed_at": "2026-07-11T11:12:12.901440053Z"
 		},
 		{
 			"function_name": "TestClientSurfacesServerError",

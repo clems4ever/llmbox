@@ -72,4 +72,38 @@ describe("WorkspacesView", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(await screen.findByText("removed workspace alpha")).toBeInTheDocument();
   });
+
+  it("pauses a running, activated workspace without a confirm dialog", async () => {
+    const api = mockApi();
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "running", phase: "ready" })] });
+    const { user } = render(
+      <WorkspacesView api={api} data={data} refresh={refresh} onSelect={vi.fn()} />,
+    );
+    await user.click(screen.getByRole("button", { name: "Pause alpha" }));
+    await waitFor(() => expect(api.pauseBox).toHaveBeenCalledWith("alpha"));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(await screen.findByText("paused workspace alpha")).toBeInTheDocument();
+  });
+
+  it("shows Resume (not Pause) for a paused workspace and resumes it", async () => {
+    const api = mockApi();
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "paused", phase: "ready" })] });
+    const { user } = render(
+      <WorkspacesView api={api} data={data} refresh={refresh} onSelect={vi.fn()} />,
+    );
+    expect(screen.queryByRole("button", { name: "Pause alpha" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Resume alpha" }));
+    await waitFor(() => expect(api.resumeBox).toHaveBeenCalledWith("alpha"));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(await screen.findByText("resumed workspace alpha")).toBeInTheDocument();
+  });
+
+  it("offers neither Pause nor Resume for a pending workspace", () => {
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "running", phase: "pending" })] });
+    render(<WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Pause alpha" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Resume alpha" })).toBeNull();
+  });
 });

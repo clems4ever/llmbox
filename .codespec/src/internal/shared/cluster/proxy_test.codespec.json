@@ -26,7 +26,7 @@
 			"receiver": "bareManager",
 			"documentation_hash": "9608d9235f6398fbcc4294edda483f39adc928c44e8a4ee87232b6c3ab8d6443",
 			"definition_hash": "271971939ffe4fc78ef2f1ae75f4e56b5592c5bb7ce643dd24b5640fea6b9938",
-			"reviewed_at": "2026-06-27T17:31:02.800639908Z"
+			"reviewed_at": "2026-07-11T11:13:33.490167537Z"
 		},
 		{
 			"function_name": "Logs",
@@ -120,6 +120,20 @@
 			"documentation_hash": "2351f6138a1d85a3a8a02bf3403d1667a80a104458757a2d5182b69ee1dc79a7",
 			"definition_hash": "5bb4757381bf0c70331c8c1275acbf1e392cb111534651f259ddf59a220b2d30",
 			"reviewed_at": "2026-07-07T09:45:45.28877996Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "bareManager",
+			"documentation_hash": "c9700ad601f754f0e984ab07def7d886197702cc5670b1dc30d7d40b5b973b09",
+			"definition_hash": "a758a87d56e93d1d51517b1332985b76e0d8ad7e2de253cfa168ca7fe1ccdf06",
+			"reviewed_at": "2026-07-11T11:13:33.495134172Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "bareManager",
+			"documentation_hash": "6fece885ab5685a8691a12894c50308a9769e783b39049caaaad9185325e8384",
+			"definition_hash": "2bd782453c51667bf5ec48a7f0d59295b10bb04674a4f734720d09e0122bafdc",
+			"reviewed_at": "2026-07-11T11:13:33.504869709Z"
 		}
 	]
 }

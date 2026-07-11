@@ -39,6 +39,7 @@ func Run(t *testing.T, newProv NewProvisioner) {
 	t.Run("ReapOrphans", func(t *testing.T) { testReapOrphans(t, newProv) })
 	t.Run("InitScript", func(t *testing.T) { testInitScript(t, newProv) })
 	t.Run("InitScriptFailure", func(t *testing.T) { testInitScriptFailure(t, newProv) })
+	t.Run("PauseResume", func(t *testing.T) { testPauseResume(t, newProv) })
 }
 
 // opCtx returns a context bounded to a generous per-operation timeout, cancelled
@@ -153,6 +154,87 @@ func testInitScriptFailure(t *testing.T, newProv NewProvisioner) {
 	if len(boxes) != 0 {
 		t.Fatalf("failed init left %d boxes behind, want 0", len(boxes))
 	}
+}
+
+// testPauseResume checks the pause/resume lifecycle end to end on a real box:
+// a ready box is paused (freeing compute — its guest goes away, so it reports
+// paused and Exec no longer reaches it), then resumed (its compute reboots from the
+// kept disk and claude relaunches to a fresh session URL, no re-login, since the
+// creds seeded on disk survive). It is part of the shared contract so every backend
+// proves pause frees compute while keeping disk, and resume brings the box back.
+//
+// @arg t The test to assert under.
+// @arg newProv Builds the provisioner under test.
+//
+// @testcase TestConformanceFake runs testPauseResume as a subtest.
+func testPauseResume(t *testing.T, newProv NewProvisioner) {
+	m := box.NewManager(newProv(t), box.Config{})
+	ctx := opCtx(t)
+
+	id, _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "pause-box"})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if _, err := m.SubmitCode(ctx, id, "the-code"); err != nil {
+		t.Fatalf("SubmitCode: %v", err)
+	}
+	// Seed a credentials file on the box's disk so that, after a resume reboots the
+	// box from that disk, claude comes straight up to a session without re-login —
+	// exactly as a real authenticated box would.
+	if res, err := m.Exec(ctx, id, []string{"sh", "-c", `mkdir -p "$HOME/.claude" && printf '{"t":"x"}' > "$HOME/.claude/.credentials.json"`}); err != nil || res.ExitCode != 0 {
+		t.Fatalf("seeding creds: err=%v res=%+v", err, res)
+	}
+
+	if err := m.Pause(ctx, id); err != nil {
+		t.Fatalf("Pause: %v", err)
+	}
+	boxes, err := m.List(ctx)
+	if err != nil {
+		t.Fatalf("List after pause: %v", err)
+	}
+	if s := findState(boxes, id); s != sandbox.StatePaused {
+		t.Fatalf("state after pause = %q, want %q", s, sandbox.StatePaused)
+	}
+	// Compute is gone: the guest is down, so Exec can no longer reach the box.
+	if _, err := m.Exec(ctx, id, []string{"echo", "hi"}); err == nil {
+		t.Fatal("Exec should fail on a paused box (its guest is stopped)")
+	}
+
+	sessionURL, err := m.Resume(ctx, id)
+	if err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if !strings.HasPrefix(sessionURL, "https://claude.ai/") {
+		t.Fatalf("resume session URL = %q, want a claude.ai session URL (box should come up authenticated)", sessionURL)
+	}
+	boxes, err = m.List(ctx)
+	if err != nil {
+		t.Fatalf("List after resume: %v", err)
+	}
+	if s := findState(boxes, id); s != "running" {
+		t.Fatalf("state after resume = %q, want running", s)
+	}
+	// Compute is back: Exec reaches the box again.
+	if res, err := m.Exec(ctx, id, []string{"echo", "back"}); err != nil || strings.TrimSpace(res.Stdout) != "back" {
+		t.Fatalf("Exec after resume: err=%v res=%+v", err, res)
+	}
+}
+
+// findState returns the reported State of the box with the given instance id, or ""
+// when absent.
+//
+// @arg boxes The boxes to search.
+// @arg id The instance id to match.
+// @return string The matched box's State, or "" when not found.
+//
+// @testcase TestConformanceFake relies on findState to read a box's state.
+func findState(boxes []sandbox.Box, id string) string {
+	for _, b := range boxes {
+		if b.InstanceID == id {
+			return b.State
+		}
+	}
+	return ""
 }
 
 // testDestroyIdempotent checks Destroy is idempotent.

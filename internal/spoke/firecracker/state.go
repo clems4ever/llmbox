@@ -26,6 +26,10 @@ type boxMeta struct {
 	Image string `json:"image,omitempty"`
 	// Phase is the auth phase ("pending" or "ready").
 	Phase string `json:"phase"`
+	// Paused is true when the box has been intentionally paused (its VM stopped to
+	// free CPU/RAM while its rootfs is kept). It is persisted so a paused box
+	// survives a spoke restart as paused rather than being reported merely stopped.
+	Paused bool `json:"paused,omitempty"`
 	// Created is the box creation time as a unix timestamp.
 	Created int64 `json:"created"`
 	// NetIndex is the per-box network slot, freed on Destroy.

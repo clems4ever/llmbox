@@ -17,8 +17,8 @@
 			"function_name": "Provision",
 			"receiver": "Fake",
 			"documentation_hash": "776cb596a2529efe24190d73ff7bd0982d583e50594080a85dfaca3049d31b92",
-			"definition_hash": "7bd365b6beff9a0de157b256b3d8e353680303bd76c42b4fae4b5279bca9bae4",
-			"reviewed_at": "2026-07-11T09:32:51.315452527Z"
+			"definition_hash": "dd24adf0f4b0268a4186542bc416b3002cd5a2d2c140a4cb4992d3ee6920db63",
+			"reviewed_at": "2026-07-11T11:13:33.762784027Z"
 		},
 		{
 			"function_name": "List",
@@ -38,8 +38,8 @@
 			"function_name": "Meta",
 			"receiver": "fakeInstance",
 			"documentation_hash": "5bc6f9bb881ac14da8d354659c87619132973a1e58e791f4ea377f2d256f3be9",
-			"definition_hash": "9b1f54af1b50b2776c7cbd9c558d13f0a99406480848310206aeece64b5c0d7f",
-			"reviewed_at": "2026-07-04T20:12:47.827337363Z"
+			"definition_hash": "938fef2ac41f82fc04a1bd08e250fbcd0697f435ef50c6d846b9bd3dccd3625a",
+			"reviewed_at": "2026-07-11T11:13:33.746305036Z"
 		},
 		{
 			"function_name": "Control",
@@ -59,8 +59,36 @@
 			"function_name": "Destroy",
 			"receiver": "fakeInstance",
 			"documentation_hash": "64fef15094181f1feee195873b980921c7db7704c50caf871c2858443703f397",
-			"definition_hash": "d8c2a9b013d916e0a4f726b9aaf6f6c5ef0a704dab08d45fd7cc5bb91e8928d5",
-			"reviewed_at": "2026-07-09T18:49:58.991046101Z"
+			"definition_hash": "674fbdd5adef727241ae223a63d9994348eb88c6bb7c2c5b3c2dcbd098f0ec9e",
+			"reviewed_at": "2026-07-11T11:13:33.744109383Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "fakeInstance",
+			"documentation_hash": "223cc7dc20e3f5660098dd902f655f7373e30db3e4dcf27b3bf441d4006bac27",
+			"definition_hash": "689ce27c464b2ed717d36ec5595ba750ca132c8d6fc7e73e69496c55e8ff0037",
+			"reviewed_at": "2026-07-11T11:13:33.755931325Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "fakeInstance",
+			"documentation_hash": "14156c1a3d59bd73996a3413fa2622f1a37511ef1dc13fb657ca5de528035bb3",
+			"definition_hash": "44845f515a6a28d5f59e793107eddcfbc7a6bc190a80bf52d71cee3195d4e638",
+			"reviewed_at": "2026-07-11T11:13:33.765213184Z"
+		},
+		{
+			"function_name": "serve",
+			"receiver": "fakeInstance",
+			"documentation_hash": "7423286db961b2d987c8f303849141d229eab3c3b824840aac6a24b5b819f09b",
+			"definition_hash": "6998c57e637f6b4646d051a5b72e8dac96c3317a0ac610049b681a98874d4934",
+			"reviewed_at": "2026-07-11T11:13:33.770398625Z"
+		},
+		{
+			"function_name": "stopGuest",
+			"receiver": "fakeInstance",
+			"documentation_hash": "8fc2c4db0bb3676752624dacc2616a9fbfa1cf6d53ccd9c412647674b5bf1559",
+			"definition_hash": "5adefd4f1f8322f8973a1f1ecc2152d889fad5dc5afccbeb64141db85bd1a381",
+			"reviewed_at": "2026-07-11T11:13:33.772698813Z"
 		}
 	]
 }

@@ -326,6 +326,12 @@ func (bareManager) List(context.Context) ([]sandbox.Box, error) { return nil, ni
 // Destroy is a no-op stub.
 func (bareManager) Destroy(context.Context, string) error { return nil }
 
+// Pause is an unused stub so bareManager satisfies BoxManager.
+func (bareManager) Pause(context.Context, string) error { return nil }
+
+// Resume is an unused stub so bareManager satisfies BoxManager.
+func (bareManager) Resume(context.Context, string) (string, error) { return "", nil }
+
 // Logs is a no-op stub.
 func (bareManager) Logs(context.Context, string, int) (string, error) { return "", nil }
 

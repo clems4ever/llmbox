@@ -3,6 +3,7 @@ package hub
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -237,6 +238,61 @@ func TestDestroyBoxByBoxIDRoutesToSpoke(t *testing.T) {
 	}
 	if s.lookup(sess.plainToken) != nil {
 		t.Error("session not removed after destroy by box id")
+	}
+}
+
+// TestPauseResumeBoxByBoxID checks pause and resume route to the box's spoke by box
+// ID, and that resume records the box's new session URL on its session.
+func TestPauseResumeBoxByBoxID(t *testing.T) {
+	other := &testutils.FakeMgr{}
+	edge := &testutils.FakeMgr{CreateID: "edge-id", ResumeURL: "https://claude.ai/s/new"}
+	s := serverWithSpokes(map[string]boxManager{"edge": edge, "other": other})
+
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"}); err != nil {
+		t.Fatalf("createBox: %v", err)
+	}
+
+	if err := s.pauseBox(context.Background(), "b1"); err != nil {
+		t.Fatalf("pauseBox: %v", err)
+	}
+	if len(edge.Paused) != 1 || edge.Paused[0] != "b1" {
+		t.Errorf("edge.Paused = %v, want [b1] (routed to the box's spoke)", edge.Paused)
+	}
+	if len(other.Paused) != 0 {
+		t.Errorf("other.Paused = %v, want none", other.Paused)
+	}
+
+	if err := s.resumeBox(context.Background(), "b1"); err != nil {
+		t.Fatalf("resumeBox: %v", err)
+	}
+	if len(edge.Resumed) != 1 || edge.Resumed[0] != "b1" {
+		t.Errorf("edge.Resumed = %v, want [b1]", edge.Resumed)
+	}
+	sess := s.lookupByBoxID("b1")
+	if sess == nil {
+		t.Fatal("session missing after resume")
+	}
+	if _, url, _ := sess.snapshot(); url != "https://claude.ai/s/new" {
+		t.Errorf("session URL = %q, want the resumed box's new session URL", url)
+	}
+}
+
+// TestBoxExecOnPausedBoxErrors checks a paused box refuses exec with a clear
+// message rather than a raw connection error against its stopped guest.
+func TestBoxExecOnPausedBoxErrors(t *testing.T) {
+	edge := &testutils.FakeMgr{CreateID: "edge-id"}
+	s := serverWithSpokes(map[string]boxManager{"edge": edge})
+	sess, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
+	if err != nil {
+		t.Fatalf("createBox: %v", err)
+	}
+	// Mark the box paused as the inventory sync would after a pause.
+	sess.mu.Lock()
+	sess.InstanceState = sandbox.StatePaused
+	sess.mu.Unlock()
+
+	if _, err := s.boxExec(context.Background(), "b1", "echo hi"); err == nil || !strings.Contains(err.Error(), "paused") {
+		t.Fatalf("boxExec on a paused box err = %v, want a 'paused' error", err)
 	}
 }
 

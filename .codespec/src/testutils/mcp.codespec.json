@@ -131,6 +131,20 @@
 			"documentation_hash": "a8d7384cf524ec7bc925dd9ae69ea3b799c23afee6fba3e371cc626572631718",
 			"definition_hash": "734a4360b45097e90deeaea61419d05fd66c88c4e5fe9a5a65b30eadd73dd0f1",
 			"reviewed_at": "2026-07-10T15:19:22.270304243Z"
+		},
+		{
+			"function_name": "PauseBox",
+			"receiver": "FakeBackend",
+			"documentation_hash": "92f4fa6b2e9a8aa16b2f3c1739c1f87b6b368b89e714c96f0ddd974c8b4c9b71",
+			"definition_hash": "9779737d62f3b68a9b83da21279abf27b32ea372fe23dd10dc3f86f35ff6d1f9",
+			"reviewed_at": "2026-07-11T11:13:34.523186507Z"
+		},
+		{
+			"function_name": "ResumeBox",
+			"receiver": "FakeBackend",
+			"documentation_hash": "fd3d893b5025726285fb4f96786d482f3c962dd172fe56b9bd4cefb05a199f2f",
+			"definition_hash": "8c8bcb3f4417f141b26d9e63f5a84b7c84568204252e22d57de5c07bfaffabf8",
+			"reviewed_at": "2026-07-11T11:13:34.52543934Z"
 		}
 	]
 }

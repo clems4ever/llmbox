@@ -3,8 +3,8 @@
 		{
 			"function_name": "Run",
 			"documentation_hash": "3c9e4e8da0a06a3a316270c6edbaaaae011cc672bf2f629147c9b0e4ad2fed1a",
-			"definition_hash": "c2de9a4e458227e257b385618b6ffdcb4fd7eec7eb33dabf5c62e2ad94947beb",
-			"reviewed_at": "2026-07-11T09:32:51.314351759Z"
+			"definition_hash": "ea236fd1221b32aa3928b221d660f1252932be3d5c3d49dba834fd4959ffa5ef",
+			"reviewed_at": "2026-07-11T11:13:33.509700818Z"
 		},
 		{
 			"function_name": "opCtx",
@@ -65,6 +65,18 @@
 			"documentation_hash": "5b09b68c35ded5a8764e60086e2f20b21cc61779f9697874ea090c0cf740343f",
 			"definition_hash": "17b069351085521aabd37a65a294e3370d53cafc4df64ea552642b212e3b93d6",
 			"reviewed_at": "2026-07-11T09:32:51.315147551Z"
+		},
+		{
+			"function_name": "findState",
+			"documentation_hash": "57a2b6a50e13e836bb527ce74d0e697e2001335c2b02171962775ea9f48783d9",
+			"definition_hash": "629fdc3898549b0e018e2394ac88f1604b62978b3e8f589edc64b4d709953847",
+			"reviewed_at": "2026-07-11T11:13:33.492793321Z"
+		},
+		{
+			"function_name": "testPauseResume",
+			"documentation_hash": "e33ee2c382ac5bae04246b48da4391a23b952c1e33b36492cc99bb2bec94b3a5",
+			"definition_hash": "506e2f2f982ae868fcbb4e06ea1b11a095c300e1bde7f265f07b6b61fc70fe2d",
+			"reviewed_at": "2026-07-11T11:13:33.514536283Z"
 		}
 	]
 }

@@ -138,6 +138,20 @@ func (s *session) terminated() bool {
 	return s.BoxState == boxStateTerminated
 }
 
+// paused reports whether the box behind this session is currently paused (its
+// compute stopped to save resources), as last observed on its spoke. It gates the
+// per-box verbs that need a running box so they fail with a clear message rather
+// than a raw connection error against the stopped guest.
+//
+// @return bool True when the box's last observed instance state is paused.
+//
+// @testcase TestBoxExecOnPausedBoxErrors refuses exec on a paused box.
+func (s *session) paused() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.InstanceState == sandbox.StatePaused
+}
+
 // snapshot reads the session's mutable state under its lock.
 //
 // @return status The current auth status: pending, ready, or error.
@@ -1391,6 +1405,9 @@ func (s *Server) boxLogs(ctx context.Context, boxID string, tail int) (string, e
 	if sess.terminated() {
 		return "", fmt.Errorf("box %q is terminated (it no longer exists on its spoke); its logs are gone", boxID)
 	}
+	if sess.paused() {
+		return "", fmt.Errorf("box %q is paused; resume it to read its logs", boxID)
+	}
 	mgr, err := s.spoke(sess.SpokeName)
 	if err != nil {
 		return "", err
@@ -1421,11 +1438,85 @@ func (s *Server) boxExec(ctx context.Context, boxID, command string) (sandbox.Ex
 	if sess.terminated() {
 		return sandbox.ExecResult{}, fmt.Errorf("box %q is terminated (it no longer exists on its spoke)", boxID)
 	}
+	if sess.paused() {
+		return sandbox.ExecResult{}, fmt.Errorf("box %q is paused; resume it before running commands", boxID)
+	}
 	mgr, err := s.spoke(sess.SpokeName)
 	if err != nil {
 		return sandbox.ExecResult{}, err
 	}
 	return mgr.Exec(ctx, sess.BoxID, []string{"/bin/sh", "-c", command})
+}
+
+// pauseBox stops the compute of the box with the given box ID to save CPU/RAM
+// while keeping its disk, then folds the spoke's inventory back in so the box's
+// paused state is reflected in its record right away. Like the other per-box verbs
+// it is keyed by the box ID supplied at create time.
+//
+// @arg ctx Context for the pause request.
+// @arg boxID The box ID of the box to pause.
+// @error error if no box has that box ID, it is terminated, its spoke is not connected, or it cannot be paused.
+//
+// @testcase TestPauseResumeBoxByBoxID pauses a box looked up by box ID and reflects its state.
+func (s *Server) pauseBox(ctx context.Context, boxID string) error {
+	sess := s.lookupByBoxID(boxID)
+	if sess == nil {
+		return fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
+	}
+	if sess.terminated() {
+		return fmt.Errorf("box %q is terminated (it no longer exists on its spoke)", boxID)
+	}
+	mgr, err := s.spoke(sess.SpokeName)
+	if err != nil {
+		return err
+	}
+	if err := mgr.Pause(ctx, sess.BoxID); err != nil {
+		return err
+	}
+	// Reflect the paused state immediately rather than waiting for the next periodic
+	// sync (the box still lists, now reporting paused).
+	s.syncSpoke(ctx, sess.SpokeName, mgr)
+	return nil
+}
+
+// resumeBox restarts a paused box's compute from its kept disk, relaunches claude,
+// and records the box's new remote-control session URL so the UI can open it again.
+// It then folds the spoke's inventory back in so the box shows running right away.
+//
+// @arg ctx Context for the resume request.
+// @arg boxID The box ID of the box to resume.
+// @error error if no box has that box ID, it is terminated, its spoke is not connected, or it cannot be resumed.
+//
+// @testcase TestPauseResumeBoxByBoxID resumes a box, records its new session URL, and reflects its state.
+func (s *Server) resumeBox(ctx context.Context, boxID string) error {
+	sess := s.lookupByBoxID(boxID)
+	if sess == nil {
+		return fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
+	}
+	if sess.terminated() {
+		return fmt.Errorf("box %q is terminated (it no longer exists on its spoke)", boxID)
+	}
+	mgr, err := s.spoke(sess.SpokeName)
+	if err != nil {
+		return err
+	}
+	url, err := mgr.Resume(ctx, sess.BoxID)
+	if err != nil {
+		return err
+	}
+	// The resumed box relaunched claude to a fresh session URL; record it so the
+	// list view opens the live session, not the stale pre-pause one.
+	if url != "" {
+		sess.mu.Lock()
+		sess.SessionURL = url
+		ps := sess.persistLocked()
+		sess.mu.Unlock()
+		if err := s.store.PutBox(ps); err != nil {
+			s.logger().Warn("persisting resumed box session URL", "box", boxID, "err", err)
+		}
+	}
+	s.syncSpoke(ctx, sess.SpokeName, mgr)
+	return nil
 }
 
 // idMatchesBox reports whether idOrName identifies a box with the given box ID
