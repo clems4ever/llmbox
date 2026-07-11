@@ -3,14 +3,20 @@
 		{
 			"function_name": "main",
 			"documentation_hash": "3095f14807eece6f26be53fc2e70e700c7f3bb1ce7cc614ddf2a62a183b3e45a",
-			"definition_hash": "a00745d3e94cd5260ac7e63beb776e82ec23d6f42a654aca2392518b1d470a93",
-			"reviewed_at": "2026-07-09T18:52:32.896655108Z"
+			"definition_hash": "27f829fe9db3971032b89a36672b8852f46ef59791d5e6a957d61674c8836fa9",
+			"reviewed_at": "2026-07-11T07:31:34.55378673Z"
 		},
 		{
 			"function_name": "run",
-			"documentation_hash": "6b13f64354a2c14a7d3f3ca28eb8c5d73657f459aa3000c312b888a2c8e54dde",
-			"definition_hash": "b991f086d42c46ede3ff42dd59f7571deb42ed5ed9c4a93fc83c057700da0b29",
-			"reviewed_at": "2026-07-09T18:52:32.902188237Z"
+			"documentation_hash": "4a92157ec081ccf40ee5d77b39fc6a347a41d4ec210305fb688cb41ba51fa577",
+			"definition_hash": "7194b39edfe102bf64e376b841b779e99b81c83482fa0ceed5d0e6d9c9600138",
+			"reviewed_at": "2026-07-11T07:31:34.554432349Z"
+		},
+		{
+			"function_name": "lookupUser",
+			"documentation_hash": "702d06d647ee449e6f69fccde131eb9c89f50cf089a24c16cedf525cba45afb7",
+			"definition_hash": "5944145d146681331685723f27bff170f3a760836fd76cba6db434310fe2225c",
+			"reviewed_at": "2026-07-11T07:31:34.554634786Z"
 		}
 	]
 }

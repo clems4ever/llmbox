@@ -23,6 +23,12 @@
 			"documentation_hash": "1941222f227b08b32b6f95f5f61729ea6cd5fec5347c0b1361b155ec10e16704",
 			"definition_hash": "18b6c4089b06be8218e2254aad104cdaa0d83734355cce4af9677ebf15ef6674",
 			"reviewed_at": "2026-07-09T18:49:59.014883587Z"
+		},
+		{
+			"function_name": "TestBoxRunsClaudeUserWithSudo",
+			"documentation_hash": "fbad022fc1fdbed06ef696304603a0a0562a483bebc1aa61f4f4bbe2f2ef7b96",
+			"definition_hash": "207bb1d3a233327adde58e2f8ffc5188e43abbc17c16c3e4e00b7f5093d00bf3",
+			"reviewed_at": "2026-07-11T07:31:34.558942082Z"
 		}
 	]
 }

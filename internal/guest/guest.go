@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/creack/pty"
@@ -45,6 +46,14 @@ type Options struct {
 	// HOME=/root); the in-process test fake sets a per-box home so concurrent
 	// boxes stay isolated.
 	Home string
+	// Credential, when non-nil, is the OS credential (uid/gid and supplementary
+	// groups) the guest drops to when launching the box's claude process and Exec
+	// commands. The guest itself keeps its own privileges (root, to serve the
+	// control channel and inject files); only those child processes run as this
+	// credential — so claude runs unprivileged (it refuses to bypass approvals as
+	// root) yet can still escalate via sudo. Nil runs children as the guest's own
+	// user. Pair it with Home so the dropped processes get that user's home.
+	Credential *syscall.Credential
 	// Log records best-effort failures; nil falls back to slog.Default().
 	Log *slog.Logger
 }
@@ -57,6 +66,7 @@ type Guest struct {
 	claudeCmd string
 	shell     string
 	home      string
+	cred      *syscall.Credential
 	log       *slog.Logger
 
 	mu      sync.Mutex // guards the init/start lifecycle fields below
@@ -79,6 +89,7 @@ func New(opts Options) *Guest {
 		claudeCmd: opts.ClaudeCmd,
 		shell:     opts.Shell,
 		home:      opts.Home,
+		cred:      opts.Credential,
 		log:       opts.Log,
 	}
 	if a.claudeCmd == "" {
@@ -359,6 +370,7 @@ func (a *Guest) handleInit(in InitReq) error {
 //
 // @testcase TestGuestLifecycle starts a box and captures its authorize URL.
 // @testcase TestGuestStartAlreadyAuthenticated returns a session URL when credentials already exist.
+// @testcase TestGuestRunsAsCredential launches the box process under a configured credential.
 func (a *Guest) handleStart() (StartResp, error) {
 	a.mu.Lock()
 	if !a.inited {
@@ -372,7 +384,11 @@ func (a *Guest) handleStart() (StartResp, error) {
 	entry := a.entrypoint(a.initReq)
 	cmd := exec.Command(a.shell, "-c", entry)
 	cmd.Env = a.entryEnv()
-	ptmx, err := pty.Start(cmd)
+	// Setsid+Setctty are what pty.Start would set; Credential (when configured)
+	// additionally drops the box process to the unprivileged box user. The PTY
+	// slave is opened by the still-root guest and inherited as claude's std fds,
+	// so the drop does not cost it a controlling terminal.
+	ptmx, err := pty.StartWithAttrs(cmd, nil, &syscall.SysProcAttr{Setsid: true, Setctty: true, Credential: a.cred})
 	if err != nil {
 		a.mu.Unlock()
 		return StartResp{}, fmt.Errorf("launching box entrypoint: %w", err)
@@ -435,12 +451,18 @@ func (a *Guest) handleSubmitCode(in submitCodeReq) (submitCodeResp, error) {
 //
 // @testcase TestGuestLifecycle runs a command via Exec and captures its output.
 // @testcase TestGuestExecNonZeroExit reports a non-zero exit code without erroring.
+// @testcase TestGuestRunsAsCredential runs an Exec command under a configured credential.
 func (a *Guest) handleExec(ctx context.Context, in execReq) (sandbox.ExecResult, error) {
 	if len(in.Cmd) == 0 {
 		return sandbox.ExecResult{}, errors.New("empty command")
 	}
 	cmd := exec.CommandContext(ctx, in.Cmd[0], in.Cmd[1:]...)
 	cmd.Env = a.entryEnv()
+	if a.cred != nil {
+		// Run Exec as the same unprivileged box user claude runs as, so `llmbox
+		// exec` sees the box exactly as claude does (and can escalate via sudo).
+		cmd.SysProcAttr = &syscall.SysProcAttr{Credential: a.cred}
+	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()

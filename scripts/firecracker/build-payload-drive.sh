@@ -72,18 +72,29 @@ fi
 # know about: seed a WRITABLE copy of the trust file (claude rewrites ~/.claude.json
 # at runtime, so it cannot live on the read-only payload; -n keeps a box-local copy
 # across restarts), then exec the guest on vsock pointing at the payload's claude.
+#
+# The box runs claude as the unprivileged 'agent' user the base rootfs provides
+# (claude refuses to bypass approvals as root; agent has passwordless sudo to
+# escalate). This entrypoint runs as root under systemd — it seeds agent's home
+# and workspace and hands them to agent, then the guest drops to agent via
+# --user. HOME is left to the guest, which sets it to agent's home for the
+# processes it launches.
 cat > "$PDIR/entrypoint" <<'ENTRY'
 #!/bin/sh
 set -e
-export HOME=/root
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+BOX_USER=agent
+BOX_HOME=/home/$BOX_USER
 mkdir -p /workspace
-cp -n /payload/claude.json /root/.claude.json 2>/dev/null || true
+cp -n /payload/claude.json "$BOX_HOME/.claude.json" 2>/dev/null || true
 # Seed the payload's Claude Code skills (box-ports etc.); -n keeps box-local edits.
-mkdir -p /root/.claude/skills
-cp -rn /payload/skills/. /root/.claude/skills/ 2>/dev/null || true
+mkdir -p "$BOX_HOME/.claude/skills"
+cp -rn /payload/skills/. "$BOX_HOME/.claude/skills/" 2>/dev/null || true
+# Hand the seeded home and workspace to the box user so claude (running as agent)
+# can read the trust seed and write the workspace and its own credentials.
+chown -R "$BOX_USER:$BOX_USER" "$BOX_HOME" /workspace
 cd /workspace
-exec /payload/llmbox-guest --vsock-port 5000 --boxapi-port 5001 --claude /payload/claude
+exec /payload/llmbox-guest --vsock-port 5000 --boxapi-port 5001 --claude /payload/claude --user "$BOX_USER"
 ENTRY
 
 chmod 0755 "$PDIR/llmbox-guest" "$PDIR/claude" "$PDIR/entrypoint"
