@@ -282,6 +282,28 @@ func (b apiBackend) DestroyBox(ctx context.Context, boxID string) error {
 	return b.s.destroyBox(ctx, boxID)
 }
 
+// PauseBox stops the compute of the box with the given box ID, keeping its disk.
+//
+// @arg ctx Context for the pause request.
+// @arg boxID The box ID of the box to pause.
+// @error error if no box has that box ID or it cannot be paused.
+//
+// @testcase TestPauseResumeBoxByBoxID pauses a box through the backend.
+func (b apiBackend) PauseBox(ctx context.Context, boxID string) error {
+	return b.s.pauseBox(ctx, boxID)
+}
+
+// ResumeBox restarts a paused box's compute and records its new session URL.
+//
+// @arg ctx Context for the resume request.
+// @arg boxID The box ID of the box to resume.
+// @error error if no box has that box ID or it cannot be resumed.
+//
+// @testcase TestPauseResumeBoxByBoxID resumes a box through the backend.
+func (b apiBackend) ResumeBox(ctx context.Context, boxID string) error {
+	return b.s.resumeBox(ctx, boxID)
+}
+
 // BoxLogs returns the recent console output of the box with the given box ID.
 //
 // @arg ctx Context for the logs request.

@@ -102,6 +102,8 @@ type stubInst struct {
 	controlErr   error
 	markReadyErr error
 	destroyErr   error
+	pauseErr     error
+	resumeErr    error
 }
 
 // Meta returns the stub's canned box view.
@@ -112,6 +114,12 @@ func (s *stubInst) Control(context.Context) (net.Conn, error) { return nil, errO
 
 // MarkReady returns the stub's mark-ready error.
 func (s *stubInst) MarkReady(context.Context) error { return s.markReadyErr }
+
+// Pause returns the stub's pause error.
+func (s *stubInst) Pause(context.Context) error { return s.pauseErr }
+
+// Resume returns the stub's resume error.
+func (s *stubInst) Resume(context.Context) error { return s.resumeErr }
 
 // Destroy returns the stub's destroy error.
 func (s *stubInst) Destroy(context.Context) error { return s.destroyErr }

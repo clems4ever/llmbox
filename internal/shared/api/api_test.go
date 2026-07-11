@@ -108,6 +108,13 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 		t.Fatalf("DestroyBox err=%v id=%q", err, fb.GotDestroyID)
 	}
 
+	if err := c.PauseBox(ctx, "pz"); err != nil || fb.GotPauseID != "pz" {
+		t.Fatalf("PauseBox err=%v id=%q", err, fb.GotPauseID)
+	}
+	if err := c.ResumeBox(ctx, "pz"); err != nil || fb.GotResumeID != "pz" {
+		t.Fatalf("ResumeBox err=%v id=%q", err, fb.GotResumeID)
+	}
+
 	logs, err := c.BoxLogs(ctx, "web", 42)
 	if err != nil || logs != "log output" || fb.GotLogsID != "web" || fb.GotLogsTail != 42 {
 		t.Fatalf("BoxLogs = %q err=%v (box %q tail %d)", logs, err, fb.GotLogsID, fb.GotLogsTail)

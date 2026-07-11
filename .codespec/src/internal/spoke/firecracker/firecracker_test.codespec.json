@@ -196,6 +196,18 @@
 			"documentation_hash": "c7024ec1f0341a4aaa05d3352eb70ce66d2afba83f9a72be0a1dbe4d5cdcae3d",
 			"definition_hash": "84ce643012a1d11a4362f23e455006538b848f77787f071926d3755d2d471698",
 			"reviewed_at": "2026-07-09T18:49:59.01216536Z"
+		},
+		{
+			"function_name": "TestPauseAlreadyGoneFirecracker",
+			"documentation_hash": "13dace16ef95ad3e1fded049576eba803713dc19da54239aa430c09289bea0ce",
+			"definition_hash": "081ba312bbe25e59971aa15f667ff98c1d60944a45b6c207c3aabd6ebba19f34",
+			"reviewed_at": "2026-07-11T11:13:34.284525839Z"
+		},
+		{
+			"function_name": "TestPauseResumeFirecrackerBox",
+			"documentation_hash": "e853f6a8d7382f20c3cc327bb7354290d50f6ba00719142e20ecea5776ebcee3",
+			"definition_hash": "cc89df3019257cfc3a4b9bb6b863aba840ba3c2b36ef29ba8b6d92a9a470af45",
+			"reviewed_at": "2026-07-11T11:13:34.288071598Z"
 		}
 	]
 }

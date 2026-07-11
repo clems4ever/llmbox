@@ -146,6 +146,17 @@ describe("Api mutations", () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ box_id: "b", port: 80, description: "d" });
   });
 
+  it("pauseBox / resumeBox post the box id to their endpoints", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    const api = new Api("t");
+    await api.pauseBox("b1");
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/pause-box");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ box_id: "b1" });
+    await api.resumeBox("b1");
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/resume-box");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ box_id: "b1" });
+  });
+
   it("deleteProxy / dropSpoke / setDefaultSpoke / revokeJoinToken send their keys", async () => {
     fetchMock.mockResolvedValue(jsonResponse({}));
     const api = new Api("t");

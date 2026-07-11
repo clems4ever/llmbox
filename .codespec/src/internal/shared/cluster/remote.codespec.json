@@ -117,6 +117,20 @@
 			"documentation_hash": "6441805516b6df2dc0d7f40f079e543ab67b7c84e4d9bd02a76045f41b53c8d3",
 			"definition_hash": "2de7569c2db4c59c2b5d34cdb97fe53a1f448acbdf6a1487f510ea3abade1429",
 			"reviewed_at": "2026-07-08T14:50:26.479797232Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "2f71d8ce9226f87af6b29b2fa29cc376f00e91a04e921bae47f9a85f81eef351",
+			"definition_hash": "131a52dda4d3a3cb3feb780f33894da82e0808917e343dacf8cdb87130fe109b",
+			"reviewed_at": "2026-07-11T11:13:33.50234082Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "remoteSpoke",
+			"documentation_hash": "75a4efbc69cb9e2466ec1b50b303c4f84554cf100d4ae826502fae483020a2d6",
+			"definition_hash": "9d3ee287c7218b13f0ea5cf7774765b973743a0efb1457027f209d891b0f1fc2",
+			"reviewed_at": "2026-07-11T11:13:33.507358758Z"
 		}
 	]
 }

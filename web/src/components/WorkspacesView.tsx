@@ -27,14 +27,16 @@ import {
   IconExternalLink,
   IconLayoutGrid,
   IconLayoutList,
+  IconPlayerPause,
   IconPlayerPlay,
   IconPlus,
   IconTrash,
 } from "@tabler/icons-react";
 import type { Api, BoxView } from "../api";
 import type { DashboardData } from "../lib/data";
-import { boxId, createdAt, lastSeenAt, stateTone } from "../lib/format";
+import { boxId, createdAt, lastSeenAt, phaseTone, stateTone } from "../lib/format";
 import { confirmDestroy } from "../lib/confirm";
+import { perform } from "../lib/actions";
 import { StateBadge, StatusBadge } from "./StatusBadge";
 import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
 
@@ -70,6 +72,17 @@ export function WorkspacesView({
       success: `removed workspace ${id}`,
       refresh,
     });
+  };
+
+  // Pause/resume are non-destructive, so they skip the confirm modal: they just run
+  // and refresh so the state badge flips running↔paused.
+  const pause = (b: BoxView) => {
+    const id = boxId(b);
+    void perform(() => api.pauseBox(id), { success: `paused workspace ${id}`, onDone: refresh });
+  };
+  const resume = (b: BoxView) => {
+    const id = boxId(b);
+    void perform(() => api.resumeBox(id), { success: `resumed workspace ${id}`, onDone: refresh });
   };
 
   return (
@@ -122,9 +135,9 @@ export function WorkspacesView({
       ) : data.boxes.length === 0 ? (
         <EmptyWorkspaces onCreate={() => setCreateOpen(true)} />
       ) : layout === "table" ? (
-        <WorkspaceTable boxes={data.boxes} onSelect={onSelect} onRemove={remove} />
+        <WorkspaceTable boxes={data.boxes} onSelect={onSelect} onRemove={remove} onPause={pause} onResume={resume} />
       ) : (
-        <WorkspaceGrid boxes={data.boxes} onSelect={onSelect} onRemove={remove} />
+        <WorkspaceGrid boxes={data.boxes} onSelect={onSelect} onRemove={remove} onPause={pause} onResume={resume} />
       )}
 
       <CreateWorkspaceModal
@@ -161,10 +174,60 @@ interface RowProps {
   boxes: BoxView[];
   onSelect: (id: string) => void;
   onRemove: (b: BoxView) => void;
+  onPause: (b: BoxView) => void;
+  onResume: (b: BoxView) => void;
+}
+
+/** WorkspacePauseAction renders the per-box pause/resume control: a Resume button
+ * for a paused box, a Pause button for a running & activated one, and nothing for a
+ * box in any other state (pending, unreachable, terminated) where neither applies. */
+function WorkspacePauseAction({
+  box,
+  onPause,
+  onResume,
+}: {
+  box: BoxView;
+  onPause: (b: BoxView) => void;
+  onResume: (b: BoxView) => void;
+}): JSX.Element | null {
+  const id = boxId(box);
+  if (stateTone(box.state) === "paused") {
+    return (
+      <Tooltip label="Resume workspace">
+        <ActionIcon
+          variant="subtle"
+          color="teal"
+          data-box-resume={id}
+          aria-label={`Resume ${id}`}
+          onClick={() => onResume(box)}
+        >
+          <IconPlayerPlay size={16} />
+        </ActionIcon>
+      </Tooltip>
+    );
+  }
+  // Only an activated, running box can be paused; pausing mid-activation or an
+  // offline box makes no sense.
+  if (box.state === "running" && phaseTone(box.phase) === "ready") {
+    return (
+      <Tooltip label="Pause workspace to save compute">
+        <ActionIcon
+          variant="subtle"
+          color="grape"
+          data-box-pause={id}
+          aria-label={`Pause ${id}`}
+          onClick={() => onPause(box)}
+        >
+          <IconPlayerPause size={16} />
+        </ActionIcon>
+      </Tooltip>
+    );
+  }
+  return null;
 }
 
 /** WorkspaceTable renders the dense, sortable-looking table view. */
-function WorkspaceTable({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
+function WorkspaceTable({ boxes, onSelect, onRemove, onPause, onResume }: RowProps): JSX.Element {
   return (
     <Paper withBorder radius="md" id="boxes-card">
       <Table.ScrollContainer minWidth={720}>
@@ -207,17 +270,20 @@ function WorkspaceTable({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
                   <Table.Td><StatusBadge phase={b.phase} /></Table.Td>
                   <Table.Td onClick={(e) => e.stopPropagation()}><WorkspaceLink box={b} /></Table.Td>
                   <Table.Td onClick={(e) => e.stopPropagation()} ta="right">
-                    <Tooltip label="Remove workspace">
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        data-box={id}
-                        aria-label={`Remove ${id}`}
-                        onClick={() => onRemove(b)}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    </Tooltip>
+                    <Group gap={4} justify="flex-end" wrap="nowrap">
+                      <WorkspacePauseAction box={b} onPause={onPause} onResume={onResume} />
+                      <Tooltip label="Remove workspace">
+                        <ActionIcon
+                          variant="subtle"
+                          color="red"
+                          data-box={id}
+                          aria-label={`Remove ${id}`}
+                          onClick={() => onRemove(b)}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               );
@@ -230,7 +296,7 @@ function WorkspaceTable({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
 }
 
 /** WorkspaceGrid renders the roomier card view. */
-function WorkspaceGrid({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
+function WorkspaceGrid({ boxes, onSelect, onRemove, onPause, onResume }: RowProps): JSX.Element {
   return (
     <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} id="boxes-card">
       {boxes.map((b) => {
@@ -266,17 +332,20 @@ function WorkspaceGrid({ boxes, onSelect, onRemove }: RowProps): JSX.Element {
             </Stack>
             <Group justify="space-between" onClick={(e) => e.stopPropagation()}>
               <WorkspaceLink box={b} />
-              <Tooltip label="Remove workspace">
-                <ActionIcon
-                  variant="subtle"
-                  color="red"
-                  data-box={id}
-                  aria-label={`Remove ${id}`}
-                  onClick={() => onRemove(b)}
-                >
-                  <IconTrash size={16} />
-                </ActionIcon>
-              </Tooltip>
+              <Group gap={4} wrap="nowrap">
+                <WorkspacePauseAction box={b} onPause={onPause} onResume={onResume} />
+                <Tooltip label="Remove workspace">
+                  <ActionIcon
+                    variant="subtle"
+                    color="red"
+                    data-box={id}
+                    aria-label={`Remove ${id}`}
+                    onClick={() => onRemove(b)}
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Group>
           </Card>
         );

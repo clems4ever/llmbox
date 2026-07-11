@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { boxId, createdAt, isExpired, phaseTone, shortTime } from "./format";
+import { boxId, createdAt, isExpired, phaseTone, shortTime, stateTone } from "./format";
 
 describe("shortTime", () => {
   it("trims an ISO timestamp to minutes and drops the T", () => {
@@ -52,5 +52,21 @@ describe("phaseTone", () => {
   it("maps anything else to pending", () => {
     expect(phaseTone("pending")).toBe("pending");
     expect(phaseTone("")).toBe("pending");
+  });
+});
+
+describe("stateTone", () => {
+  it("classifies the known lifecycle states", () => {
+    expect(stateTone("running")).toBe("running");
+    expect(stateTone("unreachable")).toBe("unreachable");
+    expect(stateTone("terminated")).toBe("terminated");
+  });
+  it("gives paused its own tone (distinct from other stopped states)", () => {
+    expect(stateTone("paused")).toBe("paused");
+    expect(stateTone("Paused")).toBe("paused");
+  });
+  it("maps other backend states to stopped", () => {
+    expect(stateTone("exited")).toBe("stopped");
+    expect(stateTone("")).toBe("stopped");
   });
 });

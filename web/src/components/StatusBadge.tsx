@@ -11,6 +11,7 @@ const STATE_COLOR = {
   running: "teal",
   unreachable: "yellow",
   terminated: "gray",
+  paused: "grape",
   stopped: "orange",
 } as const;
 

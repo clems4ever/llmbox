@@ -75,6 +75,12 @@ func NewHandler(b Backend) http.Handler {
 	mux.Handle("POST "+PathDestroyBox, jsonHandler(func(ctx context.Context, req destroyBoxRequest) (emptyResponse, error) {
 		return emptyResponse{}, b.DestroyBox(ctx, req.BoxID)
 	}))
+	mux.Handle("POST "+PathPauseBox, jsonHandler(func(ctx context.Context, req pauseBoxRequest) (emptyResponse, error) {
+		return emptyResponse{}, b.PauseBox(ctx, req.BoxID)
+	}))
+	mux.Handle("POST "+PathResumeBox, jsonHandler(func(ctx context.Context, req resumeBoxRequest) (emptyResponse, error) {
+		return emptyResponse{}, b.ResumeBox(ctx, req.BoxID)
+	}))
 	mux.Handle("POST "+PathBoxLogs, jsonHandler(func(ctx context.Context, req boxLogsRequest) (boxLogsResponse, error) {
 		logs, err := b.BoxLogs(ctx, req.BoxID, req.Tail)
 		return boxLogsResponse{Logs: logs}, err

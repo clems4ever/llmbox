@@ -7,24 +7,26 @@ import (
 // API route paths. Each maps 1:1 to a Backend method and is served/called with a
 // single POST carrying a JSON body (an empty body for the no-argument methods).
 const (
-	PathCreateBox       = "/api/v1/create-box"
-	PathAuthPageURL     = "/api/v1/auth-page-url"
-	PathLookupBox       = "/api/v1/lookup-box"
-	PathListBoxes       = "/api/v1/list-boxes"
-	PathSpokeStatuses   = "/api/v1/spoke-statuses"
-	PathCreateSpoke     = "/api/v1/create-spoke"
-	PathDropSpoke       = "/api/v1/drop-spoke"
-	PathSetDefaultSpoke = "/api/v1/set-default-spoke"
+	PathCreateBox           = "/api/v1/create-box"
+	PathAuthPageURL         = "/api/v1/auth-page-url"
+	PathLookupBox           = "/api/v1/lookup-box"
+	PathListBoxes           = "/api/v1/list-boxes"
+	PathSpokeStatuses       = "/api/v1/spoke-statuses"
+	PathCreateSpoke         = "/api/v1/create-spoke"
+	PathDropSpoke           = "/api/v1/drop-spoke"
+	PathSetDefaultSpoke     = "/api/v1/set-default-spoke"
 	PathListJoinTokens      = "/api/v1/list-join-tokens"
 	PathRevokeJoinToken     = "/api/v1/revoke-join-token"
 	PathRegenerateJoinToken = "/api/v1/regenerate-join-token"
-	PathDestroyBox      = "/api/v1/destroy-box"
-	PathBoxLogs         = "/api/v1/box-logs"
-	PathBoxExec         = "/api/v1/box-exec"
-	PathProxyEnabled    = "/api/v1/proxy-enabled"
-	PathCreateProxy     = "/api/v1/create-proxy"
-	PathDeleteProxy     = "/api/v1/delete-proxy"
-	PathListProxies     = "/api/v1/list-proxies"
+	PathDestroyBox          = "/api/v1/destroy-box"
+	PathPauseBox            = "/api/v1/pause-box"
+	PathResumeBox           = "/api/v1/resume-box"
+	PathBoxLogs             = "/api/v1/box-logs"
+	PathBoxExec             = "/api/v1/box-exec"
+	PathProxyEnabled        = "/api/v1/proxy-enabled"
+	PathCreateProxy         = "/api/v1/create-proxy"
+	PathDeleteProxy         = "/api/v1/delete-proxy"
+	PathListProxies         = "/api/v1/list-proxies"
 )
 
 // errorResponse is the body of every non-2xx API response; the client turns its
@@ -106,6 +108,14 @@ type regenerateJoinTokenResponse struct {
 }
 
 type destroyBoxRequest struct {
+	BoxID string `json:"box_id"`
+}
+
+type pauseBoxRequest struct {
+	BoxID string `json:"box_id"`
+}
+
+type resumeBoxRequest struct {
 	BoxID string `json:"box_id"`
 }
 

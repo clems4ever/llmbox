@@ -87,6 +87,8 @@ type fakeManager struct {
 	lastCreate  sandbox.CreateOptions
 	lastSubmit  [2]string // id, code
 	lastDestroy string
+	lastPause   string
+	lastResume  string
 	lastLogs    [2]any // idOrName, tail
 	lastExec    struct {
 		idOrName string
@@ -146,6 +148,25 @@ func (f *fakeManager) Destroy(_ context.Context, idOrName string) error {
 	defer f.mu.Unlock()
 	f.lastDestroy = idOrName
 	return f.err
+}
+
+// Pause is a test helper.
+func (f *fakeManager) Pause(_ context.Context, idOrName string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.lastPause = idOrName
+	return f.err
+}
+
+// Resume is a test helper.
+func (f *fakeManager) Resume(_ context.Context, idOrName string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.lastResume = idOrName
+	if f.err != nil {
+		return "", f.err
+	}
+	return f.sessionURL, nil
 }
 
 // Logs is a test helper.

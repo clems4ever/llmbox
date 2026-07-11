@@ -31,6 +31,12 @@ const (
 	// StateTerminated marks a box confirmed gone from its (reachable) spoke; its
 	// record is kept as a tombstone until removed.
 	StateTerminated = "terminated"
+	// StatePaused marks a box whose compute has been intentionally stopped to save
+	// CPU/RAM while its disk (auth, workspace) is kept, so it can be resumed. Unlike
+	// the backends' own stopped/exited states it is deliberate, so backends report
+	// it explicitly (a marker distinct from a crash) and the reaper and the hub's
+	// tombstoning sync leave it be — a paused box still appears in List.
+	StatePaused = "paused"
 )
 
 // Box is a view of a managed box returned to callers.

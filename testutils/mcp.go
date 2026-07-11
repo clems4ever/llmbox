@@ -44,6 +44,8 @@ type FakeBackend struct {
 	RegenTokenResult  api.SpokeEnrollment
 	RegenTokenErr     error
 	DestroyErr        error
+	PauseErr          error
+	ResumeErr         error
 	LogsResult        string
 	LogsErr           error
 	ExecResult        sandbox.ExecResult
@@ -67,6 +69,8 @@ type FakeBackend struct {
 	GotRevokeToken    string
 	GotRegenToken     string
 	GotDestroyID      string
+	GotPauseID        string
+	GotResumeID       string
 	GotLogsID         string
 	GotLogsTail       int
 	GotExecID         string
@@ -249,6 +253,34 @@ func (f *FakeBackend) DestroyBox(ctx context.Context, boxID string) error {
 	f.GotDestroyID = boxID
 	f.mu.Unlock()
 	return f.DestroyErr
+}
+
+// PauseBox records the box ID and returns the canned PauseErr.
+//
+// @arg ctx Context (unused by the fake).
+// @arg boxID The box ID to pause, recorded into GotPauseID.
+// @error error The canned PauseErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) PauseBox(ctx context.Context, boxID string) error {
+	f.mu.Lock()
+	f.GotPauseID = boxID
+	f.mu.Unlock()
+	return f.PauseErr
+}
+
+// ResumeBox records the box ID and returns the canned ResumeErr.
+//
+// @arg ctx Context (unused by the fake).
+// @arg boxID The box ID to resume, recorded into GotResumeID.
+// @error error The canned ResumeErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) ResumeBox(ctx context.Context, boxID string) error {
+	f.mu.Lock()
+	f.GotResumeID = boxID
+	f.mu.Unlock()
+	return f.ResumeErr
 }
 
 // BoxLogs records the box ID and tail and returns the canned output/error.

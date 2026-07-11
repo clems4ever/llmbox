@@ -108,6 +108,20 @@
 			"documentation_hash": "0e7510e7d4ccfd90df0b23180e8900091abc9e30e6f9f1e500e7c9f6863d4312",
 			"definition_hash": "dcd3ba676c349eec5d9ce01d6b64e80bc2095bba124b1d3293e9e9f12e76e26b",
 			"reviewed_at": "2026-07-09T18:49:58.994135759Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "stubInst",
+			"documentation_hash": "3ef6587c8d2072daaf39704aa3512357d599b246baf3f4bdd798780ed53f15f1",
+			"definition_hash": "b83b1173c00236f157f7de42978bdebb357c427a27189abf4a7e19c6468832c6",
+			"reviewed_at": "2026-07-11T11:13:33.760605743Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "stubInst",
+			"documentation_hash": "55b729fe30429c00ee146a5f9791dc46dc66e10ac6ec66a3ea0455d17cb64cf4",
+			"definition_hash": "894fb22ea2dd9d300b2aea0baa5589a1aedc16b684594c35a211d2bf151267a7",
+			"reviewed_at": "2026-07-11T11:13:34.022104292Z"
 		}
 	]
 }

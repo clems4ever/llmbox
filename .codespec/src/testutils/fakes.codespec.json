@@ -83,6 +83,20 @@
 			"documentation_hash": "5194dd6374688a7ffb232b0dd4026fec0cc9a853a505bbbc69abc94b7229ab28",
 			"definition_hash": "711e2b91970eed4895615525a0f452c15f0e1094cac7d86dfad0b508cf2847d5",
 			"reviewed_at": "2026-07-09T10:09:05.856420484Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "FakeMgr",
+			"documentation_hash": "1aaa59e75c917aea8f742bbf5fef8233acc20ea1fef20c9680888e63544cfa80",
+			"definition_hash": "e3e5c75eb3284f754372dc8386155c0bb62f6856ac76ee05ed41f1149ea95ff9",
+			"reviewed_at": "2026-07-11T11:13:34.273383494Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "FakeMgr",
+			"documentation_hash": "bf750fb20a4ca8d8447b585108b0a89d7ba3e947cb007e8820af5b260eee882e",
+			"definition_hash": "509d22fd7562984d1212ed2b2dd6fcd951291853be946bdfb40e9ffe623ba6d7",
+			"reviewed_at": "2026-07-11T11:13:34.281420637Z"
 		}
 	]
 }

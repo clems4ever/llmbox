@@ -57,8 +57,8 @@
 			"function_name": "List",
 			"receiver": "Provisioner",
 			"documentation_hash": "1f236b1df15f5e704ad22e7af5f83cc02e389d427a3e8d97592f0d35de5f277d",
-			"definition_hash": "244fba6bda6ac21542c2b87d33bcf293410fda12eb0e1b1a46d9d1ff711c5bf4",
-			"reviewed_at": "2026-07-09T21:42:06.892369508Z"
+			"definition_hash": "56eddb2c6137985bfd0c2e88878c5563cb30fddf18ab9eb6a6c0e71697d487a9",
+			"reviewed_at": "2026-07-11T11:13:34.003282031Z"
 		},
 		{
 			"function_name": "Find",
@@ -220,6 +220,33 @@
 			"documentation_hash": "fdf9895e358962721d2ae29f519e9f9e2eaa0b6827f3d5246d3b11602a510da0",
 			"definition_hash": "8ba60c0b75bc7309fa303c94a770692fac15fbec364ab449b6d36b33ecb6d9aa",
 			"reviewed_at": "2026-07-09T21:42:06.89616565Z"
+		},
+		{
+			"function_name": "pausedMarkerExists",
+			"documentation_hash": "5546182961a2260cadfb34dfd0b87fdcf8ef067aa69b93f6ffda20fbddcd1cf9",
+			"definition_hash": "a5a811a34b42f23832418f4c102a4f2338b8381d23a6299d399a18409191645f",
+			"reviewed_at": "2026-07-11T11:13:34.006563196Z"
+		},
+		{
+			"function_name": "pausedMarkerPath",
+			"receiver": "dockerInstance",
+			"documentation_hash": "3a7c5801a7d6f4a444ca946acfdcca3946d0797ab74bfc42ded75c61c958ba4c",
+			"definition_hash": "0ce541cb11ed472858f774db34a58f8ab2f4df90a750beb8a2213808c58d53e4",
+			"reviewed_at": "2026-07-11T11:13:34.016671511Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "dockerInstance",
+			"documentation_hash": "6bbb2a66c5a1e59f3e69fcbdc5a728f8b8fadcd87c780326b3732ae5a11c5c8d",
+			"definition_hash": "ef8772c77720cd5a84a735c9ef43fb223f12d91c7f483726e8ecc30a745e171c",
+			"reviewed_at": "2026-07-11T11:13:34.019938945Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "dockerInstance",
+			"documentation_hash": "8e4aa3631c12b14cd402f659d8586b7ddd387d684dbee185b139d78fe4d3c4e3",
+			"definition_hash": "90e669ee9b8dc94c6fa73e9de6af87726f17bc62bec177affd870e63d8ff8fba",
+			"reviewed_at": "2026-07-11T11:13:34.025345906Z"
 		}
 	]
 }

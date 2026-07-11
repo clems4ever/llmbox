@@ -169,6 +169,18 @@ export class Api {
     return this.call("/api/v1/destroy-box", { box_id: boxId });
   }
 
+  /** pauseBox stops a box's compute to save CPU/RAM while keeping its disk, so it
+   * can be resumed later. */
+  pauseBox(boxId: string): Promise<unknown> {
+    return this.call("/api/v1/pause-box", { box_id: boxId });
+  }
+
+  /** resumeBox restarts a paused box's compute; it comes back with a fresh session
+   * URL, visible on the next list refresh. */
+  resumeBox(boxId: string): Promise<unknown> {
+    return this.call("/api/v1/resume-box", { box_id: boxId });
+  }
+
   async createProxy(boxId: string, port: number, description: string): Promise<ProxyInfo> {
     const r = await this.call<{ proxy: ProxyInfo }>("/api/v1/create-proxy", {
       box_id: boxId,

@@ -341,6 +341,34 @@ func (r *remoteSpoke) Destroy(ctx context.Context, idOrName string) error {
 	return r.call(ctx, methodDestroy, destroyReq{IDOrName: idOrName}, nil)
 }
 
+// Pause stops a box's compute on the spoke to save CPU/RAM while keeping its disk.
+//
+// @arg ctx Context for the call.
+// @arg idOrName The box ID or name to pause.
+// @error error if the call fails or the spoke returns an error.
+//
+// @testcase TestRemoteSpokeRoundTrip pauses a box through the remote spoke.
+func (r *remoteSpoke) Pause(ctx context.Context, idOrName string) error {
+	return r.call(ctx, methodPause, pauseReq{IDOrName: idOrName}, nil)
+}
+
+// Resume restarts a paused box's compute on the spoke and returns the box's new
+// remote-control session URL once claude has relaunched.
+//
+// @arg ctx Context for the call.
+// @arg idOrName The box ID or name to resume.
+// @return sessionURL The relaunched box's session URL.
+// @error error if the call fails or the spoke returns an error.
+//
+// @testcase TestRemoteSpokeRoundTrip resumes a box through the remote spoke.
+func (r *remoteSpoke) Resume(ctx context.Context, idOrName string) (sessionURL string, err error) {
+	var resp resumeResp
+	if err := r.call(ctx, methodResume, resumeReq{IDOrName: idOrName}, &resp); err != nil {
+		return "", err
+	}
+	return resp.SessionURL, nil
+}
+
 // Logs returns recent console output of a box on the spoke.
 //
 // @arg ctx Context for the call.

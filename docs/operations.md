@@ -45,6 +45,29 @@ straight to remote-control without asking the user to authenticate again.
 > `create_llmbox`) starts from a fresh filesystem and requires re-authenticating,
 > since boxes do not bind-mount a host credentials file.
 
+## Pausing a box to save compute
+
+An idle box still holds its CPU/RAM reservation. Pause it — from the admin UI's
+per-workspace **Pause** button — to stop its compute while keeping its disk, then
+**Resume** it when you need it again:
+
+- **Pause** stops the box's container (Docker) or halts its microVM (Firecracker),
+  freeing CPU **and** RAM. The box's disk survives intact — authentication under
+  `~/.claude`, the `/workspace` tree, its identity, and (on Firecracker) its
+  network slot — so nothing is rebuilt. A paused box still appears in the list,
+  reported as **paused** (never reaped, never tombstoned).
+- **Resume** restarts the compute from that disk and relaunches `claude`. Because
+  the credentials persist, it comes straight up to a **new** remote-control session
+  (a fresh session URL, no re-login). The Pause button reappears.
+
+The one thing that does *not* survive a pause is the **running** in-memory session:
+pausing must end the live `claude remote-control` process to release RAM, so any
+in-progress, unsaved in-memory state is lost and resume starts a fresh session.
+Anything written to disk is preserved. Pausing is offered only for an activated,
+running box; `exec` and `logs` against a paused box return a "resume it first"
+error rather than a raw connection failure. The model is identical on both the
+Docker and Firecracker backends.
+
 ## Orphan cleanup
 
 A box's auth phase is encoded in its container name — `llmbox-pending-<id>`

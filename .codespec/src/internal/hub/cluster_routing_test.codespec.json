@@ -107,6 +107,18 @@
 			"documentation_hash": "da3259f55fa39f2fd8d2bf27f5b10a53918c2d38790b5d8a1090b5e13b692d8d",
 			"definition_hash": "17673b90985ecda4daf62445414baaf789b2e8e7cbba874471803f300c52fece",
 			"reviewed_at": "2026-07-09T10:09:04.934961651Z"
+		},
+		{
+			"function_name": "TestPauseResumeBoxByBoxID",
+			"documentation_hash": "2101d32a7f2499258a06c7118b9d26bfadfcb3194b23181f58b94aa5548de885",
+			"definition_hash": "638edf7dfd40158a463213c1a440433f231fee7414b73e785f9161d70eae4d21",
+			"reviewed_at": "2026-07-11T11:12:12.656250082Z"
+		},
+		{
+			"function_name": "TestBoxExecOnPausedBoxErrors",
+			"documentation_hash": "c04e9e8e450747bb38077dd928ea4c11542b77c4bdb44718bf2b539a6f96370c",
+			"definition_hash": "2724e5006f0f9ed03430e314ad84474f83ac69ac99f072c13f82836be6f329f1",
+			"reviewed_at": "2026-07-11T11:12:12.657101319Z"
 		}
 	]
 }

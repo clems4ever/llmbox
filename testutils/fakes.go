@@ -38,6 +38,12 @@ type FakeMgr struct {
 	DestroyErr error
 	Reaped     []string
 
+	Paused    []string
+	PauseErr  error
+	Resumed   []string
+	ResumeURL string
+	ResumeErr error
+
 	LogsResult string
 	LogsErr    error
 	GotLogsID  string
@@ -135,6 +141,35 @@ func (f *FakeMgr) Destroy(ctx context.Context, id string) error {
 	f.created = kept
 	f.mu.Unlock()
 	return f.DestroyErr
+}
+
+// Pause records the paused ID and returns the canned PauseErr.
+//
+// @arg ctx Context (unused by the fake).
+// @arg id The identifier to pause, appended to Paused.
+// @error error The canned PauseErr, if any.
+//
+// @testcase TestFakeMgr checks Pause records the ID and surfaces the canned PauseErr.
+func (f *FakeMgr) Pause(ctx context.Context, id string) error {
+	f.mu.Lock()
+	f.Paused = append(f.Paused, id)
+	f.mu.Unlock()
+	return f.PauseErr
+}
+
+// Resume records the resumed ID and returns the canned session URL/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg id The identifier to resume, appended to Resumed.
+// @return string The canned ResumeURL.
+// @error error The canned ResumeErr, if any.
+//
+// @testcase TestFakeMgr checks Resume records the ID and surfaces the canned session URL and error.
+func (f *FakeMgr) Resume(ctx context.Context, id string) (string, error) {
+	f.mu.Lock()
+	f.Resumed = append(f.Resumed, id)
+	f.mu.Unlock()
+	return f.ResumeURL, f.ResumeErr
 }
 
 // Logs records the requested box ID and tail and returns the canned output/error.

@@ -38,8 +38,8 @@
 			"function_name": "Provision",
 			"receiver": "Provisioner",
 			"documentation_hash": "84e870a2cce437f633580a552dcc74c63e357a78ede5bf564e80983412a7d6f3",
-			"definition_hash": "74e03e12d905459103fc8b318a039b6ed1431c375265a1d1dc73479f8cb18867",
-			"reviewed_at": "2026-07-09T18:49:59.017329698Z"
+			"definition_hash": "4458f8998f7113b6af7666b48fc83b596950bf4cfce4a5144fb64f78e53f4bac",
+			"reviewed_at": "2026-07-11T11:13:34.276103017Z"
 		},
 		{
 			"function_name": "List",
@@ -105,8 +105,8 @@
 			"function_name": "Meta",
 			"receiver": "fcInstance",
 			"documentation_hash": "4aee1718ffea7a29bdc0f52cc80ac1a7b6cc79d15db37ac17077065fe5314d80",
-			"definition_hash": "66e5c1bae1433e6fb22ac12202bf084dab5332004c46dc3dd61e900cd507326d",
-			"reviewed_at": "2026-07-08T14:50:26.497845858Z"
+			"definition_hash": "a503fc04199e4b3c1cd52fe4da48d3fa28ecf5d74ee04031e5cc480c89087c36",
+			"reviewed_at": "2026-07-11T11:13:34.261322411Z"
 		},
 		{
 			"function_name": "Control",
@@ -155,6 +155,27 @@
 			"documentation_hash": "1a8235f6138e8aff363392b2a80dbb62394065f5510e2e6eddfdeffb591bb56d",
 			"definition_hash": "c1ae46648d8eebfe87bff606b78adca03714f9cef4d5f4c6333772a121d1cbda",
 			"reviewed_at": "2026-07-09T18:49:59.018274248Z"
+		},
+		{
+			"function_name": "bootMachine",
+			"receiver": "Provisioner",
+			"documentation_hash": "6a6fc44d3dfcaf2a23ed27b41d5ed1db54e78463d4f9f31b7d964282fad2913a",
+			"definition_hash": "7c04afe87455f590cf9626855d8d3db7c54a79b47d3f68165a1427562b040987",
+			"reviewed_at": "2026-07-11T11:13:34.258188105Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "fcInstance",
+			"documentation_hash": "5b4470eeb6054e95adbce8ed2aca61f02f9a0a729da7c0749ee8a72744ba4e81",
+			"definition_hash": "236be7cb14c1f7b6aee1b8d777a62561ce11dc5d982e72f608d562f0eff48765",
+			"reviewed_at": "2026-07-11T11:13:34.271091305Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "fcInstance",
+			"documentation_hash": "1788782fcc5c02156de821806df80ed1995fde193e632fc4f73feea3f8f76cc8",
+			"definition_hash": "953ca9d21bbd145d55796cfe9adc75b0c888a334606ba3025f8b162e2244df11",
+			"reviewed_at": "2026-07-11T11:13:34.279397885Z"
 		}
 	]
 }

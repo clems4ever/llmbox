@@ -263,6 +263,31 @@ func (c *Client) DestroyBox(ctx context.Context, boxID string) error {
 	return err
 }
 
+// PauseBox stops a box's compute by its box ID to save CPU/RAM, keeping its disk.
+//
+// @arg ctx Context for the request.
+// @arg boxID The box ID of the box to pause.
+// @error error if the box cannot be paused.
+//
+// @testcase TestBackendAPIRoundTrip pauses a box through the client.
+func (c *Client) PauseBox(ctx context.Context, boxID string) error {
+	_, err := post[pauseBoxRequest, emptyResponse](ctx, c, PathPauseBox, pauseBoxRequest{BoxID: boxID})
+	return err
+}
+
+// ResumeBox restarts a paused box's compute by its box ID; the box relaunches with
+// a fresh session URL, visible on the next ListBoxes.
+//
+// @arg ctx Context for the request.
+// @arg boxID The box ID of the box to resume.
+// @error error if the box cannot be resumed.
+//
+// @testcase TestBackendAPIRoundTrip resumes a box through the client.
+func (c *Client) ResumeBox(ctx context.Context, boxID string) error {
+	_, err := post[resumeBoxRequest, emptyResponse](ctx, c, PathResumeBox, resumeBoxRequest{BoxID: boxID})
+	return err
+}
+
 // BoxLogs returns the recent console output of a box by its box ID.
 //
 // @arg ctx Context for the request.

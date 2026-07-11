@@ -48,6 +48,8 @@ const (
 	methodSubmitCode = "submit_code"
 	methodList       = "list"
 	methodDestroy    = "destroy"
+	methodPause      = "pause"
+	methodResume     = "resume"
 	methodLogs       = "logs"
 	methodExec       = "exec"
 	methodReap       = "reap"
@@ -112,6 +114,17 @@ type listResp struct {
 
 type destroyReq struct {
 	IDOrName string `json:"id_or_name"`
+}
+
+type pauseReq struct {
+	IDOrName string `json:"id_or_name"`
+}
+
+type resumeReq struct {
+	IDOrName string `json:"id_or_name"`
+}
+type resumeResp struct {
+	SessionURL string `json:"session_url"`
 }
 
 type logsReq struct {

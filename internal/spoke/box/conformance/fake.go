@@ -90,27 +90,6 @@ func (f *Fake) Provision(ctx context.Context, opts sandbox.CreateOptions) (box.I
 	}
 	sock := filepath.Join(dir, "control.sock")
 
-	a := guest.New(guest.Options{
-		ClaudeCmd:      f.claude,
-		Home:           home,
-		InitScriptPath: filepath.Join(dir, "init-script"),
-	})
-	actx, cancel := context.WithCancel(context.Background())
-	errc := make(chan error, 1)
-	go func() { errc <- a.ListenAndServe(actx, sock) }()
-
-	deadline := time.Now().Add(3 * time.Second)
-	for {
-		if _, err := os.Stat(sock); err == nil {
-			break
-		}
-		if time.Now().After(deadline) {
-			cancel()
-			return nil, fmt.Errorf("box control socket did not appear")
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-
 	inst := &fakeInstance{
 		fake:    f,
 		id:      fmt.Sprintf("fakebox%06d", n),
@@ -118,9 +97,10 @@ func (f *Fake) Provision(ctx context.Context, opts sandbox.CreateOptions) (box.I
 		phase:   "pending",
 		created: time.Now().Unix(),
 		sock:    sock,
-		guest:   a,
-		cancel:  cancel,
-		errc:    errc,
+		dir:     dir,
+	}
+	if err := inst.serve(); err != nil {
+		return nil, err
 	}
 	f.mu.Lock()
 	f.boxes[inst.id] = inst
@@ -168,19 +148,82 @@ func (f *Fake) Find(ctx context.Context, idOrName string) (box.Instance, error) 
 	return nil, fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
-// fakeInstance is one Fake box: a guest on a Unix socket plus its phase.
+// fakeInstance is one Fake box: a guest on a Unix socket plus its phase. dir is the
+// box's persistent directory (home survives a pause), so serve can restart the
+// guest on the same socket on resume.
 type fakeInstance struct {
 	fake    *Fake
 	id      string
 	boxID   string
 	sock    string
+	dir     string
 	created int64
-	guest   *guest.Guest
-	cancel  context.CancelFunc
-	errc    chan error
 
-	mu    sync.Mutex
-	phase string
+	mu     sync.Mutex
+	phase  string
+	paused bool
+	guest  *guest.Guest
+	cancel context.CancelFunc
+	errc   chan error
+}
+
+// serve starts (or restarts) the box's guest listening on its socket and blocks
+// until the socket appears. It is used by Provision and by Resume, reusing the
+// box's persistent home so on-disk state (auth) survives a pause. Callers must not
+// hold i.mu.
+//
+// @error error if the box home cannot be prepared or the control socket never appears.
+//
+// @testcase TestConformanceFake serves each provisioned box's guest via serve.
+func (i *fakeInstance) serve() error {
+	home := filepath.Join(i.dir, "home")
+	if err := os.MkdirAll(home, 0o755); err != nil {
+		return fmt.Errorf("creating box home: %w", err)
+	}
+	a := guest.New(guest.Options{
+		ClaudeCmd:      i.fake.claude,
+		Home:           home,
+		InitScriptPath: filepath.Join(i.dir, "init-script"),
+	})
+	actx, cancel := context.WithCancel(context.Background())
+	errc := make(chan error, 1)
+	go func() { errc <- a.ListenAndServe(actx, i.sock) }()
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if _, err := os.Stat(i.sock); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			cancel()
+			return fmt.Errorf("box control socket did not appear")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	i.mu.Lock()
+	i.guest, i.cancel, i.errc = a, cancel, errc
+	i.mu.Unlock()
+	return nil
+}
+
+// stopGuest shuts the box's guest down and waits for its serve loop to return. It
+// is the compute-teardown shared by Pause and Destroy. Callers must not hold i.mu.
+//
+// @testcase TestConformanceFake stops a box's guest via Destroy and Pause.
+func (i *fakeInstance) stopGuest() {
+	i.mu.Lock()
+	g, cancel, errc := i.guest, i.cancel, i.errc
+	i.guest, i.cancel, i.errc = nil, nil, nil
+	i.mu.Unlock()
+	if g != nil {
+		g.Shutdown()
+	}
+	if cancel != nil {
+		cancel()
+	}
+	if errc != nil {
+		<-errc
+	}
 }
 
 // Meta returns the box's current view.
@@ -190,14 +233,18 @@ type fakeInstance struct {
 // @testcase TestConformanceFake reads box metadata via Meta.
 func (i *fakeInstance) Meta() sandbox.Box {
 	i.mu.Lock()
-	phase := i.phase
+	phase, paused := i.phase, i.paused
 	i.mu.Unlock()
+	state := "running"
+	if paused {
+		state = sandbox.StatePaused
+	}
 	return sandbox.Box{
 		InstanceID: i.id,
 		Name:       i.id,
 		BoxID:      i.boxID,
 		Image:      "fake",
-		State:      "running",
+		State:      state,
 		Phase:      phase,
 		Created:    i.created,
 	}
@@ -228,6 +275,52 @@ func (i *fakeInstance) MarkReady(ctx context.Context) error {
 	return nil
 }
 
+// Pause stops the box's guest to free compute while keeping its home (and the box
+// registered), so Resume can restart it. Pausing an already-gone box returns a
+// wrapped sandbox.ErrBoxNotFound.
+//
+// @arg ctx Context (unused by the fake).
+// @error error Wrapped sandbox.ErrBoxNotFound when the box is already gone.
+//
+// @testcase TestConformanceFake pauses a box and reports it paused.
+func (i *fakeInstance) Pause(ctx context.Context) error {
+	i.fake.mu.Lock()
+	_, ok := i.fake.boxes[i.id]
+	i.fake.mu.Unlock()
+	if !ok {
+		return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.id)
+	}
+	i.stopGuest()
+	i.mu.Lock()
+	i.paused = true
+	i.mu.Unlock()
+	return nil
+}
+
+// Resume restarts a paused box's guest on its socket, reusing its home so on-disk
+// state survives. Resuming an already-gone box returns a wrapped
+// sandbox.ErrBoxNotFound.
+//
+// @arg ctx Context (unused by the fake).
+// @error error Wrapped sandbox.ErrBoxNotFound when the box is already gone, or if the guest cannot be restarted.
+//
+// @testcase TestConformanceFake resumes a paused box and reports it running.
+func (i *fakeInstance) Resume(ctx context.Context) error {
+	i.fake.mu.Lock()
+	_, ok := i.fake.boxes[i.id]
+	i.fake.mu.Unlock()
+	if !ok {
+		return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.id)
+	}
+	if err := i.serve(); err != nil {
+		return err
+	}
+	i.mu.Lock()
+	i.paused = false
+	i.mu.Unlock()
+	return nil
+}
+
 // Destroy shuts the box's guest down and deregisters it. Destroying an
 // already-gone box returns a wrapped sandbox.ErrBoxNotFound.
 //
@@ -243,8 +336,6 @@ func (i *fakeInstance) Destroy(ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.id)
 	}
-	i.guest.Shutdown()
-	i.cancel()
-	<-i.errc
+	i.stopGuest()
 	return nil
 }

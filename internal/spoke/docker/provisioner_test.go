@@ -515,6 +515,133 @@ func TestMarkReadyRenamesContainer(t *testing.T) {
 	}
 }
 
+// TestPauseStopsAndMarksBox checks Pause stops the container (freeing compute) and
+// writes the paused marker so the box reports as paused rather than dead.
+func TestPauseStopsAndMarksBox(t *testing.T) {
+	f := &fakeDocker{}
+	p := newTestProvisioner(t, f)
+	tokenDir := filepath.Join(p.socketDir, "tok9")
+	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen1", BoxID: "b"}, containerID: "cid", socketToken: "tok9"}
+	if err := inst.Pause(context.Background()); err != nil {
+		t.Fatalf("Pause: %v", err)
+	}
+	if len(f.stopped) != 1 || f.stopped[0] != "cid" {
+		t.Fatalf("stopped = %v, want [cid]", f.stopped)
+	}
+	if len(f.removed) != 0 {
+		t.Fatalf("Pause must not remove the container (that would destroy the disk); removed=%v", f.removed)
+	}
+	if !pausedMarkerExists(p.socketDir, "tok9") {
+		t.Fatal("paused marker not written")
+	}
+}
+
+// TestResumeStartsAndUnmarksBox checks Resume starts the container, waits for the
+// guest socket, and clears the paused marker.
+func TestResumeStartsAndUnmarksBox(t *testing.T) {
+	f := &fakeDocker{}
+	p := newTestProvisioner(t, f)
+	tokenDir := filepath.Join(p.socketDir, "tok9")
+	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen1", BoxID: "b"}, containerID: "cid", socketToken: "tok9"}
+	if err := os.WriteFile(inst.pausedMarkerPath(), nil, 0o600); err != nil {
+		t.Fatalf("seed marker: %v", err)
+	}
+	// Stand up the guest control socket so Resume's socket wait returns at once.
+	ln, err := net.Listen("unix", inst.socketPath())
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+
+	if err := inst.Resume(context.Background()); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if f.startID != "cid" {
+		t.Fatalf("startID = %q, want cid", f.startID)
+	}
+	if pausedMarkerExists(p.socketDir, "tok9") {
+		t.Fatal("paused marker should be cleared after resume")
+	}
+}
+
+// TestPauseResumeReportsPausedState checks List reports a box as paused exactly
+// while its marker is present, distinguishing a deliberate pause from a crash.
+func TestPauseResumeReportsPausedState(t *testing.T) {
+	f := &fakeDocker{}
+	p := newTestProvisioner(t, f)
+	tokenDir := filepath.Join(p.socketDir, "tok9")
+	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	f.listResult = []container.Summary{{
+		ID:     "cid",
+		Names:  []string{"/" + readyPrefix + "gen1"},
+		Labels: map[string]string{ManagedLabel: "true", socketLabel: "tok9", GenerationLabel: "gen1", BoxIDLabel: "b"},
+		State:  "running",
+	}}
+	stateOf := func() string {
+		insts, err := p.List(context.Background())
+		if err != nil || len(insts) != 1 {
+			t.Fatalf("List = %v, %v", insts, err)
+		}
+		return insts[0].Meta().State
+	}
+	if s := stateOf(); s != "running" {
+		t.Fatalf("state without marker = %q, want running", s)
+	}
+	if err := os.WriteFile(filepath.Join(tokenDir, pausedMarkerFile), nil, 0o600); err != nil {
+		t.Fatalf("write marker: %v", err)
+	}
+	if s := stateOf(); s != sandbox.StatePaused {
+		t.Fatalf("state with marker = %q, want %q", s, sandbox.StatePaused)
+	}
+	if err := os.Remove(filepath.Join(tokenDir, pausedMarkerFile)); err != nil {
+		t.Fatalf("remove marker: %v", err)
+	}
+	if s := stateOf(); s != "running" {
+		t.Fatalf("state after marker cleared = %q, want running", s)
+	}
+}
+
+// TestPauseAlreadyGone reports ErrBoxNotFound when the container is missing, and
+// leaves no stale paused marker behind.
+func TestPauseAlreadyGone(t *testing.T) {
+	f := &fakeDocker{stopMissing: true}
+	p := newTestProvisioner(t, f)
+	tokenDir := filepath.Join(p.socketDir, "tok9")
+	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen1", BoxID: "b"}, containerID: "cid", socketToken: "tok9"}
+	if err := inst.Pause(context.Background()); !errors.Is(err, sandbox.ErrBoxNotFound) {
+		t.Fatalf("Pause err = %v, want ErrBoxNotFound", err)
+	}
+	if pausedMarkerExists(p.socketDir, "tok9") {
+		t.Fatal("a failed pause must not leave a paused marker")
+	}
+}
+
+// TestResumeAlreadyGone reports ErrBoxNotFound when the container is missing.
+func TestResumeAlreadyGone(t *testing.T) {
+	f := &fakeDocker{}
+	p := newTestProvisioner(t, f)
+	tokenDir := filepath.Join(p.socketDir, "tok9")
+	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	f.startErr = errdefs.ErrNotFound.WithMessage("no such container")
+	inst := &dockerInstance{prov: p, box: sandbox.Box{InstanceID: "gen1", BoxID: "b"}, containerID: "cid", socketToken: "tok9"}
+	if err := inst.Resume(context.Background()); !errors.Is(err, sandbox.ErrBoxNotFound) {
+		t.Fatalf("Resume err = %v, want ErrBoxNotFound", err)
+	}
+}
+
 // TestDestroyRemovesNetworkAndSocket stops the box, removes its network, and
 // deletes its socket dir.
 func TestDestroyRemovesNetworkAndSocket(t *testing.T) {

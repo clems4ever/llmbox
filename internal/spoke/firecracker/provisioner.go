@@ -17,6 +17,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -310,32 +311,87 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	dir := boxDir(p.stateDir, token)
 	n := netFor(index)
 	vsockUDS := filepath.Join(dir, "vsock.sock")
-	apiSock := filepath.Join(dir, "fc.sock")
 	perBoxRootfs := filepath.Join(dir, "rootfs.ext4")
 
-	// cleanup undoes partial provisioning in reverse order. The TAP is pooled (not
-	// per box), so it is freed via the slot index, not torn down here.
-	var api *boxapi.Server
-	cleanup := func(m machine) {
-		if m != nil {
-			_ = m.StopVMM()
-		}
-		if api != nil {
-			_ = api.Close()
-		}
-		_ = os.RemoveAll(dir)
+	// freeSlot returns the box's pooled network slot; the pooled TAP itself stays up
+	// for reuse and is never torn down per box.
+	freeSlot := func() {
 		p.mu.Lock()
 		delete(p.used, index)
 		p.mu.Unlock()
 	}
 
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		cleanup(nil)
+		freeSlot()
 		return nil, fmt.Errorf("creating box dir: %w", err)
 	}
 	if err := copyFile(rootfsSrc, perBoxRootfs); err != nil {
-		cleanup(nil)
+		_ = os.RemoveAll(dir)
+		freeSlot()
 		return nil, fmt.Errorf("copying rootfs: %w", err)
+	}
+
+	m, api, err := p.bootMachine(ctx, token, opts.BoxID, index)
+	if err != nil {
+		_ = os.RemoveAll(dir)
+		freeSlot()
+		return nil, err
+	}
+
+	meta := boxMeta{
+		Token: token, BoxID: opts.BoxID, Description: opts.Description,
+		Image: rootfsSrc, Phase: "pending", Created: time.Now().Unix(),
+		NetIndex: index, Namespace: p.namespace,
+	}
+	if err := meta.save(p.stateDir); err != nil {
+		_ = m.StopVMM()
+		if api != nil {
+			_ = api.Close()
+		}
+		_ = os.RemoveAll(dir)
+		freeSlot()
+		return nil, fmt.Errorf("saving box meta: %w", err)
+	}
+	inst := &fcInstance{prov: p, meta: meta, vsockUDS: vsockUDS, net: n, machine: m, api: api}
+
+	p.mu.Lock()
+	p.boxes[token] = inst
+	p.mu.Unlock()
+	return inst, nil
+}
+
+// bootMachine boots the microVM for a box from its on-disk rootfs and waits for the
+// guest to answer on vsock. Provision calls it for a fresh box and Resume calls it
+// to bring a paused box's compute back up; both reuse the box's existing state dir,
+// per-box rootfs, and pooled network slot (index), so a resumed box keeps the same
+// IP/MAC and never churns a host interface. It pre-listens the box-port API socket
+// (which Firecracker dials as the guest connects) and, on any failure, stops the VM
+// and closes that listener so it never leaks a half-booted machine. Stale host
+// sockets from a previous boot are removed first so the (re)boot can bind them.
+//
+// @arg ctx Context bounding the guest wait (the VM itself runs on the provisioner lifetime context).
+// @arg token The box's generation token, naming its state dir.
+// @arg boxID The box's caller-assigned id, used to scope its box-port API listener.
+// @arg index The box's pooled network slot, giving its stable TAP/IP/MAC.
+// @return machine The started microVM handle.
+// @return *boxapi.Server The box-port API listener, or nil when the provisioner has no port service.
+// @error error if the box-port API cannot be served, or the VM cannot be created, started, or reached over vsock.
+//
+// @testcase TestConformanceFirecracker boots every box through bootMachine.
+func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, index int) (machine, *boxapi.Server, error) {
+	dir := boxDir(p.stateDir, token)
+	n := netFor(index)
+	vsockUDS := filepath.Join(dir, "vsock.sock")
+	apiSock := filepath.Join(dir, "fc.sock")
+	perBoxRootfs := filepath.Join(dir, "rootfs.ext4")
+
+	// A resumed box's dir still holds the previous boot's host sockets; remove them
+	// so Firecracker (and the box-port listener) can bind fresh ones. Absent files
+	// (a first Provision) are not an error.
+	for _, s := range []string{apiSock, vsockUDS, boxAPISocketPath(vsockUDS)} {
+		if err := os.Remove(s); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, nil, fmt.Errorf("clearing stale socket %s: %w", s, err)
+		}
 	}
 
 	// Pre-listen for the guest's box-port API connections BEFORE the VM boots:
@@ -343,11 +399,19 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	// on boxAPIVsockPort, so it must already exist. The listener is bound to
 	// this one VM's identity — the spoke-side enforcement that a box can only
 	// publish its own ports.
+	var api *boxapi.Server
 	if p.ports != nil {
 		var err error
-		if api, err = boxapi.ServeUnix(boxAPISocketPath(vsockUDS), opts.BoxID, p.ports, p.log); err != nil {
-			cleanup(nil)
-			return nil, fmt.Errorf("serving box-port API: %w", err)
+		if api, err = boxapi.ServeUnix(boxAPISocketPath(vsockUDS), boxID, p.ports, p.log); err != nil {
+			return nil, nil, fmt.Errorf("serving box-port API: %w", err)
+		}
+	}
+	bootCleanup := func(m machine) {
+		if m != nil {
+			_ = m.StopVMM()
+		}
+		if api != nil {
+			_ = api.Close()
 		}
 	}
 
@@ -404,37 +468,22 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 
 	m, err := p.newMachine(ctx, cfg)
 	if err != nil {
-		cleanup(nil)
-		return nil, fmt.Errorf("creating microVM: %w", err)
+		bootCleanup(nil)
+		return nil, nil, fmt.Errorf("creating microVM: %w", err)
 	}
 	// Start on the provisioner's lifetime context, not the request context: the SDK
 	// spawns a goroutine that calls StopVMM when the Start context is done, so
 	// starting on the request context would kill the VM the moment create returns.
 	// The guest wait below still honours the request context for its own timeout.
 	if err := m.Start(p.procCtx); err != nil {
-		cleanup(m)
-		return nil, fmt.Errorf("starting microVM: %w", err)
+		bootCleanup(m)
+		return nil, nil, fmt.Errorf("starting microVM: %w", err)
 	}
 	if err := waitForGuest(ctx, vsockUDS, guestVsockPort, bootWait); err != nil {
-		cleanup(m)
-		return nil, fmt.Errorf("waiting for box guest: %w", err)
+		bootCleanup(m)
+		return nil, nil, fmt.Errorf("waiting for box guest: %w", err)
 	}
-
-	meta := boxMeta{
-		Token: token, BoxID: opts.BoxID, Description: opts.Description,
-		Image: rootfsSrc, Phase: "pending", Created: time.Now().Unix(),
-		NetIndex: index, Namespace: p.namespace,
-	}
-	if err := meta.save(p.stateDir); err != nil {
-		cleanup(m)
-		return nil, fmt.Errorf("saving box meta: %w", err)
-	}
-	inst := &fcInstance{prov: p, meta: meta, vsockUDS: vsockUDS, net: n, machine: m, api: api}
-
-	p.mu.Lock()
-	p.boxes[token] = inst
-	p.mu.Unlock()
-	return inst, nil
+	return m, api, nil
 }
 
 // List returns a handle to every managed box in this provisioner's namespace.
@@ -676,7 +725,12 @@ type fcInstance struct {
 // @testcase TestRehydrateListsPriorBoxes reports a rehydrated dead box as stopped.
 func (i *fcInstance) Meta() sandbox.Box {
 	state := "stopped"
-	if i.machine != nil || i.alive {
+	switch {
+	case i.meta.Paused:
+		// A deliberately paused box: its VM is stopped but its rootfs is kept, so it
+		// is reported paused (not merely stopped) and callers can resume it.
+		state = sandbox.StatePaused
+	case i.machine != nil || i.alive:
 		state = "running"
 	}
 	return i.meta.toBox(state)
@@ -711,6 +765,88 @@ func (i *fcInstance) MarkReady(ctx context.Context) error {
 	i.prov.mu.Unlock()
 	if err := meta.save(i.prov.stateDir); err != nil {
 		return fmt.Errorf("marking box %s ready: %w", i.meta.Token, err)
+	}
+	return nil
+}
+
+// Pause stops the box's VM to free CPU/RAM while keeping its rootfs (auth,
+// workspace), pooled network slot, and metadata, so Resume can boot it back. It
+// records the paused state (persisted, so it survives a spoke restart), drops the
+// live machine handle and the box-port API listener, but keeps the slot reserved so
+// a resume reuses the same TAP/IP. Pausing an already-gone box returns a wrapped
+// sandbox.ErrBoxNotFound.
+//
+// @arg ctx Unused; present to satisfy the interface.
+// @error error wrapping sandbox.ErrBoxNotFound if the box is already gone, or if the paused state cannot be persisted.
+//
+// @testcase TestPauseResumeFirecrackerBox pauses a box, sees it reported paused, then resumes it.
+// @testcase TestPauseAlreadyGoneFirecracker reports ErrBoxNotFound for an unknown box.
+func (i *fcInstance) Pause(ctx context.Context) error {
+	p := i.prov
+	p.mu.Lock()
+	_, present := p.boxes[i.meta.Token]
+	p.mu.Unlock()
+	if !present {
+		return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.meta.Token)
+	}
+	// Stop the compute. A live handle stops directly; a rehydrated orphan (no
+	// handle) is halted over its API socket.
+	switch {
+	case i.machine != nil:
+		_ = i.machine.StopVMM()
+	case i.alive:
+		if err := haltVMM(filepath.Join(boxDir(p.stateDir, i.meta.Token), "fc.sock")); err != nil {
+			p.log.Warn("failed to halt box VMM on pause", "box", i.meta.Token, "err", err)
+		}
+	}
+	if i.api != nil {
+		_ = i.api.Close()
+	}
+	p.mu.Lock()
+	i.machine = nil
+	i.alive = false
+	i.api = nil
+	i.meta.Paused = true
+	meta := i.meta
+	p.mu.Unlock()
+	if err := meta.save(p.stateDir); err != nil {
+		return fmt.Errorf("persisting paused box %s: %w", i.meta.Token, err)
+	}
+	return nil
+}
+
+// Resume boots a paused box's VM back up from its kept rootfs, reusing its pooled
+// network slot so it keeps the same IP/MAC, and re-establishes its box-port API
+// listener. It restores only the compute; the Manager re-drives the guest handshake
+// to relaunch claude. The paused state is cleared only after a successful boot, so a
+// resume that fails leaves the box paused and retryable. Resuming an already-gone
+// box returns a wrapped sandbox.ErrBoxNotFound.
+//
+// @arg ctx Context bounding the boot's guest wait.
+// @error error wrapping sandbox.ErrBoxNotFound if the box is already gone, or if the VM cannot be booted or its state persisted.
+//
+// @testcase TestPauseResumeFirecrackerBox resumes a paused box and sees it reported running again.
+func (i *fcInstance) Resume(ctx context.Context) error {
+	p := i.prov
+	p.mu.Lock()
+	_, present := p.boxes[i.meta.Token]
+	p.mu.Unlock()
+	if !present {
+		return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.meta.Token)
+	}
+	m, api, err := p.bootMachine(ctx, i.meta.Token, i.meta.BoxID, i.meta.NetIndex)
+	if err != nil {
+		return fmt.Errorf("resuming box %s: %w", i.meta.Token, err)
+	}
+	p.mu.Lock()
+	i.machine = m
+	i.api = api
+	i.alive = false
+	i.meta.Paused = false
+	meta := i.meta
+	p.mu.Unlock()
+	if err := meta.save(p.stateDir); err != nil {
+		return fmt.Errorf("persisting resumed box %s: %w", i.meta.Token, err)
 	}
 	return nil
 }

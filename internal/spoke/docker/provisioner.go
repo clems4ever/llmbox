@@ -87,6 +87,11 @@ const (
 	// inside the container; the guest's default --socket lives directly under it.
 	socketMountTarget = "/run/llmbox"
 	socketFileName    = "control.sock"
+	// pausedMarkerFile is written into a box's host socket dir when the box is
+	// paused, so List can report it as sandbox.StatePaused rather than the "exited"
+	// a stopped container would otherwise show — distinguishing a deliberate pause
+	// from a crash. Resume removes it; Destroy removes the whole dir.
+	pausedMarkerFile = "paused"
 
 	// boxHome and boxWorkdir are the home and working directory forced on a box,
 	// so the baked ~/.claude.json trust seed and the credentials Claude writes land
@@ -343,9 +348,30 @@ func (p *Provisioner) List(ctx context.Context) ([]box.Instance, error) {
 	}
 	out := make([]box.Instance, 0, len(cs))
 	for _, c := range cs {
-		out = append(out, &dockerInstance{prov: p, box: boxFromSummary(c), socketToken: c.Labels[socketLabel], containerID: c.ID})
+		token := c.Labels[socketLabel]
+		b := boxFromSummary(c)
+		// A paused box's container is stopped (Docker reports "exited"); the marker
+		// distinguishes that deliberate pause from a crash so callers see it as
+		// paused, not dead.
+		if token != "" && pausedMarkerExists(p.socketDir, token) {
+			b.State = sandbox.StatePaused
+		}
+		out = append(out, &dockerInstance{prov: p, box: b, socketToken: token, containerID: c.ID})
 	}
 	return out, nil
+}
+
+// pausedMarkerExists reports whether the paused marker is present in a box's host
+// socket dir, i.e. the box was paused (and not yet resumed or destroyed).
+//
+// @arg socketDir The provisioner's socket root.
+// @arg socketToken The box's socket subdirectory name.
+// @return bool True when the box's paused marker file exists.
+//
+// @testcase TestPauseResumeReportsPausedState reports a paused box after Pause and running after Resume.
+func pausedMarkerExists(socketDir, socketToken string) bool {
+	_, err := os.Stat(filepath.Join(socketDir, socketToken, pausedMarkerFile))
+	return err == nil
 }
 
 // Find resolves an ID or name to the single managed box it identifies.
@@ -916,6 +942,66 @@ func (i *dockerInstance) Control(ctx context.Context) (net.Conn, error) {
 func (i *dockerInstance) MarkReady(ctx context.Context) error {
 	if err := i.prov.cli.ContainerRename(ctx, i.containerID, readyPrefix+i.box.InstanceID); err != nil {
 		return fmt.Errorf("marking box %s ready: %w", i.box.BoxID, err)
+	}
+	return nil
+}
+
+// pausedMarkerPath returns the host path of the box's paused marker file.
+//
+// @return string The host filesystem path of the box's paused marker.
+//
+// @testcase TestPauseResumeReportsPausedState pauses a box and finds the marker path present.
+func (i *dockerInstance) pausedMarkerPath() string {
+	return filepath.Join(i.prov.socketDir, i.socketToken, pausedMarkerFile)
+}
+
+// Pause stops the box's container to free CPU/RAM while keeping its writable layer
+// (auth, workspace) and identity, so Resume can bring it back. It writes the paused
+// marker first (so a stopped container always reports as paused, never dead) and
+// removes it again if the stop fails, leaving a clean running box.
+//
+// @arg ctx Context for the stop.
+// @error error wrapping sandbox.ErrBoxNotFound if the box is already gone, or if it cannot be marked or stopped.
+//
+// @testcase TestPauseStopsAndMarksBox stops the container and writes the paused marker.
+// @testcase TestPauseAlreadyGone reports ErrBoxNotFound when the container is missing.
+func (i *dockerInstance) Pause(ctx context.Context) error {
+	if err := os.WriteFile(i.pausedMarkerPath(), nil, 0o600); err != nil {
+		return fmt.Errorf("marking box %s paused: %w", i.box.BoxID, err)
+	}
+	timeout := int(stopTimeout.Seconds())
+	if err := i.prov.cli.ContainerStop(ctx, i.containerID, container.StopOptions{Timeout: &timeout}); err != nil {
+		_ = os.Remove(i.pausedMarkerPath())
+		if errdefs.IsNotFound(err) {
+			return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.box.BoxID)
+		}
+		return fmt.Errorf("pausing box %s: %w", i.box.BoxID, err)
+	}
+	return nil
+}
+
+// Resume restarts a paused box's container and waits for the guest to recreate its
+// control socket, then clears the paused marker. It restores only the compute; the
+// Manager re-drives the guest handshake to relaunch claude. The marker is cleared
+// last so a resume that fails before the guest is back stays reported as paused.
+//
+// @arg ctx Context for the start and the socket wait.
+// @error error wrapping sandbox.ErrBoxNotFound if the box is already gone, or if it cannot be started or its guest socket does not reappear.
+//
+// @testcase TestResumeStartsAndUnmarksBox starts the container, waits for the socket, and clears the marker.
+// @testcase TestResumeAlreadyGone reports ErrBoxNotFound when the container is missing.
+func (i *dockerInstance) Resume(ctx context.Context) error {
+	if err := i.prov.cli.ContainerStart(ctx, i.containerID, container.StartOptions{}); err != nil {
+		if errdefs.IsNotFound(err) {
+			return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.box.BoxID)
+		}
+		return fmt.Errorf("resuming box %s: %w", i.box.BoxID, err)
+	}
+	if err := waitForSocket(ctx, i.socketPath(), socketWait); err != nil {
+		return fmt.Errorf("waiting for box %s guest after resume: %w", i.box.BoxID, err)
+	}
+	if err := os.Remove(i.pausedMarkerPath()); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("clearing paused marker for box %s: %w", i.box.BoxID, err)
 	}
 	return nil
 }

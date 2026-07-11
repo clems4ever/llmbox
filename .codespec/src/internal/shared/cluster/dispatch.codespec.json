@@ -15,8 +15,8 @@
 		{
 			"function_name": "dispatch",
 			"documentation_hash": "7c9ef1c11827babff70e58182f37043bf8f07ff0117d0929dbcc268d341399a5",
-			"definition_hash": "8c053ad00b5a1d1080daff4f74c06ab9b6f83ad262509e10706ae28eef19bcfc",
-			"reviewed_at": "2026-07-08T09:43:14.704455711Z"
+			"definition_hash": "e5e3b3e9336b5ec437cb53a28ad8a7d45e5122f5c2ae93adbff6a45813cbb893",
+			"reviewed_at": "2026-07-11T11:12:12.911992959Z"
 		},
 		{
 			"function_name": "handleStreamOpen",
