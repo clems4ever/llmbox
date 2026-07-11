@@ -229,6 +229,16 @@ func (m *fakeSpokeMgr) Destroy(_ context.Context, idOrName string) error {
 	return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
+// Pause is a no-op in the simulation and always succeeds.
+func (m *fakeSpokeMgr) Pause(_ context.Context, _ string) error {
+	return nil
+}
+
+// Resume is a no-op in the simulation and returns a canned session URL.
+func (m *fakeSpokeMgr) Resume(_ context.Context, _ string) (string, error) {
+	return "https://claude.ai/code/session", nil
+}
+
 // humanDestroy simulates an operator removing a box's container directly on the
 // host, out of band: the box vanishes from the spoke without going through the
 // cluster Destroy path, so a later Destroy sees no such box.

@@ -169,6 +169,36 @@ func (m *fakeBoxManager) Destroy(_ context.Context, idOrName string) error {
 	return nil
 }
 
+// Pause simulates pausing a box: it is a no-op beyond verifying the box exists.
+//
+// @arg ctx Context (unused by the simulation).
+// @arg idOrName The ID or name identifying the box.
+// @error error if no simulated box matches.
+func (m *fakeBoxManager) Pause(_ context.Context, idOrName string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.find(idOrName) == nil {
+		return fmt.Errorf("no managed box matches %q", idOrName)
+	}
+	return nil
+}
+
+// Resume simulates resuming a box: it verifies the box exists and returns a
+// canned session URL.
+//
+// @arg ctx Context (unused by the simulation).
+// @arg idOrName The ID or name identifying the box.
+// @return string A canned session URL.
+// @error error if no simulated box matches.
+func (m *fakeBoxManager) Resume(_ context.Context, idOrName string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.find(idOrName) == nil {
+		return "", fmt.Errorf("no managed box matches %q", idOrName)
+	}
+	return "https://claude.ai/code/session", nil
+}
+
 // Logs returns canned console output for the box, standing in for a real box's
 // remote-control logs.
 //

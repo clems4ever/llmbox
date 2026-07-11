@@ -68,6 +68,20 @@
 			"documentation_hash": "a7264279883bbe955d65a5411dfe8e4f891706e4af5a5e79e0597eca77a0b783",
 			"definition_hash": "c1fcb01b1b7ba95c328559f329717541b27202cb0b01937494ddaa5e3bb44736",
 			"reviewed_at": "2026-06-27T17:02:38.489567078Z"
+		},
+		{
+			"function_name": "Pause",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "326260684fcdea28fcaa0ff95af637b542b44baae30453d1510a77fd5f05e1ca",
+			"definition_hash": "6bf09006905ddad0941000e44075cb8f85fe5a6be91480da06c91c86b224069e",
+			"reviewed_at": "2026-07-11T11:59:03.75662375Z"
+		},
+		{
+			"function_name": "Resume",
+			"receiver": "fakeBoxManager",
+			"documentation_hash": "1a928b82935f59cb1889fb735eb85e9aacd9228b1b4cafd630c81a98939a9286",
+			"definition_hash": "b5df4c122819913542864314a74df45478718374fb6872a9e31ee1db74a0d9ea",
+			"reviewed_at": "2026-07-11T11:59:03.758619244Z"
 		}
 	]
 }
