@@ -1,0 +1,58 @@
+{
+	"functions": [
+		{
+			"function_name": "writeMeta",
+			"documentation_hash": "747a1c9feb2a892651a24d37e63c9b872520116c24db0ff97bc6e48aea07d09d",
+			"definition_hash": "7c2fa5ae01f92a6bae8058e42cd1d96a7a0b2584c23dfc4ce1bb4d1a1c4cd3e8",
+			"reviewed_at": "2026-07-12T15:02:07.630120025Z"
+		},
+		{
+			"function_name": "TestListVMs",
+			"documentation_hash": "11f071429e4a891cf272ad06d7001f7634f9281d52c31c140f86c21a43cd1db0",
+			"definition_hash": "121a9cba0bbf91303fb1e309787f7d252275d8da1dd6a848d1f0997b822d33df",
+			"reviewed_at": "2026-07-12T15:02:13.714173271Z"
+		},
+		{
+			"function_name": "TestListVMsEmpty",
+			"documentation_hash": "a032a64378d79534f5bd33b58ff0dab9baec78fa69af850eba16c73f3ae617ab",
+			"definition_hash": "4267022592a7c9997be139e8fb3302af716094016e83c188ff6cd63d713d3f03",
+			"reviewed_at": "2026-07-12T15:02:19.919248723Z"
+		},
+		{
+			"function_name": "TestDestroyVM",
+			"documentation_hash": "5d486fcff7d799a5a2b716d4bc670efed257c034e345bf87c3b549f599cb5285",
+			"definition_hash": "8a642ffc74c926cd7651fa4b3cdec2dd9de335f2189e584dccf76c6cb35baa52",
+			"reviewed_at": "2026-07-12T15:02:25.988556554Z"
+		},
+		{
+			"function_name": "TestDestroyVMByPrefix",
+			"documentation_hash": "69228f53956ceba5b3e7c08cb078b4a4599cd138190b24c29c24f01491fe0d77",
+			"definition_hash": "24bc901033515ddef1d48ad48c163a632fb69fd4c06d585408017118859e73d4",
+			"reviewed_at": "2026-07-12T15:02:48.419186404Z"
+		},
+		{
+			"function_name": "TestDestroyVMUnknown",
+			"documentation_hash": "3f3eefd4135e9ad0777ba520f3a26b5f3c3f8a494ddbc2dff414e7f69599b45c",
+			"definition_hash": "99b7233c256f79cdfb3aa52bc8f98513e510fd46cdab76b9f832e27d90a003c7",
+			"reviewed_at": "2026-07-12T15:02:48.424831348Z"
+		},
+		{
+			"function_name": "TestResolveMetaAmbiguousPrefix",
+			"documentation_hash": "af389cab5486a24688f1a7cc9ab2b420f5aac8c3f279634e8fd975b2dee63c65",
+			"definition_hash": "b81e638a9f7313d6e08339bc763423478316153be91318acbb73c4c015530c80",
+			"reviewed_at": "2026-07-12T15:02:48.434988299Z"
+		},
+		{
+			"function_name": "TestDestroyAllVMs",
+			"documentation_hash": "906da7206487e83a2bf804c973be717ba2472d4d61db7b53481e9ce44030c158",
+			"definition_hash": "54620d7084e9b6e4c51b8719eca4df376ae0871420451367a4f9d6a6bcce5006",
+			"reviewed_at": "2026-07-12T15:08:55.630316183Z"
+		},
+		{
+			"function_name": "TestDestroyAllVMsEmpty",
+			"documentation_hash": "cbe2f701c0fd84b99e6e4b4cb8713c61d94699224a710308d6c548105f6843eb",
+			"definition_hash": "5760d40858c7a93f0817b5af09e327ca08477ea30bb420e0ebdadac0f7854162",
+			"reviewed_at": "2026-07-12T15:09:02.018986864Z"
+		}
+	]
+}

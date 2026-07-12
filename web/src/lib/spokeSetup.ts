@@ -21,7 +21,11 @@ export const tokenPlaceholder = "<one-time-token>";
  * multi-GiB guest images and per-box state land on disk, not the default
  * in-memory tmpfs run-dir (too small, and wiped on reboot). Keeping --token in
  * the unit is safe: the spoke only uses it on first enrollment and reconnects
- * from the saved credential afterwards. */
+ * from the saved credential afterwards. A firecracker spoke also sets
+ * KillMode=process so systemd signals only the spoke process on stop/restart,
+ * leaving its microVMs running (they are rehydrated when the spoke respawns) —
+ * the default control-group kill would reap every VM, mirroring how Docker's own
+ * daemon unit uses KillMode=process to keep containers alive across a restart. */
 export function systemdSetupScript(command: string): string {
   const firecracker = /^llmbox-spoke\s+firecracker\b/.test(command);
   const exec =
@@ -41,7 +45,7 @@ After=network-online.target
 ExecStart=${exec}
 Restart=on-failure
 RestartSec=5
-StateDirectory=llmbox
+StateDirectory=llmbox${firecracker ? "\nKillMode=process" : ""}
 
 [Install]
 WantedBy=multi-user.target

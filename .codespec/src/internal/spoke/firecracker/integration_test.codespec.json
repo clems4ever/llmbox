@@ -3,8 +3,8 @@
 		{
 			"function_name": "TestConformanceFirecracker",
 			"documentation_hash": "9cd4aeda49df93296105916f08574593302a65419dfe4b67b7a2ff7d4e9fcc0d",
-			"definition_hash": "c35644a4b5edffdc692fb2add03247153f12c608db5671911eab57f56e223291",
-			"reviewed_at": "2026-07-11T21:34:27.217063155Z"
+			"definition_hash": "bb1650000dabcefb6974fd60f852b74772b2a599351f400d3034b7958e71ab54",
+			"reviewed_at": "2026-07-12T14:59:33.214527919Z"
 		},
 		{
 			"function_name": "fcArtifacts",
@@ -14,21 +14,27 @@
 		},
 		{
 			"function_name": "TestVMSurvivesRequestContextCancel",
-			"documentation_hash": "2c20e2ff0ad686dc128755cb98c606d8b72cc96c83a22b0d0c3827b4048f4a5b",
-			"definition_hash": "54105c27bfb987062de4ba24312acf239a1f30a48b44176072f5632242a8b419",
-			"reviewed_at": "2026-07-09T18:49:59.014429366Z"
+			"documentation_hash": "e2b1459f9700d94d7d2efecadd10ac4ac5e8e59b199908580f9b0d65d3f9130e",
+			"definition_hash": "33e206aa9d1d63db6cc475a7a77de6b3bd6b451b15d27ef52cec5543e7377780",
+			"reviewed_at": "2026-07-12T14:59:33.229315102Z"
 		},
 		{
 			"function_name": "TestBoxAPIOverVsock",
 			"documentation_hash": "1941222f227b08b32b6f95f5f61729ea6cd5fec5347c0b1361b155ec10e16704",
-			"definition_hash": "ea230cb4334ad80d8dfe710553271601a796e0a9552a8f99ef336978ff1dc836",
-			"reviewed_at": "2026-07-11T21:34:27.217338799Z"
+			"definition_hash": "a02f32d13694aeaf1112da97c81eab7bcd43c6fa1afe4c22640b52a2d54f59a1",
+			"reviewed_at": "2026-07-12T14:59:33.220026174Z"
 		},
 		{
 			"function_name": "TestBoxRunsAsUnprivilegedUserWithSudo",
 			"documentation_hash": "b0deb9eb83718614b3e962b51228cb48fa31c2817a01d12be9f9a7943ec24844",
-			"definition_hash": "cffd78472a43bb9fa387375f453fb58ef839113b03cef833261bca85b2747d09",
-			"reviewed_at": "2026-07-11T21:34:27.217604925Z"
+			"definition_hash": "ff6f2e826042b68814a7cc53d14571677de1812c35681a1c0f45ee378c9a9de7",
+			"reviewed_at": "2026-07-12T14:59:25.072225324Z"
+		},
+		{
+			"function_name": "closeAndDestroy",
+			"documentation_hash": "c75f3c676cf196d9db6f4caaf0d09b402acbf39dc4f263a7113b59e0a96aab5f",
+			"definition_hash": "748d8314f9ca979241e0d44c9d4cf2f0a3808332bdc838b210df9d10f1496628",
+			"reviewed_at": "2026-07-12T15:00:06.963323151Z"
 		}
 	]
 }

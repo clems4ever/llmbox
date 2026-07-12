@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	fcsdk "github.com/firecracker-microvm/firecracker-go-sdk"
@@ -109,20 +110,11 @@ type Provisioner struct {
 	// networked boxes.
 	poolSize int
 	// poolOnce guards one-time provisioning of the TAP pool (EnsureNetwork), so the
-	// host interfaces are created once at startup rather than per box. poolUp records
-	// that the pool was provisioned, so Close tears it down.
+	// host interfaces are created once at startup rather than per box. The pool is
+	// deliberately never torn down on Close: boxes outlive the spoke, so their egress
+	// interfaces must survive a restart (EnsureNetwork re-adopts them idempotently).
 	poolOnce sync.Once
 	poolErr  error
-	poolUp   bool
-
-	// procCtx bounds every box VM process to the provisioner's lifetime rather than
-	// to the request that created it. The firecracker binary is launched via
-	// exec.CommandContext, which kills the process when its context is done; using
-	// the create request's context there would kill the VM as soon as create
-	// returns, so a later request (submit code, exec, logs) finds a dead vsock.
-	// procCancel fires on Close to stop any still-running VMs.
-	procCtx    context.Context
-	procCancel context.CancelFunc
 
 	// ports serves box-originated port-publishing requests toward the hub; nil
 	// disables the per-box box-port API listener entirely.
@@ -166,7 +158,6 @@ func NewProvisioner(kernelImage, defaultRootfs, stateDir string, ports boxapi.Po
 		boxes:          map[string]*fcInstance{},
 		used:           map[int]bool{},
 	}
-	p.procCtx, p.procCancel = context.WithCancel(context.Background())
 	p.newMachine = p.realMachineFactory
 	if err := p.rehydrate(); err != nil {
 		return nil, err
@@ -222,9 +213,7 @@ func (p *Provisioner) EnsureNetwork(ctx context.Context) error {
 		return nil
 	}
 	p.poolOnce.Do(func() {
-		if p.poolErr = p.egress.EnsurePool(ctx, p.poolSize); p.poolErr == nil {
-			p.poolUp = true
-		}
+		p.poolErr = p.egress.EnsurePool(ctx, p.poolSize)
 	})
 	return p.poolErr
 }
@@ -246,9 +235,10 @@ func (p *Provisioner) SetPerBoxLimits(l sandbox.Limits) { p.limits = l }
 func (p *Provisioner) SetNamespace(ns string) { p.namespace = ns }
 
 // realMachineFactory boots a real Firecracker VM for cfg via the go SDK, pointing
-// it at the configured firecracker binary.
+// it at the configured firecracker binary and detaching the VMM so it outlives the
+// spoke.
 //
-// @arg _ The request context, deliberately ignored; the VM uses the provisioner's lifetime context.
+// @arg _ The request context, deliberately ignored; the VM must outlive both the request and the provisioner.
 // @arg cfg The Firecracker machine configuration.
 // @return machine The started-able machine handle.
 // @error error if the machine cannot be constructed.
@@ -256,13 +246,19 @@ func (p *Provisioner) SetNamespace(ns string) { p.namespace = ns }
 // @testcase TestConformanceFirecracker boots real VMs through this factory.
 // @testcase TestVMSurvivesRequestContextCancel checks the VM outlives the create request's context.
 func (p *Provisioner) realMachineFactory(_ context.Context, cfg fcsdk.Config) (machine, error) {
-	// Deliberately use the provisioner's lifetime context, NOT the passed (request)
-	// context: exec.CommandContext kills the firecracker process when its context is
-	// done, and the box must outlive the create request so later operations (submit
-	// code, exec, logs) still reach its guest. StopVMM / Close stop it explicitly.
+	// Launch on context.Background(), NOT the request context and NOT a
+	// provisioner-lifetime context: the microVM must outlive both the create request
+	// AND the provisioner itself, exactly like a Docker container outlives the spoke.
+	// exec.CommandContext kills the firecracker process when its context is done, so
+	// any cancellable context here would reap the VM on spoke shutdown; a restart then
+	// rehydrates the still-running VMM instead. Setpgid puts the VMM in its own process
+	// group so a terminal SIGINT to the spoke's group never reaches it (cfg clears the
+	// SDK's default signal forwarding for the same reason). StopVMM (Destroy) and an
+	// operator `vm destroy` are the only things that stop it.
 	logger := logrus.NewEntry(logrus.New())
-	cmd := fcsdk.VMCommandBuilder{}.WithSocketPath(cfg.SocketPath).WithBin(p.firecrackerBin).Build(p.procCtx)
-	return fcsdk.NewMachine(p.procCtx, cfg, fcsdk.WithProcessRunner(cmd), fcsdk.WithLogger(logger))
+	cmd := fcsdk.VMCommandBuilder{}.WithSocketPath(cfg.SocketPath).WithBin(p.firecrackerBin).Build(context.Background())
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	return fcsdk.NewMachine(context.Background(), cfg, fcsdk.WithProcessRunner(cmd), fcsdk.WithLogger(logger))
 }
 
 // Provision boots a new microVM box: it copies the rootfs, grows the copy to the
@@ -479,6 +475,11 @@ func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, inde
 			Smt:        fcsdk.Bool(false),
 		},
 		VsockDevices: []fcsdk.VsockDevice{{ID: "vsock0", CID: 3, Path: vsockUDS}},
+		// Clear the SDK's default signal forwarding (SIGINT/SIGTERM/SIGQUIT/…): the
+		// spoke's own shutdown signal must NOT be relayed to the VMM, so the box
+		// survives a spoke restart and is rehydrated. An empty non-nil slice disables
+		// forwarding; leaving it nil would make the SDK install the default handler.
+		ForwardSignals: []os.Signal{},
 	}
 	if p.netEnabled {
 		cfg.NetworkInterfaces = fcsdk.NetworkInterfaces{{
@@ -494,11 +495,12 @@ func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, inde
 		bootCleanup(nil)
 		return nil, nil, fmt.Errorf("creating microVM: %w", err)
 	}
-	// Start on the provisioner's lifetime context, not the request context: the SDK
-	// spawns a goroutine that calls StopVMM when the Start context is done, so
-	// starting on the request context would kill the VM the moment create returns.
-	// The guest wait below still honours the request context for its own timeout.
-	if err := m.Start(p.procCtx); err != nil {
+	// Start on context.Background(), not the request context and not a
+	// provisioner-lifetime context: the SDK spawns a goroutine that calls StopVMM when
+	// the Start context is done, so any cancellable context would kill the VM (on
+	// create return, or on spoke shutdown). The box must outlive the spoke and be
+	// rehydrated on restart. The guest wait below still honours the request context.
+	if err := m.Start(context.Background()); err != nil {
 		bootCleanup(m)
 		return nil, nil, fmt.Errorf("starting microVM: %w", err)
 	}
@@ -556,12 +558,18 @@ func (p *Provisioner) Find(ctx context.Context, idOrName string) (box.Instance, 
 	return nil, fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, idOrName)
 }
 
-// Close stops every running box VM and releases their resources. It is called when
-// the provisioner is shut down.
+// Close releases the provisioner's in-memory resources WITHOUT touching the box
+// VMs, mirroring the Docker backend (whose Close never stops containers): shutting
+// the spoke down must leave every microVM running so a later spoke run rehydrates
+// it. Each VMM was launched detached (its own process group, no SDK signal
+// forwarding) so it keeps running as an orphan; only an explicit Destroy (or the
+// operator `vm destroy`) stops a VM. Close just closes the box-port API listeners —
+// their sockets are re-bound on rehydrate — and leaves the egress TAP pool up so
+// surviving VMs keep their outbound networking.
 //
-// @error error is always nil; teardown is best-effort and logged.
+// @error error is always nil; closing listeners is best-effort.
 //
-// @testcase TestProvisionerBookkeeping closes the provisioner after use.
+// @testcase TestProvisionerBookkeeping closes the provisioner without stopping its boxes.
 func (p *Provisioner) Close() error {
 	p.mu.Lock()
 	insts := make([]*fcInstance, 0, len(p.boxes))
@@ -570,18 +578,9 @@ func (p *Provisioner) Close() error {
 	}
 	p.mu.Unlock()
 	for _, inst := range insts {
-		if err := inst.Destroy(context.Background()); err != nil {
-			p.log.Warn("closing firecracker box", "box", inst.meta.Token, "err", err)
+		if inst.api != nil {
+			_ = inst.api.Close()
 		}
-	}
-	// Tear down the egress TAP pool if it was provisioned.
-	if p.poolUp {
-		_ = p.egress.TeardownPool(context.Background(), p.poolSize)
-	}
-	// Cancel the process context as a backstop, killing any VM whose StopVMM was
-	// missed above.
-	if p.procCancel != nil {
-		p.procCancel()
 	}
 	return nil
 }

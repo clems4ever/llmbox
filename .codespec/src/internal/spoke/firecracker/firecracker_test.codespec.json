@@ -21,8 +21,8 @@
 		{
 			"function_name": "TestProvisionerBookkeeping",
 			"documentation_hash": "6ce4a5dcaf3334bf53777a70e9f3aea60f00ee3c658a7130784c1925b0458906",
-			"definition_hash": "f8a71301f062f2b1ea285dec6264d780a452820468cbd2fda695580a51bb11f3",
-			"reviewed_at": "2026-07-04T22:54:32.281696835Z"
+			"definition_hash": "054bae8e94b897e16d76406c8acf161b3dc0c06f716987b7595671d893a3de5b",
+			"reviewed_at": "2026-07-12T14:59:01.333407397Z"
 		},
 		{
 			"function_name": "TestProvisionCleansUpOnBootFailure",

@@ -1,0 +1,34 @@
+{
+	"functions": [
+		{
+			"function_name": "ListVMs",
+			"documentation_hash": "76f8c790efb517b78e5ddbb63890963431d762fad7339f5036a19df74564ded2",
+			"definition_hash": "25b10566a48e1b3f3ad9946b76ce09911d497380ee8c3816cd1fa4aeba7a6099",
+			"reviewed_at": "2026-07-12T15:01:48.672402832Z"
+		},
+		{
+			"function_name": "DestroyVM",
+			"documentation_hash": "8a9c485b52f8f39fc9fd545bf5ac62c631cbd8c91de03f41c358a2999d192e8e",
+			"definition_hash": "b146cd4f6bb159af12918e4fd63da2e90906269ab2859de9705ae6e91d9fc231",
+			"reviewed_at": "2026-07-12T15:08:35.666734915Z"
+		},
+		{
+			"function_name": "resolveMeta",
+			"documentation_hash": "9fcdd597c0526345448651fd638e69056c4a136e9c8ceb66ab9901d330b8e186",
+			"definition_hash": "d0e9f0985a4aa3a7c2b919134f55f0179cfc660368d5864be10a84c239bee68d",
+			"reviewed_at": "2026-07-12T15:02:00.496093203Z"
+		},
+		{
+			"function_name": "DestroyAllVMs",
+			"documentation_hash": "d910702aa0f076defbfa2a65dd4c670de3ea97b99ff6bc34c3afa1b9418cdf36",
+			"definition_hash": "9359c1a78a1e443e4b2a5f0cee3d9519136a2c9215c81a6ca669dea682c7161a",
+			"reviewed_at": "2026-07-12T15:08:41.681297409Z"
+		},
+		{
+			"function_name": "destroyBox",
+			"documentation_hash": "cbdd2f981d2247bc95ae26b4a9fa1674650e6b011bd3a9dc1f5921a04e9362fc",
+			"definition_hash": "639b8c66330f85f64bf8ca672f1fe17902188a8ac8aaaf896673bb4a8f6fefc1",
+			"reviewed_at": "2026-07-12T15:08:47.736182974Z"
+		}
+	]
+}

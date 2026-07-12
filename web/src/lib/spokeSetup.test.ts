@@ -36,6 +36,17 @@ describe("systemdSetupScript", () => {
     expect(systemdSetupScript(command)).not.toContain("--state-dir");
   });
 
+  it("does not set KillMode for a docker spoke", () => {
+    // Docker containers are owned by dockerd, not the spoke, so the default
+    // control-group kill is fine — only firecracker needs KillMode=process.
+    expect(systemdSetupScript(command)).not.toContain("KillMode");
+  });
+
+  it("sets KillMode=process for a firecracker spoke so its VMs survive a restart", () => {
+    const fc = "llmbox-spoke firecracker --hub wss://hub.example.com/spoke/connect --token SECRET";
+    expect(systemdSetupScript(fc)).toContain("KillMode=process");
+  });
+
   it("pins the firecracker state dir off tmpfs for a firecracker spoke", () => {
     const fc = "llmbox-spoke firecracker --hub wss://hub.example.com/spoke/connect --token SECRET";
     const script = systemdSetupScript(fc);

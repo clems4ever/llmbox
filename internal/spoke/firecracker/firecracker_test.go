@@ -201,10 +201,16 @@ func TestProvisionerBookkeeping(t *testing.T) {
 	if eg.ensures != 1 {
 		t.Fatalf("pool re-provisioned (%d ensures); it should be once", eg.ensures)
 	}
-	// Close tears the pool down.
+	// Close is release-only: shutting the spoke down must NOT stop the surviving VM
+	// or tear the egress pool down — boxes outlive the spoke and are rehydrated on
+	// restart, mirroring how Docker containers outlive the spoke process.
+	survivor := (*machines)[1]
 	_ = p.Close()
-	if eg.teardowns != 1 {
-		t.Fatalf("Close pool teardowns = %d, want 1", eg.teardowns)
+	if eg.teardowns != 0 {
+		t.Fatalf("Close tore the pool down (%d); the pool must survive a spoke restart", eg.teardowns)
+	}
+	if survivor.stopped {
+		t.Fatal("Close stopped a running VM; boxes must survive a spoke restart")
 	}
 }
 

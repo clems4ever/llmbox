@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewRootCmd",
 			"documentation_hash": "9f6ed680b6ddc2ce5a6e6b501f63472185537161b34aceeafbd6e7423e92d576",
-			"definition_hash": "35597bd3bd9d9ecd2a4e152ce0888a70cb214aacd4b387b7c249f9b371cfb689",
-			"reviewed_at": "2026-07-10T20:17:03.197859362Z"
+			"definition_hash": "5069294d8f77f74b25ba040b107d5e1de243f404294106db8944098a0d2bd0bd",
+			"reviewed_at": "2026-07-12T15:00:39.393787464Z"
 		},
 		{
 			"function_name": "runSpoke",
@@ -99,6 +99,60 @@
 			"documentation_hash": "a35a54b3a7a6060581a6176aa2dce8c457f85f2cf8bd1051e611ccf3d2e52f0f",
 			"definition_hash": "a98eda85fe20d62c32e6d05face32147fb03471a4d6f23fefef4abfec35b3481",
 			"reviewed_at": "2026-07-11T21:34:27.220332322Z"
+		},
+		{
+			"function_name": "newFirecrackerVMCmd",
+			"documentation_hash": "1344aca6aa4649f10e0b738b5d587b5389252a5cbf8f37a7d5a4aad1384f1d03",
+			"definition_hash": "375e4cfaefa1be435a86fe1ffad1b61644a6593cc9bb659d7007feaf8aac2e35",
+			"reviewed_at": "2026-07-12T15:08:02.399152816Z"
+		},
+		{
+			"function_name": "newFirecrackerVMListCmd",
+			"documentation_hash": "e52844462846461b8d499d8f334ed81c5319ec53e131fef6c94ac27273def925",
+			"definition_hash": "a4d5c7ba3ea2250657e875a9b870571cb1b6f56aaaad55439e2798a10d8214e2",
+			"reviewed_at": "2026-07-12T15:00:46.257868558Z"
+		},
+		{
+			"function_name": "newFirecrackerVMDestroyCmd",
+			"documentation_hash": "7d594fbff9d275cd6454b2a778c7319722598e275824550157c88152b292a541",
+			"definition_hash": "7a25b5cb9673aed5af4a19050de307c20a482f85e34b9ac491febe21d5d3fff9",
+			"reviewed_at": "2026-07-12T15:00:49.743865395Z"
+		},
+		{
+			"function_name": "runFirecrackerVMList",
+			"documentation_hash": "dd85d2af5743aa1516c611c69ea5a3d3b8c8a4704114f56da5e72422e2f0ff7f",
+			"definition_hash": "4770be56de9ff18b30d0d6f5ffaf031ce9990266ac150fd25f512be31dbb6e1d",
+			"reviewed_at": "2026-07-12T15:00:53.174126305Z"
+		},
+		{
+			"function_name": "runFirecrackerVMDestroy",
+			"documentation_hash": "60331f6dac5a49276d338fa33e258aa3893f75090ee2cf7bd18fe5cb3b3e6272",
+			"definition_hash": "a89c951cc43676621f75f76251b2605024c3315b21a11e901b0a9dd289dd673b",
+			"reviewed_at": "2026-07-12T15:00:56.573436833Z"
+		},
+		{
+			"function_name": "vmStateLabel",
+			"documentation_hash": "e07153d904185af60dea91f7fc81e1d21c1d9dc84ccb20507d2f0873fd10ef4c",
+			"definition_hash": "1f833154ead63717184c44494e8c4465b6efa55d42a54c30535dac0b46769f5e",
+			"reviewed_at": "2026-07-12T15:00:59.953111122Z"
+		},
+		{
+			"function_name": "dashIfEmpty",
+			"documentation_hash": "874e440a3879ea888e533d5535afd9fd6ef560c6e26942009e2af8e93890e9ae",
+			"definition_hash": "058e94e2082ff275490914e786314614ab11657ff41af8eff94199ab71ebd0df",
+			"reviewed_at": "2026-07-12T15:01:03.372854337Z"
+		},
+		{
+			"function_name": "newFirecrackerVMDestroyAllCmd",
+			"documentation_hash": "5097ce591bf061bc6971d7ce8264c2d36912e5cdbf77fb915f27d5fdce93d51a",
+			"definition_hash": "78cbcd0f868a91311734af369131260e60523588fd370a8c847ce1d840787405",
+			"reviewed_at": "2026-07-12T15:08:04.716492396Z"
+		},
+		{
+			"function_name": "runFirecrackerVMDestroyAll",
+			"documentation_hash": "aa47e85e2ecd2541fd80b2cefbd06136c6b40c125fb8b68b1b6e5e344f1a96d9",
+			"definition_hash": "ce74e7ef11e5c2b8c04c888110b278df4d5dd65afda0e22439f6d5a9cf6105fb",
+			"reviewed_at": "2026-07-12T15:08:06.996956536Z"
 		}
 	]
 }
