@@ -221,7 +221,9 @@ func (p *Provisioner) logger() *slog.Logger {
 }
 
 // SetPerBoxLimits sets the per-box memory/CPU/PID caps applied at create. The
-// MaxBoxes field is ignored here (box.Manager enforces the box count).
+// MaxBoxes field is ignored here (box.Manager enforces the box count), as are the
+// disk-size fields (DiskBytes/MaxDiskBytes): a container has no per-box resizable
+// block device, so disk sizing is a Firecracker-only knob.
 //
 // @arg l The resource limits; only MemoryBytes/NanoCPUs/PidsLimit are used.
 //

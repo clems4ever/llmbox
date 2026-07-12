@@ -468,6 +468,61 @@ func TestCopyFile(t *testing.T) {
 	}
 }
 
+// TestDiskBytesFor checks the disk-size resolver falls back to the spoke default,
+// clamps to the max cap, and floors at the base image size.
+func TestDiskBytesFor(t *testing.T) {
+	const base = 2 << 30 // 2 GiB base image
+	cases := []struct {
+		name          string
+		def, max, req int64
+		want          int64
+	}{
+		{"request honoured within cap", 10 << 30, 100 << 30, 20 << 30, 20 << 30},
+		{"zero request uses default", 10 << 30, 100 << 30, 0, 10 << 30},
+		{"request clamped to cap", 10 << 30, 16 << 30, 50 << 30, 16 << 30},
+		{"default clamped to cap", 50 << 30, 16 << 30, 0, 16 << 30},
+		{"below base floored to base", 10 << 30, 100 << 30, 1 << 30, base},
+		{"no default no request stays base", 0, 0, 0, base},
+		{"no cap leaves request untouched", 10 << 30, 0, 40 << 30, 40 << 30},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p := &Provisioner{limits: sandbox.Limits{DiskBytes: c.def, MaxDiskBytes: c.max}}
+			if got := p.diskBytesFor(c.req, base); got != c.want {
+				t.Fatalf("diskBytesFor(%d, %d) = %d, want %d", c.req, base, got, c.want)
+			}
+		})
+	}
+}
+
+// TestProvisionGrowsRootfs checks Provision truncates the per-box rootfs copy up to
+// the requested disk size (a sparse grow the guest later fills with resize2fs), and
+// records the size on the box metadata.
+func TestProvisionGrowsRootfs(t *testing.T) {
+	eg := &fakeEgress{}
+	p, _ := newFakeProvisioner(t, eg)
+	const want = 8 << 20 // 8 MiB — comfortably above the tiny base fixture
+	inst, err := p.Provision(context.Background(), sandbox.CreateOptions{BoxID: "grow", DiskBytes: want})
+	if err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+	rootfs := filepath.Join(boxDir(p.stateDir, inst.Meta().InstanceID), "rootfs.ext4")
+	fi, err := os.Stat(rootfs)
+	if err != nil {
+		t.Fatalf("stat per-box rootfs: %v", err)
+	}
+	if fi.Size() != want {
+		t.Fatalf("per-box rootfs size = %d, want %d", fi.Size(), want)
+	}
+	metas, err := loadMetas(p.stateDir)
+	if err != nil || len(metas) != 1 {
+		t.Fatalf("loadMetas = %v, %v", metas, err)
+	}
+	if metas[0].DiskBytes != want {
+		t.Fatalf("persisted DiskBytes = %d, want %d", metas[0].DiskBytes, want)
+	}
+}
+
 // TestWaitForGuest checks the boot-wait succeeds once a fake vsock accepts CONNECT.
 func TestWaitForGuest(t *testing.T) {
 	dir := shortStateDir(t)

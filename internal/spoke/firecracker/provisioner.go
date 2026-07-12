@@ -265,18 +265,20 @@ func (p *Provisioner) realMachineFactory(_ context.Context, cfg fcsdk.Config) (m
 	return fcsdk.NewMachine(p.procCtx, cfg, fcsdk.WithProcessRunner(cmd), fcsdk.WithLogger(logger))
 }
 
-// Provision boots a new microVM box: it copies the rootfs, attaches the shared
-// read-only payload drive when one is configured, assigns a pooled TAP for egress,
-// boots the VM with the guest kernel and a vsock device, and waits for the guest
-// guest to answer on vsock. The box is created in the pending phase.
+// Provision boots a new microVM box: it copies the rootfs, grows the copy to the
+// requested disk size, attaches the shared read-only payload drive when one is
+// configured, assigns a pooled TAP for egress, boots the VM with the guest kernel
+// and a vsock device, and waits for the guest to answer on vsock. The box is
+// created in the pending phase.
 //
 // @arg ctx Context for the boot and the guest wait.
-// @arg opts The caller-controlled box ID, description, and files (the rootfs is the spoke's configured default).
+// @arg opts The caller-controlled box ID, description, files, and requested disk size (the rootfs is the spoke's configured default).
 // @return box.Instance A handle to the booted box, in the pending phase.
-// @error error if the box id is invalid, the kernel/rootfs is missing, the egress pool cannot be provisioned, or the VM cannot be prepared, booted, or its guest does not answer.
+// @error error if the box id is invalid, the kernel/rootfs is missing, the egress pool cannot be provisioned, the rootfs cannot be resized, or the VM cannot be prepared, booted, or its guest does not answer.
 //
 // @testcase TestProvisionerBookkeeping provisions a box with a fake machine and finds it back.
 // @testcase TestProvisionCleansUpOnBootFailure cleans up files and the slot index when boot fails.
+// @testcase TestProvisionGrowsRootfs grows the per-box rootfs to the requested disk size.
 func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions) (box.Instance, error) {
 	if opts.BoxID != "" && !sandbox.ValidBoxID(opts.BoxID) {
 		return nil, fmt.Errorf("invalid box id %q", opts.BoxID)
@@ -321,6 +323,14 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		p.mu.Unlock()
 	}
 
+	// The base rootfs is a bare ext4 whose file size is the filesystem size, so its
+	// stat size is the floor the per-box disk can never go below (the copy is grown,
+	// never shrunk).
+	baseInfo, err := os.Stat(rootfsSrc)
+	if err != nil {
+		freeSlot()
+		return nil, fmt.Errorf("stat rootfs: %w", err)
+	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		freeSlot()
 		return nil, fmt.Errorf("creating box dir: %w", err)
@@ -329,6 +339,19 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		_ = os.RemoveAll(dir)
 		freeSlot()
 		return nil, fmt.Errorf("copying rootfs: %w", err)
+	}
+	// Grow the per-box rootfs file to the requested size (a sparse ftruncate, so the
+	// added space costs no host blocks until written). Firecracker exposes the larger
+	// file as a bigger virtio-block device; the guest's boot-time resize2fs unit then
+	// grows the ext4 to fill it. Shipping a small base image and growing here keeps
+	// release artifacts and the per-box copy small instead of carrying empty space.
+	diskBytes := p.diskBytesFor(opts.DiskBytes, baseInfo.Size())
+	if diskBytes > baseInfo.Size() {
+		if err := os.Truncate(perBoxRootfs, diskBytes); err != nil {
+			_ = os.RemoveAll(dir)
+			freeSlot()
+			return nil, fmt.Errorf("resizing rootfs to %d bytes: %w", diskBytes, err)
+		}
 	}
 
 	m, api, err := p.bootMachine(ctx, token, opts.BoxID, index)
@@ -341,7 +364,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	meta := boxMeta{
 		Token: token, BoxID: opts.BoxID, Description: opts.Description,
 		Image: rootfsSrc, Phase: "pending", Created: time.Now().Unix(),
-		NetIndex: index, Namespace: p.namespace,
+		NetIndex: index, Namespace: p.namespace, DiskBytes: diskBytes,
 	}
 	if err := meta.save(p.stateDir); err != nil {
 		_ = m.StopVMM()
@@ -578,6 +601,32 @@ func (p *Provisioner) allocIndexLocked() (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+// diskBytesFor resolves the size a box's writable rootfs is grown to, from the
+// caller's requested size and the base image size. A request of 0 falls back to the
+// spoke's configured default (Limits.DiskBytes); the result is capped at the
+// spoke's Limits.MaxDiskBytes ceiling and floored at baseBytes — so a caller on the
+// unauthenticated create path can neither exceed the operator's cap nor corrupt the
+// rootfs by asking for less than the base image it is copied from.
+//
+// @arg requested The caller-requested disk size in bytes (0 = use the spoke default).
+// @arg baseBytes The base rootfs image size in bytes; the returned size is never below it.
+// @return int64 The size the per-box rootfs file is truncated to before boot.
+//
+// @testcase TestDiskBytesFor clamps to the cap, falls back to the default, and floors at the base size.
+func (p *Provisioner) diskBytesFor(requested, baseBytes int64) int64 {
+	want := requested
+	if want <= 0 {
+		want = p.limits.DiskBytes
+	}
+	if p.limits.MaxDiskBytes > 0 && want > p.limits.MaxDiskBytes {
+		want = p.limits.MaxDiskBytes
+	}
+	if want < baseBytes {
+		want = baseBytes
+	}
+	return want
 }
 
 // vcpuCount derives the guest vCPU count from the CPU limit, honouring

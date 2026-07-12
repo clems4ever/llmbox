@@ -11,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/clems4ever/llmbox/internal/shared/api"
+	"github.com/clems4ever/llmbox/internal/shared/boxconfig"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
@@ -97,9 +98,10 @@ func NewServer(b Backend, name, version string) *mcp.Server {
 }
 
 type createInput struct {
-	BoxID       string `json:"box_id" jsonschema:"required box ID to assign; used to reference the box later (get/destroy/exec) and used as the box's hostname. Pick a unique, human-readable string that conveys what the box is for (e.g. 'refactor-auth-service'), since it is what identifies the box to the user. Must be a valid hostname (lowercase letters, digits and hyphens) and unique across boxes (creation fails if another box already uses it)"`
-	Description string `json:"description,omitempty" jsonschema:"optional human-readable description shown in list and get to tell boxes apart"`
-	Spoke       string `json:"spoke,omitempty" jsonschema:"optional cluster spoke to create the box on; omit (or 'local') to use the server's own host. Use a spoke name returned by list_llmboxes when boxes should run on a remote Docker host"`
+	BoxID       string  `json:"box_id" jsonschema:"required box ID to assign; used to reference the box later (get/destroy/exec) and used as the box's hostname. Pick a unique, human-readable string that conveys what the box is for (e.g. 'refactor-auth-service'), since it is what identifies the box to the user. Must be a valid hostname (lowercase letters, digits and hyphens) and unique across boxes (creation fails if another box already uses it)"`
+	Description string  `json:"description,omitempty" jsonschema:"optional human-readable description shown in list and get to tell boxes apart"`
+	Spoke       string  `json:"spoke,omitempty" jsonschema:"optional cluster spoke to create the box on; omit (or 'local') to use the server's own host. Use a spoke name returned by list_llmboxes when boxes should run on a remote Docker host"`
+	DiskGB      float64 `json:"disk_gb,omitempty" jsonschema:"optional writable-disk size for the box in GiB; omit to use the spoke's default (typically 10). Honoured only by microVM (Firecracker) spokes and clamped to the spoke's configured maximum; ignored by Docker spokes"`
 }
 
 type createOutput struct {
@@ -108,14 +110,14 @@ type createOutput struct {
 }
 
 // toolCreate handles the create_llmbox tool: it launches a box with the given
-// box ID, description, and optional target spoke, and returns the box ID and
-// instance ID. The box image is not a create input — each spoke launches its own
+// box ID, description, optional target spoke, and optional disk size, and returns
+// the box ID and instance ID. The box image is not a create input — each spoke launches its own
 // configured image, and the box's workload is provisioned by the spoke's init
 // script.
 //
 // @arg ctx Context for the box creation.
 // @arg _ The MCP call request (unused).
-// @arg in The create input carrying the required box ID and an optional description and spoke.
+// @arg in The create input carrying the required box ID and an optional description, spoke, and disk size.
 // @return *mcp.CallToolResult Always nil; structured output is returned instead.
 // @return createOutput The box ID and instance ID.
 // @error error if box_id is empty, or the box cannot be created.
@@ -130,6 +132,7 @@ func (h *handlers) toolCreate(ctx context.Context, _ *mcp.CallToolRequest, in cr
 		BoxID:       in.BoxID,
 		Description: in.Description,
 		SpokeName:   in.Spoke,
+		DiskBytes:   int64(in.DiskGB * boxconfig.GiB),
 	})
 	if err != nil {
 		return nil, createOutput{}, err

@@ -16,9 +16,9 @@
 		{
 			"function_name": "SetPerBoxLimits",
 			"receiver": "Provisioner",
-			"documentation_hash": "f908cc9c17867fe655c70d2c49842101249ae66d89e3877ce75faad5d6702f6f",
+			"documentation_hash": "67614a50f11834423782ab747d2fa5ddc466fd47c5460a0367d90fc84297adad",
 			"definition_hash": "5fad866ce0ba7dcdca800ff6b920147b36bc73c4701b4cb80cb9338d12c67c2f",
-			"reviewed_at": "2026-06-30T16:10:22.271865179Z"
+			"reviewed_at": "2026-07-12T13:27:39.313534257Z"
 		},
 		{
 			"function_name": "SetRegistryAuths",

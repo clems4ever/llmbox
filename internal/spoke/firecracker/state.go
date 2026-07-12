@@ -34,6 +34,11 @@ type boxMeta struct {
 	Created int64 `json:"created"`
 	// NetIndex is the per-box network slot, freed on Destroy.
 	NetIndex int `json:"net_index"`
+	// DiskBytes is the size the box's writable rootfs file was grown to at
+	// provision time (the resolved, clamped disk size). Persisted for the record
+	// and so a rehydrated box reports the size it was created with; the grown file
+	// itself already carries the size, so Resume needs no re-grow.
+	DiskBytes int64 `json:"disk_bytes,omitempty"`
 	// Namespace scopes the box to a provisioner namespace, mirroring the Docker
 	// backend so two spokes sharing a host never see each other's boxes.
 	Namespace string `json:"namespace,omitempty"`

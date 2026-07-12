@@ -54,6 +54,28 @@ llmbox-spoke firecracker \
 Per-box CPU/memory caps (`--box-cpus`, `--box-memory-mb`) map onto the VM's vCPU
 count (rounded to a Firecracker-valid 1-or-even value) and guest memory size.
 
+## Disk size (resizable rootfs)
+
+The base rootfs is shipped small — sized to its content, not to a fixed capacity —
+and each box's writable disk is grown from it at create time. The provisioner
+copies the base, `ftruncate`s the copy up to the requested size (a sparse grow, so
+the empty space costs no host blocks until written), and boots the VM; a one-shot
+`resize2fs` unit in the guest then grows the ext4 online to fill the larger
+`/dev/vda`. This avoids downloading and storing multi-GiB images that are mostly
+empty space.
+
+The size is chosen per box, bounded by the spoke:
+
+- `--box-disk-gb` (default 10) — the writable-disk size in GiB a box gets when the
+  create request names none. `0` keeps the base image size (no grow).
+- `--box-max-disk-gb` (default 100) — the hard ceiling on a per-create disk
+  request, bounding what the by-design-unauthenticated create path can ask for.
+
+A caller sets the per-box size via the `disk_gb` argument to the `create_llmbox`
+MCP tool; it is clamped to `[base image size, --box-max-disk-gb]`. The disk cannot
+be shrunk below the base image. (The Docker backend has no per-box block device, so
+these knobs are Firecracker-only.)
+
 ## Host requirements
 
 - Linux with KVM (`/dev/kvm` readable/writable by the running user).
@@ -79,7 +101,12 @@ llmbox-spoke firecracker --hub wss://hub.example.com/spoke/connect --token <join
 
 The images are stored as opaque OCI artifacts (pulled with an embedded oras
 client, not `docker pull` — they are raw files Firecracker boots, not runnable
-images) and published by `.github/workflows/firecracker-assets.yml`. Overrides:
+images) and published by `.github/workflows/firecracker-assets.yml`. The base
+rootfs is published **zstd-compressed** (it is a small, mostly-empty ext4 — see
+"Disk size" above — so it compresses roughly 30×, e.g. ~190 MiB pushed vs a
+~1.4 GiB image); the spoke verifies the compressed layer's digest and decompresses
+it to the ext4 it boots on pull. The kernel and payload are small and pushed raw.
+Overrides:
 
 - `LLMBOX_FC_REGISTRY` — the OCI namespace to pull from (default
   `ghcr.io/clems4ever`); point it at a fork's packages.

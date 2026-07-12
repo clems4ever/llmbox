@@ -13,6 +13,7 @@ import (
 	"time"
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
+	"github.com/klauspost/compress/zstd"
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/sys/unix"
@@ -227,7 +228,9 @@ func credentialFor(registry string, auths map[string]dockerregistry.AuthConfig) 
 // Each titled layer is fetched with a resumable, ranged download so a slow or flaky
 // link — where a multi-GiB single stream is prone to a peer reset (HTTP/2
 // PROTOCOL_ERROR) — resumes from the bytes already on disk instead of restarting
-// from zero on every service retry.
+// from zero on every service retry. A layer published compressed (the base rootfs is
+// zstd-compressed, ~30x smaller than its mostly-empty ext4) is decoded into the raw
+// file the backend boots once its compressed digest verifies.
 //
 // @arg ctx Context for the registry round-trips.
 // @arg ref The full image reference, e.g. ghcr.io/owner/llmbox-fc-base:latest.
@@ -275,8 +278,12 @@ func orasPull(ctx context.Context, ref, destDir string, cred auth.CredentialFunc
 		if title == "" {
 			continue // only the titled guest-image layers are materialized on disk
 		}
-		if err := fetchLayer(ctx, repo, layer, filepath.Join(destDir, title)); err != nil {
+		dest := filepath.Join(destDir, title)
+		if err := fetchLayer(ctx, repo, layer, dest); err != nil {
 			return err
+		}
+		if err := decompressLayer(dest); err != nil {
+			return fmt.Errorf("decompressing %s: %w", title, err)
 		}
 	}
 	log.Printf("firecracker: %s ready", ref)
@@ -347,6 +354,64 @@ func fetchLayer(ctx context.Context, repo *remote.Repository, layer ocispec.Desc
 		return fmt.Errorf("verifying %s: %w", title, err)
 	}
 	return os.Rename(part, dest)
+}
+
+// decompressLayer materializes the raw file a compressed layer carries: when path
+// ends in a known compression suffix (".zst"), it streams the decoded bytes into the
+// suffix-stripped sibling (through a ".part" temp renamed on success, so an
+// interrupted decode never leaves a truncated image mistaken for a whole one) and
+// removes the compressed copy to reclaim cache space. A path with no known suffix is
+// left untouched, so the base rootfs — published zstd-compressed because it is mostly
+// empty space (~30x smaller) — is decoded to the ext4 the provisioner boots, while
+// the small kernel and payload, pushed raw, pass straight through. The layer's digest
+// was already verified over the compressed bytes by fetchLayer, and the artifact is
+// our own published image, so an unbounded decode is not a decompression-bomb risk.
+//
+// @arg path The just-fetched layer file; decoded in place when it carries a known suffix.
+// @error error if the file cannot be opened, the decoder cannot be built, or the decode/rename fails (e.g. out of cache space).
+//
+// @testcase TestDecompressLayerZstd decodes a .zst layer to its stripped sibling and removes the compressed copy.
+// @testcase TestDecompressLayerPassesThroughRaw leaves a file with no known suffix untouched.
+func decompressLayer(path string) error {
+	if strings.ToLower(filepath.Ext(path)) != ".zst" {
+		return nil // pushed raw (kernel, payload): nothing to do
+	}
+	out := strings.TrimSuffix(path, filepath.Ext(path))
+	in, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = in.Close() }()
+	dec, err := zstd.NewReader(in)
+	if err != nil {
+		return err
+	}
+	defer dec.Close()
+
+	tmp := out + ".part"
+	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(f, dec); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := os.Rename(tmp, out); err != nil {
+		return err
+	}
+	_ = os.Remove(path) // reclaim the compressed copy; the .oci-digest marker guards re-pull
+	return nil
 }
 
 // ensureRoom returns an actionable error when dir has fewer than need bytes free,

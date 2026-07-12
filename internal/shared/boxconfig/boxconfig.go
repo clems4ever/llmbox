@@ -19,7 +19,19 @@ const (
 	DefaultBoxMemoryMB  = 4096
 	DefaultBoxCPUs      = 2.0
 	DefaultBoxPidsLimit = 4096
+	// DefaultBoxDiskGB is the writable-disk size a box gets when its create request
+	// names none. It only applies to a backend that grows a per-box disk (the
+	// Firecracker microVM); the base image is shipped small and grown to this at
+	// create time so most of it stays sparse.
+	DefaultBoxDiskGB = 10.0
+	// DefaultBoxMaxDiskGB is the hard ceiling on a per-create disk request, bounding
+	// what the by-design-unauthenticated create path can ask for.
+	DefaultBoxMaxDiskGB = 100.0
 )
+
+// GiB is the bytes-per-gibibyte factor used to turn the operator-friendly GiB knobs
+// into the raw byte counts the sandbox limits carry.
+const GiB = 1024 * 1024 * 1024
 
 // BoxConfig caps the resources each box may consume and how many boxes may run
 // at once. The limits bound resource-exhaustion (CPU/memory/PID fork-bombs,
@@ -36,6 +48,13 @@ type BoxConfig struct {
 	PidsLimit int64 `yaml:"pids_limit"`
 	// MaxBoxes caps how many boxes may run at once (0 = unlimited).
 	MaxBoxes int `yaml:"max_boxes"`
+	// DiskGB is the default writable-disk size per box in gibibytes, used when a
+	// create request names none (0 = keep the base image size, no grow). Only a
+	// backend that grows a per-box disk (Firecracker) honours it.
+	DiskGB float64 `yaml:"disk_gb"`
+	// MaxDiskGB is the hard ceiling on a per-create disk request in gibibytes
+	// (0 = no ceiling), bounding what the unauthenticated create path can request.
+	MaxDiskGB float64 `yaml:"max_disk_gb"`
 	// SocketDir is the host directory holding each box's control socket (in a 0700
 	// per-box subdirectory bind-mounted into the box). It must be reachable by
 	// this process and bind-mountable into containers. Empty uses the provisioner
