@@ -228,9 +228,10 @@ func credentialFor(registry string, auths map[string]dockerregistry.AuthConfig) 
 // Each titled layer is fetched with a resumable, ranged download so a slow or flaky
 // link — where a multi-GiB single stream is prone to a peer reset (HTTP/2
 // PROTOCOL_ERROR) — resumes from the bytes already on disk instead of restarting
-// from zero on every service retry. A layer published compressed (the base rootfs is
-// zstd-compressed, ~30x smaller than its mostly-empty ext4) is decoded into the raw
-// file the backend boots once its compressed digest verifies.
+// from zero on every service retry. Each published layer is zstd-compressed (the
+// base rootfs ~30x, being a mostly-empty ext4; the payload and kernel more modestly)
+// and is decoded into the raw file the backend boots once its compressed digest
+// verifies.
 //
 // @arg ctx Context for the registry round-trips.
 // @arg ref The full image reference, e.g. ghcr.io/owner/llmbox-fc-base:latest.
@@ -361,11 +362,13 @@ func fetchLayer(ctx context.Context, repo *remote.Repository, layer ocispec.Desc
 // suffix-stripped sibling (through a ".part" temp renamed on success, so an
 // interrupted decode never leaves a truncated image mistaken for a whole one) and
 // removes the compressed copy to reclaim cache space. A path with no known suffix is
-// left untouched, so the base rootfs — published zstd-compressed because it is mostly
-// empty space (~30x smaller) — is decoded to the ext4 the provisioner boots, while
-// the small kernel and payload, pushed raw, pass straight through. The layer's digest
-// was already verified over the compressed bytes by fetchLayer, and the artifact is
-// our own published image, so an unbounded decode is not a decompression-bomb risk.
+// left untouched. Every published guest image is zstd-compressed — the base rootfs
+// because it is a mostly-empty ext4 (~30x smaller), the payload and kernel for a more
+// modest transport saving — and is decoded here to the raw file the provisioner
+// boots; a layer pushed raw (no known suffix) still passes straight through. The
+// layer's digest was already verified over the compressed bytes by fetchLayer, and
+// the artifact is our own published image, so an unbounded decode is not a
+// decompression-bomb risk.
 //
 // @arg path The just-fetched layer file; decoded in place when it carries a known suffix.
 // @error error if the file cannot be opened, the decoder cannot be built, or the decode/rename fails (e.g. out of cache space).
@@ -374,7 +377,7 @@ func fetchLayer(ctx context.Context, repo *remote.Repository, layer ocispec.Desc
 // @testcase TestDecompressLayerPassesThroughRaw leaves a file with no known suffix untouched.
 func decompressLayer(path string) error {
 	if strings.ToLower(filepath.Ext(path)) != ".zst" {
-		return nil // pushed raw (kernel, payload): nothing to do
+		return nil // a raw (uncompressed) layer: nothing to do
 	}
 	out := strings.TrimSuffix(path, filepath.Ext(path))
 	in, err := os.Open(path)

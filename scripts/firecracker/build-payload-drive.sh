@@ -24,7 +24,13 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="${OUT:-$HOME/fc-assets}"
-PAYLOAD_MB="${PAYLOAD_MB:-512}"
+# PAYLOAD_MB pins the ext4 image to a fixed size in MiB. Left empty (the default),
+# the image is auto-sized to its actual content plus a small slack, so the shipped
+# payload is only as big as the guest binary it carries (the publish workflow then
+# zstd-compresses it, as with the base rootfs). The payload is mounted READ-ONLY and
+# never grown — unlike the base rootfs, whose per-box copy the provisioner resizes at
+# boot — so a tight fit is safe. Set it only to force a fixed size.
+PAYLOAD_MB="${PAYLOAD_MB:-}"
 mkdir -p "$OUT"
 
 PDIR="$OUT/payload"
@@ -76,9 +82,21 @@ ENTRY
 
 chmod 0755 "$PDIR/llmbox-guest" "$PDIR/entrypoint"
 
-echo ">> building ext4 payload ($PAYLOAD_MB MiB)"
+# Size the image. PAYLOAD_MB pins a fixed size in MiB; empty auto-sizes to the
+# actual content plus slack (+50% + 8 MiB) — enough for ext4 metadata/inodes and a
+# small journal, with room for the guest binary to grow. No boot-time growth headroom
+# is needed: the payload is read-only and never resized.
 rm -f "$OUT/payload.ext4"
-mke2fs -q -F -t ext4 -d "$PDIR" "$OUT/payload.ext4" "${PAYLOAD_MB}M"
+if [ -n "$PAYLOAD_MB" ]; then
+  SIZE_ARG="${PAYLOAD_MB}M"
+  echo ">> building ext4 payload (${PAYLOAD_MB} MiB, fixed)"
+else
+  used_kib=$(du -sk "$PDIR" | cut -f1)
+  size_kib=$(( used_kib + used_kib / 2 + 8192 ))
+  SIZE_ARG="${size_kib}k"
+  echo ">> building ext4 payload (auto-sized ${size_kib} KiB for ${used_kib} KiB of content)"
+fi
+mke2fs -q -F -t ext4 -d "$PDIR" "$OUT/payload.ext4" "$SIZE_ARG"
 e2fsck -fn "$OUT/payload.ext4" >/dev/null
 
 echo ">> payload: $OUT/payload.ext4"
