@@ -37,9 +37,9 @@
 		{
 			"function_name": "Provision",
 			"receiver": "Provisioner",
-			"documentation_hash": "84e870a2cce437f633580a552dcc74c63e357a78ede5bf564e80983412a7d6f3",
-			"definition_hash": "4458f8998f7113b6af7666b48fc83b596950bf4cfce4a5144fb64f78e53f4bac",
-			"reviewed_at": "2026-07-11T11:13:34.276103017Z"
+			"documentation_hash": "cb07033a3cb8704763a14c12b56c4b6793e62c723d74b0ff2fc1e7a3d0fd4f40",
+			"definition_hash": "031ac1b11ae9180df274b196ae129023eb1671de48aa011887c8a40ab3143044",
+			"reviewed_at": "2026-07-12T13:27:39.317254831Z"
 		},
 		{
 			"function_name": "List",
@@ -176,6 +176,13 @@
 			"documentation_hash": "cb602f59b9e446988aa1322c2070eaafea1530670de0c1f702d03d958be15d74",
 			"definition_hash": "953ca9d21bbd145d55796cfe9adc75b0c888a334606ba3025f8b162e2244df11",
 			"reviewed_at": "2026-07-11T21:34:27.219695345Z"
+		},
+		{
+			"function_name": "diskBytesFor",
+			"receiver": "Provisioner",
+			"documentation_hash": "d8c2ce8d91572780d2cfcd37cb88859825e347305b984cfd18ae3810bf9ee311",
+			"definition_hash": "f89965f42287ae65eca477b1cbb93d0dec44009342177130c46d154ef204cce2",
+			"reviewed_at": "2026-07-12T13:27:39.318485666Z"
 		}
 	]
 }

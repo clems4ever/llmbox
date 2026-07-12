@@ -28,7 +28,12 @@ set -euo pipefail
 
 OUT="${OUT:-$HOME/fc-assets}"
 SUITE="${SUITE:-bookworm}"
-ROOTFS_GB="${ROOTFS_GB:-6}"
+# ROOTFS_GB pins the ext4 image to a fixed size in GiB. Left empty (the default),
+# the image is sized to its actual content plus a small slack, so the shipped base
+# is small (most boxes want far more room than the base content, and the
+# provisioner grows each box's copy to the requested size at boot — see the
+# resize-rootfs unit below). Set it only to force a fixed size.
+ROOTFS_GB="${ROOTFS_GB:-}"
 mkdir -p "$OUT"
 
 # The generic payload loader: mount the read-only payload drive (/dev/vdb) at
@@ -56,6 +61,30 @@ RestartSec=1
 WantedBy=multi-user.target
 UNIT
 
+# Grow the root filesystem to fill its block device at boot. The base ext4 is
+# shipped small; the provisioner grows each box's copy of the file to the requested
+# disk size (a sparse truncate) before boot, so the guest sees a larger /dev/vda
+# than the filesystem. This one-shot runs resize2fs online, early (before the
+# payload/workload), to grow the ext4 to fill it. It is idempotent — a no-op when
+# the device was not grown — so it is safe on every boot. Ordered after
+# systemd-remount-fs so / is already read-write.
+cat > "$OUT/resize-rootfs.service" <<'UNIT'
+[Unit]
+Description=Grow the root filesystem to fill its block device
+DefaultDependencies=no
+After=systemd-remount-fs.service
+Before=sysinit.target
+ConditionPathExists=/sbin/resize2fs
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/resize2fs /dev/vda
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
+UNIT
+
 # The build runs privileged (mmdebstrap --mode=root needs mount) in a throwaway
 # container; nothing privileged persists.
 docker run --rm --privileged -v "$OUT":/out debian:bookworm bash -euc "
@@ -65,17 +94,20 @@ docker run --rm --privileged -v "$OUT":/out debian:bookworm bash -euc "
 
   echo '>> mmdebstrap ${SUITE} base (systemd, docker, node, net tooling)'
   mmdebstrap --mode=root --variant=important \
-    --include=systemd-sysv,systemd-timesyncd,dbus,udev,ca-certificates,iproute2,iptables,nftables,kmod,procps,less,nano,curl,gnupg,openssh-client,git,nodejs,npm,docker.io,sudo,uidmap,dbus-user-session \
+    --include=systemd-sysv,systemd-timesyncd,dbus,udev,ca-certificates,e2fsprogs,iproute2,iptables,nftables,kmod,procps,less,nano,curl,gnupg,openssh-client,git,nodejs,npm,docker.io,sudo,uidmap,dbus-user-session \
     --components=main \
     ${SUITE} /rootfs http://deb.debian.org/debian
 
-  echo '>> installing the generic payload loader and mountpoint'
+  echo '>> installing the generic payload loader, rootfs-grow unit, and mountpoint'
   install -d -m0755 /rootfs/payload
   install -m0644 /out/payload.service /rootfs/etc/systemd/system/payload.service
+  install -m0644 /out/resize-rootfs.service /rootfs/etc/systemd/system/resize-rootfs.service
 
-  echo '>> enabling services (payload loader + docker) and console niceties'
+  echo '>> enabling services (payload loader + rootfs grow + docker) and console niceties'
   chroot /rootfs systemctl enable payload.service >/dev/null 2>&1 || \
     ln -sf ../payload.service /rootfs/etc/systemd/system/multi-user.target.wants/payload.service
+  chroot /rootfs systemctl enable resize-rootfs.service >/dev/null 2>&1 || \
+    ln -sf ../resize-rootfs.service /rootfs/etc/systemd/system/sysinit.target.wants/resize-rootfs.service
   chroot /rootfs systemctl enable docker.service   >/dev/null 2>&1 || true
   chroot /rootfs systemctl enable systemd-networkd  >/dev/null 2>&1 || true
   # eth0 is configured by the kernel ip= arg at boot; ask systemd-networkd to leave
@@ -118,9 +150,22 @@ WAIT
   # The provisioner boots with init=/init; point it at systemd.
   ln -sf /sbin/init /rootfs/init
 
-  echo '>> building ext4 image (${ROOTFS_GB} GiB) as root (perms/ownership correct)'
+  # Size the image. ROOTFS_GB (outer-expanded) pins a fixed size in GiB; empty
+  # auto-sizes to the actual content plus slack (+25% + 256 MiB) so the shipped base
+  # stays small — every box's copy is grown to its requested size at boot. The slack
+  # leaves room for ext4 metadata/inodes and a little working space before the
+  # boot-time resize2fs grows the filesystem to fill the (larger) block device.
+  if [ -n '${ROOTFS_GB}' ]; then
+    SIZE_ARG='${ROOTFS_GB}G'
+    echo \">> building ext4 image (${ROOTFS_GB} GiB, fixed) as root (perms/ownership correct)\"
+  else
+    used_kib=\$(du -sk /rootfs | cut -f1)
+    size_kib=\$(( used_kib + used_kib / 4 + 262144 ))
+    SIZE_ARG=\"\${size_kib}k\"
+    echo \">> building ext4 image (auto-sized \${size_kib} KiB for \${used_kib} KiB of content) as root\"
+  fi
   rm -f /out/base-rootfs.ext4
-  mke2fs -q -F -t ext4 -d /rootfs /out/base-rootfs.ext4 ${ROOTFS_GB}G
+  mke2fs -q -F -t ext4 -d /rootfs /out/base-rootfs.ext4 \"\$SIZE_ARG\"
   e2fsck -fn /out/base-rootfs.ext4 >/dev/null
   echo '>> done'
 "

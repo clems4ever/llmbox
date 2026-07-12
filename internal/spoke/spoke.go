@@ -382,6 +382,8 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.Float64Var(&o.box.CPUs, "box-cpus", boxconfig.DefaultBoxCPUs, "CPU quota per box, fractional allowed (0 = unlimited)")
 	f.Int64Var(&o.box.PidsLimit, "box-pids-limit", boxconfig.DefaultBoxPidsLimit, "max processes/threads per box, blunts fork bombs (0 = unlimited)")
 	f.IntVar(&o.box.MaxBoxes, "max-boxes", 0, "max concurrent boxes on this spoke (0 = unlimited)")
+	f.Float64Var(&o.box.DiskGB, "box-disk-gb", boxconfig.DefaultBoxDiskGB, "default writable-disk size per box in GiB when a create names none; Firecracker only, grown from the small base image (0 = keep base size)")
+	f.Float64Var(&o.box.MaxDiskGB, "box-max-disk-gb", boxconfig.DefaultBoxMaxDiskGB, "hard ceiling on a per-create disk request in GiB (0 = no ceiling)")
 	f.StringVar(&o.box.SocketDir, "box-socket-dir", "", "host directory holding each box's control socket; empty uses the provisioner default")
 	f.StringArrayVar(&o.boxPeers, "box-peer", nil, "container name connected into every box's network so boxes can reach it (repeatable)")
 	f.StringVar(&o.registry.host, "registry", "", `registry host to authenticate to when pulling box images, e.g. "ghcr.io" (empty pulls anonymously)`)

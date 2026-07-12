@@ -46,8 +46,8 @@
 		{
 			"function_name": "addCommonSpokeFlags",
 			"documentation_hash": "2e243a42d00c9155a08f0c89d9a369dbb8cfeb0415ef8a096a56869da63cf601",
-			"definition_hash": "f05638bbb53bc2f9740e76993b2be5ded850f8d9c32fb1bc74690f1e77b2db70",
-			"reviewed_at": "2026-07-11T21:34:27.221382224Z"
+			"definition_hash": "cc219bbe0c33b0599d2990ce07328ede6472b16b44946c6d1ebbb0878ec50ba0",
+			"reviewed_at": "2026-07-12T13:27:39.319203988Z"
 		},
 		{
 			"function_name": "addDockerSpokeFlags",

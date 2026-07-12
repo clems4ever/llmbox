@@ -208,6 +208,18 @@
 			"documentation_hash": "e853f6a8d7382f20c3cc327bb7354290d50f6ba00719142e20ecea5776ebcee3",
 			"definition_hash": "cc89df3019257cfc3a4b9bb6b863aba840ba3c2b36ef29ba8b6d92a9a470af45",
 			"reviewed_at": "2026-07-11T11:13:34.288071598Z"
+		},
+		{
+			"function_name": "TestDiskBytesFor",
+			"documentation_hash": "83ab801eb7eb00973c908dadcaa72007106d90296f885c81adbe8904aad98b2f",
+			"definition_hash": "aa89ea031e8dcfa4ad03c2ff2446f3887e3ab6c9f4a1bb3db3743df32b367c00",
+			"reviewed_at": "2026-07-12T13:27:39.315078699Z"
+		},
+		{
+			"function_name": "TestProvisionGrowsRootfs",
+			"documentation_hash": "4965d0ed487ecafa99a208de7528f0e3619e93d46a097feabd440dff66becb69",
+			"definition_hash": "3484ffe38d3d92c85fd8d191b400ca3ec488d941d55e5ab6f95048c64cd7844d",
+			"reviewed_at": "2026-07-12T13:27:39.316300491Z"
 		}
 	]
 }

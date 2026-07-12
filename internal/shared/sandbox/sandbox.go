@@ -126,6 +126,13 @@ type CreateOptions struct {
 	// per-box secrets (e.g. a granular subject token) without baking them into
 	// the image or an env var where the backend's introspection would expose them.
 	Files []InjectFile
+	// DiskBytes is the caller-requested size of the box's writable disk, in bytes
+	// (0 = use the spoke's configured default). A backend that grows a per-box disk
+	// (the Firecracker microVM, whose rootfs is a resizable raw block device) floors
+	// it at the base image size and clamps it to the spoke's Limits.MaxDiskBytes cap,
+	// so this unauthenticated create input can never request an unbounded disk. The
+	// Docker backend has no such per-box block device and ignores it.
+	DiskBytes int64
 }
 
 // InjectFile is one file to write into a new box. Path is absolute inside the
@@ -161,6 +168,15 @@ type Limits struct {
 	// MaxBoxes caps how many managed boxes may exist at once; Create rejects a new
 	// box once the count is reached (0 = unlimited).
 	MaxBoxes int
+	// DiskBytes is the default writable-disk size, in bytes, applied to a box whose
+	// create request names none (CreateOptions.DiskBytes == 0). Only a backend that
+	// grows a per-box disk (Firecracker) uses it; 0 leaves the box at its base image
+	// size (no grow).
+	DiskBytes int64
+	// MaxDiskBytes is the hard ceiling on a create request's DiskBytes, in bytes
+	// (0 = no ceiling). It bounds the disk a caller on the by-design-unauthenticated
+	// create path can request, mirroring the memory/CPU caps above.
+	MaxDiskBytes int64
 }
 
 // boxIDRe is the canonical box-id format: a single DNS hostname label (1-63
