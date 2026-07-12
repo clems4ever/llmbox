@@ -13,9 +13,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -90,6 +92,10 @@ type spokeOptions struct {
 	// initScriptTimeout bounds each run.
 	initScriptPath    string
 	initScriptTimeout time.Duration
+	// copyPaths are the raw --copy flag values ("HOST_SRC[:BOX_DEST]", repeatable):
+	// host files or directories copied into every box this spoke creates, at
+	// creation before the init script runs. Resolved by copyFiles.
+	copyPaths []string
 	// publishPorts are the raw --publish-port flag values ("PORT[:DESCRIPTION]",
 	// repeatable): in-box ports the hub should expose as an HTTP proxy for every box
 	// this spoke creates. Parsed by parsePublishPorts.
@@ -177,6 +183,142 @@ func (o spokeOptions) initScript() ([]byte, error) {
 		return nil, fmt.Errorf("--init-script %q is empty", o.initScriptPath)
 	}
 	return data, nil
+}
+
+// maxCopyBytes caps the total content the --copy flag stages into a box. Every
+// copied file rides the single Init control frame alongside the injected files
+// and init script, and that frame is bounded (guest.maxFrame, 16 MiB) — and JSON
+// base64-inflates the bytes by ~1/3 — so a generous-but-safe raw ceiling keeps a
+// large --copy from silently overflowing the frame at box-create time. It is meant
+// for config, credentials, and seed data, not bulk data; a directory that needs
+// more belongs in the image or an init-script download.
+const maxCopyBytes = 10 << 20
+
+// copyFiles resolves the spoke's --copy specs into the files the box manager
+// stages into every box during Init. Each spec is "HOST_SRC[:BOX_DEST]": HOST_SRC
+// is a host file or directory, BOX_DEST the absolute in-box path it lands at
+// (defaulting to HOST_SRC's absolute path when omitted). A directory is copied
+// recursively, each regular file preserving its mode; non-regular entries
+// (symlinks, sockets, devices) are skipped. It returns nil (nothing to copy) when
+// the flag is unset, and errors — failing the spoke at startup rather than on
+// every box create — when a spec is malformed, a source is missing or unreadable,
+// or the total content would overflow the Init frame.
+//
+// @return []sandbox.InjectFile The files to copy into every box, or nil when --copy is unset.
+// @error error if a spec is malformed, a source path is missing/unreadable/an unsupported type, or the total content exceeds maxCopyBytes.
+//
+// @testcase TestSpokeCopyFiles copies a file and a directory tree, preserves modes, defaults the destination, and returns nil when unset.
+// @testcase TestSpokeCopyFilesErrors rejects a malformed spec, a relative destination, a missing source, and an oversize copy.
+func (o spokeOptions) copyFiles() ([]sandbox.InjectFile, error) {
+	if len(o.copyPaths) == 0 {
+		return nil, nil
+	}
+	var out []sandbox.InjectFile
+	var total int64
+	for _, spec := range o.copyPaths {
+		src, dest, err := parseCopySpec(spec)
+		if err != nil {
+			return nil, err
+		}
+		info, err := os.Stat(src)
+		if err != nil {
+			return nil, fmt.Errorf("--copy %q: %w", spec, err)
+		}
+		if info.IsDir() {
+			err = filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				if !d.Type().IsRegular() {
+					return nil // skip directories themselves and non-regular entries
+				}
+				rel, err := filepath.Rel(src, p)
+				if err != nil {
+					return err
+				}
+				fi, err := d.Info()
+				if err != nil {
+					return err
+				}
+				f, ferr := readCopyFile(p, path.Join(dest, filepath.ToSlash(rel)), fi)
+				if ferr != nil {
+					return ferr
+				}
+				total += int64(len(f.Content))
+				out = append(out, f)
+				return nil
+			})
+			if err != nil {
+				return nil, fmt.Errorf("--copy %q: %w", spec, err)
+			}
+		} else if info.Mode().IsRegular() {
+			f, err := readCopyFile(src, dest, info)
+			if err != nil {
+				return nil, fmt.Errorf("--copy %q: %w", spec, err)
+			}
+			total += int64(len(f.Content))
+			out = append(out, f)
+		} else {
+			return nil, fmt.Errorf("--copy %q: %s is not a regular file or directory", spec, src)
+		}
+		if total > maxCopyBytes {
+			return nil, fmt.Errorf("--copy total exceeds %d bytes; --copy is for config and seed data, not bulk data (bake large files into the image or fetch them from the init script)", int64(maxCopyBytes))
+		}
+	}
+	return out, nil
+}
+
+// parseCopySpec splits a --copy value into its host source and absolute in-box
+// destination. It splits on the first ':' so a "HOST_SRC:BOX_DEST" form works;
+// with no ':' the destination defaults to the source's absolute path. The
+// destination must be an absolute (in-box) path so a box file always lands
+// somewhere predictable.
+//
+// @arg spec The raw --copy value.
+// @return string The host source path.
+// @return string The cleaned absolute in-box destination path.
+// @error error if the source is empty, or the destination is empty or not absolute.
+//
+// @testcase TestSpokeCopyFiles defaults the destination to the source's absolute path.
+// @testcase TestSpokeCopyFilesErrors rejects an empty source and a relative destination.
+func parseCopySpec(spec string) (string, string, error) {
+	src, dest := spec, ""
+	if i := strings.IndexByte(spec, ':'); i >= 0 {
+		src, dest = spec[:i], spec[i+1:]
+	}
+	if src == "" {
+		return "", "", fmt.Errorf("--copy %q: empty source path", spec)
+	}
+	if dest == "" {
+		abs, err := filepath.Abs(src)
+		if err != nil {
+			return "", "", fmt.Errorf("--copy %q: resolving default destination: %w", spec, err)
+		}
+		dest = abs
+	}
+	if !path.IsAbs(dest) {
+		return "", "", fmt.Errorf("--copy %q: destination %q must be an absolute in-box path", spec, dest)
+	}
+	return src, path.Clean(dest), nil
+}
+
+// readCopyFile reads a host file into an InjectFile bound for dest, preserving its
+// permission bits. The owner is left zero: the guest writes --copy files owned by
+// the box user regardless, so the workload can use them.
+//
+// @arg src The host file to read.
+// @arg dest The absolute in-box path it lands at.
+// @arg info The host file's stat, for its mode.
+// @return sandbox.InjectFile The file to inject.
+// @error error if the file cannot be read.
+//
+// @testcase TestSpokeCopyFiles preserves an executable file's mode.
+func readCopyFile(src, dest string, info fs.FileInfo) (sandbox.InjectFile, error) {
+	content, err := os.ReadFile(src)
+	if err != nil {
+		return sandbox.InjectFile{}, err
+	}
+	return sandbox.InjectFile{Path: dest, Content: content, Mode: int64(info.Mode().Perm())}, nil
 }
 
 // parsePublishPorts turns the raw --publish-port flag values into the port specs
@@ -571,6 +713,7 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.box.Namespace, "namespace", "", "scope this spoke's boxes to a namespace so two spokes can share one host without collapsing each other's boxes; empty is unscoped")
 	f.StringVar(&o.initScriptPath, "init-script", "", "host path to a script run inside every box on this spoke, once at creation before the box's workload starts, as the box user; empty runs none")
 	f.DurationVar(&o.initScriptTimeout, "init-script-timeout", 5*time.Minute, "max time the --init-script may run before box creation fails")
+	f.StringArrayVar(&o.copyPaths, "copy", nil, "host file or directory copied into every box on this spoke at creation, as HOST_SRC[:BOX_DEST] (BOX_DEST is an absolute in-box path, defaulting to HOST_SRC's absolute path); like docker -v but a copy, not a mount, and owned by the box user (repeatable)")
 	f.StringArrayVar(&o.publishPorts, "publish-port", nil, "in-box TCP port to expose as an HTTP proxy for every box on this spoke, as PORT[:DESCRIPTION] (repeatable); needs proxying enabled on the hub")
 	f.IntVar(&o.box.MemoryMB, "box-memory-mb", boxconfig.DefaultBoxMemoryMB, "hard memory limit per box in MiB (0 = unlimited)")
 	f.Float64Var(&o.box.CPUs, "box-cpus", boxconfig.DefaultBoxCPUs, "CPU quota per box, fractional allowed (0 = unlimited)")
@@ -620,7 +763,7 @@ func addFirecrackerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 //
 // @arg parent Base context; serving stops when it (or SIGINT/SIGTERM) fires.
 // @arg o The flag-sourced options: hub URL, token, state path, and per-box Docker settings.
-// @error error if the Docker manager cannot be built, the GPU spec is malformed, a registry password file cannot be read, the init script cannot be read, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
+// @error error if the Docker manager cannot be built, the GPU spec is malformed, a registry password file cannot be read, the init script cannot be read, a --copy source is missing or too large, no credential or token is available, the state path is not writable for a first enrollment, or enrollment is rejected.
 //
 // @testcase TestRunSpokeRequiresTokenOrCreds errors when neither a token nor saved credentials are available.
 // @testcase TestRunSpokeRejectsBadGPUs errors when the GPU spec is malformed.
@@ -638,6 +781,13 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// missing or empty) and run inside every box this spoke spawns; it never crosses
 	// the hub/spoke boundary.
 	initScript, err := o.initScript()
+	if err != nil {
+		return err
+	}
+	// Host files this spoke copies into every box at creation (--copy), resolved
+	// once here so a missing source or oversize copy fails the spoke at startup
+	// rather than on every box create; they never cross the hub/spoke boundary.
+	copyFiles, err := o.copyFiles()
 	if err != nil {
 		return err
 	}
@@ -686,6 +836,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 		MaxBoxes:          o.box.MaxBoxes,
 		InitScript:        initScript,
 		InitScriptTimeout: o.initScriptTimeout,
+		CopyFiles:         copyFiles,
 		PublishPorts:      publishPorts,
 	})
 

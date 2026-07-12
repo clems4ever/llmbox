@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // subcmd returns the named direct subcommand of cmd, failing the test if absent.
@@ -104,7 +105,7 @@ func TestNewRootCmd(t *testing.T) {
 	}
 
 	// Flags every backend subcommand shares, plus the config-free invariant.
-	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "init-script", "init-script-timeout", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "registry", "registry-username", "registry-password-file"}
+	common := []string{"hub", "token", "state", "tls-ca", "tls-insecure", "namespace", "init-script", "init-script-timeout", "copy", "box-memory-mb", "box-cpus", "box-pids-limit", "max-boxes", "box-socket-dir", "box-peer", "registry", "registry-username", "registry-password-file"}
 
 	docker := subcmd(t, cmd, "docker")
 	for _, f := range append([]string{"box-gpus", "image"}, common...) {
@@ -486,6 +487,104 @@ func TestSpokeInitScriptErrors(t *testing.T) {
 	}
 	if _, err := (spokeOptions{initScriptPath: empty}).initScript(); err == nil {
 		t.Error("initScript(empty file) = nil error, want error")
+	}
+}
+
+// TestSpokeCopyFiles checks --copy resolves a single file and a directory tree
+// into inject-files: preserving each file's mode, honouring an explicit
+// destination, defaulting the destination to the source's absolute path, and
+// returning nil when the flag is unset.
+func TestSpokeCopyFiles(t *testing.T) {
+	// Unset: nothing to copy, no error.
+	if f, err := (spokeOptions{}).copyFiles(); err != nil || f != nil {
+		t.Fatalf("copyFiles(unset) = (%v, %v), want (nil, nil)", f, err)
+	}
+
+	dir := t.TempDir()
+	// A standalone file copied to an explicit box destination.
+	single := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(single, []byte("k: v\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	// A directory tree with a nested regular file and an executable, plus a symlink
+	// that must be skipped.
+	tree := filepath.Join(dir, "tree")
+	if err := os.MkdirAll(filepath.Join(tree, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tree, "sub", "data.txt"), []byte("hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tree, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("data.txt", filepath.Join(tree, "sub", "link")); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := (spokeOptions{copyPaths: []string{
+		single + ":/home/agent/config.yaml",
+		tree + ":/opt/tree",
+	}}).copyFiles()
+	if err != nil {
+		t.Fatalf("copyFiles: %v", err)
+	}
+
+	byPath := map[string]sandbox.InjectFile{}
+	for _, f := range got {
+		byPath[f.Path] = f
+		if f.UID != 0 || f.GID != 0 {
+			t.Errorf("copied %s carries owner (%d:%d), want 0:0 (guest owns it as the box user)", f.Path, f.UID, f.GID)
+		}
+	}
+	if len(got) != 3 {
+		t.Fatalf("copied %d files, want 3 (symlink skipped): %v", len(got), byPath)
+	}
+	if f, ok := byPath["/home/agent/config.yaml"]; !ok || string(f.Content) != "k: v\n" || f.Mode != 0o640 {
+		t.Errorf("single = %+v, want content %q mode 0640", f, "k: v\n")
+	}
+	if f, ok := byPath["/opt/tree/sub/data.txt"]; !ok || string(f.Content) != "hello" || f.Mode != 0o644 {
+		t.Errorf("nested = %+v, want content %q mode 0644", f, "hello")
+	}
+	if f, ok := byPath["/opt/tree/run.sh"]; !ok || f.Mode != 0o755 {
+		t.Errorf("executable = %+v, want mode 0755", f)
+	}
+
+	// No explicit destination: it defaults to the source's absolute path.
+	deflt, err := (spokeOptions{copyPaths: []string{single}}).copyFiles()
+	if err != nil {
+		t.Fatalf("copyFiles(default dest): %v", err)
+	}
+	if len(deflt) != 1 || deflt[0].Path != single {
+		t.Fatalf("default-dest copy = %+v, want one file at %q", deflt, single)
+	}
+}
+
+// TestSpokeCopyFilesErrors checks --copy fails the spoke at startup on a relative
+// destination, an empty source, a missing source, and a copy that would overflow
+// the Init frame, rather than failing silently on every box create.
+func TestSpokeCopyFilesErrors(t *testing.T) {
+	f := filepath.Join(t.TempDir(), "f")
+	if err := os.WriteFile(f, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for name, spec := range map[string]string{
+		"relative dest":  f + ":relative/dest",
+		"empty source":   ":/dest",
+		"missing source": filepath.Join(t.TempDir(), "nope") + ":/dest",
+	} {
+		if _, err := (spokeOptions{copyPaths: []string{spec}}).copyFiles(); err == nil {
+			t.Errorf("copyFiles(%s: %q) = nil error, want error", name, spec)
+		}
+	}
+
+	// A source larger than the cap fails rather than overflowing the frame.
+	big := filepath.Join(t.TempDir(), "big")
+	if err := os.WriteFile(big, make([]byte, maxCopyBytes+1), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (spokeOptions{copyPaths: []string{big + ":/big"}}).copyFiles(); err == nil {
+		t.Error("copyFiles(oversize) = nil error, want error")
 	}
 }
 

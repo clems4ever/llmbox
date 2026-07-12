@@ -190,6 +190,33 @@ func TestGuestInitWritesFiles(t *testing.T) {
 	}
 }
 
+// TestGuestInitCopiesFiles writes the spoke's --copy files during Init, preserving
+// each file's mode. Ownership is forced to the box user (the guest's credential),
+// so the UID/GID the file carries is ignored; with no dropped credential in the
+// test that override is a no-op and the file lands as-is.
+func TestGuestInitCopiesFiles(t *testing.T) {
+	_, c := startGuest(t, Options{})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	target := filepath.Join(t.TempDir(), "opt", "run.sh")
+	if _, err := c.Init(ctx, InitReq{
+		Env: boxEnv(t),
+		// A non-zero UID/GID that must be ignored (the guest owns copy files as the
+		// box user, which here is the test's own user).
+		CopyFiles: []sandbox.InjectFile{{Path: target, Content: []byte("#!/bin/sh\n"), Mode: 0o755, UID: 4242, GID: 4242}},
+	}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	info, err := os.Stat(target)
+	if err != nil {
+		t.Fatalf("stat copied file: %v", err)
+	}
+	if info.Mode().Perm() != 0o755 {
+		t.Fatalf("mode = %v, want 0755", info.Mode().Perm())
+	}
+}
+
 // TestGuestInitRunsScript runs a host-provided init script during Init and checks
 // its side effect landed (a sentinel written into the box home).
 func TestGuestInitRunsScript(t *testing.T) {

@@ -28,6 +28,11 @@ type Config struct {
 	// InitScriptTimeout bounds how long the init script may run before Create fails
 	// the box. Non-positive uses the guest default (five minutes).
 	InitScriptTimeout time.Duration
+	// CopyFiles are host files the spoke copies into every box during Init (its
+	// --copy flag), resolved once at spoke startup. They are written owned by the
+	// box user so the workload can use them, and land before the init script runs.
+	// Nil copies nothing.
+	CopyFiles []sandbox.InjectFile
 	// PublishPorts are the in-box TCP ports this spoke exposes as HTTP proxies for
 	// every box it creates (the spoke's --publish-port). They are echoed back on a
 	// successful Create so the hub can publish them once it has registered the box.
@@ -128,6 +133,7 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (sandb
 	initCtx, cancel := m.initContext(ctx)
 	initResp, err := c.Init(initCtx, guest.InitReq{
 		Files:             opts.Files,
+		CopyFiles:         m.cfg.CopyFiles,
 		InitScript:        m.cfg.InitScript,
 		InitScriptTimeout: m.cfg.InitScriptTimeout,
 	})
