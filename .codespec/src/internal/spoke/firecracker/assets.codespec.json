@@ -28,9 +28,9 @@
 		},
 		{
 			"function_name": "orasPull",
-			"documentation_hash": "e01e3ad5e83882696381a7565a569a8ba9ceb34102011b3f91ef77ffad72b96b",
-			"definition_hash": "1bd174988f01b407d3a5abdb728862403bf3e9f126d59935ec9101b8f79a982a",
-			"reviewed_at": "2026-07-10T19:57:54.644806949Z"
+			"documentation_hash": "81e184c0c86cc7d0477fc2b1e3df54bba10b4b70030320f5e611e0c95f2449ce",
+			"definition_hash": "6fb37a7f7d3ebef0aecb9e41c84560e284c62521efe9e7c693555d1a0c0304fa",
+			"reviewed_at": "2026-07-12T13:46:08.015669192Z"
 		},
 		{
 			"function_name": "assetCacheDir",
@@ -117,6 +117,12 @@
 			"documentation_hash": "a4f6985c6cebfb95677cd5a5b15a27a4cae93c43524f8f5f86b8d4b704074da3",
 			"definition_hash": "4b2f018f8314d4a6e8243e6c2a1d7b2197ea0dd00d41f57c0b995fafb3422aa8",
 			"reviewed_at": "2026-07-10T20:17:03.184690259Z"
+		},
+		{
+			"function_name": "decompressLayer",
+			"documentation_hash": "fdab581bafd2969cf570f6ef005d55dd8dadc692d2891b75bf0cda26ef1b6f85",
+			"definition_hash": "314fafc228ac52f08ceec98c80311a46ed4d110b59e216a2be512f33f2b7ab9f",
+			"reviewed_at": "2026-07-12T13:46:08.023950434Z"
 		}
 	]
 }

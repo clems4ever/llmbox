@@ -17,6 +17,7 @@ import (
 	"time"
 
 	dockerregistry "github.com/docker/docker/api/types/registry"
+	"github.com/klauspost/compress/zstd"
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2/registry/remote"
@@ -195,6 +196,60 @@ func TestCredentialForMatchesHost(t *testing.T) {
 func TestOrasPullRejectsBadReference(t *testing.T) {
 	if err := orasPull(context.Background(), "not a valid ref!!", t.TempDir(), nil); err == nil {
 		t.Fatal("orasPull should error on a malformed reference")
+	}
+}
+
+// TestDecompressLayerZstd checks a .zst layer is decoded to its suffix-stripped
+// sibling (the raw file the backend boots) and the compressed copy is reclaimed.
+func TestDecompressLayerZstd(t *testing.T) {
+	dir := t.TempDir()
+	want := bytes.Repeat([]byte("ext4-rootfs-bytes-"), 4096) // ~72 KiB, several frames
+	comp := filepath.Join(dir, "base-rootfs.ext4.zst")
+	var buf bytes.Buffer
+	enc, err := zstd.NewWriter(&buf)
+	if err != nil {
+		t.Fatalf("zstd.NewWriter: %v", err)
+	}
+	if _, err := enc.Write(want); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	if err := enc.Close(); err != nil {
+		t.Fatalf("encode close: %v", err)
+	}
+	if err := os.WriteFile(comp, buf.Bytes(), 0o644); err != nil {
+		t.Fatalf("write compressed: %v", err)
+	}
+
+	if err := decompressLayer(comp); err != nil {
+		t.Fatalf("decompressLayer: %v", err)
+	}
+	raw := filepath.Join(dir, "base-rootfs.ext4")
+	got, err := os.ReadFile(raw)
+	if err != nil {
+		t.Fatalf("read decoded file: %v", err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("decoded %d bytes, want %d", len(got), len(want))
+	}
+	if _, err := os.Stat(comp); !os.IsNotExist(err) {
+		t.Fatalf("compressed copy not reclaimed (stat err = %v)", err)
+	}
+}
+
+// TestDecompressLayerPassesThroughRaw checks a layer with no known compression
+// suffix (the raw kernel/payload) is left exactly as fetched.
+func TestDecompressLayerPassesThroughRaw(t *testing.T) {
+	dir := t.TempDir()
+	raw := filepath.Join(dir, "vmlinux")
+	if err := os.WriteFile(raw, []byte("kernel"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := decompressLayer(raw); err != nil {
+		t.Fatalf("decompressLayer: %v", err)
+	}
+	got, err := os.ReadFile(raw)
+	if err != nil || string(got) != "kernel" {
+		t.Fatalf("raw layer altered: %q, %v", got, err)
 	}
 }
 

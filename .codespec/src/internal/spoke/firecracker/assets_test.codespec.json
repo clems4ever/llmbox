@@ -61,18 +61,6 @@
 			"reviewed_at": "2026-07-10T19:57:54.660491459Z"
 		},
 		{
-			"function_name": "TestProgressTargetPush",
-			"documentation_hash": "6ce03f1b2b405eee517206f1c78f5e16aebdab942cb7ab976f3a136e704313c2",
-			"definition_hash": "e073dde1b6479f0c6632bfbbbfcf5092e30f7ecfe9c43abceb87915a54bf8f65",
-			"reviewed_at": "2026-07-10T16:42:08.18020138Z"
-		},
-		{
-			"function_name": "TestProgressTargetPushRejectsTooLarge",
-			"documentation_hash": "67d8bae03613f24bed2c13193a04dea1f6af25b33e193160d8fa7d25b48c7cd8",
-			"definition_hash": "ff0e107685478f51ba2c32b58570c41f7d93c754bc9ee65b8151e0cdb57294b1",
-			"reviewed_at": "2026-07-10T16:42:08.185121265Z"
-		},
-		{
 			"function_name": "TestChooseAssetCacheDir",
 			"documentation_hash": "0a108bc888dc7fc5205981e292979a1507e0ffbc76c1c224e6e23aadebfe5a94",
 			"definition_hash": "9c16213c22840f5a062153def217eee7b9c056cf6a1b2ab714efcee22b811865",
@@ -138,6 +126,18 @@
 			"documentation_hash": "0a94d25f066c8dd33585918d59c013a55c4138a81a93ccc75d2f0e6493ce59b4",
 			"definition_hash": "e962e82c3063489e81a05450f395b4e98c74008d688da2b1d40955a31068c869",
 			"reviewed_at": "2026-07-10T20:17:03.196507462Z"
+		},
+		{
+			"function_name": "TestDecompressLayerZstd",
+			"documentation_hash": "0aed65c0e5ed0e46d7ea9e81d09b019439cbac1bbbb557d46d800ad3ac3a31c3",
+			"definition_hash": "ba177a3e29f488f3f5da72d5708f3d22d13fbb5349cf93e049ce778b03ea22d6",
+			"reviewed_at": "2026-07-12T13:46:26.025830843Z"
+		},
+		{
+			"function_name": "TestDecompressLayerPassesThroughRaw",
+			"documentation_hash": "dea6df8707bb82f458810e7360277059491238841ddbe53cb7c4fe61e6217de3",
+			"definition_hash": "848a918b5bc40850131dca50dfc4309480a409bd7a11443a8ca0577349df60db",
+			"reviewed_at": "2026-07-12T13:46:26.032324764Z"
 		}
 	]
 }

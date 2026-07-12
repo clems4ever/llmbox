@@ -46,8 +46,13 @@ jobs:
           echo "building $ref"
           OUT="$PWD/fc-assets" scripts/firecracker/build-base-rootfs.sh
           cd fc-assets
+          # The base rootfs is a sparse ext4 that is mostly empty space, so it
+          # compresses ~30x. Publish it zstd-compressed (the spoke decompresses on
+          # pull); do NOT use --long, so the default zstd decoder window suffices.
+          zstd -q -f -19 -T0 -o base-rootfs.ext4.zst base-rootfs.ext4
+          ls -l base-rootfs.ext4 base-rootfs.ext4.zst
           oras push "$ref" --artifact-type application/vnd.llmbox.fc-base \
-            base-rootfs.ext4:application/vnd.llmbox.rootfs.ext4
+            base-rootfs.ext4.zst:application/vnd.llmbox.rootfs.ext4+zstd
           oras tag "$ref" latest
           echo "published $ref (and :latest)"
 

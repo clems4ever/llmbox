@@ -9,6 +9,7 @@ require (
 	github.com/distribution/reference v0.6.0
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/firecracker-microvm/firecracker-go-sdk v1.0.0
+	github.com/klauspost/compress v1.19.0
 	github.com/mdlayher/vsock v1.2.1
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/opencontainers/go-digest v1.0.0
