@@ -85,6 +85,41 @@ func TestInstallSkillsChownsToBoxUser(t *testing.T) {
 	}
 }
 
+// TestInstallSkillsChownsCreatedAncestors checks the intermediate ancestor
+// MkdirAll creates on the way to the skills dir (e.g. the box user's ~/.claude,
+// parent of ~/.claude/skills) is chowned to the box user too — otherwise it
+// stays root-owned and the box user cannot create siblings like ~/.claude/
+// downloads. Needs root to chown to another owner; skipped otherwise.
+func TestInstallSkillsChownsCreatedAncestors(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("chown to another owner requires root")
+	}
+	const uid, gid = 12345, 12345
+	home := t.TempDir()
+	claude := filepath.Join(home, ".claude")
+	dir := filepath.Join(claude, "skills")
+	if err := InstallSkills(dir, uid, gid); err != nil {
+		t.Fatalf("InstallSkills: %v", err)
+	}
+	// The .claude parent, created implicitly by MkdirAll, must be box-user-owned.
+	fi, err := os.Stat(claude)
+	if err != nil {
+		t.Fatalf("stat .claude: %v", err)
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+	if st.Uid != uid || st.Gid != gid {
+		t.Fatalf(".claude owned by %d:%d, want %d:%d", st.Uid, st.Gid, uid, gid)
+	}
+	// The pre-existing home dir must NOT be chowned — only what we created.
+	hi, err := os.Stat(home)
+	if err != nil {
+		t.Fatalf("stat home: %v", err)
+	}
+	if hst := hi.Sys().(*syscall.Stat_t); hst.Uid == uid {
+		t.Errorf("pre-existing home dir was chowned to the box user, want left untouched")
+	}
+}
+
 // TestInstallSkillsRejectsEmptyDir checks an empty dir is reported as an error
 // so the caller can treat it as "installation disabled".
 func TestInstallSkillsRejectsEmptyDir(t *testing.T) {

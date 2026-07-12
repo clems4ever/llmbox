@@ -29,7 +29,10 @@ var skillsFS embed.FS
 // skills in place. Every directory it creates and every file it writes is
 // chowned to uid/gid when they are non-zero, so the unprivileged box user the
 // agent runs as can read (and manage) them; a zero uid/gid (the guest running
-// as root) leaves them root-owned. dir must be non-empty — an empty dir is a
+// as root) leaves them root-owned. This includes the intermediate ancestors
+// MkdirAll must create to reach dir (e.g. the box user's ~/.claude on the way to
+// ~/.claude/skills), so the box user can also write siblings like ~/.claude/
+// downloads. dir must be non-empty — an empty dir is a
 // caller signal to skip installation and is reported as an error here so the
 // caller can decide.
 //
@@ -40,6 +43,7 @@ var skillsFS embed.FS
 //
 // @testcase TestInstallSkillsWritesTree installs the embedded skills and finds SKILL.md at the expected path.
 // @testcase TestInstallSkillsChownsToBoxUser applies uid/gid to the created files and dirs.
+// @testcase TestInstallSkillsChownsCreatedAncestors chowns the ~/.claude parent created on the way to the skills dir.
 // @testcase TestInstallSkillsOverwrites refreshes an existing skill file on a second install.
 // @testcase TestInstallSkillsRejectsEmptyDir errors when dir is empty.
 func InstallSkills(dir string, uid, gid int) error {
@@ -49,6 +53,14 @@ func InstallSkills(dir string, uid, gid int) error {
 	root, err := fs.Sub(skillsFS, "skills")
 	if err != nil {
 		return fmt.Errorf("opening embedded skills: %w", err)
+	}
+	// Create dir up front, chowning every ancestor MkdirAll has to create on the
+	// way (e.g. the box user's ~/.claude parent of ~/.claude/skills). The walk
+	// below only ever chowns dir and entries under it, so without this the
+	// implicitly-created parents stay root-owned and the box user cannot write
+	// anything else beneath them (~/.claude/downloads, settings, ...).
+	if err := mkdirAllChown(dir, uid, gid); err != nil {
+		return err
 	}
 	return fs.WalkDir(root, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -70,6 +82,49 @@ func InstallSkills(dir string, uid, gid int) error {
 		}
 		return chownSkill(dest, uid, gid)
 	})
+}
+
+// mkdirAllChown creates dir and every missing ancestor like os.MkdirAll, then
+// chowns exactly the directories it created to uid/gid (skipping the chown when
+// both are zero, per chownSkill). os.MkdirAll silently creates intermediate
+// ancestors owned by the caller — here the guest running as root — so creating
+// ~/.claude/skills leaves the ~/.claude parent root-owned, which blocks the
+// unprivileged box user from writing anything else under it. Only the ancestors
+// that did not already exist are chowned, so a pre-existing home dir is left
+// untouched.
+//
+// @arg dir The directory to create (with its missing ancestors).
+// @arg uid The owner uid applied to created directories; with gid 0 the chown is skipped.
+// @arg gid The owner gid applied to created directories; with uid 0 the chown is skipped.
+// @error error if a directory cannot be stat'd, created, or chowned.
+//
+// @testcase TestInstallSkillsChownsCreatedAncestors chowns the ~/.claude parent created on the way to the skills dir.
+func mkdirAllChown(dir string, uid, gid int) error {
+	// Walk up from dir collecting the ancestors that don't exist yet; MkdirAll
+	// will create exactly these, so they are exactly the ones to chown.
+	var created []string
+	for p := filepath.Clean(dir); ; {
+		if _, err := os.Stat(p); err == nil {
+			break
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("stat %s: %w", p, err)
+		}
+		created = append(created, p)
+		parent := filepath.Dir(p)
+		if parent == p {
+			break
+		}
+		p = parent
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("creating skills dir %s: %w", dir, err)
+	}
+	for _, p := range created {
+		if err := chownSkill(p, uid, gid); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // chownSkill applies uid/gid to an installed skill path, skipping the chown when
