@@ -63,6 +63,13 @@ mkdir -p /workspace
 # Hand the home and workspace to the box user so the workload (running as agent)
 # can write the workspace and its own state.
 chown -R "$BOX_USER:$BOX_USER" "$BOX_HOME" /workspace
+# Pre-create ~/.claude owned by the box user. The guest (running as root) later
+# populates ~/.claude/skills, and os.MkdirAll would otherwise create the .claude
+# parent root-owned AFTER the chown -R above already ran — leaving the box user
+# unable to write siblings like ~/.claude/downloads (which broke init scripts
+# running the claude installer). Creating it here, agent-owned, before the guest
+# starts guarantees the box user owns it regardless of what the guest does under it.
+install -d -o "$BOX_USER" -g "$BOX_USER" -m 0755 "$BOX_HOME/.claude"
 cd /workspace
 exec /payload/llmbox-guest --vsock-port 5000 --boxapi-port 5001 --user "$BOX_USER"
 ENTRY
