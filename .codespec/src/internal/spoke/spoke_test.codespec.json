@@ -95,6 +95,54 @@
 			"documentation_hash": "150b3599e6f0796d96aa389d5328ebf7c5cb68d9fd730b5cdc971d19883fb0ca",
 			"definition_hash": "b598b8882423b742b1580cbcc28134e8193423712aa79194dcd2ebc485b1917d",
 			"reviewed_at": "2026-07-11T21:34:27.223927986Z"
+		},
+		{
+			"function_name": "TestFirecrackerVMCmd",
+			"documentation_hash": "1fd5bf1c17dc3c894f692b17c0701ff791642db40392fe5767f2aca022f9bc52",
+			"definition_hash": "5858bbee9ee643804b159020f822c5ee334bfdb70618561f34befc8e71046bdc",
+			"reviewed_at": "2026-07-12T15:08:17.566996617Z"
+		},
+		{
+			"function_name": "TestRunFirecrackerVMList",
+			"documentation_hash": "ea062841a7dca379f15ef099d71af93be5698f410f1d27a4e2241019454a0e36",
+			"definition_hash": "e61ea8624f84979c14ba3b0b1c377c8c565c22fc565271198c31545cd7d1965e",
+			"reviewed_at": "2026-07-12T15:01:19.243568286Z"
+		},
+		{
+			"function_name": "TestRunFirecrackerVMListEmpty",
+			"documentation_hash": "2e70ec123ac880804e3f7a940fbae5624c9e6f5464714b1a955ce932cbf80aaa",
+			"definition_hash": "bd15489d316df3f2f828748bb3b44f2b46db1b2829cacd900a83bf3f09777336",
+			"reviewed_at": "2026-07-12T15:01:25.171912435Z"
+		},
+		{
+			"function_name": "TestRunFirecrackerVMDestroy",
+			"documentation_hash": "270bdcabe8f105ffd73768cd5dbd5d4b6cd658e24ce6b745564b8dfe0111d513",
+			"definition_hash": "0a2cc3f26866762b6d1382f58e36fa08048d4bfbc877d7d305a9ae54b2486652",
+			"reviewed_at": "2026-07-12T15:01:30.952224898Z"
+		},
+		{
+			"function_name": "TestRunFirecrackerVMDestroyUnknown",
+			"documentation_hash": "aca54c7f6beee370a1767a28aa50c2a9fb6160dd4e325e1ab3e0879a9a09466d",
+			"definition_hash": "340e840d9f438ad59e28a82ea2ca9609e213d0299c1873ebe5e26bae4ca9c1f6",
+			"reviewed_at": "2026-07-12T15:01:36.829814785Z"
+		},
+		{
+			"function_name": "writeSpokeBoxMeta",
+			"documentation_hash": "bdb75f9117f37b2c645ebb4827a9874563729d52416f9b0bbffa1ca5bf60b49b",
+			"definition_hash": "6020df03029579989da764e04d3d73d422c0f19cd8d6b1cb568f23f891993c88",
+			"reviewed_at": "2026-07-12T15:01:42.811121375Z"
+		},
+		{
+			"function_name": "TestRunFirecrackerVMDestroyAll",
+			"documentation_hash": "e042aa0c16743d576745e9e07dcbf23df8bd57cfbf1241721a8883998cf6b82e",
+			"definition_hash": "b07458aa38abebd724107e1c5911ee3568b6cff27b12c61f4a5e2e22b87bc46b",
+			"reviewed_at": "2026-07-12T15:08:23.593840211Z"
+		},
+		{
+			"function_name": "TestFirecrackerVMDestroyAllRequiresYes",
+			"documentation_hash": "6d65da4be7df1548adbf451041adba4cf96ead5e5085a84b055710940dfe3673",
+			"definition_hash": "a0015c1a0f71b3536c6b35fabdca55a722c0a5a969ef7c45f179550e767cb293",
+			"reviewed_at": "2026-07-12T15:08:29.637465588Z"
 		}
 	]
 }

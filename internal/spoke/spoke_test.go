@@ -154,6 +154,159 @@ func TestFirecrackerFetchCmd(t *testing.T) {
 	}
 }
 
+// TestFirecrackerVMCmd checks the firecracker `vm` operator command wires a `list`
+// and a `destroy` subcommand, each carrying a --state-dir flag, and that `destroy`
+// requires exactly one box argument.
+func TestFirecrackerVMCmd(t *testing.T) {
+	cmd := NewRootCmd("llmbox-spoke", "v0.1.0")
+	fc := subcmd(t, cmd, "firecracker")
+	vm := subcmd(t, fc, "vm")
+
+	list := subcmd(t, vm, "list")
+	if list.Flags().Lookup("state-dir") == nil {
+		t.Error("vm list missing --state-dir flag")
+	}
+	destroy := subcmd(t, vm, "destroy <box-id|token>")
+	if destroy.Flags().Lookup("state-dir") == nil {
+		t.Error("vm destroy missing --state-dir flag")
+	}
+	if err := destroy.Args(destroy, nil); err == nil {
+		t.Error("vm destroy accepted zero arguments; it needs one box id")
+	}
+	if err := destroy.Args(destroy, []string{"box"}); err != nil {
+		t.Errorf("vm destroy rejected one argument: %v", err)
+	}
+
+	destroyAll := subcmd(t, vm, "destroy-all")
+	for _, f := range []string{"state-dir", "yes"} {
+		if destroyAll.Flags().Lookup(f) == nil {
+			t.Errorf("vm destroy-all missing --%s flag", f)
+		}
+	}
+}
+
+// TestRunFirecrackerVMList checks the list output has a header row and a row per
+// persisted box, with a dash for an absent box id and a state label.
+func TestRunFirecrackerVMList(t *testing.T) {
+	stateDir := t.TempDir()
+	writeSpokeBoxMeta(t, stateDir, "aaaaaaaaaaaa", "box-a")
+	writeSpokeBoxMeta(t, stateDir, "bbbbbbbbbbbb", "")
+
+	var out strings.Builder
+	if err := runFirecrackerVMList(&out, stateDir); err != nil {
+		t.Fatalf("runFirecrackerVMList: %v", err)
+	}
+	s := out.String()
+	for _, want := range []string{"TOKEN", "BOX ID", "STATE", "aaaaaaaaaaaa", "box-a", "bbbbbbbbbbbb"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("list output missing %q\n%s", want, s)
+		}
+	}
+	// A stopped box (no live VMM) is labelled stopped, and its missing box id shows a dash.
+	if !strings.Contains(s, "stopped") {
+		t.Errorf("list output missing a stopped state label\n%s", s)
+	}
+	if !strings.Contains(s, "-") {
+		t.Errorf("list output missing a dash for the empty box id\n%s", s)
+	}
+}
+
+// TestRunFirecrackerVMListEmpty checks the list command prints a friendly line, not
+// a bare header, when the host has no boxes.
+func TestRunFirecrackerVMListEmpty(t *testing.T) {
+	var out strings.Builder
+	if err := runFirecrackerVMList(&out, filepath.Join(t.TempDir(), "absent")); err != nil {
+		t.Fatalf("runFirecrackerVMList: %v", err)
+	}
+	if !strings.Contains(out.String(), "no firecracker boxes") {
+		t.Errorf("empty list output = %q, want a no-boxes message", out.String())
+	}
+}
+
+// TestRunFirecrackerVMDestroy checks the destroy command removes the matched box and
+// reports its token.
+func TestRunFirecrackerVMDestroy(t *testing.T) {
+	stateDir := t.TempDir()
+	writeSpokeBoxMeta(t, stateDir, "aaaaaaaaaaaa", "box-a")
+
+	var out strings.Builder
+	if err := runFirecrackerVMDestroy(&out, stateDir, "box-a"); err != nil {
+		t.Fatalf("runFirecrackerVMDestroy: %v", err)
+	}
+	if !strings.Contains(out.String(), "aaaaaaaaaaaa") {
+		t.Errorf("destroy output = %q, want the destroyed token", out.String())
+	}
+	if _, err := os.Stat(filepath.Join(stateDir, "aaaaaaaaaaaa")); !os.IsNotExist(err) {
+		t.Errorf("destroyed box dir still present: %v", err)
+	}
+}
+
+// TestRunFirecrackerVMDestroyUnknown checks the destroy command surfaces an error
+// when no box matches.
+func TestRunFirecrackerVMDestroyUnknown(t *testing.T) {
+	var out strings.Builder
+	if err := runFirecrackerVMDestroy(&out, t.TempDir(), "nope"); err == nil {
+		t.Fatal("runFirecrackerVMDestroy should error for an unknown box")
+	}
+}
+
+// TestRunFirecrackerVMDestroyAll checks the destroy-all command removes every box and
+// prints a per-box line plus a final count.
+func TestRunFirecrackerVMDestroyAll(t *testing.T) {
+	stateDir := t.TempDir()
+	writeSpokeBoxMeta(t, stateDir, "aaaaaaaaaaaa", "box-a")
+	writeSpokeBoxMeta(t, stateDir, "bbbbbbbbbbbb", "box-b")
+
+	var out strings.Builder
+	if err := runFirecrackerVMDestroyAll(&out, stateDir); err != nil {
+		t.Fatalf("runFirecrackerVMDestroyAll: %v", err)
+	}
+	s := out.String()
+	for _, want := range []string{"aaaaaaaaaaaa", "bbbbbbbbbbbb", "destroyed 2 firecracker box(es)"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("destroy-all output missing %q\n%s", want, s)
+		}
+	}
+	for _, token := range []string{"aaaaaaaaaaaa", "bbbbbbbbbbbb"} {
+		if _, err := os.Stat(filepath.Join(stateDir, token)); !os.IsNotExist(err) {
+			t.Errorf("box dir %s still present after destroy-all: %v", token, err)
+		}
+	}
+}
+
+// TestFirecrackerVMDestroyAllRequiresYes checks the destroy-all command refuses to
+// run without --yes, so a stray invocation never wipes the host.
+func TestFirecrackerVMDestroyAllRequiresYes(t *testing.T) {
+	stateDir := t.TempDir()
+	writeSpokeBoxMeta(t, stateDir, "aaaaaaaaaaaa", "box-a")
+
+	cmd := NewRootCmd("llmbox-spoke", "v0.1.0")
+	cmd.SetArgs([]string{"firecracker", "vm", "destroy-all", "--state-dir", stateDir})
+	cmd.SetOut(&strings.Builder{})
+	cmd.SetErr(&strings.Builder{})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("destroy-all without --yes should error")
+	}
+	// The box must be untouched when the guard trips.
+	if _, err := os.Stat(filepath.Join(stateDir, "aaaaaaaaaaaa")); err != nil {
+		t.Fatalf("destroy-all removed a box despite refusing without --yes: %v", err)
+	}
+}
+
+// writeSpokeBoxMeta writes a minimal firecracker box meta.json under stateDir so the
+// operator run functions have a box to list or destroy.
+func writeSpokeBoxMeta(t *testing.T, stateDir, token, boxID string) {
+	t.Helper()
+	dir := filepath.Join(stateDir, token)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatalf("mkdir box dir: %v", err)
+	}
+	meta := `{"token":"` + token + `","box_id":"` + boxID + `","phase":"ready","created":1}`
+	if err := os.WriteFile(filepath.Join(dir, "meta.json"), []byte(meta), 0o600); err != nil {
+		t.Fatalf("write meta: %v", err)
+	}
+}
+
 // TestRunFirecrackerFetchBadRegistry checks the fetch command validates its
 // registry credential before any download: a --registry with no password file is
 // rejected up front.

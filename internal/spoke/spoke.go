@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -19,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -263,6 +265,7 @@ func NewRootCmd(name, version string) *cobra.Command {
 	root.AddCommand(newSpokeRunCmd("docker", "Run a spoke that runs boxes as Docker containers", addDockerSpokeFlags))
 	fc := newSpokeRunCmd("firecracker", "Run a spoke that runs boxes as Firecracker microVMs", addFirecrackerSpokeFlags)
 	fc.AddCommand(newFirecrackerFetchCmd())
+	fc.AddCommand(newFirecrackerVMCmd())
 	root.AddCommand(fc)
 	return root
 }
@@ -328,6 +331,197 @@ func runFirecrackerFetch(parent context.Context, stateDir string, reg registryFl
 	}
 	log.Printf("firecracker: guest images ready in %s", cacheDir)
 	return nil
+}
+
+// newFirecrackerVMCmd builds the `vm` subcommand group of the firecracker spoke: an
+// operator escape hatch to `list` and `destroy` microVM boxes directly from the
+// host's on-disk state, without a running spoke or a hub. Normal box lifecycle is
+// driven by the hub; these exist only to inspect or reap boxes a crashed or detached
+// spoke left running on the host.
+//
+// @return *cobra.Command The `vm` command with its list and destroy subcommands.
+//
+// @testcase TestFirecrackerVMCmd wires the list and destroy subcommands with a --state-dir flag.
+func newFirecrackerVMCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "vm",
+		Short:         "Operator tools to list and destroy Firecracker microVM boxes on this host",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+	}
+	cmd.AddCommand(newFirecrackerVMListCmd(), newFirecrackerVMDestroyCmd(), newFirecrackerVMDestroyAllCmd())
+	return cmd
+}
+
+// newFirecrackerVMListCmd builds `vm list`: it prints every microVM box persisted
+// under the state dir with its id, phase, and probed running state, then exits.
+//
+// @return *cobra.Command The configured list subcommand.
+//
+// @testcase TestFirecrackerVMCmd exposes the --state-dir flag on the list subcommand.
+func newFirecrackerVMListCmd() *cobra.Command {
+	var stateDir string
+	cmd := &cobra.Command{
+		Use:           "list",
+		Short:         "List the Firecracker microVM boxes persisted on this host",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runFirecrackerVMList(cmd.OutOrStdout(), stateDir)
+		},
+	}
+	cmd.Flags().StringVar(&stateDir, "state-dir", "", "spoke state directory holding per-box state (empty uses the backend default)")
+	return cmd
+}
+
+// newFirecrackerVMDestroyCmd builds `vm destroy <box-id|token>`: it stops and removes
+// a single box (halting a live VMM first) directly against the state dir, then exits.
+//
+// @return *cobra.Command The configured destroy subcommand.
+//
+// @testcase TestFirecrackerVMCmd exposes the --state-dir flag and requires one argument on destroy.
+func newFirecrackerVMDestroyCmd() *cobra.Command {
+	var stateDir string
+	cmd := &cobra.Command{
+		Use:           "destroy <box-id|token>",
+		Short:         "Stop and remove a single Firecracker microVM box by id or token",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runFirecrackerVMDestroy(cmd.OutOrStdout(), stateDir, args[0])
+		},
+	}
+	cmd.Flags().StringVar(&stateDir, "state-dir", "", "spoke state directory holding per-box state (empty uses the backend default)")
+	return cmd
+}
+
+// newFirecrackerVMDestroyAllCmd builds `vm destroy-all`: it stops and removes every
+// microVM box on the host directly against the state dir, then exits. It requires
+// --yes so the destructive sweep is never triggered by a stray invocation.
+//
+// @return *cobra.Command The configured destroy-all subcommand.
+//
+// @testcase TestFirecrackerVMCmd exposes --state-dir and --yes on the destroy-all subcommand.
+func newFirecrackerVMDestroyAllCmd() *cobra.Command {
+	var stateDir string
+	var yes bool
+	cmd := &cobra.Command{
+		Use:           "destroy-all",
+		Short:         "Stop and remove every Firecracker microVM box on this host (requires --yes)",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if !yes {
+				return errors.New("refusing to destroy all boxes without --yes")
+			}
+			return runFirecrackerVMDestroyAll(cmd.OutOrStdout(), stateDir)
+		},
+	}
+	cmd.Flags().StringVar(&stateDir, "state-dir", "", "spoke state directory holding per-box state (empty uses the backend default)")
+	cmd.Flags().BoolVar(&yes, "yes", false, "confirm destroying every box on this host")
+	return cmd
+}
+
+// runFirecrackerVMList prints a box-per-line table of the microVM boxes persisted
+// under stateDir, or a single "no boxes" line when there are none.
+//
+// @arg out The writer the table is printed to.
+// @arg stateDir The spoke's --state-dir, selecting the state location; empty uses the backend default.
+// @error error if the state directory exists but cannot be read.
+//
+// @testcase TestRunFirecrackerVMList prints a header and a row per persisted box.
+func runFirecrackerVMList(out io.Writer, stateDir string) error {
+	vms, err := firecracker.ListVMs(stateDir)
+	if err != nil {
+		return err
+	}
+	if len(vms) == 0 {
+		fmt.Fprintln(out, "no firecracker boxes on this host")
+		return nil
+	}
+	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "TOKEN\tBOX ID\tNAMESPACE\tPHASE\tSTATE\tSLOT\tCREATED")
+	for _, v := range vms {
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%d\t%s\n",
+			v.Token, dashIfEmpty(v.BoxID), dashIfEmpty(v.Namespace), v.Phase,
+			vmStateLabel(v), v.NetIndex, time.Unix(v.Created, 0).Format(time.RFC3339))
+	}
+	return tw.Flush()
+}
+
+// runFirecrackerVMDestroy destroys the single box matching idOrToken under stateDir
+// and reports what it removed.
+//
+// @arg out The writer the confirmation is printed to.
+// @arg stateDir The spoke's --state-dir, selecting the state location; empty uses the backend default.
+// @arg idOrToken The box to destroy: exact token, exact box id, or unique token prefix.
+// @error error if no box matches, the match is ambiguous, or the box cannot be removed.
+//
+// @testcase TestRunFirecrackerVMDestroy removes the matched box and prints its token.
+func runFirecrackerVMDestroy(out io.Writer, stateDir, idOrToken string) error {
+	v, err := firecracker.DestroyVM(stateDir, idOrToken)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "destroyed firecracker box %s\n", v.Token)
+	return nil
+}
+
+// runFirecrackerVMDestroyAll destroys every box under stateDir and reports each one
+// removed plus a count. It surfaces any per-box teardown failures as its error while
+// still having destroyed the boxes it could, so a single stuck VMM never leaves the
+// rest of the host un-swept.
+//
+// @arg out The writer the confirmations are printed to.
+// @arg stateDir The spoke's --state-dir, selecting the state location; empty uses the backend default.
+// @error error if the state cannot be read, or joining the failures of any boxes that could not be destroyed.
+//
+// @testcase TestRunFirecrackerVMDestroyAll removes every box and prints a count.
+func runFirecrackerVMDestroyAll(out io.Writer, stateDir string) error {
+	destroyed, err := firecracker.DestroyAllVMs(stateDir)
+	for _, v := range destroyed {
+		fmt.Fprintf(out, "destroyed firecracker box %s\n", v.Token)
+	}
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "destroyed %d firecracker box(es)\n", len(destroyed))
+	return nil
+}
+
+// vmStateLabel renders a box's runtime state for the list table: paused, running, or
+// stopped, from its probed liveness and persisted paused flag.
+//
+// @arg v The box snapshot.
+// @return string "paused", "running", or "stopped".
+//
+// @testcase TestRunFirecrackerVMList labels a running box.
+func vmStateLabel(v firecracker.VMStatus) string {
+	switch {
+	case v.Paused:
+		return "paused"
+	case v.Running:
+		return "running"
+	default:
+		return "stopped"
+	}
+}
+
+// dashIfEmpty renders an empty optional column as "-" so the table stays aligned.
+//
+// @arg s The value, possibly empty.
+// @return string s, or "-" when s is empty.
+//
+// @testcase TestRunFirecrackerVMList renders a dash for a box with no box id.
+func dashIfEmpty(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return s
 }
 
 // newSpokeRunCmd builds a backend-specific run subcommand: it registers the flags

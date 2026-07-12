@@ -36,6 +36,46 @@ isolated.
   Docker backend it can be pinned to a namespace so two spokes sharing a host never
   see each other's boxes.
 
+## Boxes survive a spoke restart
+
+The microVMs **outlive the spoke process**, exactly like Docker containers outlive
+the spoke — restarting (or crashing) the spoke does **not** kill running boxes. On
+restart the spoke rehydrates them from the state directory, probes each VMM, and
+re-attaches; `List`/`Find`/`Control`/`Destroy` work again against the still-running
+VMs. A microVM is stopped only by an explicit `Destroy` (box deletion), a `Pause`,
+or the operator `vm destroy`/`destroy-all` commands below — never by shutdown.
+
+Making this hold takes a few deliberate choices, since a Firecracker VMM is a direct
+child of the spoke (Docker gets it for free — dockerd owns the containers):
+
+- The VMM runs on a background context in its own process group, so neither a
+  request/lifetime context cancel nor a terminal `Ctrl-C` (SIGINT to the group)
+  reaps it, and the SDK's default signal forwarding is disabled so the spoke's
+  shutdown signal is not relayed to it.
+- `Close` (spoke shutdown) is **release-only**: it closes in-memory listeners but
+  leaves every VM running and the egress TAP pool up (re-adopted idempotently on the
+  next start).
+- The generated systemd unit sets **`KillMode=process`** for a firecracker spoke, so
+  `systemctl restart` signals only the spoke process, not the whole cgroup — mirroring
+  how Docker's own daemon unit keeps containers alive across a daemon restart. (The
+  setup script the admin UI generates does this for you.)
+
+> If you deploy your own unit, set `KillMode=process`. The systemd default
+> (`control-group`) SIGKILLs the entire cgroup on stop, taking every microVM with it.
+
+### Operator commands
+
+Box lifecycle is normally driven by the hub. These are an escape hatch for
+inspecting or reaping boxes a crashed or detached spoke left running on a host —
+they read the on-disk state directly and need no hub connection or running spoke
+(pass the same `--state-dir` the spoke runs with; empty uses the backend default):
+
+```
+llmbox-spoke firecracker vm list                  # id, phase, and running state of every box
+llmbox-spoke firecracker vm destroy <box-id|token> # stop and remove one box (halts a live VMM first)
+llmbox-spoke firecracker vm destroy-all --yes      # stop and remove every box on this host
+```
+
 ## Configuration
 
 The backend is chosen by the spoke subcommand — the hub holds no box-provisioning

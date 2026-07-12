@@ -3,8 +3,8 @@
 		{
 			"function_name": "NewProvisioner",
 			"documentation_hash": "5dbb714e42524a5704f636524f6f9a2cc1f30e5af3b894cff1672dc0df627b8a",
-			"definition_hash": "226aa5f74ab28bcf8376c249b015c11d9cb7e088d57f357a38869be20543df65",
-			"reviewed_at": "2026-07-08T14:50:26.495843884Z"
+			"definition_hash": "a781bbd0ac4c55435f97bd42f4769c9411e38980261bf1a85165cd39584343f0",
+			"reviewed_at": "2026-07-12T15:00:08.522566221Z"
 		},
 		{
 			"function_name": "SetNetworking",
@@ -30,9 +30,9 @@
 		{
 			"function_name": "realMachineFactory",
 			"receiver": "Provisioner",
-			"documentation_hash": "e47b8cbc70a0d05a17c0db4fa5723387feabb9e16e22e9e21d0dbea9dfffb7e5",
-			"definition_hash": "2b1709bd4666088cb62a84ecae0783e8feed3e1a974a35e0055d4059f604ecb3",
-			"reviewed_at": "2026-07-09T18:49:59.016290462Z"
+			"documentation_hash": "87e9faf0eb427e4505b92ef3a75e78d1cb35d317f1d6c4d7f4081ee38bc4f1c0",
+			"definition_hash": "e679c8ce49957dc04a2c67cb573e07475cb0f967454fdf09c831f965e81bd1ac",
+			"reviewed_at": "2026-07-12T15:00:31.969139438Z"
 		},
 		{
 			"function_name": "Provision",
@@ -58,9 +58,9 @@
 		{
 			"function_name": "Close",
 			"receiver": "Provisioner",
-			"documentation_hash": "1e0e4bb6511d3aae7500062013d6dad79b408e9c6a3c75026cfcbce8e268a93e",
-			"definition_hash": "f29e1d57dd818d486ddcd2b727478492fecb529aa75c09edcd854cb4e550e519",
-			"reviewed_at": "2026-07-06T08:23:15.601631646Z"
+			"documentation_hash": "6d2c6be331096b802585ba2e54bfa73c0549426feadc16f87a9a583f1594fdbf",
+			"definition_hash": "f54ef39c5fcf39f3e53e971fe70370c44edb85d34f135535d2e9b8fc8b666c7c",
+			"reviewed_at": "2026-07-12T15:00:33.095863891Z"
 		},
 		{
 			"function_name": "allocIndexLocked",
@@ -140,8 +140,8 @@
 			"function_name": "EnsureNetwork",
 			"receiver": "Provisioner",
 			"documentation_hash": "bf22b067aeca024b8071c65bcd5721a24dcc63baf22bc4e9b6d984ed578666ea",
-			"definition_hash": "1a5a3e92e3724222fd487bd5fe8e0c2bfded3f2ec723b3fc3c4d7ab758124aec",
-			"reviewed_at": "2026-07-04T22:54:32.292278785Z"
+			"definition_hash": "24016e7bdcb4cc2450ec22b1d66039a570a03e65faecf34fbae198d9eb5fe548",
+			"reviewed_at": "2026-07-12T15:00:31.417877254Z"
 		},
 		{
 			"function_name": "SetPayloadImage",
@@ -160,8 +160,8 @@
 			"function_name": "bootMachine",
 			"receiver": "Provisioner",
 			"documentation_hash": "6a6fc44d3dfcaf2a23ed27b41d5ed1db54e78463d4f9f31b7d964282fad2913a",
-			"definition_hash": "7c04afe87455f590cf9626855d8d3db7c54a79b47d3f68165a1427562b040987",
-			"reviewed_at": "2026-07-11T11:13:34.258188105Z"
+			"definition_hash": "19eb95bc265beecef3f6a27150f6af962ce3878faa9928138f039e9b6c02de62",
+			"reviewed_at": "2026-07-12T15:00:32.542585718Z"
 		},
 		{
 			"function_name": "Pause",

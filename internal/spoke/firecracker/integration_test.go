@@ -13,6 +13,25 @@ import (
 	"github.com/clems4ever/llmbox/internal/spoke/box/conformance"
 )
 
+// closeAndDestroy tears down every box the provisioner still holds, then closes it.
+// The live tests use it instead of a bare Close because the production Close is
+// release-only — it deliberately leaves box VMs running so a respawned spoke
+// rehydrates them — so a test must destroy its boxes explicitly or leak real
+// firecracker processes on the host.
+//
+// @arg t The test the cleanup is registered on.
+// @arg p The provisioner whose boxes to destroy and then close.
+//
+// @testcase TestConformanceFirecracker reaps its live boxes through closeAndDestroy.
+func closeAndDestroy(t testing.TB, p *Provisioner) {
+	t.Helper()
+	boxes, _ := p.List(context.Background())
+	for _, b := range boxes {
+		_ = b.Destroy(context.Background())
+	}
+	_ = p.Close()
+}
+
 // fcArtifacts returns the kernel/rootfs paths for the live Firecracker tests, or
 // skips when the host is not set up to boot microVMs.
 //
@@ -40,9 +59,9 @@ func fcArtifacts(t *testing.T) (string, string) {
 // TestVMSurvivesRequestContextCancel is a regression test for boxes dying when the
 // create request ends: it boots a real control-only box, cancels the context that
 // created it, and checks the guest is still reachable. The firecracker process and
-// the SDK's stop-on-context-done goroutine must both run on the provisioner's
-// lifetime context, not the request's, or a later operation (submit code, exec,
-// logs) hits a dead vsock with "connection refused".
+// the SDK's stop-on-context-done goroutine must both run on a background context,
+// not the request's, or a later operation (submit code, exec, logs) hits a dead
+// vsock with "connection refused".
 //
 // @testcase TestVMSurvivesRequestContextCancel boots a box, cancels the create context, and checks the VM survives.
 func TestVMSurvivesRequestContextCancel(t *testing.T) {
@@ -58,7 +77,7 @@ func TestVMSurvivesRequestContextCancel(t *testing.T) {
 		t.Fatalf("NewProvisioner: %v", err)
 	}
 	p.SetNetworking(false) // control-only: no CAP_NET_ADMIN needed
-	t.Cleanup(func() { _ = p.Close() })
+	t.Cleanup(func() { closeAndDestroy(t, p) })
 
 	ctx, cancel := context.WithCancel(context.Background())
 	inst, err := p.Provision(ctx, sandbox.CreateOptions{BoxID: "ctx-box"})
@@ -114,7 +133,7 @@ func TestConformanceFirecracker(t *testing.T) {
 		p.SetNetworking(networking)
 		// Ensure every VM this subtest booted is torn down even if the contract
 		// leaves some alive.
-		t.Cleanup(func() { _ = p.Close() })
+		t.Cleanup(func() { closeAndDestroy(t, p) })
 		return p
 	})
 }
@@ -142,7 +161,7 @@ func TestBoxAPIOverVsock(t *testing.T) {
 		t.Fatalf("NewProvisioner: %v", err)
 	}
 	p.SetNetworking(false) // control-only: vsock needs no egress
-	t.Cleanup(func() { _ = p.Close() })
+	t.Cleanup(func() { closeAndDestroy(t, p) })
 
 	inst, err := p.Provision(context.Background(), sandbox.CreateOptions{BoxID: "vsock-box"})
 	if err != nil {
@@ -199,7 +218,7 @@ func TestBoxRunsAsUnprivilegedUserWithSudo(t *testing.T) {
 	}
 	p.SetNetworking(false) // control-only: vsock needs no egress
 	p.SetPayloadImage(payload)
-	t.Cleanup(func() { _ = p.Close() })
+	t.Cleanup(func() { closeAndDestroy(t, p) })
 
 	inst, err := p.Provision(context.Background(), sandbox.CreateOptions{BoxID: "agent-box"})
 	if err != nil {
