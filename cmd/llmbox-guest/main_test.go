@@ -20,7 +20,7 @@ func TestRunServesAndStops(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	errc := make(chan error, 1)
-	go func() { errc <- run(ctx, sock, 0, "", 0, "", log) }()
+	go func() { errc <- run(ctx, sock, 0, "", 0, "", "", log) }()
 
 	deadline := time.Now().Add(3 * time.Second)
 	for {
@@ -54,7 +54,7 @@ func TestRunStartsBoxAPIBridge(t *testing.T) {
 	defer cancel()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	go func() { _ = run(ctx, "", 1, boxapiSock, 5001, "", log) }()
+	go func() { _ = run(ctx, "", 1, boxapiSock, 5001, "", "", log) }()
 
 	deadline := time.Now().Add(3 * time.Second)
 	for {
@@ -68,12 +68,36 @@ func TestRunStartsBoxAPIBridge(t *testing.T) {
 	}
 }
 
+// TestRunInstallsSkills checks run installs the embedded agent skills under the
+// given skillsDir before serving, so the box's agent finds the box-API skill.
+func TestRunInstallsSkills(t *testing.T) {
+	skillsDir := filepath.Join(t.TempDir(), "skills")
+	sock := filepath.Join(t.TempDir(), "control.sock")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	go func() { _ = run(ctx, sock, 0, "", 0, "", skillsDir, log) }()
+
+	skill := filepath.Join(skillsDir, "llmbox-ports", "SKILL.md")
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if _, err := os.Stat(skill); err == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("skill %s was not installed", skill)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
 // TestRunRejectsUnknownUser checks run fails fast (before serving) when --user
 // names an account the box does not have, naming the offending user.
 func TestRunRejectsUnknownUser(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	sock := filepath.Join(t.TempDir(), "control.sock")
-	err := run(context.Background(), sock, 0, "", 0, "no-such-box-user-xyz", log)
+	err := run(context.Background(), sock, 0, "", 0, "no-such-box-user-xyz", "", log)
 	if err == nil || !strings.Contains(err.Error(), "no-such-box-user-xyz") {
 		t.Fatalf("run err = %v, want a lookup failure naming the user", err)
 	}
