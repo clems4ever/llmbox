@@ -141,12 +141,13 @@ llmbox-spoke firecracker --hub wss://hub.example.com/spoke/connect --token <join
 
 The images are stored as opaque OCI artifacts (pulled with an embedded oras
 client, not `docker pull` — they are raw files Firecracker boots, not runnable
-images) and published by `.github/workflows/firecracker-assets.yml`. The base
-rootfs is published **zstd-compressed** (it is a small, mostly-empty ext4 — see
-"Disk size" above — so it compresses roughly 30×, e.g. ~190 MiB pushed vs a
-~1.4 GiB image); the spoke verifies the compressed layer's digest and decompresses
-it to the ext4 it boots on pull. The kernel and payload are small and pushed raw.
-Overrides:
+images) and published by `.github/workflows/firecracker-assets.yml`. Every image is
+published **zstd-compressed**; the spoke verifies the compressed layer's digest and
+decompresses it to the raw file it boots on pull. The base rootfs compresses roughly
+30× (it is a small, mostly-empty ext4 — see "Disk size" above — e.g. ~190 MiB pushed
+vs a ~1.4 GiB image); the payload (a tiny, content-sized ext4 around the static guest
+binary) and the kernel (an uncompressed `vmlinux`) compress more modestly (~2–3×) but
+still cut what a spoke downloads. Overrides:
 
 - `LLMBOX_FC_REGISTRY` — the OCI namespace to pull from (default
   `ghcr.io/clems4ever`); point it at a fork's packages.

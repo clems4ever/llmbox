@@ -74,10 +74,15 @@ jobs:
           echo "building $ref (this takes a while)"
           OUT="$PWD/fc-assets" scripts/firecracker/build-kernel.sh
           cd fc-assets
-          # Publish under the generic name the resolver expects.
+          # Publish under the generic name the resolver expects. Firecracker boots an
+          # uncompressed vmlinux, so it is a raw ELF whose size is its content (no
+          # ext4 to auto-size) — but zstd still compresses a kernel ~2-3x for
+          # transport, and the spoke decompresses on pull. No --long needed.
           cp vmlinux-full vmlinux
+          zstd -q -f -19 -T0 -o vmlinux.zst vmlinux
+          ls -l vmlinux vmlinux.zst
           oras push "$ref" --artifact-type application/vnd.llmbox.fc-kernel \
-            vmlinux:application/vnd.llmbox.kernel
+            vmlinux.zst:application/vnd.llmbox.kernel+zstd
           oras tag "$ref" latest
           echo "published $ref (and :latest)"
 
@@ -102,7 +107,13 @@ jobs:
           OUT="$PWD/fc-assets" scripts/firecracker/build-payload-drive.sh
           cd fc-assets
           ref="$REGISTRY/llmbox-fc-payload"
+          # The payload is a small, mostly-metadata ext4 around a static Go binary;
+          # zstd-compress it (the spoke decompresses on pull) so the published
+          # artifact is only as big as the compressed guest. No --long, so the
+          # default zstd decoder window suffices.
+          zstd -q -f -19 -T0 -o payload.ext4.zst payload.ext4
+          ls -l payload.ext4 payload.ext4.zst
           oras push "$ref:${GITHUB_SHA}" --artifact-type application/vnd.llmbox.fc-payload \
-            payload.ext4:application/vnd.llmbox.payload.ext4
+            payload.ext4.zst:application/vnd.llmbox.payload.ext4+zstd
           oras tag "$ref:${GITHUB_SHA}" latest
           echo "published $ref:${GITHUB_SHA} (and :latest)"
