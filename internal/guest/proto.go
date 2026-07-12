@@ -22,9 +22,10 @@ import (
 // The control-plane verbs. Each is the Verb of a request frame; Dial is special
 // in that, after its response, the connection becomes a raw byte pipe.
 const (
-	verbInit = "init"
-	verbExec = "exec"
-	verbDial = "dial"
+	verbInit    = "init"
+	verbExec    = "exec"
+	verbDial    = "dial"
+	verbPutFile = "putfile"
 )
 
 // maxFrame bounds a single control frame so a malformed length prefix cannot make
@@ -55,12 +56,6 @@ type resp struct {
 type InitReq struct {
 	Files []sandbox.InjectFile `json:"files,omitempty"`
 	Env   []string             `json:"env,omitempty"`
-	// CopyFiles are host files a spoke copies into every box during Init (its
-	// --copy flag). Unlike Files (per-box secrets the caller owns, written with the
-	// UID/GID they carry), these are written OWNED BY THE BOX USER regardless of the
-	// UID/GID they carry, so the box's workload can read and write them — a spoke
-	// staging config or seed data into the box without baking it into the image.
-	CopyFiles []sandbox.InjectFile `json:"copy_files,omitempty"`
 	// InitScript is an optional provisioning script run inside the box during Init,
 	// as the same (unprivileged) user the box's workload runs as. Empty runs
 	// nothing. A non-zero exit reports a broken box (see InitResp.ScriptFailed).
@@ -93,6 +88,20 @@ type execReq struct {
 // connection to.
 type dialReq struct {
 	Port int `json:"port"`
+}
+
+// putFileReq is the header of a PutFile: it names the absolute in-box path to
+// write, its permission bits, and the exact number of content bytes that follow
+// the header frame as a raw stream on the same connection. Streaming the bytes
+// raw (rather than embedding them in a JSON frame, as Files does) keeps a large
+// --copy off the bounded control frame and out of memory, so a box can be seeded
+// with content far larger than maxFrame. Like Dial, the connection carries raw
+// bytes after the header; unlike Dial, the guest sends its response frame AFTER
+// consuming them, so the response acknowledges the completed write.
+type putFileReq struct {
+	Path string `json:"path"`
+	Mode int64  `json:"mode,omitempty"`
+	Size int64  `json:"size"`
 }
 
 // writeFrame writes v as a length-prefixed JSON frame (4-byte big-endian length

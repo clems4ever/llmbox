@@ -3,6 +3,8 @@ package conformance
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -38,6 +40,7 @@ func Run(t *testing.T, newProv NewProvisioner) {
 	t.Run("MaxBoxes", func(t *testing.T) { testMaxBoxes(t, newProv) })
 	t.Run("InitScript", func(t *testing.T) { testInitScript(t, newProv) })
 	t.Run("InitScriptFailure", func(t *testing.T) { testInitScriptFailure(t, newProv) })
+	t.Run("CopyFiles", func(t *testing.T) { testCopyFiles(t, newProv) })
 	t.Run("PauseResume", func(t *testing.T) { testPauseResume(t, newProv) })
 }
 
@@ -146,6 +149,47 @@ func testInitScriptFailure(t *testing.T, newProv NewProvisioner) {
 	// The box was provisioned and its guest is up, so it stays reachable for debugging.
 	if res, err := m.Exec(ctx, created.InstanceID, []string{"echo", "still-here"}); err != nil || strings.TrimSpace(res.Stdout) != "still-here" {
 		t.Fatalf("broken box should stay reachable: err=%v res=%+v", err, res)
+	}
+}
+
+// testCopyFiles checks the spoke's --copy files are streamed into the box during
+// Create, before the init script, and are present and readable afterwards via
+// Exec. It is part of the shared contract so every backend proves files stream in
+// through the guest's PutFile verb into a real box. Content is kept small here
+// (the >frame streaming path is covered by the guest's own PutFile test).
+//
+// @arg t The test to assert under.
+// @arg newProv Builds the provisioner under test.
+//
+// @testcase TestConformanceFake runs testCopyFiles as a subtest.
+func testCopyFiles(t *testing.T, newProv NewProvisioner) {
+	src := filepath.Join(t.TempDir(), "seed.txt")
+	if err := os.WriteFile(src, []byte("copied-seed-data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	const dest = "/tmp/llmbox-copy-conf/seed.txt"
+	// An init script that reads the copied file proves the copy landed BEFORE the
+	// script ran, not just before Exec.
+	script := "#!/bin/sh\ncat " + dest + " > \"$HOME/copy-marker\"\n"
+	m := box.NewManager(newProv(t), box.Config{
+		CopyFiles:  []box.CopyFile{{HostPath: src, BoxPath: dest, Mode: 0o644}},
+		InitScript: []byte(script),
+	})
+	ctx := opCtx(t)
+
+	created, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "copy-box"})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if created.InitScriptFailed {
+		t.Fatalf("init script failed reading the copied file: %s", created.InitScriptOutput)
+	}
+	res, err := m.Exec(ctx, created.InstanceID, []string{"sh", "-c", "cat \"$HOME/copy-marker\""})
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+	if strings.TrimSpace(res.Stdout) != "copied-seed-data" || res.ExitCode != 0 {
+		t.Fatalf("copied file not present before the init script: %+v", res)
 	}
 }
 

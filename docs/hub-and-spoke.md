@@ -153,12 +153,16 @@ copied files. Repeat the flag to copy several paths.
 - Copied files are **owned by the box user** (root on Docker, `agent` on
   Firecracker) so the workload can read and write them — unlike per-box secrets the
   hub injects, which keep their own owner.
-- Paths are read once when the spoke starts (a missing source fails the spoke
-  immediately), so editing them takes effect on the next spoke restart.
-- It is meant for **config, credentials, and seed data**, not bulk data: every
-  copied file rides the box's init control frame, so the **total** across all
-  `--copy` paths is capped (10 MiB); bake larger files into the image or fetch them
-  from the init script.
+- The paths are resolved when the spoke starts (a missing source fails the spoke
+  immediately), but each file's **content is streamed from disk when a box is
+  created**, so editing a copied file takes effect on the next box create — no
+  spoke restart needed.
+- **There is no size cap.** Each file streams straight from the host file into the
+  box's disk over the control channel, never buffered in memory or bounded by a
+  control frame, so a copy is limited only by the box's disk. It is still best for
+  config, credentials, and seed data; for large **static** artifacts shared by
+  every box, baking them into the image avoids re-streaming them per box, and for
+  data already hosted elsewhere, fetching from the init script may be simpler.
 
 For example, seed every box with a shared config directory and a single dotfile:
 
