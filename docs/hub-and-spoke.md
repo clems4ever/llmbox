@@ -110,8 +110,9 @@ Token and credential records live in the hub's SQLite state file
   the single command the admin UI generates. Because the hub runs no box backend,
   the per-box knobs live entirely on the spoke: `--image`, `--box-memory-mb`,
   `--box-cpus`, `--box-pids-limit`, `--box-socket-dir`, `--box-peer`,
-  `--init-script`, `--publish-port`, `--registry[-username|-password-file]`. Run
-  `llmbox-spoke --help` for the full list.
+  `--init-script`, `--copy`, `--publish-port`,
+  `--registry[-username|-password-file]`. Run `llmbox-spoke --help` for the full
+  list.
 
 #### Customising boxes with an init script
 
@@ -134,6 +135,38 @@ crosses the hub/spoke boundary.
   vanish. `list_llmboxes` reports it with phase `broken`.
 - `--init-script-timeout` (default `5m`) bounds each run; a script that exceeds it
   is treated as a failed run (a broken box).
+
+#### Copying host files into boxes
+
+`--copy HOST_SRC[:BOX_DEST]` copies a file or directory **on the spoke host** into
+every box this spoke spawns, once at creation — like `docker run -v`, but a copy
+rather than a bind mount (nothing on the host stays linked, and the box is free to
+modify its copy). It applies to both backends, never crosses the hub/spoke
+boundary, and lands **before** the init script runs, so the script can rely on the
+copied files. Repeat the flag to copy several paths.
+
+- `HOST_SRC` is a host file or directory; a directory is copied recursively, each
+  file keeping its permission bits. Non-regular entries (symlinks, sockets,
+  devices) are skipped.
+- `BOX_DEST` is the **absolute in-box path** the source lands at; omit it (and the
+  `:`) to default to `HOST_SRC`'s absolute path.
+- Copied files are **owned by the box user** (root on Docker, `agent` on
+  Firecracker) so the workload can read and write them — unlike per-box secrets the
+  hub injects, which keep their own owner.
+- Paths are read once when the spoke starts (a missing source fails the spoke
+  immediately), so editing them takes effect on the next spoke restart.
+- It is meant for **config, credentials, and seed data**, not bulk data: every
+  copied file rides the box's init control frame, so the **total** across all
+  `--copy` paths is capped (10 MiB); bake larger files into the image or fetch them
+  from the init script.
+
+For example, seed every box with a shared config directory and a single dotfile:
+
+```
+llmbox-spoke firecracker --hub … \
+  --copy /etc/llmbox/box-config:/home/agent/.config/app \
+  --copy /etc/llmbox/netrc:/home/agent/.netrc
+```
 
 ### Sharing one Docker daemon: namespaces
 

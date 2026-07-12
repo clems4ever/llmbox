@@ -321,6 +321,20 @@ func (a *Guest) handleInit(ctx context.Context, in InitReq) (InitResp, error) {
 			return InitResp{}, err
 		}
 	}
+	// Spoke --copy files are written owned by the box user (the same credential the
+	// init script and workload run as), overriding whatever UID/GID they carry, so
+	// the workload can read and write what the spoke staged into the box. Files
+	// above keep their caller-set owner (root-owned secrets stay root-owned).
+	uid, gid := 0, 0
+	if a.cred != nil {
+		uid, gid = int(a.cred.Uid), int(a.cred.Gid)
+	}
+	for _, f := range in.CopyFiles {
+		f.UID, f.GID = uid, gid
+		if err := writeInjectFile(f); err != nil {
+			return InitResp{}, err
+		}
+	}
 	// Record the params before running the init script so it (via entryEnv) sees
 	// the box's HOME/PATH/env. inited stays false until the script succeeds, so a
 	// failing script leaves the box reported as broken.

@@ -55,6 +55,12 @@ type resp struct {
 type InitReq struct {
 	Files []sandbox.InjectFile `json:"files,omitempty"`
 	Env   []string             `json:"env,omitempty"`
+	// CopyFiles are host files a spoke copies into every box during Init (its
+	// --copy flag). Unlike Files (per-box secrets the caller owns, written with the
+	// UID/GID they carry), these are written OWNED BY THE BOX USER regardless of the
+	// UID/GID they carry, so the box's workload can read and write them — a spoke
+	// staging config or seed data into the box without baking it into the image.
+	CopyFiles []sandbox.InjectFile `json:"copy_files,omitempty"`
 	// InitScript is an optional provisioning script run inside the box during Init,
 	// as the same (unprivileged) user the box's workload runs as. Empty runs
 	// nothing. A non-zero exit reports a broken box (see InitResp.ScriptFailed).
