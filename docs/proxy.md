@@ -91,6 +91,14 @@ box's ports without any credential: every box gets a local control socket at
 through the Docker bind mount, or via a per-VM vsock listener on Firecracker) that
 it `curl`s (`/v1/open_port`, `/v1/close_port`, `/v1/list_ports`).
 
+So an **agent** inside the box discovers this API without being told about it,
+the guest installs a Claude Code skill describing it into the box at startup —
+under `/home/agent/.claude/skills/llmbox-ports/` by default (override with the
+guest's `--skills-dir`; empty disables it). The skill is embedded in the
+`llmbox-guest` binary (`internal/guest/skills/`), so refreshing the guest
+refreshes the skill in place, and it is chowned to the box's unprivileged user so
+the agent can read it.
+
 The request body carries only a port and description — never a box or spoke
 identity. Scoping is enforced twice, both outside the sandbox:
 

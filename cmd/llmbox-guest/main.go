@@ -31,13 +31,14 @@ func main() {
 	boxapiSocket := flag.String("boxapi-socket", "/run/llmbox/boxapi.sock", "in-guest Unix socket bridged to the host box-port API (vsock mode only)")
 	boxapiPort := flag.Uint("boxapi-port", 0, "host vsock port the box-port API socket is bridged to; 0 disables the bridge (vsock mode only)")
 	runAsUser := flag.String("user", "", "unprivileged box account to run the init script and Exec commands as (must exist in the box's /etc/passwd); empty runs them as the guest's own user (root)")
+	skillsDir := flag.String("skills-dir", guest.DefaultSkillsDir, "directory to install the embedded agent skills into so the box's agent learns the box API; empty disables installation")
 	flag.Parse()
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	if err := run(ctx, *socket, uint32(*vsockPort), *boxapiSocket, uint32(*boxapiPort), *runAsUser, log); err != nil {
+	if err := run(ctx, *socket, uint32(*vsockPort), *boxapiSocket, uint32(*boxapiPort), *runAsUser, *skillsDir, log); err != nil {
 		log.Error("guest exited", "err", err)
 		os.Exit(1)
 	}
@@ -55,16 +56,31 @@ func main() {
 // @arg boxapiSocket The in-guest Unix socket bridged to the host box-port API (vsock mode only).
 // @arg boxapiPort The host vsock port the box-port API bridges to; 0 disables the bridge.
 // @arg runAsUser The unprivileged box account the init script and Exec commands run as; empty runs them as the guest's own user.
+// @arg skillsDir The directory the embedded agent skills are installed into; empty skips installation.
 // @arg log The logger the guest uses.
 // @error error if runAsUser is set but absent from the box, or the guest cannot serve the selected transport.
 //
 // @testcase TestRunServesAndStops serves a socket then stops cleanly on cancel.
 // @testcase TestRunStartsBoxAPIBridge serves the box API bridge alongside the vsock control channel.
 // @testcase TestRunRejectsUnknownUser fails fast when runAsUser names no account.
-func run(ctx context.Context, socket string, vsockPort uint32, boxapiSocket string, boxapiPort uint32, runAsUser string, log *slog.Logger) error {
+// @testcase TestRunInstallsSkills installs the agent skills under skillsDir before serving.
+func run(ctx context.Context, socket string, vsockPort uint32, boxapiSocket string, boxapiPort uint32, runAsUser, skillsDir string, log *slog.Logger) error {
 	cred, home, err := lookupUser(runAsUser)
 	if err != nil {
 		return err
+	}
+	// Installing the agent skills is best-effort: a box without them is degraded
+	// (the agent must discover the box API another way), but one whose control
+	// channel never comes up is dead — so a failure here is logged, not returned.
+	// An empty skillsDir disables installation entirely.
+	if skillsDir != "" {
+		uid, gid := 0, 0
+		if cred != nil {
+			uid, gid = int(cred.Uid), int(cred.Gid)
+		}
+		if err := guest.InstallSkills(skillsDir, uid, gid); err != nil {
+			log.Error("installing agent skills", "dir", skillsDir, "err", err)
+		}
 	}
 	a := guest.New(guest.Options{Credential: cred, Home: home, Log: log})
 	if vsockPort != 0 {
