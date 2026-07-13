@@ -1,7 +1,9 @@
 package guest
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net"
 	"os"
 	"path/filepath"
@@ -190,30 +192,73 @@ func TestGuestInitWritesFiles(t *testing.T) {
 	}
 }
 
-// TestGuestInitCopiesFiles writes the spoke's --copy files during Init, preserving
-// each file's mode. Ownership is forced to the box user (the guest's credential),
-// so the UID/GID the file carries is ignored; with no dropped credential in the
-// test that override is a no-op and the file lands as-is.
-func TestGuestInitCopiesFiles(t *testing.T) {
+// TestClientPutFileStreams streams a file larger than a single control frame
+// through PutFile and reads it back, proving the content is streamed to disk
+// rather than embedded in one bounded frame. It also checks the mode is applied
+// and parent directories are created.
+func TestClientPutFileStreams(t *testing.T) {
 	_, c := startGuest(t, Options{})
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	target := filepath.Join(t.TempDir(), "opt", "run.sh")
-	if _, err := c.Init(ctx, InitReq{
-		Env: boxEnv(t),
-		// A non-zero UID/GID that must be ignored (the guest owns copy files as the
-		// box user, which here is the test's own user).
-		CopyFiles: []sandbox.InjectFile{{Path: target, Content: []byte("#!/bin/sh\n"), Mode: 0o755, UID: 4242, GID: 4242}},
-	}); err != nil {
-		t.Fatalf("Init: %v", err)
+	target := filepath.Join(t.TempDir(), "nested", "big.bin")
+	// Larger than maxFrame, so a frame-embedded copy would fail outright.
+	size := int64(maxFrame + 4096)
+	content := make([]byte, size)
+	for i := range content {
+		content[i] = byte(i % 251)
+	}
+	if err := c.PutFile(ctx, target, 0o600, size, bytes.NewReader(content)); err != nil {
+		t.Fatalf("PutFile: %v", err)
 	}
 	info, err := os.Stat(target)
 	if err != nil {
 		t.Fatalf("stat copied file: %v", err)
 	}
-	if info.Mode().Perm() != 0o755 {
-		t.Fatalf("mode = %v, want 0755", info.Mode().Perm())
+	if info.Size() != size {
+		t.Fatalf("size = %d, want %d", info.Size(), size)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("mode = %v, want 0600", info.Mode().Perm())
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, content) {
+		t.Fatal("streamed content does not match the source")
+	}
+}
+
+// TestGuestPutFileRejectsBadHeader checks the guest rejects a PutFile with a
+// relative path (via the client) and one with a negative byte count (via a crafted
+// raw header frame), reporting each as an error response rather than writing.
+func TestGuestPutFileRejectsBadHeader(t *testing.T) {
+	_, c := startGuest(t, Options{})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := c.PutFile(ctx, "relative/path", 0o644, 3, strings.NewReader("abc")); err == nil {
+		t.Error("PutFile(relative path) = nil error, want error")
+	}
+
+	// A negative size cannot be produced through the client, so craft the header
+	// frame directly on a fresh control connection.
+	conn, err := c.Dial(ctx)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer conn.Close()
+	data, _ := json.Marshal(putFileReq{Path: "/tmp/whatever", Size: -1})
+	if err := writeFrame(conn, req{Verb: verbPutFile, Data: data}); err != nil {
+		t.Fatalf("writeFrame: %v", err)
+	}
+	var r resp
+	if err := readFrame(conn, &r); err != nil {
+		t.Fatalf("readFrame: %v", err)
+	}
+	if r.Err == "" {
+		t.Error("PutFile(negative size) = empty error response, want an error")
 	}
 }
 

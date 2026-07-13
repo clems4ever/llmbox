@@ -247,6 +247,13 @@ func (a *Guest) handleConn(ctx context.Context, conn net.Conn) {
 			a.handleDial(conn, r.Data)
 			return
 		}
+		if r.Verb == verbPutFile {
+			// Like Dial, PutFile streams raw bytes on the connection after its header
+			// frame, so it cannot go through the framed dispatch loop: hand it the
+			// connection directly. It is terminal (one file per connection).
+			a.handlePutFile(conn, r.Data)
+			return
+		}
 		data, err := a.dispatch(ctx, r)
 		if err != nil {
 			_ = writeFrame(conn, resp{Err: err.Error()})
@@ -317,20 +324,6 @@ func (a *Guest) handleInit(ctx context.Context, in InitReq) (InitResp, error) {
 		return InitResp{}, errors.New("already initialised")
 	}
 	for _, f := range in.Files {
-		if err := writeInjectFile(f); err != nil {
-			return InitResp{}, err
-		}
-	}
-	// Spoke --copy files are written owned by the box user (the same credential the
-	// init script and workload run as), overriding whatever UID/GID they carry, so
-	// the workload can read and write what the spoke staged into the box. Files
-	// above keep their caller-set owner (root-owned secrets stay root-owned).
-	uid, gid := 0, 0
-	if a.cred != nil {
-		uid, gid = int(a.cred.Uid), int(a.cred.Gid)
-	}
-	for _, f := range in.CopyFiles {
-		f.UID, f.GID = uid, gid
 		if err := writeInjectFile(f); err != nil {
 			return InitResp{}, err
 		}
@@ -490,6 +483,86 @@ func (a *Guest) handleDial(conn net.Conn, data json.RawMessage) {
 		return
 	}
 	splice(conn, backend)
+}
+
+// handlePutFile streams one --copy file into the box: it reads the header (path,
+// mode, byte count) already decoded into data, then copies exactly that many raw
+// bytes off the connection straight to disk — never holding the whole file in
+// memory or in a control frame, so a box can be seeded with content far larger
+// than maxFrame. The file is written OWNED BY THE BOX USER (the same credential
+// the init script and workload run as) so the workload can read and write what
+// the spoke staged, regardless of the mode's owner bits. A single response frame
+// is sent AFTER the write so it acknowledges success (or reports the failure);
+// PutFile is terminal, so the connection closes afterwards.
+//
+// @arg conn The control connection: the raw content bytes follow the header on it.
+// @arg data The JSON-encoded putFileReq header (path, mode, size).
+//
+// @testcase TestClientPutFileStreams streams a file larger than maxFrame through PutFile.
+// @testcase TestGuestPutFileRejectsBadHeader rejects a relative path and a negative size.
+func (a *Guest) handlePutFile(conn net.Conn, data json.RawMessage) {
+	var in putFileReq
+	if err := json.Unmarshal(data, &in); err != nil {
+		_ = writeFrame(conn, resp{Err: fmt.Sprintf("decoding putfile: %v", err)})
+		return
+	}
+	if !filepath.IsAbs(in.Path) {
+		_ = writeFrame(conn, resp{Err: fmt.Sprintf("putfile path %q must be absolute", in.Path)})
+		return
+	}
+	if in.Size < 0 {
+		_ = writeFrame(conn, resp{Err: fmt.Sprintf("putfile size %d is negative", in.Size)})
+		return
+	}
+	// A failed write must still drain the promised bytes so the connection stays at
+	// a frame boundary long enough to send the error — but since PutFile is
+	// terminal we simply report and close, discarding the rest.
+	if err := a.writePutFile(conn, in); err != nil {
+		_ = writeFrame(conn, resp{Err: err.Error()})
+		return
+	}
+	_ = writeFrame(conn, resp{})
+}
+
+// writePutFile creates the file named by the header (with its parent directories),
+// copies exactly in.Size bytes from src into it, and sets its mode and box-user
+// ownership. It streams through a bounded buffer so the file never sits in memory.
+//
+// @arg src The reader positioned at the file's raw content (the control connection).
+// @arg in The decoded header naming the path, mode, and exact byte count.
+// @error error if the file cannot be created, the full content cannot be read, or the mode/owner cannot be applied.
+//
+// @testcase TestClientPutFileStreams writes a large file with its mode via writePutFile.
+func (a *Guest) writePutFile(src io.Reader, in putFileReq) error {
+	if err := os.MkdirAll(filepath.Dir(in.Path), 0o755); err != nil {
+		return fmt.Errorf("creating dir for %s: %w", in.Path, err)
+	}
+	mode := os.FileMode(in.Mode)
+	if mode == 0 {
+		mode = 0o644
+	}
+	f, err := os.OpenFile(in.Path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
+	if err != nil {
+		return fmt.Errorf("creating %s: %w", in.Path, err)
+	}
+	if _, err := io.CopyN(f, src, in.Size); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("writing %s: %w", in.Path, err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("closing %s: %w", in.Path, err)
+	}
+	// Re-apply the mode in case umask narrowed OpenFile's, then hand the file to the
+	// box user so its workload can use what the spoke copied in.
+	if err := os.Chmod(in.Path, mode); err != nil {
+		return fmt.Errorf("chmod %s: %w", in.Path, err)
+	}
+	if a.cred != nil {
+		if err := os.Chown(in.Path, int(a.cred.Uid), int(a.cred.Gid)); err != nil {
+			return fmt.Errorf("chown %s: %w", in.Path, err)
+		}
+	}
+	return nil
 }
 
 // writeInjectFile writes one injected file, creating its parent directories and

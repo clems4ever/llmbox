@@ -185,36 +185,28 @@ func (o spokeOptions) initScript() ([]byte, error) {
 	return data, nil
 }
 
-// maxCopyBytes caps the total content the --copy flag stages into a box. Every
-// copied file rides the single Init control frame alongside the injected files
-// and init script, and that frame is bounded (guest.maxFrame, 16 MiB) — and JSON
-// base64-inflates the bytes by ~1/3 — so a generous-but-safe raw ceiling keeps a
-// large --copy from silently overflowing the frame at box-create time. It is meant
-// for config, credentials, and seed data, not bulk data; a directory that needs
-// more belongs in the image or an init-script download.
-const maxCopyBytes = 10 << 20
-
-// copyFiles resolves the spoke's --copy specs into the files the box manager
-// stages into every box during Init. Each spec is "HOST_SRC[:BOX_DEST]": HOST_SRC
+// copyFiles resolves the spoke's --copy specs into the metadata the box manager
+// streams into every box at creation. Each spec is "HOST_SRC[:BOX_DEST]": HOST_SRC
 // is a host file or directory, BOX_DEST the absolute in-box path it lands at
-// (defaulting to HOST_SRC's absolute path when omitted). A directory is copied
-// recursively, each regular file preserving its mode; non-regular entries
-// (symlinks, sockets, devices) are skipped. It returns nil (nothing to copy) when
-// the flag is unset, and errors — failing the spoke at startup rather than on
-// every box create — when a spec is malformed, a source is missing or unreadable,
-// or the total content would overflow the Init frame.
+// (defaulting to HOST_SRC's absolute path when omitted). A directory is expanded
+// recursively to one entry per regular file, preserving its mode; non-regular
+// entries (symlinks, sockets, devices) are skipped. Only metadata is captured
+// here (host path, box path, mode) — the manager opens and streams each file's
+// bytes at box-create time, so a copy is never held in memory and is bounded only
+// by the box's disk, not by any control-frame size. It returns nil (nothing to
+// copy) when the flag is unset, and errors — failing the spoke at startup rather
+// than on every box create — when a spec is malformed or a source is missing.
 //
-// @return []sandbox.InjectFile The files to copy into every box, or nil when --copy is unset.
-// @error error if a spec is malformed, a source path is missing/unreadable/an unsupported type, or the total content exceeds maxCopyBytes.
+// @return []box.CopyFile The files to copy into every box, or nil when --copy is unset.
+// @error error if a spec is malformed or a source path is missing or an unsupported type.
 //
-// @testcase TestSpokeCopyFiles copies a file and a directory tree, preserves modes, defaults the destination, and returns nil when unset.
-// @testcase TestSpokeCopyFilesErrors rejects a malformed spec, a relative destination, a missing source, and an oversize copy.
-func (o spokeOptions) copyFiles() ([]sandbox.InjectFile, error) {
+// @testcase TestSpokeCopyFiles resolves a file and a directory tree to metadata, preserves modes, defaults the destination, skips symlinks, and returns nil when unset.
+// @testcase TestSpokeCopyFilesErrors rejects a malformed spec, a relative destination, and a missing source.
+func (o spokeOptions) copyFiles() ([]box.CopyFile, error) {
 	if len(o.copyPaths) == 0 {
 		return nil, nil
 	}
-	var out []sandbox.InjectFile
-	var total int64
+	var out []box.CopyFile
 	for _, spec := range o.copyPaths {
 		src, dest, err := parseCopySpec(spec)
 		if err != nil {
@@ -224,7 +216,8 @@ func (o spokeOptions) copyFiles() ([]sandbox.InjectFile, error) {
 		if err != nil {
 			return nil, fmt.Errorf("--copy %q: %w", spec, err)
 		}
-		if info.IsDir() {
+		switch {
+		case info.IsDir():
 			err = filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
 				if err != nil {
 					return err
@@ -240,29 +233,20 @@ func (o spokeOptions) copyFiles() ([]sandbox.InjectFile, error) {
 				if err != nil {
 					return err
 				}
-				f, ferr := readCopyFile(p, path.Join(dest, filepath.ToSlash(rel)), fi)
-				if ferr != nil {
-					return ferr
-				}
-				total += int64(len(f.Content))
-				out = append(out, f)
+				out = append(out, box.CopyFile{
+					HostPath: p,
+					BoxPath:  path.Join(dest, filepath.ToSlash(rel)),
+					Mode:     int64(fi.Mode().Perm()),
+				})
 				return nil
 			})
 			if err != nil {
 				return nil, fmt.Errorf("--copy %q: %w", spec, err)
 			}
-		} else if info.Mode().IsRegular() {
-			f, err := readCopyFile(src, dest, info)
-			if err != nil {
-				return nil, fmt.Errorf("--copy %q: %w", spec, err)
-			}
-			total += int64(len(f.Content))
-			out = append(out, f)
-		} else {
+		case info.Mode().IsRegular():
+			out = append(out, box.CopyFile{HostPath: src, BoxPath: dest, Mode: int64(info.Mode().Perm())})
+		default:
 			return nil, fmt.Errorf("--copy %q: %s is not a regular file or directory", spec, src)
-		}
-		if total > maxCopyBytes {
-			return nil, fmt.Errorf("--copy total exceeds %d bytes; --copy is for config and seed data, not bulk data (bake large files into the image or fetch them from the init script)", int64(maxCopyBytes))
 		}
 	}
 	return out, nil
@@ -300,25 +284,6 @@ func parseCopySpec(spec string) (string, string, error) {
 		return "", "", fmt.Errorf("--copy %q: destination %q must be an absolute in-box path", spec, dest)
 	}
 	return src, path.Clean(dest), nil
-}
-
-// readCopyFile reads a host file into an InjectFile bound for dest, preserving its
-// permission bits. The owner is left zero: the guest writes --copy files owned by
-// the box user regardless, so the workload can use them.
-//
-// @arg src The host file to read.
-// @arg dest The absolute in-box path it lands at.
-// @arg info The host file's stat, for its mode.
-// @return sandbox.InjectFile The file to inject.
-// @error error if the file cannot be read.
-//
-// @testcase TestSpokeCopyFiles preserves an executable file's mode.
-func readCopyFile(src, dest string, info fs.FileInfo) (sandbox.InjectFile, error) {
-	content, err := os.ReadFile(src)
-	if err != nil {
-		return sandbox.InjectFile{}, err
-	}
-	return sandbox.InjectFile{Path: dest, Content: content, Mode: int64(info.Mode().Perm())}, nil
 }
 
 // parsePublishPorts turns the raw --publish-port flag values into the port specs

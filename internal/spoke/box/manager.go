@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -28,16 +29,32 @@ type Config struct {
 	// InitScriptTimeout bounds how long the init script may run before Create fails
 	// the box. Non-positive uses the guest default (five minutes).
 	InitScriptTimeout time.Duration
-	// CopyFiles are host files the spoke copies into every box during Init (its
-	// --copy flag), resolved once at spoke startup. They are written owned by the
-	// box user so the workload can use them, and land before the init script runs.
-	// Nil copies nothing.
-	CopyFiles []sandbox.InjectFile
+	// CopyFiles are host files the spoke copies into every box (its --copy flag),
+	// enumerated once at spoke startup. Each is streamed from its host path into the
+	// box at creation, before the init script runs, owned by the box user so the
+	// workload can use it. Streaming (rather than embedding the bytes in the Init
+	// frame) keeps the copy off the bounded control frame and out of memory, so a
+	// box can be seeded with content far larger than a single frame. Nil copies
+	// nothing.
+	CopyFiles []CopyFile
 	// PublishPorts are the in-box TCP ports this spoke exposes as HTTP proxies for
 	// every box it creates (the spoke's --publish-port). They are echoed back on a
 	// successful Create so the hub can publish them once it has registered the box.
 	// Nil publishes nothing.
 	PublishPorts []sandbox.PublishPort
+}
+
+// CopyFile is one host file a spoke stages into every box (its --copy flag),
+// resolved to metadata only at startup: the manager opens HostPath and streams it
+// to BoxPath at box-create time, so the file's bytes are never held in memory.
+// A directory --copy is expanded to one CopyFile per regular file it contains.
+type CopyFile struct {
+	// HostPath is the file on the spoke host to read.
+	HostPath string
+	// BoxPath is the absolute in-box path it is written to.
+	BoxPath string
+	// Mode is the permission bits to set on the written file (0 means 0644).
+	Mode int64
 }
 
 const (
@@ -130,10 +147,16 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (sandb
 	// Tear the box down on any transport-level failure so a half-created box is
 	// never left running.
 	c := m.client(inst)
+	// Stream the spoke's --copy files into the box before Init, so the init script
+	// can rely on them. They are streamed from disk (not embedded in the Init
+	// frame), so a copy larger than a control frame is fine.
+	if err := m.copyFiles(ctx, c); err != nil {
+		_ = inst.Destroy(context.Background())
+		return sandbox.CreateResult{}, fmt.Errorf("copying files into box: %w", err)
+	}
 	initCtx, cancel := m.initContext(ctx)
 	initResp, err := c.Init(initCtx, guest.InitReq{
 		Files:             opts.Files,
-		CopyFiles:         m.cfg.CopyFiles,
 		InitScript:        m.cfg.InitScript,
 		InitScriptTimeout: m.cfg.InitScriptTimeout,
 	})
@@ -158,6 +181,37 @@ func (m *Manager) Create(ctx context.Context, opts sandbox.CreateOptions) (sandb
 		InstanceID:   inst.Meta().InstanceID,
 		PublishPorts: m.cfg.PublishPorts,
 	}, nil
+}
+
+// copyFiles streams every configured --copy file from its host path into the box
+// through the guest's PutFile verb, one connection per file. Each file is opened
+// and streamed straight from disk, so an arbitrarily large copy never sits in
+// memory and never rides the bounded Init frame. It stops at the first failure so
+// the caller can tear the half-provisioned box down.
+//
+// @arg ctx Context for the transfers.
+// @arg c The guest client for the box being created.
+// @error error if a host file cannot be opened or statted, or a transfer fails.
+//
+// @testcase TestConformanceFake covers create with configured --copy files (the CopyFiles case).
+func (m *Manager) copyFiles(ctx context.Context, c *guest.Client) error {
+	for _, cf := range m.cfg.CopyFiles {
+		f, err := os.Open(cf.HostPath)
+		if err != nil {
+			return fmt.Errorf("opening --copy source %s: %w", cf.HostPath, err)
+		}
+		info, err := f.Stat()
+		if err != nil {
+			_ = f.Close()
+			return fmt.Errorf("stat --copy source %s: %w", cf.HostPath, err)
+		}
+		err = c.PutFile(ctx, cf.BoxPath, cf.Mode, info.Size(), f)
+		_ = f.Close()
+		if err != nil {
+			return fmt.Errorf("copying %s to %s: %w", cf.HostPath, cf.BoxPath, err)
+		}
+	}
+	return nil
 }
 
 // initScriptFailureDetail composes the human-readable detail stored for a broken

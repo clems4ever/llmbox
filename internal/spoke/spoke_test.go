@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
-	"github.com/clems4ever/llmbox/internal/shared/sandbox"
+	"github.com/clems4ever/llmbox/internal/spoke/box"
 )
 
 // subcmd returns the named direct subcommand of cmd, failing the test if absent.
@@ -490,10 +490,11 @@ func TestSpokeInitScriptErrors(t *testing.T) {
 	}
 }
 
-// TestSpokeCopyFiles checks --copy resolves a single file and a directory tree
-// into inject-files: preserving each file's mode, honouring an explicit
-// destination, defaulting the destination to the source's absolute path, and
-// returning nil when the flag is unset.
+// TestSpokeCopyFiles checks --copy resolves a single file and a directory tree to
+// copy metadata: the host and box paths, each file's preserved mode, an explicit
+// destination honoured and an omitted one defaulted to the source's absolute path,
+// skipped symlinks, and nil when the flag is unset. Content is not read here — the
+// manager streams it at box-create time — so only metadata is asserted.
 func TestSpokeCopyFiles(t *testing.T) {
 	// Unset: nothing to copy, no error.
 	if f, err := (spokeOptions{}).copyFiles(); err != nil || f != nil {
@@ -530,23 +531,20 @@ func TestSpokeCopyFiles(t *testing.T) {
 		t.Fatalf("copyFiles: %v", err)
 	}
 
-	byPath := map[string]sandbox.InjectFile{}
+	byBoxPath := map[string]box.CopyFile{}
 	for _, f := range got {
-		byPath[f.Path] = f
-		if f.UID != 0 || f.GID != 0 {
-			t.Errorf("copied %s carries owner (%d:%d), want 0:0 (guest owns it as the box user)", f.Path, f.UID, f.GID)
-		}
+		byBoxPath[f.BoxPath] = f
 	}
 	if len(got) != 3 {
-		t.Fatalf("copied %d files, want 3 (symlink skipped): %v", len(got), byPath)
+		t.Fatalf("copied %d files, want 3 (symlink skipped): %v", len(got), byBoxPath)
 	}
-	if f, ok := byPath["/home/agent/config.yaml"]; !ok || string(f.Content) != "k: v\n" || f.Mode != 0o640 {
-		t.Errorf("single = %+v, want content %q mode 0640", f, "k: v\n")
+	if f, ok := byBoxPath["/home/agent/config.yaml"]; !ok || f.HostPath != single || f.Mode != 0o640 {
+		t.Errorf("single = %+v, want host %q mode 0640", f, single)
 	}
-	if f, ok := byPath["/opt/tree/sub/data.txt"]; !ok || string(f.Content) != "hello" || f.Mode != 0o644 {
-		t.Errorf("nested = %+v, want content %q mode 0644", f, "hello")
+	if f, ok := byBoxPath["/opt/tree/sub/data.txt"]; !ok || f.Mode != 0o644 {
+		t.Errorf("nested = %+v, want mode 0644", f)
 	}
-	if f, ok := byPath["/opt/tree/run.sh"]; !ok || f.Mode != 0o755 {
+	if f, ok := byBoxPath["/opt/tree/run.sh"]; !ok || f.Mode != 0o755 {
 		t.Errorf("executable = %+v, want mode 0755", f)
 	}
 
@@ -555,14 +553,14 @@ func TestSpokeCopyFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("copyFiles(default dest): %v", err)
 	}
-	if len(deflt) != 1 || deflt[0].Path != single {
+	if len(deflt) != 1 || deflt[0].BoxPath != single {
 		t.Fatalf("default-dest copy = %+v, want one file at %q", deflt, single)
 	}
 }
 
 // TestSpokeCopyFilesErrors checks --copy fails the spoke at startup on a relative
-// destination, an empty source, a missing source, and a copy that would overflow
-// the Init frame, rather than failing silently on every box create.
+// destination, an empty source, and a missing source, rather than failing silently
+// on every box create.
 func TestSpokeCopyFilesErrors(t *testing.T) {
 	f := filepath.Join(t.TempDir(), "f")
 	if err := os.WriteFile(f, []byte("x"), 0o644); err != nil {
@@ -576,15 +574,6 @@ func TestSpokeCopyFilesErrors(t *testing.T) {
 		if _, err := (spokeOptions{copyPaths: []string{spec}}).copyFiles(); err == nil {
 			t.Errorf("copyFiles(%s: %q) = nil error, want error", name, spec)
 		}
-	}
-
-	// A source larger than the cap fails rather than overflowing the frame.
-	big := filepath.Join(t.TempDir(), "big")
-	if err := os.WriteFile(big, make([]byte, maxCopyBytes+1), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := (spokeOptions{copyPaths: []string{big + ":/big"}}).copyFiles(); err == nil {
-		t.Error("copyFiles(oversize) = nil error, want error")
 	}
 }
 

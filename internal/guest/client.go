@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -106,6 +107,50 @@ func (c *Client) Exec(ctx context.Context, cmd []string) (sandbox.ExecResult, er
 	var out sandbox.ExecResult
 	err := c.call(ctx, verbExec, execReq{Cmd: cmd}, &out)
 	return out, err
+}
+
+// PutFile streams a file into the box at an absolute path, owned by the box user.
+// It sends a header frame naming the path, mode, and byte count, then writes
+// exactly size bytes from r as a raw stream on the same connection (never
+// embedding them in a control frame), and waits for the guest's acknowledgement.
+// This is how a spoke stages a --copy file larger than the control frame's cap —
+// the bytes stream straight from the host file to the box's disk. r must yield at
+// least size bytes.
+//
+// @arg ctx Context for dialing and the transfer.
+// @arg path The absolute in-box destination path.
+// @arg mode The permission bits to set on the written file (0 means 0644).
+// @arg size The exact number of bytes to stream from r.
+// @arg r The source of the file's content.
+// @return error if dialing, framing, streaming, or the guest-side write fails.
+//
+// @testcase TestClientPutFileStreams streams a file larger than the control frame and reads it back.
+func (c *Client) PutFile(ctx context.Context, path string, mode, size int64, r io.Reader) error {
+	conn, err := c.Dial(ctx)
+	if err != nil {
+		return fmt.Errorf("connecting to box guest: %w", err)
+	}
+	defer conn.Close()
+	if dl, ok := ctx.Deadline(); ok {
+		_ = conn.SetDeadline(dl)
+	}
+	data, _ := json.Marshal(putFileReq{Path: path, Mode: mode, Size: size})
+	if err := writeFrame(conn, req{Verb: verbPutFile, Data: data}); err != nil {
+		return fmt.Errorf("sending putfile header for %s: %w", path, err)
+	}
+	if _, err := io.CopyN(conn, r, size); err != nil {
+		return fmt.Errorf("streaming %s: %w", path, err)
+	}
+	// The guest acknowledges AFTER writing the file, so this response reports the
+	// completed write (or its failure).
+	var resp resp
+	if err := readFrame(conn, &resp); err != nil {
+		return fmt.Errorf("reading putfile response for %s: %w", path, err)
+	}
+	if resp.Err != "" {
+		return errors.New(resp.Err)
+	}
+	return nil
 }
 
 // DialPort opens a connection to a TCP port inside the box and returns it as a
