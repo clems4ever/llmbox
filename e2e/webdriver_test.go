@@ -30,7 +30,7 @@ type browser struct {
 //
 // @arg t The test, used for fatal errors and cleanup.
 // @return *browser A ready browser whose session drives the auth UI.
-func newBrowser(t *testing.T) *browser {
+func newBrowser(t *testing.T, extraArgs ...string) *browser {
 	t.Helper()
 	driver := findChromeDriver()
 	if driver == "" {
@@ -49,16 +49,25 @@ func newBrowser(t *testing.T) *browser {
 		t.Fatalf("starting chromedriver (%s): %v", driver, err)
 	}
 
+	args := []string{
+		"--no-sandbox",
+		"--disable-dev-shm-usage",
+		"--disable-gpu",
+		"--window-size=1280,1024",
+	}
+	// Headed mode (against an X server such as Xvfb) is opt-in via $LLMBOX_E2E_HEADED
+	// so a screen recorder can capture the real browser — e.g. to produce the demo
+	// video of the session-expiry redirect. CI and the default run stay headless.
+	if os.Getenv("LLMBOX_E2E_HEADED") == "" {
+		args = append([]string{"--headless=new"}, args...)
+	}
+	// Caller-supplied flags (e.g. --host-resolver-rules so the browser can reach a
+	// proxy sub-domain on the test listener) come last so they can override defaults.
+	args = append(args, extraArgs...)
 	caps := selenium.Capabilities{"browserName": "chrome"}
 	caps.AddChrome(chrome.Capabilities{
 		Path: findChromeBinary(),
-		Args: []string{
-			"--headless=new",
-			"--no-sandbox",
-			"--disable-dev-shm-usage",
-			"--disable-gpu",
-			"--window-size=1280,1024",
-		},
+		Args: args,
 	})
 	wd, err := selenium.NewRemote(caps, fmt.Sprintf("http://127.0.0.1:%d/wd/hub", port))
 	if err != nil {

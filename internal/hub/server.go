@@ -234,6 +234,13 @@ type Server struct {
 	// disables the proxy feature entirely. Set once at startup via SetProxyBaseDomain.
 	proxyBaseDomain string
 
+	// proxyAuthCheckInterval is how often the session watcher injected into proxied
+	// HTML polls the proxy's auth-check endpoint, so a signed-in browser sitting on a
+	// proxied single-page app is redirected to sign-in soon after its session expires
+	// (rather than silently failing background requests). Defaults to
+	// defaultProxyAuthCheckInterval; tests lower it via SetProxyAuthCheckInterval.
+	proxyAuthCheckInterval time.Duration
+
 	// log records best-effort failures (persistence, cleanup, destroy hooks) that
 	// are not propagated to the caller; nil falls back to slog.Default().
 	log *slog.Logger
@@ -276,6 +283,8 @@ func New(hooks boxHooks, publicURL string, store Store, auth *auth.Authenticator
 		byToken:       make(map[string]*session),
 		pendingBoxIDs: make(map[string]struct{}),
 		log:           slog.Default(),
+
+		proxyAuthCheckInterval: defaultProxyAuthCheckInterval,
 	}
 	// The server owns the canonical store; bind it into the authenticator so its
 	// OIDC handlers and CurrentLogin persist to (and read) the same login state.
@@ -492,6 +501,21 @@ func (s *Server) resolveStoredSpoke(name string) string {
 // @testcase TestCreateProxyRegistersAndBuildsURL enables proxying via this setter.
 func (s *Server) SetProxyBaseDomain(domain string) {
 	s.proxyBaseDomain = strings.Trim(strings.TrimSpace(domain), ".")
+}
+
+// SetProxyAuthCheckInterval overrides how often the session watcher injected into
+// proxied HTML polls the auth-check endpoint. A non-positive value restores the
+// default. It exists so the end-to-end test can shorten the poll to observe the
+// post-expiry redirect quickly; production uses the default.
+//
+// @arg d The poll interval; non-positive resets to defaultProxyAuthCheckInterval.
+//
+// @testcase TestProxyInjectsSessionWatcher relies on the configured interval in the watcher script.
+func (s *Server) SetProxyAuthCheckInterval(d time.Duration) {
+	if d <= 0 {
+		d = defaultProxyAuthCheckInterval
+	}
+	s.proxyAuthCheckInterval = d
 }
 
 // spoke resolves a spoke name to its box manager. An empty name resolves to the
