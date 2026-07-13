@@ -65,6 +65,19 @@ them.) The sign-in page is responsive, dropping the card framing to fill a phone
 screen. These images are **captured by the end-to-end test** and refreshed by CI
 on the pull request that changes the UI; see [Testing](development.md#testing).
 
+**When a session expires while a proxied app is open**, that same navigation
+redirect only fires on the *next* full page load — which a single-page app never
+makes, so its background requests would just start failing and the app would
+appear to have silently disconnected. To close that gap the hub injects a tiny
+**session watcher** into proxied HTML documents: it polls a reserved same-origin
+endpoint (`/.llmbox/proxy-auth-check`, answered by the hub and never forwarded to
+the box) on an interval, and the moment that poll returns `401` it navigates the
+tab to the sign-in page — carrying the current page as the return target, so the
+user is sent to log in rather than left on a dead app. The watcher only polls
+that one endpoint (never the app's own requests), so a legitimate `401` from the
+app can't trigger a spurious redirect, and it is injected only into uncompressed
+HTML documents — XHR/JSON, sub-resources, and WebSocket traffic are untouched.
+
 | Sign in | On mobile |
 |---------|-----------|
 | ![The proxy sign-in page](../.github/screenshots/signin-page.png) | ![The proxy sign-in page on a phone-sized screen](../.github/screenshots/signin-page-mobile.png) |

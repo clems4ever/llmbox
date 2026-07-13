@@ -31,6 +31,20 @@ type boxDialer interface {
 // unguessable (so the URL itself is a weak capability on top of the auth gate).
 const proxySlugLen = 12
 
+// proxyAuthCheckPath is the reserved same-origin path on every proxy sub-domain
+// that reports whether the caller's session is still valid: 204 when authorized,
+// 401 when not. The session watcher injected into proxied HTML polls it so a
+// browser sitting on a proxied single-page app is bounced to sign-in soon after
+// its session expires, instead of the app's background requests failing silently.
+// It is handled by the hub and never forwarded to the box, so it shadows this one
+// path on the proxied app (an unlikely, namespaced collision).
+const proxyAuthCheckPath = "/.llmbox/proxy-auth-check"
+
+// defaultProxyAuthCheckInterval is how often the injected session watcher polls
+// proxyAuthCheckPath. It trades redirect latency after expiry against poll noise;
+// the end-to-end test shortens it via SetProxyAuthCheckInterval.
+const defaultProxyAuthCheckInterval = 15 * time.Second
+
 // ProxyEnabled reports whether the HTTP proxy feature is configured (a base
 // domain was set via SetProxyBaseDomain).
 //
@@ -384,6 +398,19 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, slug string
 		http.Error(w, "Unknown or disabled proxy.", http.StatusNotFound)
 		return
 	}
+	// The auth-check endpoint the injected watcher polls: report the live session
+	// state (204 vs 401) and never forward to the box, so a signed-in page can learn
+	// its session expired without disturbing the app. It is answered even for an
+	// unauthorized caller (that 401 is the signal the watcher redirects on).
+	if r.URL.Path == proxyAuthCheckPath {
+		w.Header().Set("Cache-Control", "no-store")
+		if allowed, _ := s.proxyAuthorized(r); allowed {
+			w.WriteHeader(http.StatusNoContent)
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+		return
+	}
 	if allowed, code := s.proxyAuthorized(r); !allowed {
 		// Bounce a browser navigation that merely lacks a session to the sign-in
 		// page; it returns here once the shared login cookie is set. Anything that
@@ -418,6 +445,19 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request, slug string
 	rp.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
 		s.logger().Warn("proxy upstream failed", "slug", slug, "box", rec.BoxID, "port", rec.Port, "err", err)
 		http.Error(w, "the box is not reachable on this port", http.StatusBadGateway)
+	}
+	// When auth is on, inject a session watcher into HTML documents so a signed-in
+	// page redirects itself to sign-in once its session expires (the browser-
+	// navigation redirect above only fires on the next full navigation, which a
+	// single-page app never makes). Ask the box for an uncompressed document so the
+	// watcher can be spliced into the HTML without decoding; sub-resources, the API,
+	// and non-document requests keep their encoding untouched.
+	if s.auth != nil && isBrowserNavigation(r) {
+		r.Header.Del("Accept-Encoding")
+		script := s.sessionWatcherScript(r)
+		rp.ModifyResponse = func(resp *http.Response) error {
+			return injectSessionWatcher(resp, script)
+		}
 	}
 	rp.ServeHTTP(w, r)
 }
