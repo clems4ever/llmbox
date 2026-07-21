@@ -8,11 +8,17 @@ import {
   Group,
   Modal,
   NativeSelect,
+  NumberInput,
   Stack,
   TextInput,
 } from "@mantine/core";
 import type { Api, SpokeStatus } from "../api";
 import { perform } from "../lib/actions";
+
+/** GiB is the bytes-per-gibibyte factor used to turn the operator-friendly GiB
+ * knob in the form into the byte count the create API expects. It mirrors the
+ * same constant the server and MCP layers use. */
+const GiB = 1024 * 1024 * 1024;
 
 export interface CreateWorkspaceModalProps {
   api: Api;
@@ -48,12 +54,14 @@ export function CreateWorkspaceModal({
   const [id, setId] = useState("");
   const [description, setDescription] = useState("");
   const [spoke, setSpoke] = useState<string>("");
+  const [diskGiB, setDiskGiB] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
     setId("");
     setDescription("");
     setSpoke("");
+    setDiskGiB("");
   };
 
   const close = () => {
@@ -69,7 +77,8 @@ export function CreateWorkspaceModal({
   const submit = async () => {
     setSubmitting(true);
     const boxId = id.trim();
-    const ok = await perform(() => api.createBox(boxId, description.trim(), spoke), {
+    const diskBytes = typeof diskGiB === "number" && diskGiB > 0 ? Math.round(diskGiB * GiB) : 0;
+    const ok = await perform(() => api.createBox(boxId, description.trim(), spoke, diskBytes), {
       success: `created workspace ${boxId}`,
       onDone: refresh,
     });
@@ -109,6 +118,17 @@ export function CreateWorkspaceModal({
             data={spokeOptions}
             value={spoke}
             onChange={(e) => setSpoke(e.currentTarget.value)}
+          />
+          <NumberInput
+            label="Disk size (GiB)"
+            name="disk_gb"
+            placeholder="runner default"
+            description="Optional. Honoured only by microVM runners; capped by the runner's configured maximum."
+            min={1}
+            step={1}
+            allowDecimal={false}
+            value={diskGiB}
+            onChange={(v) => setDiskGiB(typeof v === "number" ? v : "")}
           />
           <Group justify="flex-end" mt="xs">
             <Button variant="subtle" onClick={close}>

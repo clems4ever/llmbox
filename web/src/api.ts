@@ -157,10 +157,23 @@ export class Api {
     return r.spoke;
   }
 
-  async createBox(boxId: string, description: string, spoke: string): Promise<{ box_id: string }> {
-    const r = await this.call<{ session: { BoxID: string } }>("/api/v1/create-box", {
-      opts: { BoxID: boxId, Description: description, SpokeName: spoke },
-    });
+  /** createBox creates a workspace on the chosen runner. diskBytes is the
+   * requested writable-disk size in bytes; omit it (or pass 0) to use the
+   * runner's configured default. It is honoured only by microVM (Firecracker)
+   * runners and clamped server-side to the runner's configured maximum. */
+  async createBox(
+    boxId: string,
+    description: string,
+    spoke: string,
+    diskBytes = 0,
+  ): Promise<{ box_id: string }> {
+    const opts: { BoxID: string; Description: string; SpokeName: string; DiskBytes?: number } = {
+      BoxID: boxId,
+      Description: description,
+      SpokeName: spoke,
+    };
+    if (diskBytes > 0) opts.DiskBytes = diskBytes;
+    const r = await this.call<{ session: { BoxID: string } }>("/api/v1/create-box", { opts });
     return { box_id: r.session.BoxID };
   }
 

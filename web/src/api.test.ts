@@ -134,6 +134,22 @@ describe("Api mutations", () => {
     });
   });
 
+  it("createBox includes DiskBytes only when a positive size is given", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ session: { BoxID: "b1" } }));
+    await new Api("t").createBox("b1", "desc", "edge-1", 20 * 1024 * 1024 * 1024);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      opts: { BoxID: "b1", Description: "desc", SpokeName: "edge-1", DiskBytes: 20 * 1024 * 1024 * 1024 },
+    });
+  });
+
+  it("createBox omits DiskBytes when the size is zero", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ session: { BoxID: "b1" } }));
+    await new Api("t").createBox("b1", "desc", "edge-1", 0);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      opts: { BoxID: "b1", Description: "desc", SpokeName: "edge-1" },
+    });
+  });
+
   it("createProxy returns the proxy and posts the fields", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ proxy: { box_id: "b", port: 80, url: "u", slug: "s" } }));
     const out = await new Api("t").createProxy("b", 80, "d");
