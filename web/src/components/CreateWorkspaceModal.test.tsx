@@ -32,10 +32,25 @@ describe("CreateWorkspaceModal", () => {
     await user.type(screen.getByPlaceholderText("refactor-auth"), "myws");
     await user.click(screen.getByRole("button", { name: "Create workspace" }));
 
-    await waitFor(() => expect(api.createBox).toHaveBeenCalledWith("myws", "", ""));
+    // No disk size entered, so it defaults to 0 (use the runner's default).
+    await waitFor(() => expect(api.createBox).toHaveBeenCalledWith("myws", "", "", 0));
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(await screen.findByText("created workspace myws")).toBeInTheDocument();
+  });
+
+  it("passes the requested disk size, in bytes, to createBox", async () => {
+    const api = mockApi({
+      createBox: vi.fn().mockResolvedValue({ box_id: "myws" }),
+    });
+    const { user } = render(
+      <CreateWorkspaceModal api={api} spokes={[]} opened onClose={vi.fn()} refresh={vi.fn().mockResolvedValue(undefined)} />,
+    );
+    await user.type(screen.getByPlaceholderText("refactor-auth"), "myws");
+    await user.type(screen.getByLabelText("Disk size (GiB)"), "20");
+    await user.click(screen.getByRole("button", { name: "Create workspace" }));
+
+    await waitFor(() => expect(api.createBox).toHaveBeenCalledWith("myws", "", "", 20 * 1024 * 1024 * 1024));
   });
 
   it("closes via Cancel", async () => {
