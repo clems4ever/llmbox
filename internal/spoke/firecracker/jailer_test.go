@@ -84,15 +84,16 @@ func TestJailerCfgFor(t *testing.T) {
 
 // TestCheckJailerPrereqsReportsProblems checks the prerequisite validation fails
 // closed and names each missing prerequisite in one actionable error. The unit host
-// has no firecracker/jailer binary, no /dev/kvm, and is not root, so every check
-// fires.
+// never has the firecracker/jailer binaries installed, so those checks always fire;
+// /dev/kvm and root are environment-dependent (CI runners provide both), so they are
+// not asserted here.
 func TestCheckJailerPrereqsReportsProblems(t *testing.T) {
 	jc := defaultJailerConfig(t.TempDir())
 	err := jc.checkJailerPrereqs(true)
 	if err == nil {
-		t.Fatal("checkJailerPrereqs succeeded on a host with no jailer/kvm; want failure (fail closed)")
+		t.Fatal("checkJailerPrereqs succeeded without the firecracker/jailer binaries; want failure (fail closed)")
 	}
-	for _, want := range []string{"firecracker binary", "jailer binary", "/dev/kvm"} {
+	for _, want := range []string{"firecracker binary", "jailer binary"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("error %q missing mention of %q", err.Error(), want)
 		}
