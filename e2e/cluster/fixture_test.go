@@ -22,7 +22,7 @@ import (
 
 // clusterFixture is a complete, in-process llmbox cluster wired for driving box
 // operations against the admin HTTP endpoints DIRECTLY (the same routes the admin
-// page's JavaScript POSTs to) — not the MCP API, and not through a browser. It is
+// page's JavaScript POSTs to) — not through a browser. It is
 // the fast test layer; the browser-level equivalents live in package e2e
 // (cluster_admin_browser_test.go). It stands up a real hub with clustering
 // enabled, a real HTTP server (the UI/API handler, which also carries

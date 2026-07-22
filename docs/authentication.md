@@ -49,7 +49,7 @@ mode.
 ## API authentication
 
 Every box-control API call (`/api/v1/*`) is authenticated — the same single API
-serves `llmbox-mcp`, scripts, and the admin web app:
+serves scripts, other services, and the admin web app:
 
 - **API keys** (headless callers): mint one on the hub host with
   `llmbox-server apikey add --name <label> [--ttl 8760h]`; list and delete with
@@ -66,14 +66,14 @@ With no sign-in provider configured, only API keys can authenticate API calls.
 
 API authentication proves **who** is calling; it is not per-box
 **authorization**. Every authenticated principal — any valid API key, and any
-signed-in admin — can act on **every** box: `exec_llmbox` runs an arbitrary
-`/bin/sh -c` command in any box, and `destroy_llmbox` removes any box. There is
+signed-in admin — can act on **every** box: `box-exec` runs an arbitrary
+`/bin/sh -c` command in any box, and `destroy-box` removes any box. There is
 deliberately no per-box ownership check: a box is not bound to the caller that
 created it.
 
 This is safe under one assumption, which llmbox **requires**: a single trusted
-tenant sits behind the box-control API. In the intended deployment `llmbox-mcp`
-runs behind an authenticating proxy (e.g. oauth2-proxy) that only lets one
+tenant sits behind the box-control API. In the intended deployment the
+box-control API runs behind an authenticating proxy (e.g. oauth2-proxy) that only lets one
 operator/organization through, so there is only ever one principal and "act on
 any box" means "act on your own boxes". Treat anything that can reach the
 box-control API — an API key, an admin cookie, or the identity the front proxy
@@ -81,7 +81,7 @@ lets through — as **fully privileged over every box on the hub**.
 
 Two consequences follow from this boundary:
 
-- **`exec_llmbox` is credential-equivalent.** A command run in a box can read
+- **`box-exec` is credential-equivalent.** A command run in a box can read
   that box's secrets (whatever the init script or [hooks](hooks.md) injected), so
   a caller with box-control access can reach every box's secrets. Scope and guard
   API keys accordingly.

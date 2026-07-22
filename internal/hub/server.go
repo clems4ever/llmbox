@@ -1,8 +1,8 @@
 // Package server ties the box manager to the HTTP front-ends that share one
 // process and one port:
 //
-//   - the box-control JSON API (under /api/v1/), used by the UI and by callers
-//     like the llmbox-mcp binary to create/list/destroy/exec boxes.
+//   - the box-control JSON API (under /api/v1/), used by the UI and by
+//     programmatic callers to create/list/destroy/exec boxes.
 //   - the admin web UI (/admin) and the OIDC sign-in that gates it and the
 //     per-box HTTP proxies.
 package hub

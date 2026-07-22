@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"context"
 	"io"
 	"net"
 	"net/http"
@@ -13,14 +14,15 @@ import (
 	"testing"
 
 	"github.com/clems4ever/llmbox/internal/hub"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // TestEndToEndProxy drives the HTTP-proxy feature end to end against the real
-// server, MCP tools, and reverse-proxy routing, with only Docker faked: a box is
-// created over MCP, a proxy is enabled for it over the create_llmbox_proxy tool,
-// and a browser-style request to the returned proxy sub-domain is reverse-proxied
-// to a real upstream "box" server. This is the user's core scenario — "start a
-// server in the box, expose it, open the URL" — exercised through the whole stack.
+// server, box-control API, and reverse-proxy routing, with only Docker faked: a
+// box is created over the API, a proxy is enabled for it over CreateProxy, and a
+// browser-style request to the returned proxy sub-domain is reverse-proxied to a
+// real upstream "box" server. This is the user's core scenario — "start a server
+// in the box, expose it, open the URL" — exercised through the whole stack.
 func TestEndToEndProxy(t *testing.T) {
 	// The "server running inside the box": a real loopback HTTP server the fake
 	// box manager's DialBox points at.
@@ -54,20 +56,22 @@ func TestEndToEndProxy(t *testing.T) {
 	waitHealthy(t, base)
 
 	// --- chatbot side: create the box, then enable a proxy for its port ---
-	cs := connectMCP(t, base, store)
-	callTool(t, cs, "create_llmbox", map[string]any{"box_id": "proxy-box"})
-
-	proxyOut := callTool(t, cs, "create_llmbox_proxy", map[string]any{
-		"box_id":      "proxy-box",
-		"port":        8000,
-		"description": "hello server",
-	})
-	proxyURL, _ := proxyOut["url"].(string)
-	if proxyURL == "" {
-		t.Fatalf("create_llmbox_proxy returned no url: %+v", proxyOut)
+	ctx := context.Background()
+	c := newBoxClient(t, base, store)
+	if _, err := c.CreateBox(ctx, sandbox.CreateOptions{BoxID: "proxy-box"}); err != nil {
+		t.Fatalf("CreateBox: %v", err)
 	}
-	if desc, _ := proxyOut["description"].(string); desc != "hello server" {
-		t.Errorf("create_llmbox_proxy description = %q, want %q", desc, "hello server")
+
+	proxy, err := c.CreateProxy(ctx, "proxy-box", 8000, "hello server")
+	if err != nil {
+		t.Fatalf("CreateProxy: %v", err)
+	}
+	proxyURL := proxy.URL
+	if proxyURL == "" {
+		t.Fatalf("CreateProxy returned no url: %+v", proxy)
+	}
+	if proxy.Description != "hello server" {
+		t.Errorf("CreateProxy description = %q, want %q", proxy.Description, "hello server")
 	}
 	u, err := url.Parse(proxyURL)
 	if err != nil {
@@ -98,17 +102,19 @@ func TestEndToEndProxy(t *testing.T) {
 	}
 
 	// --- the proxy is listed, then disabled, after which the URL stops working ---
-	listOut := callTool(t, cs, "list_llmbox_proxies", map[string]any{"box_id": "proxy-box"})
-	proxies, _ := listOut["proxies"].([]any)
+	proxies, err := c.ListProxies(ctx, "proxy-box")
+	if err != nil {
+		t.Fatalf("ListProxies: %v", err)
+	}
 	if len(proxies) != 1 {
-		t.Errorf("list_llmbox_proxies returned %d proxies, want 1", len(proxies))
-	} else if first, ok := proxies[0].(map[string]any); ok {
-		if desc, _ := first["description"].(string); desc != "hello server" {
-			t.Errorf("listed proxy description = %q, want %q", desc, "hello server")
-		}
+		t.Errorf("ListProxies returned %d proxies, want 1", len(proxies))
+	} else if proxies[0].Description != "hello server" {
+		t.Errorf("listed proxy description = %q, want %q", proxies[0].Description, "hello server")
 	}
 
-	callTool(t, cs, "delete_llmbox_proxy", map[string]any{"box_id": "proxy-box", "port": 8000})
+	if err := c.DeleteProxy(ctx, "proxy-box", 8000); err != nil {
+		t.Fatalf("DeleteProxy: %v", err)
+	}
 	req2, _ := http.NewRequest(http.MethodGet, base+"/hello", nil)
 	req2.Host = u.Host
 	resp2, err := http.DefaultClient.Do(req2)

@@ -1,7 +1,7 @@
 // Typed client for the llmbox box-control API (/api/v1). Every mutating or
 // listing call is a POST with a JSON body, authenticated by the browser's login
 // cookie plus the session's CSRF token echoed in the X-CSRF-Token header — the
-// same single API llmbox-mcp drives with a bearer key.
+// same single API that headless callers drive with a bearer key.
 
 export interface Me {
   email: string;

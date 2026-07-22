@@ -1,7 +1,7 @@
 # Hub-and-spoke clustering
 
 Boxes run on **remote hosts** ("spokes") while a single **hub** (the llmbox
-server the chatbot talks to over MCP) stays the only front-end. The **hub runs no
+server the chatbot talks to over the box-control API) stays the only front-end. The **hub runs no
 box backend of its own** — it is a pure router/registry, so every box runs on a
 spoke started with `llmbox-spoke`. Even a single-host deployment runs one spoke
 alongside the hub.
@@ -83,7 +83,7 @@ on its own boxes" an enforced property of the box layer.
 
 The hub keeps a **spoke registry** (name → connection), populated by remote
 spokes as they connect and disconnect. Box→spoke affinity lives on the session:
-`create_llmbox` takes an optional `spoke`; when omitted the box runs on the
+`create-box` takes an optional `spoke`; when omitted the box runs on the
 default spoke, and the resolved name is stored on the session. Per-box verbs
 (get/exec/destroy/pause/resume) route to that spoke. Cluster-wide verbs fan out:
 
@@ -132,7 +132,7 @@ crosses the hub/spoke boundary.
 - A **non-zero exit marks the box `broken`** rather than tearing it down: the box
   is kept, and the script's captured output is surfaced on the box (as
   `last_error`) so an operator can inspect the failure instead of having the box
-  vanish. `list_llmboxes` reports it with phase `broken`.
+  vanish. `list-boxes` reports it with phase `broken`.
 - `--init-script-timeout` (default `5m`) bounds each run; a script that exceeds it
   is treated as a failed run (a broken box).
 

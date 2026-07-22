@@ -76,12 +76,12 @@ type Config struct {
 
 // ProxyConfig enables exposing box HTTP ports through the hub. When base_domain
 // is set, the hub serves a reverse proxy at https://<slug>.<base_domain>/ for
-// every enabled proxy (created over MCP or the admin UI), forwarding requests to
-// the box's port on its spoke. Each proxy gets its own subdomain so single-page
-// apps and servers that emit absolute paths work unchanged (no path rewriting).
-// A wildcard DNS record and TLS certificate for *.<base_domain> are required.
-// Empty base_domain disables the feature: no proxy is served and the MCP/admin
-// proxy tools report it as disabled.
+// every enabled proxy (created over the box-control API or the admin UI),
+// forwarding requests to the box's port on its spoke. Each proxy gets its own
+// subdomain so single-page apps and servers that emit absolute paths work
+// unchanged (no path rewriting). A wildcard DNS record and TLS certificate for
+// *.<base_domain> are required. Empty base_domain disables the feature: no proxy
+// is served and the box-control API and admin proxy actions report it as disabled.
 type ProxyConfig struct {
 	// BaseDomain is the bare parent domain proxy subdomains hang off, e.g.
 	// "proxy.example.com" (a proxy is then reached at <slug>.proxy.example.com). It

@@ -92,31 +92,6 @@
 			"reviewed_at": "2026-06-19T20:32:05.628456566Z"
 		},
 		{
-			"function_name": "connectMCP",
-			"documentation_hash": "305da52bdbbe6347ff2a4b83674db94837954859f7ae7e73dba54b6c88d5594b",
-			"definition_hash": "9b7bc1e47088ccd8a1461b064925d6d2a56849c8a4361c3da19f0cde9ea7bce3",
-			"reviewed_at": "2026-07-08T12:57:12.212570091Z"
-		},
-		{
-			"function_name": "callTool",
-			"documentation_hash": "d1c03920edc8bd108f1cd63c75233aaadf2d7a8ac116232ca8b11e9db202fe1f",
-			"definition_hash": "dc2c78165876d5737e87d4f23a9da1de455de71ed9cd6813fa76270dd58e69b7",
-			"reviewed_at": "2026-06-19T20:32:07.681945965Z"
-		},
-		{
-			"function_name": "callToolRaw",
-			"documentation_hash": "9ceb2a7e48e7802150188132ab252b4ae6e6a96f0cda7716f8217b80ae488c5e",
-			"definition_hash": "9cc571717037cf9b86502305fb1411da5de6d97b9acd12d8796812dc64dec7da",
-			"reviewed_at": "2026-06-19T20:32:08.477169851Z"
-		},
-		{
-			"function_name": "Error",
-			"receiver": "toolError",
-			"documentation_hash": "e1cb0767179cb9ce64eaf36f4e88a6607c6f202eb94f82b2c955f2c92e3b620c",
-			"definition_hash": "afdd757cd808edd1d05b9ba534fa6876bdcf48ac6651ced6e9e6e636ba38fb00",
-			"reviewed_at": "2026-06-19T20:32:09.894714289Z"
-		},
-		{
 			"function_name": "image",
 			"receiver": "fakeSpokeMgr",
 			"documentation_hash": "4a534a54152b6a74e5004801cdad15789c95c4af290619a323a92b04ca2b9f7c",

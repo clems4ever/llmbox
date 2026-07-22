@@ -16,7 +16,6 @@ CLAUDE.md
 
 # Built binaries
 /llmbox-server
-/llmbox-mcp
 /llmbox-spoke
 /llmbox-guest
 

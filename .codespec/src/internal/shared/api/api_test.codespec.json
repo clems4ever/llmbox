@@ -19,12 +19,6 @@
 			"reviewed_at": "2026-07-01T13:11:49.9249253Z"
 		},
 		{
-			"function_name": "TestMCPToolsOverHTTP",
-			"documentation_hash": "b822a5e1e8119d362b118c3c5029955548de6de174108b09c876d3dadbc9ea73",
-			"definition_hash": "b871faaaa812c94067110923d254eb996e2db1c6d027b0642bf62a9177b787b4",
-			"reviewed_at": "2026-07-11T21:34:27.199651334Z"
-		},
-		{
 			"function_name": "TestClientSendsAPIKey",
 			"documentation_hash": "5e7276a26ff8cc84cb9df42bb2c3218ce195021a73c8de7d845e6cd1ba946ed8",
 			"definition_hash": "a19e44e067604620efdf2ecdc66ae73486f5838909ad00325331f0717f583563",

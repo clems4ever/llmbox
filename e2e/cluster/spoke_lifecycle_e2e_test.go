@@ -2,7 +2,7 @@
 
 // These end-to-end tests exercise the hub-and-spoke box lifecycle by driving the
 // admin HTTP endpoints DIRECTLY (the same routes the admin page's JavaScript
-// POSTs to), not the MCP API and not a real browser. They are the fast layer:
+// POSTs to), not through a real browser. They are the fast layer:
 // they assert the server-side routing/cleanup without the cost of headless
 // Chrome. The matching BROWSER tests, which click the rendered page like a human,
 // live in package e2e (cluster_admin_browser_test.go) and cover the JS/DOM path.

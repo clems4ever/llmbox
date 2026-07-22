@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
 	"github.com/clems4ever/llmbox/internal/hub/apikey"
 	"github.com/clems4ever/llmbox/internal/hub/hooks"
 	"github.com/clems4ever/llmbox/internal/hub/store"
@@ -397,7 +395,7 @@ func TestFaviconServed(t *testing.T) {
 	}
 }
 
-// TestGetByBoxID checks the MCP backend resolves a box by box ID
+// TestGetByBoxID checks the box-control backend resolves a box by box ID
 // (case-insensitive), flattens its identity, and misses an unknown box ID.
 func TestGetByBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
@@ -422,7 +420,7 @@ func TestGetByBoxID(t *testing.T) {
 	}
 }
 
-// TestListLlmboxesReturnsBoxID checks the MCP backend's box listing surfaces
+// TestListLlmboxesReturnsBoxID checks the box-control backend's box listing surfaces
 // each box's box ID (the hostname the user sees) along with its description.
 func TestListLlmboxesReturnsBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
@@ -454,7 +452,7 @@ func TestListLlmboxesReturnsBoxID(t *testing.T) {
 	}
 }
 
-// TestBoxExecByBoxID checks the MCP backend resolves a box by box ID, wraps the
+// TestBoxExecByBoxID checks the box-control backend resolves a box by box ID, wraps the
 // command in /bin/sh -c, returns the captured output, and errors for an unknown
 // box ID and an empty command.
 func TestBoxExecByBoxID(t *testing.T) {
@@ -493,70 +491,36 @@ func TestBoxExecByBoxID(t *testing.T) {
 	}
 }
 
-// --- MCP wiring ---
+// --- box-control backend ---
 
-// TestBoxToolsOverBackend checks all tools are registered and create returns the
-// box's ID and instance ID.
-func TestBoxToolsOverBackend(t *testing.T) {
+// TestCreateBoxOverBackend checks the box-control backend's create returns the
+// assigned box ID and the backend instance ID.
+func TestCreateBoxOverBackend(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
-	cs := connectMCP(t, s)
 
-	tools, err := cs.ListTools(context.Background(), nil)
+	sess, err := s.boxBackend().CreateBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"})
 	if err != nil {
-		t.Fatalf("ListTools: %v", err)
+		t.Fatalf("CreateBox: %v", err)
 	}
-	names := map[string]bool{}
-	for _, tl := range tools.Tools {
-		names[tl.Name] = true
+	if sess.BoxID != "web-box" {
+		t.Errorf("box_id = %v, want web-box", sess.BoxID)
 	}
-	for _, want := range []string{"create_llmbox", "get_llmbox", "list_llmboxes", "destroy_llmbox", "exec_llmbox"} {
-		if !names[want] {
-			t.Errorf("tool %q not registered (have %v)", want, names)
-		}
-	}
-
-	// create_llmbox returns the assigned box ID and the backend instance ID.
-	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "create_llmbox", Arguments: map[string]any{"box_id": "web-box"}})
-	if err != nil {
-		t.Fatalf("CallTool: %v", err)
-	}
-	if res.IsError {
-		t.Fatalf("tool error: %v", res.Content)
-	}
-	out, _ := res.StructuredContent.(map[string]any)
-	if out["box_id"] != "web-box" {
-		t.Errorf("box_id = %v, want web-box", out["box_id"])
-	}
-	if out["instance_id"] != "abcdef0123456789" {
-		t.Errorf("instance_id = %v, want the backend generation", out["instance_id"])
+	if sess.Generation != "abcdef0123456789" {
+		t.Errorf("instance_id = %v, want the backend generation", sess.Generation)
 	}
 }
 
-// TestCreateRequiresBoxID checks create_llmbox rejects a call with an empty box
+// TestCreateRequiresBoxID checks the backend rejects a create with an empty box
 // ID and does not create a box, so every box stays reachable by its box ID.
 func TestCreateRequiresBoxID(t *testing.T) {
 	f := &testutils.FakeMgr{CreateID: "abcdef0123456789"}
 	s := newTestServer(f)
-	cs := connectMCP(t, s)
 
-	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "create_llmbox", Arguments: map[string]any{"description": "no box id"}})
-	if err != nil {
-		t.Fatalf("CallTool: %v", err)
-	}
-	if !res.IsError {
+	if _, err := s.boxBackend().CreateBox(context.Background(), sandbox.CreateOptions{Description: "no box id"}); err == nil {
 		t.Fatal("expected error for empty box ID")
 	}
 	if f.GotOpts.Description != "" {
 		t.Errorf("manager was called despite missing box ID: %+v", f.GotOpts)
 	}
-}
-
-// connectMCP wires an in-memory MCP client to an MCP server built over the
-// server's backend and returns the session. The production MCP server is the
-// stand-alone llmbox-mcp binary; here we build one in-process from the same
-// backend (via the shared testutils fixture) to drive the tools end to end.
-func connectMCP(t *testing.T, s *Server) *mcp.ClientSession {
-	t.Helper()
-	return testutils.ConnectMCP(t, s.boxBackend(), "test", "v0")
 }

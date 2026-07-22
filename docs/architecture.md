@@ -11,7 +11,7 @@ Everything is served on the single server port, split across two paths:
 
 | Path             | Audience | Carries |
 |------------------|----------|---------|
-| `/api/v1/...`    | the chatbot, via the `llmbox-mcp` binary (which serves MCP and forwards here) | box-control verbs (create/get/list/exec/destroy + proxy) |
+| `/api/v1/...`    | a chatbot or automation, over HTTP | box-control verbs (create/get/list/exec/destroy + proxy) |
 | the UI           | a human, in a browser | the admin dashboard, the OIDC sign-in page, and health |
 
 The `/api/v1/*` API is authenticated by an **API key** (headless callers) or an
@@ -22,15 +22,15 @@ The `/api/v1/*` API is authenticated by an **API key** (headless callers) or an
 ## Flow
 
 ```
-chat: "create an llmbox"
-  └─ create_llmbox ──▶ hub places the box on a spoke
-                       spoke provisions it by running its --init-script once
-                       returns  box_id + instance_id
+POST /api/v1/create-box
+  └─ create ──────────▶ hub places the box on a spoke
+                        spoke provisions it by running its --init-script once
+                        returns  box_id + instance_id
 
-exec_llmbox / *_llmbox_proxy ──▶ run commands in the box, or expose its ports
+exec-box / *-proxy ──▶ run commands in the box, or expose its ports
 
-get_llmbox / list_llmboxes ──▶ inspect boxes (phase "ready", or "broken"
-                               with the failed init script's output)
+get-box / list-boxes ▶ inspect boxes (phase "ready", or "broken"
+                       with the failed init script's output)
 ```
 
 A box whose init script succeeds is phase **`ready`** immediately. A box whose
@@ -42,10 +42,9 @@ captured script output surfaced on the box (`last_error`).
 | Path                 | What it is |
 |----------------------|------------|
 | `cmd/llmbox-server`  | Entry point (the hub): opens the state store and runs the HTTP server (box-control API + admin/sign-in UI). |
-| `cmd/llmbox-mcp`     | The MCP binary: serves the MCP protocol and forwards every tool call to the hub's box-control API. |
 | `cmd/llmbox-spoke`   | The spoke: connects to the hub and runs the box backend (Docker or Firecracker). Provisions each box with its `--init-script` and can publish box ports with `--publish-port`. |
 | `internal/spoke/docker` / `internal/spoke/firecracker` | Box lifecycle over the Docker Engine API or as a Firecracker microVM. Exec/dial and init-script provisioning run in the box's `internal/guest`. |
-| `internal/hub`       | Box registry (persisted to SQLite), MCP tools, admin UI, OIDC sign-in, spoke routing. |
+| `internal/hub`       | Box registry (persisted to SQLite), box-control API, admin UI, OIDC sign-in, spoke routing. |
 | `internal/guest`     | The `llmbox-guest` init that runs **inside** each box. It serves exactly three verbs to the spoke — `Init` (runs the host-provided init script once), `Exec` (run a command), and `Dial` (open a byte stream to a box port for the proxy). |
 | `Dockerfile`         | Image for **this server** (`llmbox`). Carries only the llmbox server binary. |
 | `Dockerfile.box`     | Default box image (the spoke's `--image`). A generic sandbox base with `tini` as PID 1 (so short-lived processes are reaped) plus Node.js + pm2 for running daemons. The workload itself is provisioned by the spoke's init script. |

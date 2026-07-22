@@ -1,6 +1,6 @@
 # Running & configuration
 
-How to run the server, connect a chatbot, and what every config key does.
+How to run the server, drive the box-control API, and what every config key does.
 
 ## Running
 
@@ -24,13 +24,12 @@ docker run -d --name llmbox \
 
 llmbox listens on a single port (`8080`): it serves the box-control JSON API
 (under `/api/v1/`) and the UI (admin dashboard, sign-in, health) together. The API is
-authenticated: headless callers (llmbox-mcp, scripts) present an API key as a
+authenticated: headless callers (scripts, other services) present an API key as a
 bearer token, and the admin web app authenticates with the signed-in admin's
 login cookie plus a CSRF header. Mint keys on the hub host with
 `llmbox-server apikey add --name <label> [--ttl 8760h]` (list/delete likewise);
-only the key's SHA-256 lands in the state file. The MCP protocol
-itself is served by the separate `llmbox-mcp` binary (see [Connecting a
-chatbot](#connecting-a-chatbot)), which forwards to this box-control API.
+only the key's SHA-256 lands in the state file. See [Driving the box-control
+API](#driving-the-box-control-api) for how a chatbot or automation uses it.
 
 Or use [`docker-compose.yml`](../docker-compose.yml) (`docker compose up --build`),
 which wires up the Docker socket, the docker group, and a persisted session
@@ -42,28 +41,42 @@ travel in clear text. Either terminate TLS at a reverse proxy in front, or set t
 `tls:` block (`enabled`, `cert_file`, `key_file`) to have llmbox serve HTTPS
 directly. A loud warning is logged at startup whenever it serves plaintext.
 
-## Connecting a chatbot
+## Driving the box-control API
 
-The MCP protocol is served by a separate binary, **`llmbox-mcp`**, which forwards
-every tool call to the llmbox server's box-control API (the server's `http_addr`,
-default `:8080`). Run it pointing at that upstream:
+A chatbot or any automation drives boxes over the box-control JSON API under
+`/api/v1/` (the server's `http_addr`, default `:8080`). Every call is a `POST`
+carrying an API key as a bearer token. Mint one on the hub host (against the hub's
+state file):
 
 ```bash
-# Mint an API key once, on the hub host (against the hub's state file):
-llmbox-server apikey add --name mcp
-
-# Streamable HTTP on :8082, forwarding to the llmbox server's box-control API.
-LLMBOX_API_KEY=lbx_... llmbox-mcp --upstream http://llmbox:8080 --addr :8082
-
-# …or over stdio, for a chatbot that launches it as a child process.
-LLMBOX_API_KEY=lbx_... llmbox-mcp --stdio --upstream http://llmbox:8080
+llmbox-server apikey add --name automation
 ```
 
-Add `llmbox-mcp`'s URL (streamable HTTP) or its stdio command as a remote MCP
-server in your client. It holds no state and needs no Docker socket, so it can
-run anywhere that can reach the box-control API. Give it an API key minted with
-`llmbox-server apikey add` via `--api-key` or `$LLMBOX_API_KEY`. See
-[MCP tools](mcp-tools.md) for the full tool reference.
+Then create a box, run a command in it, and expose one of its ports:
+
+```bash
+KEY=lbx_...
+BASE=http://llmbox:8080
+
+# Create a box (its workload is provisioned by the spoke's --init-script).
+curl -sS -H "Authorization: Bearer $KEY" \
+  -d '{"opts":{"BoxID":"my-box"}}' "$BASE/api/v1/create-box"
+
+# Run a command inside it.
+curl -sS -H "Authorization: Bearer $KEY" \
+  -d '{"box_id":"my-box","command":"echo hi"}' "$BASE/api/v1/box-exec"
+
+# Expose an HTTP server the box listens on (returns a URL the user opens).
+curl -sS -H "Authorization: Bearer $KEY" \
+  -d '{"box_id":"my-box","port":8000}' "$BASE/api/v1/create-proxy"
+```
+
+The full set of endpoints — `create-box`, `lookup-box`, `list-boxes`,
+`destroy-box`, `pause-box`, `resume-box`, `box-exec`, `spoke-statuses`, and the
+proxy verbs `create-proxy` / `delete-proxy` / `list-proxies` — is defined in
+[`internal/shared/api`](../internal/shared/api). The same package ships a Go
+`api.Client` that speaks the API, so a Go caller can drive boxes without
+hand-rolling the HTTP requests.
 
 ## Configuration
 

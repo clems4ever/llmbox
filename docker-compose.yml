@@ -1,10 +1,9 @@
-# Two services: llmbox (the box-control + auth server) and llmbox-mcp (the
-# stand-alone MCP front-end that forwards MCP tool calls to llmbox's box-control
-# API). A chatbot connects to llmbox-mcp; llmbox does the real work, creating
-# sandboxed boxes on demand. Boxes run on a minimal infra base image; a box's
-# workload is installed and started by the spoke's init script:
+# The llmbox box-control + auth server. It exposes the box-control JSON API and
+# the admin UI, and creates sandboxed boxes on demand. Boxes run on a minimal
+# infra base image; a box's workload is installed and started by the spoke's init
+# script:
 #
-#   docker compose up --build               # build + run both services
+#   docker compose up --build               # build + run the server
 services:
   llmbox:
     build:
@@ -13,8 +12,7 @@ services:
     ports:
       # The whole server on one port: the UI (auth pages, admin, health) and the
       # box-control API (/api/v1/). Put behind an authenticating proxy before
-      # exposing it; llmbox-mcp reaches it over the compose network as
-      # http://llmbox:8080.
+      # exposing it.
       - "8080:8080"
     # llmbox reads a single YAML config file (see llmbox.example.yaml). Mount
     # your config to /etc/llmbox/llmbox.yaml and point the server at it. At a
@@ -43,25 +41,4 @@ services:
     #   DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
     group_add:
       - ${DOCKER_GID:-999}
-    restart: unless-stopped
-
-  # Stand-alone MCP server: serves the MCP tools and forwards every call to the
-  # llmbox box-control API over the compose network. It holds no state and needs
-  # no Docker socket — add its URL (http://<host>:8082/, streamable HTTP) as a
-  # remote MCP server in your chatbot. Put it behind an authenticating proxy
-  # before exposing it, just like the box-control API it fronts.
-  llmbox-mcp:
-    build:
-      context: .
-      dockerfile: Dockerfile.mcp
-    image: llmbox-mcp
-    depends_on:
-      - llmbox
-    ports:
-      - "8082:8082"
-    # Mint the key on the hub: docker compose exec llmbox /llmbox-server apikey add --name mcp
-    # then put it in .env as LLMBOX_API_KEY=lbx_...
-    environment:
-      LLMBOX_API_KEY: ${LLMBOX_API_KEY:-}
-    command: ["--upstream", "http://llmbox:8080", "--addr", ":8082"]
     restart: unless-stopped

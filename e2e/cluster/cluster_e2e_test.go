@@ -1,12 +1,12 @@
 //go:build e2e
 
 // Package clustere2e holds the end-to-end test for hub-and-spoke clustering. It
-// wires the real llmbox server (MCP tools + the /spoke/connect endpoint) with
-// clustering enabled on a real HTTP listener, runs a real spoke that dials in
-// over a real WebSocket and enrolls with a one-time join token, then drives the
-// chatbot side over a real MCP client to create a box ON THE SPOKE and operate
-// on it. Only the Docker box layer is simulated (per spoke); the cluster
-// transport, enrollment, and routing are exercised for real.
+// wires the real llmbox server (box-control API + the /spoke/connect endpoint)
+// with clustering enabled on a real HTTP listener, runs a real spoke that dials
+// in over a real WebSocket and enrolls with a one-time join token, then drives
+// the chatbot side over the real box-control HTTP API to create a box ON THE
+// SPOKE and operate on it. Only the Docker box layer is simulated (per spoke);
+// the cluster transport, enrollment, and routing are exercised for real.
 //
 // Unlike the main e2e workflow it needs no browser, so it runs standalone:
 //
@@ -25,23 +25,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
 	"github.com/clems4ever/llmbox/internal/hub"
 	"github.com/clems4ever/llmbox/internal/hub/apikey"
 	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
-	"github.com/clems4ever/llmbox/testutils"
 )
 
 // TestClusterEndToEnd exercises the full clustering path:
 //
 //  1. the operator mints a one-time join token for spoke "edge";
 //  2. a spoke dials the hub over a WebSocket and enrolls with that token;
-//  3. the chatbot creates a box over MCP with spoke="edge"; the box lands on the
-//     spoke's (simulated) Docker layer;
-//  4. list/exec/destroy over MCP all route to that spoke;
+//  3. the chatbot creates a box over the API with spoke="edge"; the box lands on
+//     the spoke's (simulated) Docker layer;
+//  4. list/exec/destroy over the API all route to that spoke;
 //  5. the join token is one-time: a second enrollment with it is rejected.
 func TestClusterEndToEnd(t *testing.T) {
 	ctx := t.Context()
@@ -85,20 +82,21 @@ func TestClusterEndToEnd(t *testing.T) {
 	}()
 
 	// The chatbot side, over the box-control API on the single server. The API is
-	// authenticated, so mint the key a deployed llmbox-mcp would be given.
-	mcpKey, err := apikey.Create(store, "e2e-mcp", time.Hour, time.Now())
+	// authenticated, so mint the key a deployed programmatic caller would be given.
+	apiKey, err := apikey.Create(store, "e2e", time.Hour, time.Now())
 	if err != nil {
 		t.Fatalf("mint api key: %v", err)
 	}
-	cs := connectMCP(t, "http://"+uiAddr, mcpKey)
+	c := api.NewClient("http://"+uiAddr, nil)
+	c.SetAPIKey(apiKey)
 
 	// Create a box on the spoke. Retry until the spoke has finished enrolling.
-	var createOut map[string]any
+	var createSess api.BoxSession
 	deadline := time.Now().Add(10 * time.Second)
 	for {
-		out, err := callToolRaw(t, cs, "create_llmbox", map[string]any{"box_id": "b1", "spoke": "edge"})
+		sess, err := c.CreateBox(ctx, sandbox.CreateOptions{BoxID: "b1", SpokeName: "edge"})
 		if err == nil {
-			createOut = out
+			createSess = sess
 			break
 		}
 		if time.Now().After(deadline) {
@@ -107,9 +105,8 @@ func TestClusterEndToEnd(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	containerID, _ := createOut["instance_id"].(string)
-	if containerID == "" {
-		t.Fatalf("create_llmbox returned no instance_id: %v", createOut)
+	if createSess.Generation == "" {
+		t.Fatalf("CreateBox returned no instance_id: %+v", createSess)
 	}
 	// The box must have been created on the spoke.
 	if edgeMgr.creates() != 1 {
@@ -120,30 +117,39 @@ func TestClusterEndToEnd(t *testing.T) {
 		t.Errorf("edge spoke create image = %q, want box:e2e (the spoke's own)", got)
 	}
 
-	// list_llmboxes shows the box tagged with its spoke.
-	listOut := callTool(t, cs, "list_llmboxes", map[string]any{})
-	if spoke := spokeOfBox(listOut, "b1"); spoke != "edge" {
+	// ListBoxes shows the box tagged with its spoke.
+	boxes, err := c.ListBoxes(ctx)
+	if err != nil {
+		t.Fatalf("ListBoxes: %v", err)
+	}
+	if spoke := spokeOfBox(boxes, "b1"); spoke != "edge" {
 		t.Fatalf("list shows box b1 on spoke %q, want edge", spoke)
 	}
 
-	// list_spokes reports the edge spoke as connected.
-	spokesOut := callTool(t, cs, "list_spokes", map[string]any{})
-	if !spokeConnected(spokesOut, "edge") {
-		t.Fatalf("list_spokes does not show edge connected: %v", spokesOut)
+	// SpokeStatuses reports the edge spoke as connected.
+	spokes, err := c.SpokeStatuses(ctx)
+	if err != nil {
+		t.Fatalf("SpokeStatuses: %v", err)
+	}
+	if !spokeConnected(spokes, "edge") {
+		t.Fatalf("SpokeStatuses does not show edge connected: %+v", spokes)
 	}
 
 	// exec routes to the spoke.
-	execOut := callTool(t, cs, "exec_llmbox", map[string]any{"box_id": "b1", "command": "echo hi"})
-	if execOut["stdout"] != "hello-from-edge\n" {
-		t.Fatalf("exec stdout = %q, want hello-from-edge", execOut["stdout"])
+	execRes, err := c.BoxExec(ctx, "b1", "echo hi")
+	if err != nil {
+		t.Fatalf("BoxExec: %v", err)
+	}
+	if execRes.Stdout != "hello-from-edge\n" {
+		t.Fatalf("exec stdout = %q, want hello-from-edge", execRes.Stdout)
 	}
 	if edgeMgr.execs() != 1 {
 		t.Errorf("edge spoke execs = %d, want 1", edgeMgr.execs())
 	}
 
 	// destroy routes to the spoke and removes the box there.
-	if got := callTool(t, cs, "destroy_llmbox", map[string]any{"box_id": "b1"})["destroyed"]; got != "b1" {
-		t.Fatalf("destroyed = %v, want b1", got)
+	if err := c.DestroyBox(ctx, "b1"); err != nil {
+		t.Fatalf("DestroyBox: %v", err)
 	}
 	if edgeMgr.live() != 0 {
 		t.Errorf("edge spoke still has %d live box(es) after destroy", edgeMgr.live())
@@ -323,33 +329,21 @@ func randHex(n int) string {
 }
 
 // spokeOfBox returns the spoke tag of the box with the given box ID in a
-// list_llmboxes output, or "" when absent.
-func spokeOfBox(listOut map[string]any, boxID string) string {
-	boxes, _ := listOut["boxes"].([]any)
+// ListBoxes result, or "" when absent.
+func spokeOfBox(boxes []api.BoxView, boxID string) string {
 	for _, b := range boxes {
-		m, ok := b.(map[string]any)
-		if !ok {
-			continue
-		}
-		if m["box_id"] == boxID {
-			s, _ := m["spoke"].(string)
-			return s
+		if b.BoxID == boxID {
+			return b.Spoke
 		}
 	}
 	return ""
 }
 
-// spokeConnected reports whether list_spokes output marks the named spoke connected.
-func spokeConnected(listOut map[string]any, name string) bool {
-	spokes, _ := listOut["spokes"].([]any)
+// spokeConnected reports whether the SpokeStatuses result marks the named spoke connected.
+func spokeConnected(spokes []api.SpokeStatus, name string) bool {
 	for _, s := range spokes {
-		m, ok := s.(map[string]any)
-		if !ok {
-			continue
-		}
-		if m["name"] == name {
-			c, _ := m["connected"].(bool)
-			return c
+		if s.Name == name {
+			return s.Connected
 		}
 	}
 	return false
@@ -373,44 +367,3 @@ func waitHealthy(t *testing.T, base string) {
 		time.Sleep(50 * time.Millisecond)
 	}
 }
-
-// connectMCP builds an MCP session standing in for the chatbot: it wraps an
-// api client pointed at the hub's box-control API in an MCP server (as the
-// llmbox-mcp binary does) and connects an in-memory MCP client to it, so tool
-// calls travel over the real box-control HTTP API to the hub — authenticated
-// with key exactly as a deployed llmbox-mcp would be.
-func connectMCP(t *testing.T, base, key string) *mcp.ClientSession {
-	t.Helper()
-	c := api.NewClient(base, nil)
-	c.SetAPIKey(key)
-	return testutils.ConnectMCP(t, c, "llmbox", "cluster-e2e")
-}
-
-// callTool calls an MCP tool and returns its structured output, failing on error.
-func callTool(t *testing.T, cs *mcp.ClientSession, name string, args map[string]any) map[string]any {
-	t.Helper()
-	out, err := callToolRaw(t, cs, name, args)
-	if err != nil {
-		t.Fatalf("tool %s: %v", name, err)
-	}
-	return out
-}
-
-// callToolRaw calls an MCP tool, returning its output and any tool-level error.
-func callToolRaw(t *testing.T, cs *mcp.ClientSession, name string, args map[string]any) (map[string]any, error) {
-	t.Helper()
-	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: name, Arguments: args})
-	if err != nil {
-		t.Fatalf("calling %s: %v", name, err)
-	}
-	if res.IsError {
-		return nil, &toolError{name: name}
-	}
-	out, _ := res.StructuredContent.(map[string]any)
-	return out, nil
-}
-
-type toolError struct{ name string }
-
-// Error renders the tool error.
-func (e *toolError) Error() string { return e.name + " returned a tool error" }

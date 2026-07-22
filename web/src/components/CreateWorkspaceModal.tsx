@@ -17,7 +17,7 @@ import { perform } from "../lib/actions";
 
 /** GiB is the bytes-per-gibibyte factor used to turn the operator-friendly GiB
  * knob in the form into the byte count the create API expects. It mirrors the
- * same constant the server and MCP layers use. */
+ * same constant the server uses. */
 const GiB = 1024 * 1024 * 1024;
 
 export interface CreateWorkspaceModalProps {

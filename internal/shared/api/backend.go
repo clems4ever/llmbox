@@ -1,8 +1,8 @@
 // Package api is the llmbox HTTP box-control API: the JSON surface the server
 // exposes for box operations (create/get/list/destroy/logs/exec, proxies, spokes)
 // and a Client that speaks it. The UI and any programmatic caller drive boxes
-// through this API; the stand-alone llmbox-mcp binary is one such caller, wrapping
-// the Client so it can serve those operations as MCP tools.
+// through this API; a script or another service can use the Client to operate
+// boxes over HTTP.
 //
 // Backend is the operation contract both sides share: the server implements it,
 // NewHandler serves an implementation over HTTP, and Client is an implementation

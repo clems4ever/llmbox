@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,7 @@ import (
 	"github.com/clems4ever/llmbox/internal/hub"
 	"github.com/clems4ever/llmbox/internal/hub/auth"
 	"github.com/clems4ever/llmbox/internal/hub/store"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // TestProxySessionExpiryRedirectInBrowser is the regression test for
@@ -66,7 +68,7 @@ func TestProxySessionExpiryRedirectInBrowser(t *testing.T) {
 		t.Fatalf("listen: %v", err)
 	}
 	port := uiLn.Addr().(*net.TCPAddr).Port
-	loopback := uiLn.Addr().String()                              // 127.0.0.1:PORT — for health/MCP
+	loopback := uiLn.Addr().String()                              // 127.0.0.1:PORT — for health/API
 	publicURL := "http://boxes.example.com:" + strconv.Itoa(port) // the browser-facing main host
 
 	st, err := hub.OpenStore(filepath.Join(t.TempDir(), "sessions.db"))
@@ -92,13 +94,19 @@ func TestProxySessionExpiryRedirectInBrowser(t *testing.T) {
 	t.Cleanup(func() { _ = httpSrv.Close() })
 	waitHealthy(t, "http://"+loopback)
 
-	// Create the box and enable a proxy for its port over MCP, as the chatbot does.
-	cs := connectMCP(t, "http://"+loopback, st)
-	callTool(t, cs, "create_llmbox", map[string]any{"box_id": "proxy-box"})
-	proxyOut := callTool(t, cs, "create_llmbox_proxy", map[string]any{"box_id": "proxy-box", "port": 8000})
-	proxyURL, _ := proxyOut["url"].(string)
+	// Create the box and enable a proxy for its port over the API, as the chatbot does.
+	ctx := context.Background()
+	c := newBoxClient(t, "http://"+loopback, st)
+	if _, err := c.CreateBox(ctx, sandbox.CreateOptions{BoxID: "proxy-box"}); err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+	proxy, err := c.CreateProxy(ctx, "proxy-box", 8000, "")
+	if err != nil {
+		t.Fatalf("CreateProxy: %v", err)
+	}
+	proxyURL := proxy.URL
 	if proxyURL == "" {
-		t.Fatalf("create_llmbox_proxy returned no url: %+v", proxyOut)
+		t.Fatalf("CreateProxy returned no url: %+v", proxy)
 	}
 	pu, err := url.Parse(proxyURL)
 	if err != nil {

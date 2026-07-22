@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/clems4ever/llmbox/internal/mcpserver"
 	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
@@ -13,8 +12,8 @@ import (
 // results across the Backend methods.
 func TestFakeBackend(t *testing.T) {
 	f := &FakeBackend{
-		CreateSess: mcpserver.BoxSession{BoxID: "web", Generation: "cid"},
-		Sessions:   map[string]mcpserver.BoxSession{"web": {BoxID: "web", Description: "ready"}},
+		CreateSess: api.BoxSession{BoxID: "web", Generation: "cid"},
+		Sessions:   map[string]api.BoxSession{"web": {BoxID: "web", Description: "ready"}},
 		Boxes:      []api.BoxView{{Box: sandbox.Box{BoxID: "b1"}}},
 		ExecResult: sandbox.ExecResult{ExitCode: 3},
 		ProxyOn:    true,
@@ -61,24 +60,5 @@ func TestFakeBackend(t *testing.T) {
 	}
 	if _, _ = f.ListProxies(ctx, "b1"); f.GotListBoxID != "b1" {
 		t.Errorf("ListProxies filter = %q", f.GotListBoxID)
-	}
-}
-
-// TestConnectMCP checks the helper stands up an MCP server over a FakeBackend and
-// returns a session that can list the registered tools.
-func TestConnectMCP(t *testing.T) {
-	cs := ConnectMCP(t, &FakeBackend{}, "test", "v0")
-	tools, err := cs.ListTools(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("ListTools: %v", err)
-	}
-	found := false
-	for _, tl := range tools.Tools {
-		if tl.Name == "create_llmbox" {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatal("create_llmbox tool not registered via ConnectMCP")
 	}
 }

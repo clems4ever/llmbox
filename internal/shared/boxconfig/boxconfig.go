@@ -36,7 +36,7 @@ const GiB = 1024 * 1024 * 1024
 // BoxConfig caps the resources each box may consume and how many boxes may run
 // at once. The limits bound resource-exhaustion (CPU/memory/PID fork-bombs,
 // unbounded box counts) by a caller that can reach the by-design-unauthenticated
-// create/exec path (see the MCP endpoint comment in internal/hub/http.go).
+// create/exec path (see the box-control endpoint comments in internal/hub/http.go).
 // memory_mb/cpus/pids_limit default to finite values when left unset (set a high
 // value to effectively lift one); max_boxes is unlimited (0) unless set.
 type BoxConfig struct {
