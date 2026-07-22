@@ -273,6 +273,10 @@ func (m *fakeSpokeMgr) Exec(_ context.Context, _ string, _ []string) (sandbox.Ex
 	return sandbox.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
 }
 
+func (m *fakeSpokeMgr) NetworkFlows(_ context.Context, _ string) ([]sandbox.NetworkFlow, error) {
+	return nil, nil
+}
+
 // setDialTarget points DialBox at addr (a real loopback server standing in for a
 // box's HTTP server), under the lock so the spoke goroutine reads it safely.
 func (m *fakeSpokeMgr) setDialTarget(addr string) {

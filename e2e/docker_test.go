@@ -175,6 +175,10 @@ func (m *fakeBoxManager) Exec(_ context.Context, idOrName string, cmd []string) 
 	return sandbox.ExecResult{}, nil
 }
 
+func (m *fakeBoxManager) NetworkFlows(context.Context, string) ([]sandbox.NetworkFlow, error) {
+	return nil, nil
+}
+
 // DialBox connects to the fake's dialTarget, standing in for a real box's port.
 // It satisfies the server's boxDialer interface so the proxy path can be driven
 // end to end against a real loopback server without Docker.

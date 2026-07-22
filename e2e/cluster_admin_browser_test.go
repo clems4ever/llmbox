@@ -131,6 +131,10 @@ func (m *browserSpokeMgr) Exec(ctx context.Context, idOrName string, cmd []strin
 	return sandbox.ExecResult{Stdout: "hello-from-" + m.name + "\n", ExitCode: 0}, nil
 }
 
+func (m *browserSpokeMgr) NetworkFlows(context.Context, string) ([]sandbox.NetworkFlow, error) {
+	return nil, nil
+}
+
 // humanDestroy simulates an operator removing a box's container directly on the
 // host, out of band: the box vanishes without going through the cluster Destroy
 // path, so a later Destroy fails not-found.
