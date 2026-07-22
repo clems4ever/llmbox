@@ -49,6 +49,11 @@ function CopyBlock({ value, label }: { value: string; label: string }): JSX.Elem
  */
 export function SpokeSetupTabs({ command, onRegenerate, regenerating }: SpokeSetupTabsProps): JSX.Element {
   const placeholder = command.includes(tokenPlaceholder);
+  const disableEgress = command.match(/(?:^|\s)--disable-egress(?:=(\S+))?/);
+  const firecrackerEgress =
+    /^llmbox-spoke\s+firecracker\b/.test(command) &&
+    !/--egress-mode(\s+|=)disabled/.test(command) &&
+    !(disableEgress !== null && disableEgress[1] !== "false" && disableEgress[1] !== "0");
   return (
     <Stack gap="sm">
       {placeholder && (
@@ -107,6 +112,16 @@ export function SpokeSetupTabs({ command, onRegenerate, regenerating }: SpokeSet
               installed at <Code>/usr/local/bin/llmbox-spoke</Code>.
             </Text>
             <CopyBlock value={systemdSetupScript(command)} label="Copy script" />
+            {firecrackerEgress && (
+              <Text c="dimmed" size="xs">
+                For Firecracker this also installs a privileged{" "}
+                <Code>llmbox-firecracker-network.service</Code> oneshot that provisions the
+                host TAP/NAT egress pool at boot, so the spoke attaches to it with{" "}
+                <Code>--egress-mode=external</Code> instead of mutating host networking
+                itself. Pass <Code>--egress-mode=managed</Code> to have the spoke keep
+                provisioning the pool.
+              </Text>
+            )}
             <Text c="dimmed" size="xs">
               Check it with <Code>systemctl status {spokeServiceName}</Code> or follow the
               logs with <Code>journalctl -u {spokeServiceName} -f</Code>. The credential is

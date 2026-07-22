@@ -74,7 +74,7 @@ func fcArtifacts(t *testing.T) (string, string) {
 // @testcase TestConformanceFirecracker prepares the provisioner for jailed boots.
 func jailForTest(t testing.TB, p *Provisioner) {
 	t.Helper()
-	if err := p.jailer.checkJailerPrereqs(p.netEnabled); err != nil {
+	if err := p.jailer.checkJailerPrereqs(p.guestNetEnabled()); err != nil {
 		t.Skipf("jailer prerequisites not met: %v", err)
 	}
 }

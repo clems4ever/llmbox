@@ -96,11 +96,12 @@ func (m *fakeMachine) StopVMM() error {
 // Wait blocks until the context is cancelled, mimicking the VMM lifetime.
 func (m *fakeMachine) Wait(ctx context.Context) error { <-ctx.Done(); return nil }
 
-// fakeEgress records pool provisioning/teardown without touching the host.
+// fakeEgress records pool provisioning/teardown/validation without touching the host.
 type fakeEgress struct {
-	ensures, teardowns int
-	poolSize           int
-	ensureErr          error
+	ensures, teardowns, validates int
+	poolSize                      int
+	ensureErr                     error
+	validateErr                   error
 }
 
 // EnsurePool records a pool provisioning and returns the injected ensureErr.
@@ -114,6 +115,13 @@ func (e *fakeEgress) EnsurePool(ctx context.Context, size int) error {
 func (e *fakeEgress) TeardownPool(ctx context.Context, size int) error {
 	e.teardowns++
 	return nil
+}
+
+// ValidatePool records a read-only validation and returns the injected validateErr.
+func (e *fakeEgress) ValidatePool(ctx context.Context, size int) error {
+	e.validates++
+	e.poolSize = size
+	return e.validateErr
 }
 
 // newFakeProvisioner builds a provisioner wired to the fakes, with a real rootfs
@@ -727,5 +735,99 @@ func TestLoadMetasSkipsJunk(t *testing.T) {
 	metas, err := loadMetas(dir)
 	if err != nil || len(metas) != 0 {
 		t.Fatalf("loadMetas = %v, %v, want no metas", metas, err)
+	}
+}
+
+// TestParseEgressMode checks every mode parses (case-insensitively), the empty
+// string defaults to managed, each mode round-trips through its name, and an unknown
+// value errors.
+func TestParseEgressMode(t *testing.T) {
+	cases := map[string]egressMode{
+		"":           egressManaged,
+		"managed":    egressManaged,
+		"MANAGED":    egressManaged,
+		"external":   egressExternal,
+		" external ": egressExternal,
+		"disabled":   egressDisabled,
+	}
+	for in, want := range cases {
+		got, err := parseEgressMode(in)
+		if err != nil || got != want {
+			t.Fatalf("parseEgressMode(%q) = %v, %v; want %v", in, got, err, want)
+		}
+	}
+	for m, name := range egressModeNames {
+		if m.String() != name {
+			t.Fatalf("egressMode(%d).String() = %q, want %q", m, m.String(), name)
+		}
+	}
+	if _, err := parseEgressMode("nope"); err == nil {
+		t.Fatalf("parseEgressMode(nope) = nil error, want an error")
+	}
+}
+
+// TestEnsureNetworkExternalValidatesOnly checks external mode validates the pool
+// (read-only) instead of provisioning it, so the spoke never mutates host
+// networking, and that a validation failure surfaces.
+func TestEnsureNetworkExternalValidatesOnly(t *testing.T) {
+	eg := &fakeEgress{}
+	p, _ := newFakeProvisioner(t, eg)
+	p.SetEgressMode(egressExternal)
+	p.SetPoolSize(7)
+
+	if err := p.EnsureNetwork(context.Background()); err != nil {
+		t.Fatalf("EnsureNetwork(external): %v", err)
+	}
+	if eg.ensures != 0 || eg.teardowns != 0 {
+		t.Fatalf("external mode mutated host networking: ensures=%d teardowns=%d", eg.ensures, eg.teardowns)
+	}
+	if eg.validates != 1 || eg.poolSize != 7 {
+		t.Fatalf("external mode did not validate the pool: validates=%d size=%d", eg.validates, eg.poolSize)
+	}
+
+	// A validation failure must propagate (fail closed on a missing external TAP).
+	eg2 := &fakeEgress{validateErr: errors.New("tap missing")}
+	p2, _ := newFakeProvisioner(t, eg2)
+	p2.SetEgressMode(egressExternal)
+	if err := p2.EnsureNetwork(context.Background()); err == nil || !strings.Contains(err.Error(), "tap missing") {
+		t.Fatalf("EnsureNetwork(external) err = %v, want it to surface the validation failure", err)
+	}
+}
+
+// TestEnsureNetworkManagedProvisions checks managed mode still provisions (EnsurePool)
+// and disabled mode is a no-op, so the legacy behaviours are preserved.
+func TestEnsureNetworkManagedProvisions(t *testing.T) {
+	eg := &fakeEgress{}
+	p, _ := newFakeProvisioner(t, eg)
+	p.SetEgressMode(egressManaged)
+	if err := p.EnsureNetwork(context.Background()); err != nil {
+		t.Fatalf("EnsureNetwork(managed): %v", err)
+	}
+	if eg.ensures != 1 || eg.validates != 0 {
+		t.Fatalf("managed mode: ensures=%d validates=%d, want 1,0", eg.ensures, eg.validates)
+	}
+
+	eg2 := &fakeEgress{}
+	p2, _ := newFakeProvisioner(t, eg2)
+	p2.SetEgressMode(egressDisabled)
+	if err := p2.EnsureNetwork(context.Background()); err != nil {
+		t.Fatalf("EnsureNetwork(disabled): %v", err)
+	}
+	if eg2.ensures != 0 || eg2.validates != 0 {
+		t.Fatalf("disabled mode touched networking: ensures=%d validates=%d", eg2.ensures, eg2.validates)
+	}
+}
+
+// TestHostEgressValidatePoolMissing checks ValidatePool reports absent TAP devices.
+// It needs no privilege: `ip link show <absent>` fails for a missing device without
+// root, so the missing-device path is exercised on any host that has ip(8).
+func TestHostEgressValidatePoolMissing(t *testing.T) {
+	if _, err := exec.LookPath("ip"); err != nil {
+		t.Skip("ip not available")
+	}
+	e := &hostEgress{}
+	err := e.ValidatePool(context.Background(), 2)
+	if err == nil || !strings.Contains(err.Error(), "llmboxfc0") {
+		t.Fatalf("ValidatePool with no pool = %v, want it to name the missing TAP(s)", err)
 	}
 }

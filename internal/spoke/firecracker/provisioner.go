@@ -98,12 +98,13 @@ type Provisioner struct {
 	egress         egress
 	newMachine     machineFactory
 	log            *slog.Logger
-	// netEnabled controls whether boxes get a TAP + NAT egress interface. When
-	// false, a box boots with only loopback and vsock (control-only / air-gapped):
-	// the guest is still reachable over vsock, but the guest has no outbound
-	// network. Egress setup needs CAP_NET_ADMIN, so this also allows booting boxes
-	// as an unprivileged user.
-	netEnabled bool
+	// egressMode selects who owns the host-side TAP/NAT plumbing: managed (the spoke
+	// provisions it at startup, needing CAP_NET_ADMIN), external (an out-of-band
+	// provisioner owns it and the spoke only validates + attaches, needing no
+	// CAP_NET_ADMIN), or disabled (control-only: no TAP/NAT, guest has only loopback +
+	// vsock). managed and external both give the guest an egress NIC; disabled does
+	// not (see guestNetEnabled).
+	egressMode egressMode
 	// poolSize is the number of pre-created egress TAP slots; it caps concurrent
 	// networked boxes.
 	poolSize int
@@ -158,7 +159,7 @@ func NewProvisioner(kernelImage, defaultRootfs, stateDir string, ports boxapi.Po
 		firecrackerBin: defaultFirecrackerBin,
 		egress:         &hostEgress{},
 		log:            slog.Default(),
-		netEnabled:     true,
+		egressMode:     egressManaged,
 		poolSize:       defaultPoolSize,
 		ports:          ports,
 		jailer:         defaultJailerConfig(stateDir),
@@ -175,12 +176,36 @@ func NewProvisioner(kernelImage, defaultRootfs, stateDir string, ports boxapi.Po
 
 // SetNetworking enables or disables per-box egress networking. Disabled boots
 // control-only boxes (loopback + vsock, no TAP/NAT), which also removes the
-// CAP_NET_ADMIN requirement. It is enabled by default.
+// CAP_NET_ADMIN requirement; enabled selects the managed mode (the spoke provisions
+// the pool). It is enabled by default. SetEgressMode is the fuller control that can
+// also select the external mode.
 //
-// @arg enabled Whether boxes get a TAP + NAT egress interface.
+// @arg enabled Whether boxes get a spoke-managed TAP + NAT egress interface.
 //
 // @testcase TestConformanceFirecracker boots control-only boxes when networking is disabled.
-func (p *Provisioner) SetNetworking(enabled bool) { p.netEnabled = enabled }
+func (p *Provisioner) SetNetworking(enabled bool) {
+	if enabled {
+		p.egressMode = egressManaged
+	} else {
+		p.egressMode = egressDisabled
+	}
+}
+
+// SetEgressMode selects who owns the host-side TAP/NAT plumbing (managed, external,
+// or disabled). It supersedes SetNetworking, which only toggles managed/disabled.
+//
+// @arg mode The egress mode.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the external egress mode.
+func (p *Provisioner) SetEgressMode(mode egressMode) { p.egressMode = mode }
+
+// guestNetEnabled reports whether boxes get an egress NIC, which is every mode
+// except disabled (managed and external both configure the guest eth0).
+//
+// @return bool Whether the guest receives an egress NIC.
+//
+// @testcase TestConformanceFirecracker boots control-only boxes when networking is disabled.
+func (p *Provisioner) guestNetEnabled() bool { return p.egressMode != egressDisabled }
 
 // SetPoolSize sets the number of egress TAP slots provisioned at startup, which
 // caps concurrent networked boxes. A non-positive value keeps the default.
@@ -284,28 +309,40 @@ func (p *Provisioner) SetCgroupVersion(v string) {
 // @testcase TestProvisionWithoutPayloadHasSingleDrive omits the second drive when unset.
 func (p *Provisioner) SetPayloadImage(path string) { p.payloadImage = path }
 
-// EnsureNetwork provisions the egress TAP pool once, so the host interfaces exist
+// EnsureNetwork readies the egress TAP pool once, so the host interfaces exist
 // before any box is created (and before a same-host browser connects) rather than
-// being churned per box. It is a no-op when networking is disabled, and safe to
-// call repeatedly — the pool is created on the first call only. The server calls
-// it at startup; Provision also calls it as a fallback.
+// being churned per box. It is a no-op when egress is disabled, and safe to call
+// repeatedly — the work runs on the first call only. The server calls it at startup;
+// Provision also calls it as a fallback.
 //
-// @arg ctx Context for the pool provisioning.
-// @error error if the pool cannot be provisioned (e.g. missing CAP_NET_ADMIN).
+// In managed mode it provisions the pool (EnsurePool, needs CAP_NET_ADMIN). In
+// external mode it does NOT mutate host networking: it only validates, read-only,
+// that a pre-provisioned pool exists (ValidatePool), so the spoke stays unprivileged
+// and fails closed on a missing TAP instead of silently attaching.
+//
+// @arg ctx Context for the pool provisioning/validation.
+// @error error if the pool cannot be provisioned (managed, e.g. missing CAP_NET_ADMIN) or is incomplete (external).
 //
 // @testcase TestProvisionerBookkeeping provisions the pool before the first box.
+// @testcase TestEnsureNetworkExternalValidatesOnly validates without mutating in external mode.
 func (p *Provisioner) EnsureNetwork(ctx context.Context) error {
-	if !p.netEnabled {
+	switch p.egressMode {
+	case egressDisabled:
 		return nil
+	case egressExternal:
+		// External mode: an out-of-band provisioner owns the pool; only validate it,
+		// never mutate host networking, so the spoke needs no CAP_NET_ADMIN.
+		p.poolOnce.Do(func() { p.poolErr = p.egress.ValidatePool(ctx, p.poolSize) })
+	default: // managed
+		p.poolOnce.Do(func() {
+			// Own the pooled TAPs by the shared fc-net group so each jailed, unprivileged
+			// VMM can attach to its assigned TAP without CAP_NET_ADMIN.
+			if he, ok := p.egress.(*hostEgress); ok {
+				he.tapGroup = p.jailer.gid
+			}
+			p.poolErr = p.egress.EnsurePool(ctx, p.poolSize)
+		})
 	}
-	p.poolOnce.Do(func() {
-		// Own the pooled TAPs by the shared fc-net group so each jailed, unprivileged
-		// VMM can attach to its assigned TAP without CAP_NET_ADMIN.
-		if he, ok := p.egress.(*hostEgress); ok {
-			he.tapGroup = p.jailer.gid
-		}
-		p.poolErr = p.egress.EnsurePool(ctx, p.poolSize)
-	})
 	return p.poolErr
 }
 
@@ -557,7 +594,7 @@ func (p *Provisioner) bootMachine(ctx context.Context, meta boxMeta) (machine, *
 	// and a systemd guest's network config agree); init=/init lets a rootfs point
 	// /init at its real init (systemd, or the guest directly).
 	kernelArgs := "console=ttyS0 reboot=k panic=1 pci=off net.ifnames=0 init=/init"
-	if p.netEnabled {
+	if p.guestNetEnabled() {
 		kernelArgs += " " + n.kernelIPArg()
 	}
 
@@ -605,7 +642,7 @@ func (p *Provisioner) bootMachine(ctx context.Context, meta boxMeta) (machine, *
 		// forwarding; leaving it nil would make the SDK install the default handler.
 		ForwardSignals: []os.Signal{},
 	}
-	if p.netEnabled {
+	if p.guestNetEnabled() {
 		cfg.NetworkInterfaces = fcsdk.NetworkInterfaces{{
 			StaticConfiguration: &fcsdk.StaticNetworkConfiguration{
 				MacAddress:  macForIndex(meta.NetIndex),

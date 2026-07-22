@@ -114,14 +114,14 @@ func TestNewRootCmd(t *testing.T) {
 		}
 	}
 	// No firecracker flags and no --config leak onto the docker command.
-	for _, f := range []string{"kernel", "rootfs", "payload", "state-dir", "disable-egress", "pool-size", "config", "backend"} {
+	for _, f := range []string{"kernel", "rootfs", "payload", "state-dir", "disable-egress", "egress-mode", "pool-size", "config", "backend"} {
 		if docker.Flags().Lookup(f) != nil {
 			t.Errorf("docker subcommand should not have --%s", f)
 		}
 	}
 
 	fc := subcmd(t, cmd, "firecracker")
-	for _, f := range append([]string{"kernel", "rootfs", "payload", "state-dir", "disable-egress", "pool-size"}, common...) {
+	for _, f := range append([]string{"kernel", "rootfs", "payload", "state-dir", "disable-egress", "egress-mode", "pool-size"}, common...) {
 		if fc.Flags().Lookup(f) == nil {
 			t.Errorf("firecracker subcommand missing --%s flag", f)
 		}
@@ -182,6 +182,33 @@ func TestFirecrackerVMCmd(t *testing.T) {
 	for _, f := range []string{"state-dir", "yes"} {
 		if destroyAll.Flags().Lookup(f) == nil {
 			t.Errorf("vm destroy-all missing --%s flag", f)
+		}
+	}
+}
+
+// TestFirecrackerNetworkCmd checks the firecracker `network` operator command wires
+// a `setup` and a `teardown` subcommand, each carrying the shared pool flags, so an
+// admin can provision the egress pool out of band for a --egress-mode=external spoke.
+func TestFirecrackerNetworkCmd(t *testing.T) {
+	cmd := NewRootCmd("llmbox-spoke", "v0.1.0")
+	fc := subcmd(t, cmd, "firecracker")
+	network := subcmd(t, fc, "network")
+
+	for _, sub := range []string{"setup", "teardown"} {
+		s := subcmd(t, network, sub)
+		for _, f := range []string{"pool-size", "tap-group", "uplink"} {
+			if s.Flags().Lookup(f) == nil {
+				t.Errorf("network %s missing --%s flag", sub, f)
+			}
+		}
+		// These are host-provisioning tools, not hub-joining runs: no run flags leak on.
+		for _, f := range []string{"hub", "token", "kernel", "egress-mode"} {
+			if s.Flags().Lookup(f) != nil {
+				t.Errorf("network %s should not have --%s", sub, f)
+			}
+		}
+		if err := s.Args(s, []string{"extra"}); err == nil {
+			t.Errorf("network %s accepted a positional argument", sub)
 		}
 	}
 }

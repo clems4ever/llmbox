@@ -113,6 +113,7 @@ type spokeOptions struct {
 	fcPayloadImage  string
 	fcStateDir      string
 	fcDisableEgress bool
+	fcEgressMode    string
 	fcPoolSize      int
 	// Jailer knobs: every microVM is launched through the jailer (chrooted,
 	// unprivileged per-VM UID) — there is no unjailed mode. All optional; empty/zero
@@ -383,6 +384,7 @@ func NewRootCmd(name, version string) *cobra.Command {
 	fc := newSpokeRunCmd("firecracker", "Run a spoke that runs boxes as Firecracker microVMs", addFirecrackerSpokeFlags)
 	fc.AddCommand(newFirecrackerFetchCmd())
 	fc.AddCommand(newFirecrackerVMCmd())
+	fc.AddCommand(newFirecrackerNetworkCmd())
 	root.AddCommand(fc)
 	return root
 }
@@ -610,6 +612,87 @@ func runFirecrackerVMDestroyAll(out io.Writer, stateDir string) error {
 	return nil
 }
 
+// newFirecrackerNetworkCmd builds the `network` subcommand group of the firecracker
+// spoke: root-run operator tools to provision (and remove) the host-side egress
+// TAP/NAT pool out of band, so the long-running spoke can then attach to it
+// unprivileged with --egress-mode=external instead of holding CAP_NET_ADMIN itself.
+// A boot-time systemd oneshot typically runs `network setup` before the spoke unit.
+//
+// @return *cobra.Command The `network` command with its setup and teardown subcommands.
+//
+// @testcase TestFirecrackerNetworkCmd wires the setup and teardown subcommands with their flags.
+func newFirecrackerNetworkCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "network",
+		Short:         "Root-run tools to provision the host TAP/NAT egress pool a --egress-mode=external spoke attaches to",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+	}
+	cmd.AddCommand(newFirecrackerNetworkSetupCmd(), newFirecrackerNetworkTeardownCmd())
+	return cmd
+}
+
+// networkPoolFlags binds the shared egress-pool knobs onto a flag set, so setup and
+// teardown expose the same --pool-size/--tap-group/--uplink surface as the spoke.
+//
+// @arg f The flag set to register on.
+// @arg cfg The pool config the flags bind into.
+//
+// @testcase TestFirecrackerNetworkCmd exposes the pool flags on setup and teardown.
+func networkPoolFlags(f *pflag.FlagSet, cfg *firecracker.PoolConfig) {
+	f.IntVar(&cfg.Size, "pool-size", 0, "number of TAP devices to provision (must match the spoke's --pool-size); 0 uses the default")
+	f.IntVar(&cfg.TapGroupGID, "tap-group", 0, "GID that owns the created TAP devices (must match the spoke's --tap-group so its jailed VMMs can open them); 0 uses the default fc-net GID")
+	f.StringVar(&cfg.Uplink, "uplink", "", "host interface guest traffic is masqueraded out of; empty resolves the default-route interface")
+}
+
+// newFirecrackerNetworkSetupCmd builds `network setup`: it provisions the egress TAP
+// pool and NAT/isolation rules on this host (idempotently), the CAP_NET_ADMIN work a
+// managed spoke would otherwise do at startup. Run as root, typically from a boot
+// oneshot, so the spoke can run with --egress-mode=external.
+//
+// @return *cobra.Command The configured setup subcommand.
+//
+// @testcase TestFirecrackerNetworkCmd exposes the pool flags on the setup subcommand.
+func newFirecrackerNetworkSetupCmd() *cobra.Command {
+	var cfg firecracker.PoolConfig
+	cmd := &cobra.Command{
+		Use:           "setup",
+		Short:         "Provision the host TAP/NAT egress pool (run as root; idempotent)",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return firecracker.SetupNetworkPool(cmd.Context(), cmd.OutOrStdout(), cfg)
+		},
+	}
+	networkPoolFlags(cmd.Flags(), &cfg)
+	return cmd
+}
+
+// newFirecrackerNetworkTeardownCmd builds `network teardown`: it removes the egress
+// TAP pool and NAT/isolation rules this host provisioned, best-effort, for
+// decommissioning or resizing. Run as root.
+//
+// @return *cobra.Command The configured teardown subcommand.
+//
+// @testcase TestFirecrackerNetworkCmd exposes the pool flags on the teardown subcommand.
+func newFirecrackerNetworkTeardownCmd() *cobra.Command {
+	var cfg firecracker.PoolConfig
+	cmd := &cobra.Command{
+		Use:           "teardown",
+		Short:         "Remove the host TAP/NAT egress pool provisioned by setup (run as root)",
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return firecracker.TeardownNetworkPool(cmd.Context(), cmd.OutOrStdout(), cfg)
+		},
+	}
+	networkPoolFlags(cmd.Flags(), &cfg)
+	return cmd
+}
+
 // vmStateLabel renders a box's runtime state for the list table: paused, running, or
 // stopped, from its probed liveness and persisted paused flag.
 //
@@ -726,7 +809,8 @@ func addFirecrackerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.fcRootfsImage, "rootfs", "", "host path to the default guest rootfs; empty pulls the published base rootfs from the registry")
 	f.StringVar(&o.fcPayloadImage, "payload", "", "host path to a read-only ext4 carrying the guest binary, attached as a shared second drive so the guest updates without rebuilding the rootfs; empty pulls the published payload (unless --rootfs is a custom all-in-one image)")
 	f.StringVar(&o.fcStateDir, "state-dir", "", "directory for per-box state; empty uses the backend default")
-	f.BoolVar(&o.fcDisableEgress, "disable-egress", false, "boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network")
+	f.StringVar(&o.fcEgressMode, "egress-mode", "", `who owns the host TAP/NAT egress plumbing: "managed" (default; the spoke provisions it, needs CAP_NET_ADMIN/root), "external" (attach to a pool provisioned out of band by "firecracker network setup"; the spoke never mutates host networking), or "disabled" (control-only, no egress)`)
+	f.BoolVar(&o.fcDisableEgress, "disable-egress", false, "boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network (alias for --egress-mode=disabled)")
 	f.IntVar(&o.fcPoolSize, "pool-size", 0, "number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default")
 	// Every microVM is launched through the jailer (chrooted, unprivileged per-VM
 	// UID). This is mandatory — there is no flag to run firecracker directly — so
@@ -808,6 +892,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 		PayloadImagePath:  o.fcPayloadImage,
 		StateDir:          o.fcStateDir,
 		DisableEgress:     o.fcDisableEgress,
+		EgressMode:        o.fcEgressMode,
 		PoolSize:          o.fcPoolSize,
 		JailerBinary:      o.fcJailerBin,
 		FirecrackerBinary: o.fcFirecrackerBin,

@@ -43,6 +43,63 @@ const (
 	guestSubnet = "172.16.0.0/16"
 )
 
+// egressMode selects who owns the host-side TAP/NAT egress plumbing, decoupling
+// "does the guest get an egress NIC" from "does the long-running spoke mutate host
+// networking". It lets the privileged, CAP_NET_ADMIN work be moved out of the spoke
+// into a boot-time provisioning step (the `firecracker network setup` subcommand or
+// a root systemd oneshot), so the spoke can attach to a pre-provisioned pool without
+// ever running sysctl/ip/iptables.
+type egressMode int
+
+const (
+	// egressManaged is the default: the spoke itself creates the TAP pool and NAT
+	// rules at startup (EnsurePool) and therefore needs CAP_NET_ADMIN / root.
+	egressManaged egressMode = iota
+	// egressExternal gives the guest an egress NIC but the spoke never mutates host
+	// networking: it attaches to a pre-provisioned pool and only validates (read-only)
+	// that each required TAP exists. An administrator provisions the pool out of band
+	// (root oneshot), so the long-running spoke holds no CAP_NET_ADMIN.
+	egressExternal
+	// egressDisabled boots control-only boxes (loopback + vsock, no TAP/NAT), the
+	// legacy --disable-egress behaviour.
+	egressDisabled
+)
+
+// egressModeNames maps each mode to its --egress-mode flag spelling.
+var egressModeNames = map[egressMode]string{
+	egressManaged:  "managed",
+	egressExternal: "external",
+	egressDisabled: "disabled",
+}
+
+// String renders the mode's flag spelling.
+//
+// @return string The flag spelling ("managed", "external", or "disabled").
+//
+// @testcase TestParseEgressMode round-trips every mode through its name.
+func (m egressMode) String() string { return egressModeNames[m] }
+
+// parseEgressMode resolves an --egress-mode value (case-insensitive), treating the
+// empty string as the default managed mode so an unset flag keeps today's behaviour.
+//
+// @arg s The flag value ("managed", "external", "disabled", or empty).
+// @return egressMode The parsed mode.
+// @error error if s names no known mode.
+//
+// @testcase TestParseEgressMode accepts every mode and rejects an unknown one.
+func parseEgressMode(s string) (egressMode, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "", "managed":
+		return egressManaged, nil
+	case "external":
+		return egressExternal, nil
+	case "disabled":
+		return egressDisabled, nil
+	default:
+		return egressManaged, fmt.Errorf("invalid egress mode %q (want managed, external, or disabled)", s)
+	}
+}
+
 // tapName is the deterministic pool TAP device name for a slot. It stays within
 // the 15-char interface-name limit (llmboxfc255 is 11 chars).
 //
@@ -91,6 +148,11 @@ type egress interface {
 	// TeardownPool removes the `size` pool TAP devices and the shared rules. It is
 	// best-effort and called at shutdown.
 	TeardownPool(ctx context.Context, size int) error
+	// ValidatePool read-only checks that each of the `size` pool TAP devices already
+	// exists and is up, without creating or mutating anything. It backs the external
+	// egress mode, where an out-of-band provisioner owns the pool and the spoke must
+	// fail closed on a missing/inaccessible TAP rather than silently attach.
+	ValidatePool(ctx context.Context, size int) error
 }
 
 // hostEgress is the real egress that shells out to ip(8) and iptables(8). It
@@ -225,6 +287,66 @@ func insertVerb(args []string, i int, verb string) []string {
 	out = append(out, verb)
 	out = append(out, args[i:]...)
 	return out
+}
+
+// ValidatePool checks, read-only, that every pool TAP an external provisioner was
+// meant to create exists and is up. It never runs sysctl/ip-mutating/iptables
+// commands, so it is safe to call from an unprivileged spoke; it fails closed with
+// an actionable error naming the missing or down devices rather than letting the VMM
+// later fail to open an absent TAP.
+//
+// @arg ctx Context for the ip invocations.
+// @arg size The number of pool TAP slots that must be present.
+// @error error listing every TAP slot that is missing or not up.
+//
+// @testcase TestHostEgressValidatePool reports the missing pool TAPs.
+func (e *hostEgress) ValidatePool(ctx context.Context, size int) error {
+	var missing []string
+	for i := 0; i < size; i++ {
+		name := tapName(i)
+		out, err := exec.CommandContext(ctx, "ip", "-o", "link", "show", name).CombinedOutput()
+		if err != nil {
+			missing = append(missing, fmt.Sprintf("%s (not found)", name))
+			continue
+		}
+		// `ip -o link show` prints the interface flags in <...>, e.g.
+		// `<NO-CARRIER,BROADCAST,MULTICAST,UP>`. Check the administrative UP flag, NOT
+		// the operational `state`: a correctly provisioned TAP with no VMM attached yet
+		// (exactly the startup case) is admin-UP but carrier-DOWN (`state DOWN`), so
+		// keying off state would wrongly reject a valid pool. An admin-down TAP (the
+		// operator forgot `ip link set up`) lacks the UP flag and is flagged.
+		if !linkFlagsUp(string(out)) {
+			missing = append(missing, fmt.Sprintf("%s (administratively down)", name))
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("externally managed egress pool is incomplete; provision it first "+
+			"(e.g. `llmbox-spoke firecracker network setup`): %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+// linkFlagsUp reports whether an `ip -o link show` line carries the administrative
+// UP flag in its `<...>` flag block. It reads the admin flag, not the operational
+// `state`, so a provisioned-but-unattached TAP (admin UP, carrier down) is treated
+// as usable.
+//
+// @arg line One `ip -o link show` output line.
+// @return bool Whether the UP flag is present.
+//
+// @testcase TestLinkFlagsUp reads the UP flag from the interface flag block.
+func linkFlagsUp(line string) bool {
+	lt := strings.IndexByte(line, '<')
+	gt := strings.IndexByte(line, '>')
+	if lt < 0 || gt < lt {
+		return false
+	}
+	for _, f := range strings.Split(line[lt+1:gt], ",") {
+		if f == "UP" {
+			return true
+		}
+	}
+	return false
 }
 
 // TeardownPool removes the pool TAPs and the shared rules, best-effort.
