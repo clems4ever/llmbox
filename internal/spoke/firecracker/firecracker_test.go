@@ -65,10 +65,14 @@ type fakeMachine struct {
 }
 
 // Start opens the fake vsock listener at the box's path (or returns the injected
-// startErr).
+// startErr). It first creates the socket's parent directory, standing in for the
+// jailer building the chroot root the real VMM's sockets live in.
 func (m *fakeMachine) Start(ctx context.Context) error {
 	if m.startErr != nil {
 		return m.startErr
+	}
+	if err := os.MkdirAll(filepath.Dir(m.path), 0o700); err != nil {
+		return err
 	}
 	ln, err := net.Listen("unix", m.path)
 	if err != nil {

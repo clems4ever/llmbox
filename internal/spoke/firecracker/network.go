@@ -99,7 +99,13 @@ type hostEgress struct {
 	// uplink is the host interface guest traffic is masqueraded out of; empty means
 	// "resolve the default-route interface".
 	uplink string
-	mu     sync.Mutex // serialises iptables mutations, which are not concurrency-safe
+	// tapGroup is the GID the pooled TAP devices are owned by. Every jailed VMM runs
+	// under this shared group, so an unprivileged, jailed Firecracker can attach to
+	// its assigned TAP without CAP_NET_ADMIN. 0 leaves the TAP root-owned (only a
+	// privileged VMM could open it), which is why the provisioner sets it before
+	// EnsurePool when jailing.
+	tapGroup int
+	mu       sync.Mutex // serialises iptables mutations, which are not concurrency-safe
 }
 
 // EnsurePool creates the TAP pool and installs the shared NAT/isolation rules,
@@ -155,7 +161,17 @@ func (e *hostEgress) EnsurePool(ctx context.Context, size int) error {
 // @testcase TestHostEgressPoolSkipsWithoutRoot is skipped when not root / tools absent.
 func (e *hostEgress) ensureTap(ctx context.Context, n boxNet) error {
 	if run(ctx, "ip", "link", "show", n.TapName) != nil {
-		if err := run(ctx, "ip", "tuntap", "add", "dev", n.TapName, "mode", "tap"); err != nil {
+		// Create the TAP owned by the shared fc-net group so a jailed, unprivileged
+		// Firecracker running under that group can attach to it (TUNSETIFF permits a
+		// group member without CAP_NET_ADMIN). The `group` arg is the persistent-tap
+		// owner set at creation; it is applied here rather than mutated later, so a
+		// slot reassigned to a box with a different UID still opens the same TAP
+		// without churning the interface.
+		add := []string{"ip", "tuntap", "add", "dev", n.TapName, "mode", "tap"}
+		if e.tapGroup > 0 {
+			add = append(add, "group", fmt.Sprintf("%d", e.tapGroup))
+		}
+		if err := run(ctx, add...); err != nil {
 			return fmt.Errorf("creating tap %s: %w", n.TapName, err)
 		}
 	}

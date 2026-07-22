@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -36,14 +35,13 @@ func (p *Provisioner) rehydrate() error {
 		return err
 	}
 	for _, m := range metas {
-		dir := boxDir(p.stateDir, m.Token)
-		vsockUDS := filepath.Join(dir, "vsock.sock")
+		vsockUDS := m.vsockUDSPath(p.stateDir)
 		inst := &fcInstance{
 			prov:     p,
 			meta:     m,
 			vsockUDS: vsockUDS,
 			net:      netFor(m.NetIndex),
-			alive:    vmmAlive(filepath.Join(dir, "fc.sock")),
+			alive:    vmmAlive(m.apiSockPath(p.stateDir)),
 		}
 		if p.ports != nil {
 			api, err := boxapi.ServeUnix(boxAPISocketPath(vsockUDS), m.BoxID, p.ports, p.log)
@@ -56,6 +54,11 @@ func (p *Provisioner) rehydrate() error {
 		p.mu.Lock()
 		p.boxes[m.Token] = inst
 		p.used[m.NetIndex] = true
+		// Reserve the box's per-VM UID so a concurrently-created box never reuses it
+		// while this one still exists. A legacy direct box (UID 0) reserves nothing.
+		if m.UID > 0 {
+			p.usedUIDs[m.UID] = true
+		}
 		p.mu.Unlock()
 		p.log.Info("rehydrated firecracker box", "box", m.Token, "box_id", m.BoxID, "alive", inst.alive)
 	}

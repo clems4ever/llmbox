@@ -21,9 +21,12 @@ export const tokenPlaceholder = "<one-time-token>";
  * multi-GiB guest images and per-box state land on disk, not the default
  * in-memory tmpfs run-dir (too small, and wiped on reboot). Keeping --token in
  * the unit is safe: the spoke only uses it on first enrollment and reconnects
- * from the saved credential afterwards. A firecracker spoke also sets
- * KillMode=process so systemd signals only the spoke process on stop/restart,
- * leaving its microVMs running (they are rehydrated when the spoke respawns) —
+ * from the saved credential afterwards. The unit runs as root (the systemd system
+ * default) — required because a firecracker spoke launches every microVM through
+ * the jailer, which must chroot, create device nodes, and drop to a per-VM UID. A
+ * firecracker spoke also sets KillMode=process so systemd signals only the spoke
+ * process on stop/restart, leaving its jailed microVMs running (each is detached
+ * into its own session and jailer cgroup, and rehydrated when the spoke respawns) —
  * the default control-group kill would reap every VM, mirroring how Docker's own
  * daemon unit uses KillMode=process to keep containers alive across a restart. */
 export function systemdSetupScript(command: string): string {

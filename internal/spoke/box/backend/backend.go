@@ -79,6 +79,31 @@ type Options struct {
 	// across boxes (Firecracker only); it caps concurrent networked boxes. 0 uses
 	// the backend default.
 	PoolSize int
+
+	// The Jailer* fields configure the mandatory jailer launch path (Firecracker
+	// only). Every microVM is started through the jailer — chrooted, dropped to an
+	// unprivileged per-VM UID, and placed in a cgroup — so these tune that jail.
+	// Each is optional: an empty/zero value keeps a safe default.
+	//
+	// JailerBinary is the jailer executable (path or PATH name); empty uses "jailer".
+	JailerBinary string
+	// FirecrackerBinary is the firecracker executable the jailer exec-s (path or PATH
+	// name); empty uses "firecracker".
+	FirecrackerBinary string
+	// ChrootBase is the jailer chroot base directory; empty uses <state-dir>/chroot,
+	// kept on the same filesystem as each box's rootfs so the jailer can hard-link it.
+	ChrootBase string
+	// UIDMin and UIDMax bound the inclusive range unique per-VM UIDs are drawn from;
+	// a non-positive or inverted range keeps the default.
+	UIDMin int
+	UIDMax int
+	// TapGroupGID is the shared group every jailed VMM runs under and that owns the
+	// pooled TAP devices, so a jailed Firecracker can open its TAP without
+	// CAP_NET_ADMIN; 0 keeps the default.
+	TapGroupGID int
+	// CgroupVersion is the cgroup filesystem version ("1" or "2") the jailer places
+	// VMMs in; empty auto-detects.
+	CgroupVersion string
 }
 
 // Provisioner is a box.Provisioner that also releases backend resources on Close,

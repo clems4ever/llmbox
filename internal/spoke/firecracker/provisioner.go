@@ -17,7 +17,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -27,7 +26,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	fcsdk "github.com/firecracker-microvm/firecracker-go-sdk"
@@ -120,9 +118,17 @@ type Provisioner struct {
 	// disables the per-box box-port API listener entirely.
 	ports boxapi.PortService
 
+	// jailer holds the host-wide jailer launch settings. Every box is started
+	// through the jailer (chrooted, unprivileged per-VM UID); there is no direct
+	// launch path. checkJailerPrereqs validates the settings at startup.
+	jailer jailerConfig
+
 	mu    sync.Mutex
 	boxes map[string]*fcInstance
 	used  map[int]bool
+	// usedUIDs tracks the per-VM UIDs currently held by live boxes, so restart
+	// recovery never reuses a UID while its box still exists.
+	usedUIDs map[int]bool
 }
 
 // NewProvisioner builds a Firecracker provisioner. kernelImage and defaultRootfs
@@ -155,8 +161,10 @@ func NewProvisioner(kernelImage, defaultRootfs, stateDir string, ports boxapi.Po
 		netEnabled:     true,
 		poolSize:       defaultPoolSize,
 		ports:          ports,
+		jailer:         defaultJailerConfig(stateDir),
 		boxes:          map[string]*fcInstance{},
 		used:           map[int]bool{},
+		usedUIDs:       map[int]bool{},
 	}
 	p.newMachine = p.realMachineFactory
 	if err := p.rehydrate(); err != nil {
@@ -183,6 +191,84 @@ func (p *Provisioner) SetNetworking(enabled bool) { p.netEnabled = enabled }
 func (p *Provisioner) SetPoolSize(n int) {
 	if n > 0 {
 		p.poolSize = n
+	}
+}
+
+// SetJailerBinary overrides the jailer executable (path or PATH-resolved name). An
+// empty value keeps the default ("jailer" on PATH).
+//
+// @arg bin The jailer binary path or name; empty keeps the default.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the jailer binary override.
+func (p *Provisioner) SetJailerBinary(bin string) {
+	if bin != "" {
+		p.jailer.jailerBin = bin
+	}
+}
+
+// SetFirecrackerBinary overrides the firecracker executable the jailer exec-s. An
+// empty value keeps the default ("firecracker" on PATH). checkJailerPrereqs resolves
+// it to an absolute path (the jailer needs one).
+//
+// @arg bin The firecracker binary path or name; empty keeps the default.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the firecracker binary override.
+func (p *Provisioner) SetFirecrackerBinary(bin string) {
+	if bin != "" {
+		p.firecrackerBin = bin
+		p.jailer.execFile = bin
+	}
+}
+
+// SetChrootBase overrides the jailer chroot base directory. An empty value keeps the
+// default (<state-dir>/chroot), which sits on the same filesystem as each box's
+// rootfs copy so the jailer can hard-link it into the chroot.
+//
+// @arg dir The chroot base directory; empty keeps the default.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the chroot base override.
+func (p *Provisioner) SetChrootBase(dir string) {
+	if dir != "" {
+		p.jailer.chrootBase = dir
+	}
+}
+
+// SetUIDRange overrides the inclusive range unique per-VM UIDs are drawn from. A
+// non-positive or inverted range keeps the default.
+//
+// @arg min The lowest per-VM UID.
+// @arg max The highest per-VM UID.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the UID range override.
+func (p *Provisioner) SetUIDRange(min, max int) {
+	if min > 0 && max >= min {
+		p.jailer.uidMin = min
+		p.jailer.uidMax = max
+	}
+}
+
+// SetTapGroup overrides the shared GID every jailed VMM runs under and that owns the
+// pooled TAP devices, so a jailed Firecracker can open its TAP without
+// CAP_NET_ADMIN. A non-positive value keeps the default.
+//
+// @arg gid The shared fc-net GID; <= 0 keeps the default.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the tap-group override.
+func (p *Provisioner) SetTapGroup(gid int) {
+	if gid > 0 {
+		p.jailer.gid = gid
+	}
+}
+
+// SetCgroupVersion overrides the cgroup filesystem version ("1" or "2") the jailer
+// places VMMs in. An empty value keeps the auto-detected default.
+//
+// @arg v The cgroup version ("1" or "2"); empty keeps the detected default.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the cgroup version override.
+func (p *Provisioner) SetCgroupVersion(v string) {
+	if v != "" {
+		p.jailer.cgroupVersion = v
 	}
 }
 
@@ -213,6 +299,11 @@ func (p *Provisioner) EnsureNetwork(ctx context.Context) error {
 		return nil
 	}
 	p.poolOnce.Do(func() {
+		// Own the pooled TAPs by the shared fc-net group so each jailed, unprivileged
+		// VMM can attach to its assigned TAP without CAP_NET_ADMIN.
+		if he, ok := p.egress.(*hostEgress); ok {
+			he.tapGroup = p.jailer.gid
+		}
 		p.poolErr = p.egress.EnsurePool(ctx, p.poolSize)
 	})
 	return p.poolErr
@@ -234,31 +325,40 @@ func (p *Provisioner) SetPerBoxLimits(l sandbox.Limits) { p.limits = l }
 // @testcase TestProvisionerNamespaceScoping hides boxes of another namespace.
 func (p *Provisioner) SetNamespace(ns string) { p.namespace = ns }
 
-// realMachineFactory boots a real Firecracker VM for cfg via the go SDK, pointing
-// it at the configured firecracker binary and detaching the VMM so it outlives the
-// spoke.
+// realMachineFactory boots a real Firecracker VM for cfg via the go SDK, launched
+// through the jailer (cfg.JailerCfg, set by bootMachine). The jailer chroots the
+// VMM, drops it to its per-VM UID, and — because JailerCfg.Daemonize is set —
+// setsid()s it into its own session, detaching it from the spoke so it outlives a
+// spoke restart (a restart then rehydrates the still-running VMM). There is no
+// direct-launch path.
 //
 // @arg _ The request context, deliberately ignored; the VM must outlive both the request and the provisioner.
-// @arg cfg The Firecracker machine configuration.
+// @arg cfg The Firecracker machine configuration, including its JailerCfg.
 // @return machine The started-able machine handle.
 // @error error if the machine cannot be constructed.
 //
 // @testcase TestConformanceFirecracker boots real VMs through this factory.
 // @testcase TestVMSurvivesRequestContextCancel checks the VM outlives the create request's context.
 func (p *Provisioner) realMachineFactory(_ context.Context, cfg fcsdk.Config) (machine, error) {
-	// Launch on context.Background(), NOT the request context and NOT a
-	// provisioner-lifetime context: the microVM must outlive both the create request
-	// AND the provisioner itself, exactly like a Docker container outlives the spoke.
-	// exec.CommandContext kills the firecracker process when its context is done, so
-	// any cancellable context here would reap the VM on spoke shutdown; a restart then
-	// rehydrates the still-running VMM instead. Setpgid puts the VMM in its own process
-	// group so a terminal SIGINT to the spoke's group never reaches it (cfg clears the
-	// SDK's default signal forwarding for the same reason). StopVMM (Destroy) and an
-	// operator `vm destroy` are the only things that stop it.
+	// The jailer chroots Firecracker, so its API and vsock socket paths must be
+	// relative to the chroot root. bootMachine set them to the host-visible absolute
+	// paths (which resolve to <chroot>/root/<name>, the same location) so a test's
+	// fake machine and the host control plane share one path; translate them back to
+	// basenames here — the one place that actually drives the SDK's jailer. The SDK's
+	// jail() then rewrites cfg.SocketPath to the host-visible chroot path the client
+	// dials, keeping both views in agreement.
+	cfg.SocketPath = filepath.Base(cfg.SocketPath)
+	for i := range cfg.VsockDevices {
+		cfg.VsockDevices[i].Path = filepath.Base(cfg.VsockDevices[i].Path)
+	}
+	// Construct on context.Background(), NOT the request or a provisioner-lifetime
+	// context: the microVM must outlive both the create request AND the provisioner
+	// itself, like a Docker container outlives the spoke. A cancellable context would
+	// reap the VM on spoke shutdown; a restart rehydrates the still-running VMM
+	// instead. Daemonize (setsid) plus the empty ForwardSignals slice keep the
+	// spoke's own shutdown signals from reaching the VMM.
 	logger := logrus.NewEntry(logrus.New())
-	cmd := fcsdk.VMCommandBuilder{}.WithSocketPath(cfg.SocketPath).WithBin(p.firecrackerBin).Build(context.Background())
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	return fcsdk.NewMachine(context.Background(), cfg, fcsdk.WithProcessRunner(cmd), fcsdk.WithLogger(logger))
+	return fcsdk.NewMachine(context.Background(), cfg, fcsdk.WithLogger(logger))
 }
 
 // Provision boots a new microVM box: it copies the rootfs, grows the copy to the
@@ -304,18 +404,35 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		p.mu.Unlock()
 		return nil, fmt.Errorf("no free box slot (max %d concurrent microVM boxes)", p.poolSize)
 	}
+	uid, uidOK := p.allocUIDLocked()
+	if !uidOK {
+		delete(p.used, index)
+		p.mu.Unlock()
+		return nil, fmt.Errorf("no free per-VM UID in range [%d,%d]", p.jailer.uidMin, p.jailer.uidMax)
+	}
 	p.mu.Unlock()
 
 	dir := boxDir(p.stateDir, token)
 	n := netFor(index)
-	vsockUDS := filepath.Join(dir, "vsock.sock")
 	perBoxRootfs := filepath.Join(dir, "rootfs.ext4")
 
-	// freeSlot returns the box's pooled network slot; the pooled TAP itself stays up
-	// for reuse and is never torn down per box.
+	// The box's persisted identity, built before boot so bootMachine can derive the
+	// jailer config and the host-visible (chrooted) socket paths from it, and so a
+	// crash mid-boot still leaves a UID/slot that recovery can reclaim.
+	meta := boxMeta{
+		Token: token, BoxID: opts.BoxID, Description: opts.Description,
+		Image: rootfsSrc, Phase: "pending", Created: time.Now().Unix(),
+		NetIndex: index, Namespace: p.namespace,
+		UID: uid, GID: p.jailer.gid,
+		ChrootBase: p.jailer.chrootBase, ExecBase: p.jailer.execBase(),
+	}
+
+	// freeSlot returns the box's pooled network slot and its per-VM UID; the pooled
+	// TAP itself stays up for reuse and is never torn down per box.
 	freeSlot := func() {
 		p.mu.Lock()
 		delete(p.used, index)
+		delete(p.usedUIDs, uid)
 		p.mu.Unlock()
 	}
 
@@ -342,6 +459,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	// grows the ext4 to fill it. Shipping a small base image and growing here keeps
 	// release artifacts and the per-box copy small instead of carrying empty space.
 	diskBytes := p.diskBytesFor(opts.DiskBytes, baseInfo.Size())
+	meta.DiskBytes = diskBytes
 	if diskBytes > baseInfo.Size() {
 		if err := os.Truncate(perBoxRootfs, diskBytes); err != nil {
 			_ = os.RemoveAll(dir)
@@ -349,29 +467,35 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 			return nil, fmt.Errorf("resizing rootfs to %d bytes: %w", diskBytes, err)
 		}
 	}
+	// Hand the writable rootfs to the box's unprivileged UID (the jailer hard-links it
+	// into the chroot, sharing this inode, so the jailed VMM can open it read-write).
+	// Mode stays 0600 so no other box's UID can read it. A no-op when unprivileged
+	// (jailing needs root, validated at startup); best-effort otherwise.
+	if err := chownForBox(perBoxRootfs, uid, p.jailer.gid); err != nil {
+		_ = os.RemoveAll(dir)
+		freeSlot()
+		return nil, fmt.Errorf("assigning rootfs ownership: %w", err)
+	}
 
-	m, api, err := p.bootMachine(ctx, token, opts.BoxID, index)
+	m, api, err := p.bootMachine(ctx, meta)
 	if err != nil {
 		_ = os.RemoveAll(dir)
+		_ = os.RemoveAll(meta.chrootInstanceDir())
 		freeSlot()
 		return nil, err
 	}
 
-	meta := boxMeta{
-		Token: token, BoxID: opts.BoxID, Description: opts.Description,
-		Image: rootfsSrc, Phase: "pending", Created: time.Now().Unix(),
-		NetIndex: index, Namespace: p.namespace, DiskBytes: diskBytes,
-	}
 	if err := meta.save(p.stateDir); err != nil {
 		_ = m.StopVMM()
 		if api != nil {
 			_ = api.Close()
 		}
 		_ = os.RemoveAll(dir)
+		_ = os.RemoveAll(meta.chrootInstanceDir())
 		freeSlot()
 		return nil, fmt.Errorf("saving box meta: %w", err)
 	}
-	inst := &fcInstance{prov: p, meta: meta, vsockUDS: vsockUDS, net: n, machine: m, api: api}
+	inst := &fcInstance{prov: p, meta: meta, vsockUDS: meta.vsockUDSPath(p.stateDir), net: n, machine: m, api: api}
 
 	p.mu.Lock()
 	p.boxes[token] = inst
@@ -379,58 +503,51 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	return inst, nil
 }
 
-// bootMachine boots the microVM for a box from its on-disk rootfs and waits for the
-// guest to answer on vsock. Provision calls it for a fresh box and Resume calls it
-// to bring a paused box's compute back up; both reuse the box's existing state dir,
-// per-box rootfs, and pooled network slot (index), so a resumed box keeps the same
-// IP/MAC and never churns a host interface. It pre-listens the box-port API socket
-// (which Firecracker dials as the guest connects) and, on any failure, stops the VM
-// and closes that listener so it never leaks a half-booted machine. Stale host
-// sockets from a previous boot are removed first so the (re)boot can bind them.
+// bootMachine boots the jailed microVM for a box from its on-disk rootfs and waits
+// for the guest to answer on vsock. Provision calls it for a fresh box and Resume
+// calls it to bring a paused box's compute back up; both reuse the box's existing
+// state dir, per-box rootfs, pooled network slot, and per-VM UID, so a resumed box
+// keeps the same identity and never churns a host interface. The VMM is launched
+// through the jailer (see realMachineFactory), so its API and vsock sockets live in
+// its chroot; the box-port listener is created there AFTER the jailer builds the
+// chroot (the guest only dials it well after boot). On any failure it stops the VM
+// and closes that listener so it never leaks a half-booted machine. A resumed box's
+// stale chroot is removed first (the jailer refuses to reuse an existing chroot).
 //
 // @arg ctx Context bounding the guest wait (the VM itself runs on the provisioner lifetime context).
-// @arg token The box's generation token, naming its state dir.
-// @arg boxID The box's caller-assigned id, used to scope its box-port API listener.
-// @arg index The box's pooled network slot, giving its stable TAP/IP/MAC.
+// @arg meta The box's persisted identity: token, box id, network slot, UID/GID, and chroot location.
 // @return machine The started microVM handle.
 // @return *boxapi.Server The box-port API listener, or nil when the provisioner has no port service.
-// @error error if the box-port API cannot be served, or the VM cannot be created, started, or reached over vsock.
+// @error error if the chroot cannot be cleared, the box-port API cannot be served, or the VM cannot be created, started, or reached over vsock.
 //
 // @testcase TestConformanceFirecracker boots every box through bootMachine.
-func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, index int) (machine, *boxapi.Server, error) {
-	dir := boxDir(p.stateDir, token)
-	n := netFor(index)
-	vsockUDS := filepath.Join(dir, "vsock.sock")
-	apiSock := filepath.Join(dir, "fc.sock")
+func (p *Provisioner) bootMachine(ctx context.Context, meta boxMeta) (machine, *boxapi.Server, error) {
+	dir := boxDir(p.stateDir, meta.Token)
+	n := netFor(meta.NetIndex)
+	vsockUDS := meta.vsockUDSPath(p.stateDir)
+	apiSock := meta.apiSockPath(p.stateDir)
 	perBoxRootfs := filepath.Join(dir, "rootfs.ext4")
 
-	// A resumed box's dir still holds the previous boot's host sockets; remove them
-	// so Firecracker (and the box-port listener) can bind fresh ones. Absent files
-	// (a first Provision) are not an error.
-	for _, s := range []string{apiSock, vsockUDS, boxAPISocketPath(vsockUDS)} {
-		if err := os.Remove(s); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, nil, fmt.Errorf("clearing stale socket %s: %w", s, err)
+	// The jailer creates the chroot fresh and refuses to launch into one that already
+	// exists, so a resumed box's previous chroot (holding the old sockets) must go
+	// first. The per-box rootfs lives in the state dir, not the chroot, so this never
+	// touches the box's disk. A first Provision has no chroot yet — a harmless no-op.
+	if chroot := meta.chrootInstanceDir(); chroot != "" {
+		if err := os.RemoveAll(chroot); err != nil {
+			return nil, nil, fmt.Errorf("clearing stale chroot %s: %w", chroot, err)
 		}
 	}
 
-	// Pre-listen for the guest's box-port API connections BEFORE the VM boots:
-	// Firecracker dials this host socket the moment the guest connects to CID 2
-	// on boxAPIVsockPort, so it must already exist. The listener is bound to
-	// this one VM's identity — the spoke-side enforcement that a box can only
-	// publish its own ports.
-	var api *boxapi.Server
-	if p.ports != nil {
-		var err error
-		if api, err = boxapi.ServeUnix(boxAPISocketPath(vsockUDS), boxID, p.ports, p.log); err != nil {
-			return nil, nil, fmt.Errorf("serving box-port API: %w", err)
-		}
-	}
-	bootCleanup := func(m machine) {
+	bootCleanup := func(m machine, api *boxapi.Server) {
 		if m != nil {
 			_ = m.StopVMM()
 		}
 		if api != nil {
 			_ = api.Close()
+		}
+		// Drop the chroot the jailer built, so a failed boot leaks no jail state.
+		if chroot := meta.chrootInstanceDir(); chroot != "" {
+			_ = os.RemoveAll(chroot)
 		}
 	}
 
@@ -448,7 +565,7 @@ func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, inde
 	// is configured, it rides along as a second, read-only drive (/dev/vdb) shared
 	// unchanged across every box — never copied — which is what lets the guest be
 	// swapped without rebuilding the base rootfs and keeps concurrent boxes sharing
-	// one on-disk payload.
+	// one on-disk payload. The jailer hard-links both into the box's chroot.
 	drives := []models.Drive{{
 		DriveID:      fcsdk.String("rootfs"),
 		PathOnHost:   fcsdk.String(perBoxRootfs),
@@ -465,6 +582,9 @@ func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, inde
 	}
 
 	cfg := fcsdk.Config{
+		// Host-visible socket paths: bootMachine sets them to where the sockets end up
+		// on the host (inside the chroot); realMachineFactory translates them to the
+		// chroot-relative paths the jailer expects before invoking the SDK.
 		SocketPath:      apiSock,
 		KernelImagePath: p.kernelImage,
 		KernelArgs:      kernelArgs,
@@ -475,6 +595,10 @@ func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, inde
 			Smt:        fcsdk.Bool(false),
 		},
 		VsockDevices: []fcsdk.VsockDevice{{ID: "vsock0", CID: 3, Path: vsockUDS}},
+		// Every VMM is launched jailed: chrooted, dropped to the box's unprivileged
+		// UID, and — via Daemonize — setsid()'d into its own session so it survives a
+		// spoke restart. The naive chroot strategy hard-links the kernel and drives in.
+		JailerCfg: p.jailer.jailerCfgFor(meta.UID, meta.Token, p.kernelImage),
 		// Clear the SDK's default signal forwarding (SIGINT/SIGTERM/SIGQUIT/…): the
 		// spoke's own shutdown signal must NOT be relayed to the VMM, so the box
 		// survives a spoke restart and is rehydrated. An empty non-nil slice disables
@@ -484,7 +608,7 @@ func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, inde
 	if p.netEnabled {
 		cfg.NetworkInterfaces = fcsdk.NetworkInterfaces{{
 			StaticConfiguration: &fcsdk.StaticNetworkConfiguration{
-				MacAddress:  macForIndex(index),
+				MacAddress:  macForIndex(meta.NetIndex),
 				HostDevName: n.TapName,
 			},
 		}}
@@ -492,7 +616,7 @@ func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, inde
 
 	m, err := p.newMachine(ctx, cfg)
 	if err != nil {
-		bootCleanup(nil)
+		bootCleanup(nil, nil)
 		return nil, nil, fmt.Errorf("creating microVM: %w", err)
 	}
 	// Start on context.Background(), not the request context and not a
@@ -501,11 +625,32 @@ func (p *Provisioner) bootMachine(ctx context.Context, token, boxID string, inde
 	// create return, or on spoke shutdown). The box must outlive the spoke and be
 	// rehydrated on restart. The guest wait below still honours the request context.
 	if err := m.Start(context.Background()); err != nil {
-		bootCleanup(m)
+		bootCleanup(m, nil)
 		return nil, nil, fmt.Errorf("starting microVM: %w", err)
 	}
+
+	// Serve the guest's box-port API AFTER the jailer built the chroot (its parent
+	// directory did not exist until now). Firecracker dials this host socket, at
+	// "<vsock_uds>_<port>" inside the chroot, when the guest connects to CID 2 on
+	// boxAPIVsockPort — which only happens well after boot — so serving it here is not
+	// racy. The listener is bound to this one VM's identity (the spoke-side
+	// enforcement that a box can only publish its own ports) and the socket is handed
+	// to the box's UID/GID so the jailed VMM can connect to it.
+	var api *boxapi.Server
+	if p.ports != nil {
+		boxAPISock := boxAPISocketPath(vsockUDS)
+		if api, err = boxapi.ServeUnix(boxAPISock, meta.BoxID, p.ports, p.log); err != nil {
+			bootCleanup(m, nil)
+			return nil, nil, fmt.Errorf("serving box-port API: %w", err)
+		}
+		if err := chownForBox(boxAPISock, meta.UID, meta.GID); err != nil {
+			bootCleanup(m, api)
+			return nil, nil, fmt.Errorf("assigning box-port API socket ownership: %w", err)
+		}
+	}
+
 	if err := waitForGuest(ctx, vsockUDS, guestVsockPort, bootWait); err != nil {
-		bootCleanup(m)
+		bootCleanup(m, api)
 		return nil, nil, fmt.Errorf("waiting for box guest: %w", err)
 	}
 	return m, api, nil
@@ -600,6 +745,46 @@ func (p *Provisioner) allocIndexLocked() (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+// allocUIDLocked reserves the lowest free per-VM UID in the configured range, so
+// each live box's jailed VMM runs under a distinct unprivileged identity and no two
+// boxes share a chroot/rootfs owner. The caller must hold p.mu.
+//
+// @return int The reserved UID.
+// @return bool False when every UID in the range is in use.
+//
+// @testcase TestProvisionerBookkeeping allocates and frees per-VM UIDs across boxes.
+func (p *Provisioner) allocUIDLocked() (int, bool) {
+	for uid := p.jailer.uidMin; uid <= p.jailer.uidMax; uid++ {
+		if !p.usedUIDs[uid] {
+			p.usedUIDs[uid] = true
+			return uid, true
+		}
+	}
+	return 0, false
+}
+
+// chownForBox gives a staged file or socket to a box's unprivileged jailer identity
+// so the jailed VMM (running as uid:gid) can use it, while another box's UID cannot.
+// It is a no-op when the spoke is not root — jailing requires root (validated at
+// startup by checkJailerPrereqs), so this only skips in unprivileged unit tests,
+// never in production.
+//
+// @arg path The staged file or socket to hand to the box.
+// @arg uid The box's unprivileged UID.
+// @arg gid The shared fc-net GID.
+// @error error if the chown fails while running as root.
+//
+// @testcase TestChownForBoxSkipsUnprivileged is a no-op when not root.
+func chownForBox(path string, uid, gid int) error {
+	if os.Geteuid() != 0 {
+		return nil
+	}
+	if err := os.Chown(path, uid, gid); err != nil {
+		return fmt.Errorf("chown %s to %d:%d: %w", path, uid, gid, err)
+	}
+	return nil
 }
 
 // diskBytesFor resolves the size a box's writable rootfs is grown to, from the
@@ -843,7 +1028,7 @@ func (i *fcInstance) Pause(ctx context.Context) error {
 	case i.machine != nil:
 		_ = i.machine.StopVMM()
 	case i.alive:
-		if err := haltVMM(filepath.Join(boxDir(p.stateDir, i.meta.Token), "fc.sock")); err != nil {
+		if err := haltVMM(i.meta.apiSockPath(p.stateDir)); err != nil {
 			p.log.Warn("failed to halt box VMM on pause", "box", i.meta.Token, "err", err)
 		}
 	}
@@ -882,7 +1067,7 @@ func (i *fcInstance) Resume(ctx context.Context) error {
 	if !present {
 		return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.meta.Token)
 	}
-	m, api, err := p.bootMachine(ctx, i.meta.Token, i.meta.BoxID, i.meta.NetIndex)
+	m, api, err := p.bootMachine(ctx, i.meta)
 	if err != nil {
 		return fmt.Errorf("resuming box %s: %w", i.meta.Token, err)
 	}
@@ -899,12 +1084,12 @@ func (i *fcInstance) Resume(ctx context.Context) error {
 	return nil
 }
 
-// Destroy stops the box's VM, stops its box-port API listener, removes its
-// state directory, and frees its pool slot (the pooled TAP stays up for
-// reuse). A rehydrated box whose VMM survived as an orphan (no machine handle)
-// is halted best-effort over its API socket, so the rootfs is not deleted
-// under a running VM. Destroying an already-gone box returns a wrapped
-// sandbox.ErrBoxNotFound.
+// Destroy stops the box's VM, stops its box-port API listener, removes its state
+// directory and jailer chroot, and frees its pool slot and per-VM UID (the pooled
+// TAP stays up for reuse). A rehydrated box whose VMM survived as an orphan (no
+// machine handle) is halted best-effort over its host-visible API socket, so the
+// rootfs is not deleted under a running VM. Destroying an already-gone box returns a
+// wrapped sandbox.ErrBoxNotFound.
 //
 // @arg ctx Unused; present to satisfy the interface.
 // @error error wrapping sandbox.ErrBoxNotFound if the box is already gone.
@@ -918,6 +1103,7 @@ func (i *fcInstance) Destroy(ctx context.Context) error {
 	_, present := p.boxes[i.meta.Token]
 	delete(p.boxes, i.meta.Token)
 	delete(p.used, i.meta.NetIndex)
+	delete(p.usedUIDs, i.meta.UID)
 	p.mu.Unlock()
 
 	if i.api != nil {
@@ -928,12 +1114,15 @@ func (i *fcInstance) Destroy(ctx context.Context) error {
 		_ = i.machine.StopVMM()
 	case i.alive:
 		// A rehydrated orphan VMM: no SDK handle to stop it with, so ask it to
-		// shut down over its API socket before its rootfs is removed.
-		if err := haltVMM(filepath.Join(boxDir(p.stateDir, i.meta.Token), "fc.sock")); err != nil {
+		// shut down over its (chrooted) API socket before its rootfs is removed.
+		if err := haltVMM(i.meta.apiSockPath(p.stateDir)); err != nil {
 			p.log.Warn("failed to halt orphaned box VMM", "box", i.meta.Token, "err", err)
 		}
 	}
 	_ = os.RemoveAll(boxDir(p.stateDir, i.meta.Token))
+	if chroot := i.meta.chrootInstanceDir(); chroot != "" {
+		_ = os.RemoveAll(chroot)
+	}
 
 	if !present {
 		return fmt.Errorf("%w %q", sandbox.ErrBoxNotFound, i.meta.Token)
