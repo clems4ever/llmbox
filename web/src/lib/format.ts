@@ -89,3 +89,36 @@ export function stateTone(state?: string): StateTone {
 export function lastSeenAt(lastSeen?: number): string {
   return createdAt(lastSeen ?? 0);
 }
+
+/** formatBytes renders a byte count as a short human string (B/kB/MB/GB/TB,
+ * base-1000), e.g. 1420 -> "1.4 kB". It is used by the network-audit table to
+ * keep per-flow byte totals compact.
+ *
+ * @arg n A non-negative byte count.
+ * @return string The compact human-readable size.
+ */
+export function formatBytes(n: number): string {
+  if (!n || n < 0) return "0 B";
+  const units = ["B", "kB", "MB", "GB", "TB"];
+  let i = 0;
+  let v = n;
+  while (v >= 1000 && i < units.length - 1) {
+    v /= 1000;
+    i += 1;
+  }
+  // Whole bytes show no decimal; larger units show one.
+  return `${i === 0 ? v : v.toFixed(1)} ${units[i]}`;
+}
+
+/** clockTime renders a Unix-seconds timestamp as a local "HH:MM:SS" clock, or ""
+ * when unset — the compact "when" the live network-audit table shows per flow.
+ *
+ * @arg secs A Unix timestamp in seconds (0/undefined when unknown).
+ * @return string The "HH:MM:SS" local time, or "" when unknown.
+ */
+export function clockTime(secs?: number): string {
+  if (!secs) return "";
+  const d = new Date(secs * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}

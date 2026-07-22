@@ -57,6 +57,12 @@ func (p *Provisioner) rehydrate() error {
 		p.boxes[m.Token] = inst
 		p.used[m.NetIndex] = true
 		p.mu.Unlock()
+		// Re-attribute the rehydrated box's egress to it, so audit survives a spoke
+		// restart just as the box itself does. (Its flow history does not persist —
+		// only the mapping — so the audit view fills again from live traffic.)
+		if p.netEnabled && p.recorder != nil && m.BoxID != "" {
+			p.recorder.Register(m.BoxID, netFor(m.NetIndex).GuestIP)
+		}
 		p.log.Info("rehydrated firecracker box", "box", m.Token, "box_id", m.BoxID, "alive", inst.alive)
 	}
 	return nil

@@ -82,6 +82,10 @@ func NewHandler(b Backend) http.Handler {
 		res, err := b.BoxExec(ctx, req.BoxID, req.Command)
 		return boxExecResponse{Result: res}, err
 	}))
+	mux.Handle("POST "+PathBoxNetwork, jsonHandler(func(ctx context.Context, req boxNetworkRequest) (boxNetworkResponse, error) {
+		flows, err := b.BoxNetwork(ctx, req.BoxID)
+		return boxNetworkResponse{Flows: flows}, err
+	}))
 	mux.Handle("POST "+PathProxyEnabled, jsonHandler(func(_ context.Context, _ struct{}) (proxyEnabledResponse, error) {
 		return proxyEnabledResponse{Enabled: b.ProxyEnabled()}, nil
 	}))

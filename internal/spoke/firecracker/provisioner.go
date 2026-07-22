@@ -37,6 +37,7 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/internal/spoke/boxapi"
+	"github.com/clems4ever/llmbox/internal/spoke/netaudit"
 )
 
 const (
@@ -116,6 +117,16 @@ type Provisioner struct {
 	poolOnce sync.Once
 	poolErr  error
 
+	// recorder audits each box's outbound flows from the host conntrack table,
+	// attributed by the box's pooled guest IP. netSource feeds it; collectorOnce
+	// starts that feed once (alongside the TAP pool) and collectorCancel stops it on
+	// Close. It only records when egress is enabled — a control-only box has no
+	// outbound traffic to audit.
+	recorder        *netaudit.Recorder
+	netSource       netaudit.Source
+	collectorOnce   sync.Once
+	collectorCancel context.CancelFunc
+
 	// ports serves box-originated port-publishing requests toward the hub; nil
 	// disables the per-box box-port API listener entirely.
 	ports boxapi.PortService
@@ -154,6 +165,8 @@ func NewProvisioner(kernelImage, defaultRootfs, stateDir string, ports boxapi.Po
 		log:            slog.Default(),
 		netEnabled:     true,
 		poolSize:       defaultPoolSize,
+		recorder:       netaudit.NewRecorder(0),
+		netSource:      netaudit.NewConntrackSource(),
 		ports:          ports,
 		boxes:          map[string]*fcInstance{},
 		used:           map[int]bool{},
@@ -215,7 +228,26 @@ func (p *Provisioner) EnsureNetwork(ctx context.Context) error {
 	p.poolOnce.Do(func() {
 		p.poolErr = p.egress.EnsurePool(ctx, p.poolSize)
 	})
+	if p.poolErr == nil {
+		p.startCollector()
+	}
 	return p.poolErr
+}
+
+// startCollector launches the conntrack flow feed once, on a background context
+// owned by the provisioner (cancelled by Close). It runs for the provisioner's
+// lifetime like the TAP pool, so flows are audited across box create/destroy. A
+// missing conntrack binary or privilege makes the feed idle harmlessly, leaving
+// the audit view empty rather than failing box creation.
+func (p *Provisioner) startCollector() {
+	if p.recorder == nil || p.netSource == nil {
+		return
+	}
+	p.collectorOnce.Do(func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		p.collectorCancel = cancel
+		go func() { _ = p.netSource.Run(ctx, p.recorder.Record) }()
+	})
 }
 
 // SetPerBoxLimits sets the per-box CPU/memory caps applied at boot. The MaxBoxes
@@ -376,6 +408,11 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	p.mu.Lock()
 	p.boxes[token] = inst
 	p.mu.Unlock()
+	// Attribute this box's egress flows to it by its guest IP. Only meaningful with
+	// egress enabled; a control-only box has no outbound traffic to audit.
+	if p.netEnabled && p.recorder != nil && opts.BoxID != "" {
+		p.recorder.Register(opts.BoxID, n.GuestIP)
+	}
 	return inst, nil
 }
 
@@ -582,6 +619,11 @@ func (p *Provisioner) Close() error {
 			_ = inst.api.Close()
 		}
 	}
+	// Stop the conntrack feed (the recorder is in-memory and needs no teardown). The
+	// egress TAP pool is deliberately left up for surviving VMs.
+	if p.collectorCancel != nil {
+		p.collectorCancel()
+	}
 	return nil
 }
 
@@ -763,6 +805,23 @@ type fcInstance struct {
 	alive bool
 }
 
+// NetworkFlows returns this box's audited outbound flow metadata from the
+// provisioner's recorder, keyed by the box's caller-assigned ID. It satisfies the
+// optional box.NetworkAuditor capability; a box with no recorded traffic (or a
+// spoke without a recorder) yields no flows.
+//
+// @arg _ Context (unused; the lookup is in-memory).
+// @return []sandbox.NetworkFlow The box's flows, newest first (nil if none).
+// @error error is always nil.
+//
+// @testcase TestFirecrackerNetworkFlows returns the recorded flows for a box.
+func (i *fcInstance) NetworkFlows(_ context.Context) ([]sandbox.NetworkFlow, error) {
+	if i.prov == nil || i.prov.recorder == nil {
+		return nil, nil
+	}
+	return i.prov.recorder.Flows(i.meta.BoxID), nil
+}
+
 // Meta returns the box's neutral view. A box with a live machine handle is
 // running, as is a rehydrated box whose orphaned VMM answered the aliveness
 // probe; anything else is reported stopped.
@@ -919,6 +978,9 @@ func (i *fcInstance) Destroy(ctx context.Context) error {
 	delete(p.boxes, i.meta.Token)
 	delete(p.used, i.meta.NetIndex)
 	p.mu.Unlock()
+	if p.recorder != nil && i.meta.BoxID != "" {
+		p.recorder.Unregister(i.meta.BoxID)
+	}
 
 	if i.api != nil {
 		_ = i.api.Close()

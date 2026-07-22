@@ -10,7 +10,7 @@ import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import { vi } from "vitest";
 import { theme } from "../theme";
-import type { Api, BoxView, JoinTokenInfo, ProxyInfo, SpokeStatus } from "../api";
+import type { Api, BoxView, JoinTokenInfo, NetworkFlow, ProxyInfo, SpokeStatus } from "../api";
 import type { DashboardData } from "../lib/data";
 
 /** render wraps a component in the app's provider stack, so specs exercise it
@@ -52,6 +52,7 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
     resumeBox: vi.fn().mockResolvedValue({}),
     createProxy: vi.fn().mockResolvedValue({ box_id: "box-1", port: 8000, url: "https://p", slug: "s" }),
     deleteProxy: vi.fn().mockResolvedValue({}),
+    boxNetwork: vi.fn().mockResolvedValue([]),
     logout: vi.fn().mockResolvedValue({}),
   };
   return { ...base, ...overrides } as unknown as Api;
@@ -94,6 +95,22 @@ export function token(overrides: Partial<JoinTokenInfo> = {}): JoinTokenInfo {
 /** proxy builds a ProxyInfo with defaults. */
 export function proxy(overrides: Partial<ProxyInfo> = {}): ProxyInfo {
   return { box_id: "box-1", port: 8000, url: "https://box-1.hub/", slug: "box-1-8000", ...overrides };
+}
+
+/** flow builds a NetworkFlow with sensible defaults, overridable per field. */
+export function flow(overrides: Partial<NetworkFlow> = {}): NetworkFlow {
+  return {
+    proto: "tcp",
+    dst_ip: "140.82.121.4",
+    dst_port: 443,
+    src_port: 51000,
+    bytes_out: 1420,
+    bytes_in: 5300,
+    state: "ESTABLISHED",
+    first_seen: 1_700_000_000,
+    last_seen: 1_700_000_050,
+    ...overrides,
+  };
 }
 
 /** dashboardData assembles a DashboardData from the pieces, defaulting each to

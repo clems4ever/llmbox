@@ -30,6 +30,7 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 		JoinTokens:        []api.JoinTokenInfo{{ID: "tid", Name: "edge", ExpiresAt: time.Now().Add(time.Hour)}},
 		RegenTokenResult:  api.SpokeEnrollment{Name: "edge", Token: "tok-2", Command: "llmbox-spoke docker --hub wss://x --token tok-2"},
 		ExecResult:        sandbox.ExecResult{Stdout: "out", Stderr: "err", ExitCode: 7},
+		Flows:             []sandbox.NetworkFlow{{Proto: "tcp", DstIP: "1.1.1.1", DstPort: 443, BytesOut: 10, BytesIn: 20}},
 		ProxyOn:           true,
 		CreateProxyResult: api.ProxyInfo{BoxID: "web", Port: 8000, URL: "https://slug.example.com", Slug: "slug", Description: "app"},
 		Proxies:           []api.ProxyInfo{{BoxID: "b1", Port: 8000}},
@@ -111,6 +112,11 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	res, err := c.BoxExec(ctx, "web", "ls -la")
 	if err != nil || res.ExitCode != 7 || res.Stdout != "out" || fb.GotExecCmd != "ls -la" {
 		t.Fatalf("BoxExec = %+v err=%v cmd=%q", res, err, fb.GotExecCmd)
+	}
+
+	flows, err := c.BoxNetwork(ctx, "web")
+	if err != nil || len(flows) != 1 || flows[0].DstIP != "1.1.1.1" || flows[0].BytesIn != 20 || fb.GotNetworkID != "web" {
+		t.Fatalf("BoxNetwork = %+v err=%v id=%q", flows, err, fb.GotNetworkID)
 	}
 
 	if !c.ProxyEnabled() {

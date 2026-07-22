@@ -3,10 +3,11 @@
 // the box's metadata and, when the hub has the proxy feature enabled, the list
 // of proxies fronting this box with controls to add and remove them. It renders
 // as a right-hand drawer driven by the selected box (null = closed).
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActionIcon,
   Anchor,
+  Badge,
   Box,
   Button,
   Code,
@@ -14,6 +15,7 @@ import {
   Divider,
   Drawer,
   Group,
+  Loader,
   Paper,
   SimpleGrid,
   Stack,
@@ -24,8 +26,8 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { IconCheck, IconCopy, IconPlus, IconTrash } from "@tabler/icons-react";
-import type { Api, BoxView, ProxyInfo } from "../api";
-import { boxId, createdAt } from "../lib/format";
+import type { Api, BoxView, NetworkFlow, ProxyInfo } from "../api";
+import { boxId, clockTime, createdAt, formatBytes } from "../lib/format";
 import { perform } from "../lib/actions";
 import { confirmDestroy } from "../lib/confirm";
 import { StatusBadge } from "./StatusBadge";
@@ -79,6 +81,8 @@ export function WorkspaceDetailsDrawer({
               HTTP proxies.
             </Text>
           )}
+          <Divider />
+          <NetworkSection api={api} boxId={id} />
         </Stack>
       )}
     </Drawer>
@@ -126,6 +130,129 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
       <Text size="sm" className={mono ? "mono-wrap" : undefined}>{value}</Text>
     </Box>
   );
+}
+
+/** networkRefreshMs is how often the network-audit table re-polls the box's flows
+ * while the drawer is open, giving the view a live feel without hammering the hub. */
+const networkRefreshMs = 3000;
+
+/** NetworkSection shows a live, per-box audit of the box's outbound network flows
+ * — which destinations it connected out to and how much data moved — built from
+ * the host's connection-tracking metadata (never packet payloads). It polls the
+ * box-network endpoint while the drawer is open and stops when it closes. An
+ * unaudited box (no egress, or a spoke that cannot read conntrack) simply shows an
+ * empty table. */
+function NetworkSection({ api, boxId }: { api: Api; boxId: string }): JSX.Element {
+  const [flows, setFlows] = useState<NetworkFlow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  // Keep the latest box id in a ref so a slow in-flight fetch that resolves after
+  // the drawer switched boxes does not write another box's flows into this view.
+  const currentBox = useRef(boxId);
+  currentBox.current = boxId;
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const f = await api.boxNetwork(boxId);
+        if (active && currentBox.current === boxId) {
+          setFlows(f);
+          setError(null);
+        }
+      } catch (e) {
+        if (active && currentBox.current === boxId) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
+      }
+    };
+    setFlows(null);
+    setError(null);
+    void load();
+    const timer = setInterval(load, networkRefreshMs);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [api, boxId]);
+
+  return (
+    <Stack gap="sm" id="network-section">
+      <Box>
+        <Group gap="xs" align="center">
+          <Title order={4}>Network activity</Title>
+          {flows !== null && (
+            <Badge variant="light" color="gray" size="sm" data-network-count>
+              {flows.length} {flows.length === 1 ? "flow" : "flows"}
+            </Badge>
+          )}
+        </Group>
+        <Text c="dimmed" size="sm">
+          Audited outbound connections this workspace made — destinations and byte
+          counts from the host's connection tracker, not packet contents. Updates live.
+        </Text>
+      </Box>
+
+      {error ? (
+        <Text c="red" size="sm" data-network-error>
+          Could not load network activity: {error}
+        </Text>
+      ) : flows === null ? (
+        <Group gap="xs" c="dimmed">
+          <Loader size="xs" />
+          <Text size="sm">Loading network activity…</Text>
+        </Group>
+      ) : flows.length === 0 ? (
+        <Text c="dimmed" size="sm">
+          No outbound connections recorded for this workspace yet.
+        </Text>
+      ) : (
+        <Paper withBorder radius="md">
+          <Table verticalSpacing="sm" horizontalSpacing="md" data-network-table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>When</Table.Th>
+                <Table.Th>Destination</Table.Th>
+                <Table.Th>Proto</Table.Th>
+                <Table.Th ta="right">Out</Table.Th>
+                <Table.Th ta="right">In</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {flows.map((f) => (
+                <Table.Tr key={flowKey(f)} data-network-row={flowKey(f)}>
+                  <Table.Td className="mono-wrap">{clockTime(f.last_seen)}</Table.Td>
+                  <Table.Td>
+                    <Text className="mono-wrap" size="sm">
+                      {f.dst_ip}
+                      {f.dst_port ? `:${f.dst_port}` : ""}
+                    </Text>
+                    {f.state && (
+                      <Text c="dimmed" size="xs">
+                        {f.state}
+                      </Text>
+                    )}
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge variant="light" color="blue" size="sm">
+                      {f.proto}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td ta="right" className="mono-wrap">{formatBytes(f.bytes_out)}</Table.Td>
+                  <Table.Td ta="right" className="mono-wrap">{formatBytes(f.bytes_in)}</Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Paper>
+      )}
+    </Stack>
+  );
+}
+
+/** flowKey is a stable React key (and test handle) for a flow row: its 4-tuple,
+ * which uniquely identifies the connection within a box. */
+function flowKey(f: NetworkFlow): string {
+  return `${f.proto}:${f.src_port ?? 0}:${f.dst_ip}:${f.dst_port ?? 0}`;
 }
 
 interface ProxiesSectionProps {

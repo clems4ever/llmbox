@@ -120,6 +120,10 @@ type Backend interface {
 	ResumeBox(ctx context.Context, boxID string) error
 	// BoxExec runs a shell command inside the box with the given box ID.
 	BoxExec(ctx context.Context, boxID, command string) (sandbox.ExecResult, error)
+	// BoxNetwork returns the audited outbound network flow metadata for the box
+	// with the given box ID (from its spoke's conntrack recorder). It is metadata
+	// only — destinations and byte counts, never payloads.
+	BoxNetwork(ctx context.Context, boxID string) ([]sandbox.NetworkFlow, error)
 	// ProxyEnabled reports whether the HTTP proxy feature is configured.
 	ProxyEnabled() bool
 	// CreateProxy enables an HTTP proxy to a box's port and returns it. description

@@ -333,3 +333,7 @@ func (bareManager) Resume(context.Context, string) error { return nil }
 func (bareManager) Exec(context.Context, string, []string) (sandbox.ExecResult, error) {
 	return sandbox.ExecResult{}, nil
 }
+
+func (bareManager) NetworkFlows(context.Context, string) ([]sandbox.NetworkFlow, error) {
+	return nil, nil
+}

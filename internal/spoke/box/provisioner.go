@@ -35,6 +35,17 @@ type Provisioner interface {
 	Find(ctx context.Context, idOrName string) (Instance, error)
 }
 
+// NetworkAuditor is an optional Instance capability: a box whose backend records
+// egress flow metadata (from the host conntrack table) returns it here. A backend
+// that cannot audit — or a box booted without egress — simply does not implement
+// it, and Manager.NetworkFlows reports no flows rather than failing. It is kept off
+// the core Instance surface so a backend opts in without every backend having to.
+type NetworkAuditor interface {
+	// NetworkFlows returns the recorded outbound flow metadata for this box, newest
+	// first. It is metadata only (destinations and byte counts), never payloads.
+	NetworkFlows(ctx context.Context) ([]sandbox.NetworkFlow, error)
+}
+
 // Instance is a handle to one managed box.
 type Instance interface {
 	// Meta returns the box's current view (ID, name, phase, state, timestamps).

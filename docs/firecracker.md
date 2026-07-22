@@ -30,6 +30,16 @@ isolated.
   lifetime. Egress needs `CAP_NET_ADMIN`; it can be disabled for control-only /
   air-gapped boxes (`--disable-egress`), which also removes the privilege
   requirement.
+- **Egress audit**: because egress is routed by kernel primitives, llmbox never
+  sees the packets — but the host's connection tracker (conntrack) exposes every
+  flow as *metadata*. The spoke subscribes to the conntrack event feed and
+  attributes each flow to a box by its pooled guest IP (its `/30`), keeping a small
+  per-box ring of recent flows: destination, protocol, connection state, and
+  per-direction byte counts — **metadata only, never packet payloads**. The hub
+  surfaces it per box on the `POST /api/v1/box-network` endpoint and the admin UI's
+  **Network activity** panel (in a box's details drawer). It is observe-only (no
+  blocking) and degrades to an empty view where `conntrack` is unavailable — see
+  [Box networking and isolation](hooks.md#box-networking-and-isolation).
 - **State**: Firecracker has no daemon that tracks boxes, so the provisioner
   persists each box's metadata under a state directory and holds live machine
   handles in memory; `List`/`Find`/`Destroy`/reap consult that state. Like the
@@ -125,6 +135,11 @@ these knobs are Firecracker-only.)
   kernels have all of these.
 - `CAP_NET_ADMIN` (typically root) and `net.ipv4.ip_forward=1` **only** when egress
   networking is enabled.
+- The `conntrack` binary (from `conntrack-tools`) and the `nf_conntrack` module —
+  **optional**, only for the egress-audit view. Without them the box still runs and
+  egress still works; the **Network activity** panel simply stays empty. The spoke
+  enables flow accounting (`net.netfilter.nf_conntrack_acct`) itself so byte counts
+  are populated.
 
 ## Zero-build spoke (images resolved from the registry)
 

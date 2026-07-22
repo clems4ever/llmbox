@@ -50,6 +50,7 @@ const (
 	methodPause   = "pause"
 	methodResume  = "resume"
 	methodExec    = "exec"
+	methodNetwork = "network"
 )
 
 // Verb method names carried in a frameSpokeReq (spoke→hub).
@@ -118,6 +119,13 @@ type resumeReq struct {
 type execReq struct {
 	IDOrName string   `json:"id_or_name"`
 	Cmd      []string `json:"cmd"`
+}
+
+type networkReq struct {
+	IDOrName string `json:"id_or_name"`
+}
+type networkResp struct {
+	Flows []sandbox.NetworkFlow `json:"flows"`
 }
 
 // Box-port payloads (spoke→hub, carried in a frameSpokeReq). The BoxID is

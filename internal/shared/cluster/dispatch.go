@@ -197,6 +197,16 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 			return nil, err
 		}
 		return encodePayload(res)
+	case methodNetwork:
+		var in networkReq
+		if err := decodePayload(req.Payload, &in); err != nil {
+			return nil, err
+		}
+		flows, err := mgr.NetworkFlows(ctx, in.IDOrName)
+		if err != nil {
+			return nil, err
+		}
+		return encodePayload(networkResp{Flows: flows})
 	default:
 		return nil, fmt.Errorf("unknown method %q", req.Method)
 	}

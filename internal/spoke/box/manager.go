@@ -345,6 +345,30 @@ func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (sand
 	return m.client(inst).Exec(ctx, cmd)
 }
 
+// NetworkFlows returns the audited outbound network flow metadata for a managed
+// box: which destinations it connected out to and how much data moved, read from
+// the host's connection-tracking table. It resolves through Find first so it can
+// only ever report on a box this manager created. A backend that does not record
+// flows (or a box booted without egress) yields no flows rather than an error, so
+// the audit view degrades to empty instead of failing.
+//
+// @arg ctx Context for the resolve and the lookup.
+// @arg idOrName The ID or name identifying the box.
+// @return []sandbox.NetworkFlow The box's recorded flows, newest first (nil if none or unaudited).
+// @error error if no managed box matches.
+//
+// @testcase TestBoxManagerNetworkFlows returns flows for an auditing backend and nil otherwise.
+func (m *Manager) NetworkFlows(ctx context.Context, idOrName string) ([]sandbox.NetworkFlow, error) {
+	inst, err := m.prov.Find(ctx, idOrName)
+	if err != nil {
+		return nil, err
+	}
+	if a, ok := inst.(NetworkAuditor); ok {
+		return a.NetworkFlows(ctx)
+	}
+	return nil, nil
+}
+
 // DialBox opens a connection to a TCP port inside a managed box, by asking the
 // box's guest to splice the control channel to localhost:port. It is the box
 // reachability primitive the proxy layer builds on; it resolves through Find

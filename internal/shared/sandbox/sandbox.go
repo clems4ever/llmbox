@@ -105,6 +105,35 @@ type ExecResult struct {
 	ExitCode int    `json:"exit_code" jsonschema:"the command's exit code (0 means success)"`
 }
 
+// NetworkFlow is one audited outbound connection observed leaving a box, built
+// from host kernel connection-tracking metadata (conntrack) — never from packet
+// payloads. It is deliberately metadata-only: it says who a box talked to and how
+// much data moved, not what was sent. One flow aggregates a single connection
+// (the box's source port to a destination), so repeated observations of the same
+// connection update one entry rather than appending. It is backend-neutral so the
+// cluster and server layers can carry it across the hub/spoke boundary.
+type NetworkFlow struct {
+	// Proto is the L4 protocol: "tcp", "udp", or "icmp".
+	Proto string `json:"proto" jsonschema:"the L4 protocol: tcp, udp, or icmp"`
+	// DstIP is the destination address the box connected out to.
+	DstIP string `json:"dst_ip" jsonschema:"the destination IP the box connected out to"`
+	// DstPort is the destination port (0 for icmp).
+	DstPort int `json:"dst_port,omitempty" jsonschema:"the destination port (0 for icmp)"`
+	// SrcPort is the box-side source port of the connection (0 for icmp).
+	SrcPort int `json:"src_port,omitempty" jsonschema:"the box-side source port (0 for icmp)"`
+	// BytesOut is the number of bytes sent by the box toward the destination.
+	BytesOut uint64 `json:"bytes_out" jsonschema:"bytes sent by the box toward the destination"`
+	// BytesIn is the number of bytes the destination sent back to the box.
+	BytesIn uint64 `json:"bytes_in" jsonschema:"bytes the destination sent back to the box"`
+	// State is the connection-tracking state (e.g. ESTABLISHED, TIME_WAIT, CLOSE for
+	// TCP), or empty for stateless protocols.
+	State string `json:"state,omitempty" jsonschema:"the conntrack state, e.g. ESTABLISHED or CLOSE (empty for stateless protocols)"`
+	// FirstSeen is when the flow was first observed, as a unix timestamp.
+	FirstSeen int64 `json:"first_seen" jsonschema:"when the flow was first observed, as a unix timestamp"`
+	// LastSeen is when the flow was last observed, as a unix timestamp.
+	LastSeen int64 `json:"last_seen" jsonschema:"when the flow was last observed, as a unix timestamp"`
+}
+
 // CreateOptions holds the caller-controlled inputs for a new box. It carries no
 // image: the box image is not a per-request input but a property of the spoke
 // that runs the box (each spoke launches its own configured default), so nothing
