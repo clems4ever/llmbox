@@ -27,9 +27,12 @@ isolated.
   browser runs on the **same host** as the hypervisor — a network interface
   appearing mid-request makes Chrome abort in-flight requests with
   `ERR_NETWORK_CHANGED`, so the interface set is kept stable across a box's
-  lifetime. Egress needs `CAP_NET_ADMIN`; it can be disabled for control-only /
-  air-gapped boxes (`--disable-egress`), which also removes the privilege
-  requirement.
+  lifetime. Who owns this host-side plumbing is chosen with `--egress-mode`
+  (see [Egress modes](#egress-modes)): the spoke can provision it itself
+  (`managed`, the default, needs `CAP_NET_ADMIN`), attach to a pool an
+  administrator provisioned out of band (`external`, no `CAP_NET_ADMIN` in the
+  long-running spoke), or run control-only with no egress at all (`disabled`,
+  the former `--disable-egress`).
 - **State**: Firecracker has no daemon that tracks boxes, so the provisioner
   persists each box's metadata under a state directory and holds live machine
   handles in memory; `List`/`Find`/`Destroy`/reap consult that state. Like the
@@ -137,6 +140,99 @@ llmbox-spoke firecracker vm list                  # id, phase, and running state
 llmbox-spoke firecracker vm destroy <box-id|token> # stop and remove one box (halts a live VMM first)
 llmbox-spoke firecracker vm destroy-all --yes      # stop and remove every box on this host
 ```
+
+The `network` subcommands provision the host-side egress pool out of band, so the
+long-running spoke can run in `--egress-mode=external` without holding
+`CAP_NET_ADMIN` itself (they need root — they run `sysctl`, `ip`, and `iptables` —
+and are idempotent, so a boot-time systemd oneshot can run `setup` on every boot):
+
+```
+llmbox-spoke firecracker network setup     # create the TAP pool + NAT/isolation rules (root)
+llmbox-spoke firecracker network teardown  # remove them (root; for decommissioning/resizing)
+```
+
+Pass the same `--pool-size` and `--tap-group` the spoke uses so the provisioned pool
+and the slots the spoke attaches to line up.
+
+## Egress modes
+
+`--egress-mode` selects **who owns the host-side TAP/NAT plumbing**, decoupling
+"does the guest get an egress NIC" from "does the long-running spoke mutate host
+networking". `--disable-egress` is a backwards-compatible alias for
+`--egress-mode=disabled`.
+
+| Mode | Guest egress NIC | Spoke mutates host networking | Long-running spoke needs `CAP_NET_ADMIN` |
+| --- | --- | --- | --- |
+| `managed` (default) | yes | yes — provisions the pool at startup, re-adopts it on restart | yes |
+| `external` | yes | **no** — only validates (read-only) that a pre-provisioned pool exists, then attaches | **no** |
+| `disabled` | no | no | no |
+
+In **`external`** mode an administrator provisions the TAP pool and NAT rules once
+(via `firecracker network setup` or an equivalent root oneshot) and the spoke
+attaches to it: it configures the guest NIC and `ip=` arg normally, allocates pool
+slots normally, and **never** runs `sysctl`/`ip`/`iptables`, so it holds no
+`CAP_NET_ADMIN`. Startup fails closed with an actionable error if a required TAP is
+missing or down, rather than silently attaching to an unexpected interface.
+
+> **Note.** Jailed launch is still mandatory and the jailer itself requires root
+> (it must `chroot`, create device nodes, and `setuid` to the per-VM UID), so the
+> spoke unit today still runs as `root`. `external` mode removes the **network**
+> mutation (`CAP_NET_ADMIN`) from the long-running process and isolates it in the
+> small boot-time provisioning unit — the security benefit described in
+> [issue #124](https://github.com/clems4ever/llmbox/issues/124). The TAP devices
+> must be owned by the same group the spoke's jailed VMMs run under (`--tap-group`,
+> default fc-net GID `100000`) so those VMMs can open them.
+
+### Durable systemd provisioning
+
+The setup script the admin UI generates (systemd tab) installs this two-unit layout
+for a networked Firecracker spoke automatically. Deploying it by hand:
+
+```ini
+# /etc/systemd/system/llmbox-firecracker-network.service
+[Unit]
+Description=llmbox firecracker egress network (TAP/NAT pool)
+Wants=network-online.target
+After=network-online.target
+Before=llmbox-spoke.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/llmbox-spoke firecracker network setup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```ini
+# /etc/systemd/system/llmbox-spoke.service
+[Unit]
+Description=llmbox spoke runner
+Wants=network-online.target
+After=network-online.target
+Requires=llmbox-firecracker-network.service
+After=llmbox-firecracker-network.service
+
+[Service]
+ExecStart=/usr/local/bin/llmbox-spoke firecracker \
+  --hub wss://hub.example.com/spoke/connect --token <join-token> \
+  --state /var/lib/llmbox/llmbox-spoke.json \
+  --state-dir /var/lib/llmbox/firecracker \
+  --egress-mode external
+Restart=on-failure
+RestartSec=5
+StateDirectory=llmbox
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`RemainAfterExit=yes` keeps the oneshot "active" after it exits so the ordering
+holds across a spoke restart, and `Requires=` re-runs it (idempotently) if it was
+reset. Give the two units matching `--pool-size`/`--tap-group` if you override the
+defaults.
 
 ## Configuration
 
@@ -312,9 +408,11 @@ with the guest as PID 1 (no systemd, no Docker):
 
 For real workloads use the full Debian server pair above. A workload that reaches
 the internet (an API, a package registry, an image pull) needs egress enabled (the
-default, i.e. no `--disable-egress`), which means running the spoke with
-`CAP_NET_ADMIN` (root). With egress disabled (control-only) a box boots and its
-guest is reachable, but the box has no outbound network.
+default `--egress-mode=managed`, which provisions the pool from the spoke and so
+needs `CAP_NET_ADMIN`; use `--egress-mode=external` to attach to a pool an
+administrator provisioned out of band — see [Egress modes](#egress-modes)). With
+`--egress-mode=disabled` (control-only) a box boots and its guest is reachable, but
+the box has no outbound network.
 
 ## Running the conformance suite
 

@@ -73,8 +73,15 @@ type Options struct {
 	StateDir string
 	// DisableEgress boots control-only boxes with no TAP/NAT egress interface
 	// (Firecracker only), removing the CAP_NET_ADMIN requirement at the cost of the
-	// guest having no outbound network.
+	// guest having no outbound network. It is a backwards-compatible alias for
+	// EgressMode="disabled"; when EgressMode is set, it takes precedence.
 	DisableEgress bool
+	// EgressMode selects who owns the host-side TAP/NAT plumbing (Firecracker only):
+	// "managed" (default: the spoke provisions it, needing CAP_NET_ADMIN), "external"
+	// (an out-of-band provisioner owns it and the spoke only validates + attaches,
+	// needing no CAP_NET_ADMIN), or "disabled" (control-only). Empty falls back to
+	// DisableEgress, so the legacy flag keeps working.
+	EgressMode string
 	// PoolSize is the number of egress TAP devices provisioned at startup and reused
 	// across boxes (Firecracker only); it caps concurrent networked boxes. 0 uses
 	// the backend default.
