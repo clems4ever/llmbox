@@ -400,7 +400,7 @@ func TestSpokeStatusesMarksDefault(t *testing.T) {
 	}
 }
 
-// TestListSpokesTool checks the MCP backend reports the enrolled spoke statuses.
+// TestListSpokesTool checks the box-control backend reports the enrolled spoke statuses.
 func TestListSpokesTool(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "s.db"))
 	if err != nil {

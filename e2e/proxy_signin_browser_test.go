@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"context"
 	"io"
 	"net"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/hub"
 	"github.com/clems4ever/llmbox/internal/hub/auth"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // TestProxySignInRedirectInBrowser exercises the proxy sign-in gate end to end and
@@ -70,12 +72,18 @@ func TestProxySignInRedirectInBrowser(t *testing.T) {
 	waitHealthy(t, base)
 
 	// Create the box and enable a proxy for its port over the API, as the chatbot does.
-	cs := connectMCP(t, base, st)
-	callTool(t, cs, "create_llmbox", map[string]any{"box_id": "proxy-box"})
-	proxyOut := callTool(t, cs, "create_llmbox_proxy", map[string]any{"box_id": "proxy-box", "port": 8000})
-	proxyURL, _ := proxyOut["url"].(string)
+	ctx := context.Background()
+	c := newBoxClient(t, base, st)
+	if _, err := c.CreateBox(ctx, sandbox.CreateOptions{BoxID: "proxy-box"}); err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+	proxy, err := c.CreateProxy(ctx, "proxy-box", 8000, "")
+	if err != nil {
+		t.Fatalf("CreateProxy: %v", err)
+	}
+	proxyURL := proxy.URL
 	if proxyURL == "" {
-		t.Fatalf("create_llmbox_proxy returned no url: %+v", proxyOut)
+		t.Fatalf("CreateProxy returned no url: %+v", proxy)
 	}
 	u, err := url.Parse(proxyURL)
 	if err != nil {

@@ -3,7 +3,7 @@
 llmbox can run each box as a [Firecracker](https://firecracker-microvm.github.io/)
 microVM instead of a Docker container. The backend is selected by name and
 implements the same `box.Provisioner` contract as Docker, so the manager, cluster,
-server, and MCP layers are unchanged — a box is a box regardless of how it is
+and server layers are unchanged — a box is a box regardless of how it is
 isolated.
 
 ## How it works
@@ -111,8 +111,8 @@ The size is chosen per box, bounded by the spoke:
 - `--box-max-disk-gb` (default 100) — the hard ceiling on a per-create disk
   request, bounding what the by-design-unauthenticated create path can ask for.
 
-A caller sets the per-box size via the `disk_gb` argument to the `create_llmbox`
-MCP tool; it is clamped to `[base image size, --box-max-disk-gb]`. The disk cannot
+A caller sets the per-box size via the `opts.DiskBytes` field of the `create-box`
+API request; it is clamped to `[base image size, --box-max-disk-gb]`. The disk cannot
 be shrunk below the base image. (The Docker backend has no per-box block device, so
 these knobs are Firecracker-only.)
 

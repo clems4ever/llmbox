@@ -5,31 +5,6 @@
 			"documentation_hash": "00c7bd98365f0c1422a6b3a33e506bbb1d853108eef23f100d42fbe2636b467e",
 			"definition_hash": "57aa0e4066932708286ee88f21ea4646713b4a43811df9177a8d5c0b5d04f1d4",
 			"reviewed_at": "2026-06-23T09:09:28.589718916Z"
-		},
-		{
-			"function_name": "connectMCP",
-			"documentation_hash": "a1331d9783ee94d55d736c900a0a5b32b17f42bd561f306e90a8e7153a8c5e68",
-			"definition_hash": "66f9929e18e395ab0d8bb89fb14bbae61afbfcb36c99b99c0cca18bc59d0aabf",
-			"reviewed_at": "2026-07-08T12:57:12.22736369Z"
-		},
-		{
-			"function_name": "callTool",
-			"documentation_hash": "ccd198e91d0b03fa8f1d0c03a105f97065829e228322edf577a148ac0a842e6e",
-			"definition_hash": "dc2c78165876d5737e87d4f23a9da1de455de71ed9cd6813fa76270dd58e69b7",
-			"reviewed_at": "2026-06-23T09:09:28.591820036Z"
-		},
-		{
-			"function_name": "callToolRaw",
-			"documentation_hash": "5f71e7cd25d40e62049d0ac37d97047199b2603794d51869bd59d13e070994f8",
-			"definition_hash": "9cc571717037cf9b86502305fb1411da5de6d97b9acd12d8796812dc64dec7da",
-			"reviewed_at": "2026-06-23T09:09:28.592912148Z"
-		},
-		{
-			"function_name": "Error",
-			"receiver": "toolError",
-			"documentation_hash": "e1cb0767179cb9ce64eaf36f4e88a6607c6f202eb94f82b2c955f2c92e3b620c",
-			"definition_hash": "afdd757cd808edd1d05b9ba534fa6876bdcf48ac6651ced6e9e6e636ba38fb00",
-			"reviewed_at": "2026-06-23T09:09:28.594171291Z"
 		}
 	]
 }

@@ -5,12 +5,6 @@
 			"documentation_hash": "e60c74dda88c20cb8f2104e3b8d60cd4aa870f4ca3643239a3259869a5deb98d",
 			"definition_hash": "7e369030f3e2898561ed5efc6c4c0805dcbd7ef4aacd3d8ce22dbad559632fd1",
 			"reviewed_at": "2026-07-11T21:34:27.225225276Z"
-		},
-		{
-			"function_name": "TestConnectMCP",
-			"documentation_hash": "659941fe38bead8bc792400020905749e069b240f9d078e653380d16fa839397",
-			"definition_hash": "5ff13c92be0854d790fa38ee682aef522f40d85073dd76f816f76a316c6903fb",
-			"reviewed_at": "2026-07-01T11:56:18.18353627Z"
 		}
 	]
 }

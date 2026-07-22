@@ -40,7 +40,7 @@ func principalFrom(ctx context.Context) string {
 // bearer token (Authorization: Bearer <key>, minted with `llmbox-server apikey
 // add`), or a signed-in administrator's login cookie together with a matching
 // X-CSRF-Token header — and rejects everything else with a JSON error, so the
-// one API serves both headless callers (llmbox-mcp, scripts) and the web app
+// one API serves both headless callers (scripts, other services) and the web app
 // under a single gate. The authenticated principal is stamped on the request
 // context for handlers that record identity (see principalFrom).
 //

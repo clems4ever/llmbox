@@ -4,20 +4,16 @@ import (
 	"context"
 	"strings"
 	"sync"
-	"testing"
 	"time"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
-	"github.com/clems4ever/llmbox/internal/mcpserver"
 	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // FakeBackend is a stand-in for the server's box-control backend: it records the
 // calls it receives and returns canned results, satisfying api.Backend. Pair it
-// with api.NewHandler (to serve the HTTP API) or ConnectMCP (to drive the MCP
-// tools) without Docker, a store, or a cluster.
+// with api.NewHandler to serve the HTTP API without Docker, a store, or a
+// cluster.
 type FakeBackend struct {
 	mu sync.Mutex
 
@@ -327,32 +323,4 @@ func (f *FakeBackend) ListProxies(ctx context.Context, boxID string) ([]api.Prox
 	f.GotListBoxID = boxID
 	f.mu.Unlock()
 	return f.Proxies, f.ListProxiesErr
-}
-
-// ConnectMCP builds an MCP server over backend and returns an in-memory-connected
-// client session, so a test can drive the real MCP tools end to end. The session
-// is closed automatically when the test finishes. Pass an api.Client as the
-// backend to exercise the full stand-alone path (MCP tools → HTTP → server).
-//
-// @arg t The test the session's lifetime is tied to.
-// @arg backend The backend the MCP tools run against.
-// @arg name The MCP server implementation name.
-// @arg version The MCP server implementation version.
-// @return *mcp.ClientSession A connected MCP client session, closed on test cleanup.
-//
-// @testcase TestConnectMCP lists the registered tools over the returned session.
-func ConnectMCP(t testing.TB, backend api.Backend, name, version string) *mcp.ClientSession {
-	t.Helper()
-	srv := mcpserver.NewServer(backend, name, version)
-	serverT, clientT := mcp.NewInMemoryTransports()
-	if _, err := srv.Connect(context.Background(), serverT, nil); err != nil {
-		t.Fatalf("mcp server connect: %v", err)
-	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "test-client", Version: "1"}, nil)
-	cs, err := client.Connect(context.Background(), clientT, nil)
-	if err != nil {
-		t.Fatalf("mcp client connect: %v", err)
-	}
-	t.Cleanup(func() { _ = cs.Close() })
-	return cs
 }

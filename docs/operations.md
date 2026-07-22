@@ -36,7 +36,7 @@ volumes:
 
 A `docker restart` preserves the container's writable layer, so whatever a box's
 [init script](hub-and-spoke.md#customising-boxes-with-an-init-script) wrote to
-disk survives. **Recreating** a box (`docker rm` + a new `create_llmbox`) starts
+disk survives. **Recreating** a box (`docker rm` + a new `create-box`) starts
 from a fresh filesystem and re-runs the init script, since boxes do not bind-mount
 host state.
 

@@ -15,8 +15,8 @@ import (
 
 // Client is a Backend that forwards every call to a remote box-control API. It
 // lets a process drive boxes on an upstream llmbox server over HTTP with no
-// in-process access to Docker, the store, or the cluster — the llmbox-mcp binary
-// wraps one to serve those operations as MCP tools.
+// in-process access to Docker, the store, or the cluster — any out-of-process
+// caller (a script, another service) uses it to operate boxes over the API.
 type Client struct {
 	base string
 	hc   *http.Client

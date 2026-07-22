@@ -127,7 +127,7 @@ type ProxyRecord struct {
 	// CreatedAt is when the proxy was enabled.
 	CreatedAt time.Time `json:"created_at"`
 	// Owner is the identity (email) that enabled the proxy, when known (e.g. an
-	// admin acting through the UI); empty for proxies enabled over MCP.
+	// admin acting through the UI); empty for proxies enabled over the API.
 	Owner string `json:"owner,omitempty"`
 	// Description is an optional human-readable note about the proxy.
 	Description string `json:"description,omitempty"`
@@ -138,7 +138,7 @@ type ProxyRecord struct {
 // which is the store key — so a leaked database cannot be replayed as keys.
 type APIKeyRecord struct {
 	// Name is the operator-chosen label identifying what the key is for
-	// (e.g. "ci", "mcp-prod").
+	// (e.g. "ci", "prod").
 	Name string `json:"name"`
 	// CreatedAt is when the key was minted.
 	CreatedAt time.Time `json:"created_at"`

@@ -1,5 +1,5 @@
 // Package cluster implements llmbox's hub-and-spoke model: a single hub (the
-// MCP front-end the chatbot talks to) drives box operations on one or more
+// box-control server the chatbot talks to) drives box operations on one or more
 // spokes, each of which owns a local Docker daemon. A spoke dials the hub over
 // a WebSocket and the hub pushes box verbs down that connection; the spoke
 // executes them against its local *box.Manager and replies.

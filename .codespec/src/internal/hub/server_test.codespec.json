@@ -69,12 +69,6 @@
 			"reviewed_at": "2026-06-25T12:45:36.367689218Z"
 		},
 		{
-			"function_name": "connectMCP",
-			"documentation_hash": "0fe9ddd4051b96d06abc73d33b65def9ef8d23dfec5e8f61f3c44f973d308767",
-			"definition_hash": "ee341031f4e9270a47378a72341d113ed78bbb37fa75d9e20276f695902faa56",
-			"reviewed_at": "2026-07-01T13:13:04.547937502Z"
-		},
-		{
 			"function_name": "TestFaviconServed",
 			"documentation_hash": "df63e6203f21153f9f1d1617032682d62b4a43ddbba899bcb34f4088a40df13d",
 			"definition_hash": "baa997a895c317739245773fd5cb4b86a628939d4718ca8e683c70f346e9925e",
@@ -109,12 +103,6 @@
 			"documentation_hash": "0b7b80ded5a65aebb00421fee15efc67c6f350e2de4f5486ad5ec1b409849b17",
 			"definition_hash": "8ed24a0dbc05a713853cff093fba0fe1532c890f695d778d4ed331fe5d362a78",
 			"reviewed_at": "2026-07-08T12:57:12.246603831Z"
-		},
-		{
-			"function_name": "TestBoxToolsOverBackend",
-			"documentation_hash": "c504182770a7dceb26509b56c5e4cda804a9692a195a59d2151771c0444992ff",
-			"definition_hash": "a03877a44cb9a4b284238c2c03adb3287737a2319927f47412ade74482c336bb",
-			"reviewed_at": "2026-07-11T21:34:27.178813267Z"
 		},
 		{
 			"function_name": "newTestStore",

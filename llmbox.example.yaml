@@ -69,8 +69,8 @@ state_file: "llmbox-sessions.db"
 
 # Expose box HTTP ports to the user's browser. When base_domain is set, the hub
 # serves a reverse proxy at https://<slug>.<base_domain>/ for every proxy enabled
-# over MCP (create_llmbox_proxy) or the admin UI, forwarding to the box's port on
-# its spoke. No port is reachable until a proxy is explicitly enabled (default
+# over the box-control API (/api/v1/create-proxy) or the admin UI, forwarding to
+# the box's port on its spoke. No port is reachable until a proxy is explicitly enabled (default
 # deny). Each proxy gets its OWN sub-domain so single-page apps and servers that
 # emit absolute paths work unchanged (no path rewriting). Requires:
 #   - a wildcard DNS record   *.proxy.example.com  ->  this host

@@ -20,7 +20,7 @@ import (
 // implementation is *docker.Manager, which launches a container per box and
 // provisions it with the spoke's init script; this stand-in keeps boxes in
 // memory. It satisfies cluster.BoxManager (plus the BoxDialer the proxy layer
-// uses) so the real server, MCP tools, and admin web UI all run unchanged on top
+// uses) so the real server, box-control API, and admin web UI all run unchanged on top
 // of it — only Docker is simulated. A created box is immediately ready.
 type fakeBoxManager struct {
 	// dialTarget is the address DialBox connects to, standing in for a server

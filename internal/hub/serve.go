@@ -87,8 +87,7 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 	log.Printf("spokes may join at %s/spoke/connect", cfg.PublicURL)
 
 	// One HTTP server for everything: the box-control JSON API (under /api/v1/) and
-	// the UI (sign-in, admin, health). The MCP protocol is served by the
-	// separate llmbox-mcp binary, which forwards to the box-control API.
+	// the UI (sign-in, admin, health).
 	httpSrv := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: srv.APIHandler(),

@@ -71,12 +71,6 @@
 			"reviewed_at": "2026-07-01T13:13:15.249099586Z"
 		},
 		{
-			"function_name": "ConnectMCP",
-			"documentation_hash": "e7c6c95eb9ac81a6ec0b72b226722a19fe4804acd4ae1e3123665fbd82ffdca5",
-			"definition_hash": "19e1a3c2a9c13f31665718744e9c01a12d5318625846a3c1736950eee61c5409",
-			"reviewed_at": "2026-07-01T13:13:15.249633266Z"
-		},
-		{
 			"function_name": "CreateSpoke",
 			"receiver": "FakeBackend",
 			"documentation_hash": "6b534cc3453e8adacb1756c8d6820454e5377fd123b0a6484797cf54ad3109dd",

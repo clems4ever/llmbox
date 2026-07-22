@@ -1,7 +1,7 @@
 // Entry point for the llmbox workspaces dashboard: a React + Mantine single-page
-// app over the box-control API (/api/v1) — the same authenticated API llmbox-mcp
-// and scripts drive, here with the login cookie + CSRF header instead of a
-// bearer key. It mounts the provider stack (theme, notifications) and boots the
+// app over the box-control API (/api/v1) — the same authenticated API that
+// scripts and other services drive, here with the login cookie + CSRF header
+// instead of a bearer key. It mounts the provider stack (theme, notifications) and boots the
 // session in <App>.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

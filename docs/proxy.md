@@ -2,8 +2,8 @@
 
 llmbox can expose an HTTP server running **inside a box** to a human's browser,
 so a service running in the box (say a dev server) can be reached at a working
-URL. Proxies are **default-deny**: nothing is reachable until the guest
-explicitly enables a proxy (over MCP or the admin UI).
+URL. Proxies are **default-deny**: nothing is reachable until a proxy is
+explicitly enabled (over the box-control API or the admin UI).
 
 ## How it works
 

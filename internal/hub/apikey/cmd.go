@@ -58,7 +58,7 @@ func NewCmd() *cobra.Command {
 		},
 	}
 	addCmd.Flags().StringVar(&addStateFile, "state-file", config.DefaultStateFile, "the hub's state file the key is written to (must match the running hub's state_file)")
-	addCmd.Flags().StringVar(&addName, "name", "", "label identifying what the key is for (e.g. ci, mcp-prod)")
+	addCmd.Flags().StringVar(&addName, "name", "", "label identifying what the key is for (e.g. ci, prod)")
 	addCmd.Flags().DurationVar(&addTTL, "ttl", defaultAPIKeyTTL, "how long the key stays valid")
 	apikeyCmd.AddCommand(addCmd)
 

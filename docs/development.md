@@ -36,8 +36,8 @@ server binary.
 ## Testing
 
 `go test ./...` covers the box layer (a faked Docker client; the attach stream is
-driven over an in-memory pipe) and the hub (MCP tools over an in-memory transport
-+ the admin/sign-in web handlers). An integration test that runs the box
+driven over an in-memory pipe) and the hub (the box-control API + the
+admin/sign-in web handlers). An integration test that runs the box
 conformance contract against a **real** Docker container is gated behind a build
 tag:
 
@@ -49,12 +49,12 @@ It exercises the full box lifecycle against a live daemon — create, guest
 reachability, init-script provisioning, exec, dial, and destroy.
 
 **End-to-end tests** live under [`e2e/`](../e2e/) behind the `e2e` build tag. They
-run the real server (MCP tools + the admin/sign-in web UI) on a real HTTP
-listener and drive the chatbot side over a real MCP client and the human side
-through a real headless Chrome via
+run the real server (box-control API + the admin/sign-in web UI) on a real HTTP
+listener and drive the chatbot side over the real box-control HTTP API and the
+human side through a real headless Chrome via
 [WebDriver](https://github.com/tebeka/selenium). The external dependencies are
 simulated (the box layer is an in-memory box manager), so the suite exercises box
-creation over MCP, the admin dashboard, and the per-box proxy sign-in flow. A
+creation over the API, the admin dashboard, and the per-box proxy sign-in flow. A
 separate cluster suite ([`e2e/cluster/`](../e2e/cluster)) exercises the
 hub-and-spoke transport without a browser.
 

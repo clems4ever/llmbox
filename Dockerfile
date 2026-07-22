@@ -2,11 +2,10 @@
 #
 # It serves everything on one HTTP port (http_addr):
 #   /auth/{token}  web page where a user pastes their OAuth code to activate a box
-#   /api/v1/...    box-control JSON API (the llmbox-mcp binary forwards MCP calls here)
+#   /api/v1/...    box-control JSON API (the UI and any programmatic caller drive boxes through it)
 #
-# The MCP protocol itself is served by a separate image (Dockerfile.mcp), which
-# forwards to the box-control API. It drives the Docker daemon to launch the
-# box image, so it must be given access to a Docker socket at runtime.
+# It drives the Docker daemon to launch the box image, so it must be given access
+# to a Docker socket at runtime.
 #
 # Build:
 #   docker build -t llmbox .

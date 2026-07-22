@@ -4,14 +4,12 @@
 //
 // One process serves everything on a single HTTP port (http_addr):
 //
-//	/api/v1/...     box-control JSON API — the UI and the stand-alone llmbox-mcp binary call it
+//	/api/v1/...     box-control JSON API — the UI and any programmatic caller drive boxes through it
 //	/admin, /signin admin web UI and the OIDC sign-in that gates it and the per-box proxies (+ health)
 //
-// The MCP protocol itself is served by a separate binary (llmbox-mcp), which
-// forwards every call to the box-control API over HTTP. The box-control API is
-// authenticated: callers present an API key as a bearer token (minted with
-// `llmbox-server apikey add`), and the admin web app uses the signed-in admin's
-// login cookie plus a CSRF header.
+// The box-control API is authenticated: callers present an API key as a bearer
+// token (minted with `llmbox-server apikey add`), and the admin web app uses the
+// signed-in admin's login cookie plus a CSRF header.
 //
 // Configuration is a YAML file (default ./llmbox.yaml, override with --config).
 // Every field is optional; unset fields fall back to built-in defaults:
@@ -75,8 +73,8 @@ func main() {
 // config and runs the server (the hub), a "version" subcommand prints the build
 // version, and a "token" subcommand manages the one-time join tokens the hub
 // issues to enroll spokes (it operates on the hub's state file, so it runs here
-// rather than on the spoke). The spoke and the MCP front-end are separate binaries
-// (llmbox-spoke, llmbox-mcp). The --config/-c flag selects the config file
+// rather than on the spoke). The spoke is a separate binary (llmbox-spoke). The
+// --config/-c flag selects the config file
 // (default ./llmbox.yaml); when that default is absent, built-in defaults are used.
 //
 // @return *cobra.Command The configured root command, ready to Execute.

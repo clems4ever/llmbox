@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
 	"github.com/clems4ever/llmbox/internal/shared/api"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/testutils"
@@ -134,34 +132,26 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	}
 }
 
-// TestMCPToolsOverHTTP drives the full stand-alone path — an MCP client calling
-// tools that forward through the HTTP client to a handler-backed fake — proving
-// the split works end to end.
-func TestMCPToolsOverHTTP(t *testing.T) {
+// TestClientOverHTTP drives the full split — the HTTP client forwarding a call
+// through to a handler-backed fake — proving the client/handler split works end
+// to end.
+func TestClientOverHTTP(t *testing.T) {
 	fb := &testutils.FakeBackend{
 		CreateSess: api.BoxSession{BoxID: "web", Generation: "abcdef012345"},
 	}
 	ts := httptest.NewServer(api.NewHandler(fb))
 	defer ts.Close()
 
-	cs := testutils.ConnectMCP(t, api.NewClient(ts.URL, ts.Client()), "test", "v0")
-
-	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{
-		Name:      "create_llmbox",
-		Arguments: map[string]any{"box_id": "web"},
-	})
+	c := api.NewClient(ts.URL, ts.Client())
+	sess, err := c.CreateBox(context.Background(), sandbox.CreateOptions{BoxID: "web"})
 	if err != nil {
-		t.Fatalf("CallTool: %v", err)
+		t.Fatalf("CreateBox: %v", err)
 	}
-	if res.IsError {
-		t.Fatalf("tool error: %v", res.Content)
+	if sess.BoxID != "web" {
+		t.Errorf("box_id = %q, want web", sess.BoxID)
 	}
-	out, _ := res.StructuredContent.(map[string]any)
-	if boxID, _ := out["box_id"].(string); boxID != "web" {
-		t.Errorf("box_id = %q, want web", boxID)
-	}
-	if instanceID, _ := out["instance_id"].(string); instanceID != "abcdef012345" {
-		t.Errorf("instance_id = %q, want abcdef012345", instanceID)
+	if sess.Generation != "abcdef012345" {
+		t.Errorf("instance_id = %q, want abcdef012345", sess.Generation)
 	}
 	if fb.GotCreate.BoxID != "web" {
 		t.Errorf("create not forwarded to backend: %+v", fb.GotCreate)

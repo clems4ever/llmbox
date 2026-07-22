@@ -37,21 +37,6 @@ builds:
       - -X main.version={{ .Version }}
     mod_timestamp: "{{ .CommitTimestamp }}"
 
-  # The stand-alone MCP adapter. Pure protocol shim, so it ships broadly too.
-  - id: llmbox-mcp
-    main: ./cmd/llmbox-mcp
-    binary: llmbox-mcp
-    env:
-      - CGO_ENABLED=0
-    goos: [linux, darwin]
-    goarch: [amd64, arm64]
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w
-      - -X main.version={{ .Version }}
-    mod_timestamp: "{{ .CommitTimestamp }}"
-
   # The spoke — the box host agent. This is the primary artifact people download
   # to run boxes on their own machine (Docker or Firecracker backend). Both
   # backends are Linux-only, so the spoke ships for Linux only.
@@ -91,13 +76,6 @@ archives:
   - id: llmbox-server
     ids: [llmbox-server]
     name_template: "llmbox-server_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    formats: [tar.gz]
-    files:
-      - README.md
-      - LICENSE.md
-  - id: llmbox-mcp
-    ids: [llmbox-mcp]
-    name_template: "llmbox-mcp_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
     files:
       - README.md
