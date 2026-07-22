@@ -491,6 +491,37 @@ func TestBoxExecByBoxID(t *testing.T) {
 	}
 }
 
+// TestBoxNetworkByBoxID looks up a box's audited flows by its box ID and routes
+// the request to its spoke, addressing the box by its box ID.
+func TestBoxNetworkByBoxID(t *testing.T) {
+	f := &testutils.FakeMgr{
+		CreateID: "abcdef0123456789",
+		Flows: []sandbox.NetworkFlow{
+			{Proto: "tcp", DstIP: "140.82.121.4", DstPort: 443, BytesOut: 1420, BytesIn: 5300, State: "ESTABLISHED"},
+		},
+	}
+	s := newTestServer(f)
+	b := s.boxBackend()
+	if _, err := s.createBox(context.Background(), sandbox.CreateOptions{BoxID: "web-box"}); err != nil {
+		t.Fatalf("CreateBox: %v", err)
+	}
+
+	flows, err := b.BoxNetwork(context.Background(), "WEB-BOX")
+	if err != nil {
+		t.Fatalf("BoxNetwork: %v", err)
+	}
+	if len(flows) != 1 || flows[0].DstIP != "140.82.121.4" || flows[0].BytesIn != 5300 {
+		t.Errorf("unexpected flows: %+v", flows)
+	}
+	if f.GotNetworkID != "web-box" {
+		t.Errorf("manager got box ID %q, want web-box", f.GotNetworkID)
+	}
+
+	if _, err := b.BoxNetwork(context.Background(), "nope"); err == nil {
+		t.Error("expected error for unknown box ID")
+	}
+}
+
 // --- box-control backend ---
 
 // TestCreateBoxOverBackend checks the box-control backend's create returns the

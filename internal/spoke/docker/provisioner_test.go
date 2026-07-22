@@ -67,6 +67,29 @@ type fakeDocker struct {
 
 	mountSource string
 	listeners   []net.Listener
+
+	// inspectIP is the IP ContainerInspect reports for the box on its private
+	// network; empty means no network address (audit has nothing to register).
+	inspectIP  string
+	inspectErr error
+}
+
+// ContainerInspect reports the container's network settings, used by the network-
+// audit path to learn the box's IP. It places inspectIP on the box's private
+// network so the recorder can attribute conntrack flows to the box.
+func (f *fakeDocker) ContainerInspect(_ context.Context, id string) (container.InspectResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.inspectErr != nil {
+		return container.InspectResponse{}, f.inspectErr
+	}
+	nets := map[string]*network.EndpointSettings{}
+	if f.inspectIP != "" {
+		nets[boxNetworkName(id)] = &network.EndpointSettings{IPAddress: f.inspectIP}
+	}
+	return container.InspectResponse{
+		NetworkSettings: &container.NetworkSettings{Networks: nets},
+	}, nil
 }
 
 // ContainerCreate records the create/host config and returns a canned ID, reporting the image missing once when notFoundOnce is set.

@@ -44,6 +44,10 @@ type FakeMgr struct {
 	GotExecID  string
 	GotExecCmd []string
 
+	Flows        []sandbox.NetworkFlow
+	NetworkErr   error
+	GotNetworkID string
+
 	GotOpts sandbox.CreateOptions
 }
 
@@ -165,6 +169,14 @@ func (f *FakeMgr) Exec(ctx context.Context, id string, cmd []string) (sandbox.Ex
 	f.GotExecCmd = cmd
 	f.mu.Unlock()
 	return f.ExecResult, f.ExecErr
+}
+
+// NetworkFlows records the requested box and returns the canned flows/error.
+func (f *FakeMgr) NetworkFlows(_ context.Context, id string) ([]sandbox.NetworkFlow, error) {
+	f.mu.Lock()
+	f.GotNetworkID = id
+	f.mu.Unlock()
+	return f.Flows, f.NetworkErr
 }
 
 // FakeHub is a stand-in for the server's spoke hub: tests inject connected

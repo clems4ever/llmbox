@@ -283,6 +283,19 @@ func (b apiBackend) BoxExec(ctx context.Context, boxID, command string) (sandbox
 	return b.s.boxExec(ctx, boxID, command)
 }
 
+// BoxNetwork returns the audited outbound network flow metadata for the box with
+// the given box ID, from its spoke's conntrack recorder.
+//
+// @arg ctx Context for the request.
+// @arg boxID The box ID whose flows to fetch.
+// @return []sandbox.NetworkFlow The box's recorded flows (nil if none/unaudited).
+// @error error if no box has that box ID, it is terminated, or its spoke is offline.
+//
+// @testcase TestBoxNetworkByBoxID returns a box's flows through the backend.
+func (b apiBackend) BoxNetwork(ctx context.Context, boxID string) ([]sandbox.NetworkFlow, error) {
+	return b.s.boxNetwork(ctx, boxID)
+}
+
 // ProxyEnabled reports whether the HTTP proxy feature is configured.
 //
 // @return bool True when proxying is enabled.

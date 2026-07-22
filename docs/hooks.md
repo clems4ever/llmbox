@@ -89,3 +89,28 @@ services:
   granular-github:
     container_name: granular-github   # must match a --box-peer value
 ```
+
+### Auditing box egress
+
+Because box egress is routed by host **kernel primitives** — a per-box TAP + NAT
+for [Firecracker](firecracker.md#how-it-works), a per-box bridge for Docker — the
+datapath never passes through llmbox, so nothing in llmbox can see what a box talks
+to. To make egress observable without changing that routing, the spoke reads the
+host's **connection tracker** (`conntrack`): every flow is metadata the kernel
+already keeps, and each box owns a distinct source subnet, so a flow is attributed
+to a box by a cheap address lookup.
+
+- The spoke keeps a small, bounded ring of recent flows **per box** — destination,
+  protocol, connection state, and per-direction byte counts. It is **metadata
+  only**: no packet payload is ever read or stored, so the audit view cannot itself
+  become a data-exfiltration surface.
+- The hub exposes a box's flows on `POST /api/v1/box-network` (keyed by box ID,
+  routed to the box's spoke), and the admin UI shows them live in the **Network
+  activity** panel of a box's details drawer.
+- It is **observe-only** today — a view, not a firewall. Blocking/allow-listing is
+  a separate, deliberate step (kernel `nftables` for L3/L4, or a transparent proxy
+  for domain-level policy).
+- It works for **both backends** (conntrack sees the Docker bridge traffic too). It
+  degrades cleanly to an empty view when `conntrack` is unavailable or the spoke
+  cannot reach the host's netfilter tables (e.g. a Docker-backed spoke without host
+  network access), and is inherently empty for a control-only box with no egress.

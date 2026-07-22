@@ -39,6 +39,9 @@ type FakeBackend struct {
 	ResumeErr         error
 	ExecResult        sandbox.ExecResult
 	ExecErr           error
+	Flows             []sandbox.NetworkFlow
+	NetworkErr        error
+	GotNetworkID      string
 	ProxyOn           bool
 	CreateProxyResult api.ProxyInfo
 	CreateProxyErr    error
@@ -266,6 +269,14 @@ func (f *FakeBackend) BoxExec(ctx context.Context, boxID, command string) (sandb
 	f.GotExecCmd = command
 	f.mu.Unlock()
 	return f.ExecResult, f.ExecErr
+}
+
+// BoxNetwork records the requested box and returns the canned flows/error.
+func (f *FakeBackend) BoxNetwork(_ context.Context, boxID string) ([]sandbox.NetworkFlow, error) {
+	f.mu.Lock()
+	f.GotNetworkID = boxID
+	f.mu.Unlock()
+	return f.Flows, f.NetworkErr
 }
 
 // ProxyEnabled reports the canned ProxyOn.

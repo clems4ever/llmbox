@@ -1373,6 +1373,33 @@ func (s *Server) boxExec(ctx context.Context, boxID, command string) (sandbox.Ex
 	return mgr.Exec(ctx, sess.BoxID, []string{"/bin/sh", "-c", command})
 }
 
+// boxNetwork returns the audited outbound network flow metadata a box's spoke
+// recorded for it (destinations and byte counts, never payloads). Like the other
+// per-box verbs it is keyed by the box ID supplied at create time and routed to
+// the box's spoke. It is read-only audit, so a paused box is allowed (its recorded
+// flows remain until it is destroyed); a terminated box has no spoke to ask.
+//
+// @arg ctx Context for the request.
+// @arg boxID The box ID of the box whose flows to fetch.
+// @return []sandbox.NetworkFlow The box's recorded flows (nil if none/unaudited).
+// @error error if no box has that box ID, it is terminated, or its spoke is not connected.
+//
+// @testcase TestBoxNetworkByBoxID returns a box's flows looked up by box ID.
+func (s *Server) boxNetwork(ctx context.Context, boxID string) ([]sandbox.NetworkFlow, error) {
+	sess := s.lookupByBoxID(boxID)
+	if sess == nil {
+		return nil, fmt.Errorf("no box found with box ID %q (it may have expired, or was created without a box ID)", boxID)
+	}
+	if sess.terminated() {
+		return nil, fmt.Errorf("box %q is terminated (it no longer exists on its spoke)", boxID)
+	}
+	mgr, err := s.spoke(sess.SpokeName)
+	if err != nil {
+		return nil, err
+	}
+	return mgr.NetworkFlows(ctx, sess.BoxID)
+}
+
 // pauseBox stops the compute of the box with the given box ID to save CPU/RAM
 // while keeping its disk, then folds the spoke's inventory back in so the box's
 // paused state is reflected in its record right away. Like the other per-box verbs

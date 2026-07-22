@@ -286,6 +286,20 @@ func (c *Client) BoxExec(ctx context.Context, boxID, command string) (sandbox.Ex
 	return r.Result, err
 }
 
+// BoxNetwork returns the audited outbound flow metadata for a box (destinations
+// and byte counts, never payloads).
+//
+// @arg ctx Context for the request.
+// @arg boxID The box whose flows to fetch.
+// @return []sandbox.NetworkFlow The box's recorded flows (nil if none/unaudited).
+// @error error if the request fails.
+//
+// @testcase TestBackendAPIRoundTrip fetches box network flows through the client.
+func (c *Client) BoxNetwork(ctx context.Context, boxID string) ([]sandbox.NetworkFlow, error) {
+	r, err := post[boxNetworkRequest, boxNetworkResponse](ctx, c, PathBoxNetwork, boxNetworkRequest{BoxID: boxID})
+	return r.Flows, err
+}
+
 // ProxyEnabled reports whether the upstream server has HTTP proxying configured. A
 // transport failure is reported as disabled.
 //

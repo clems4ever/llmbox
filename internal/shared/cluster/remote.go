@@ -367,6 +367,23 @@ func (r *remoteSpoke) Exec(ctx context.Context, idOrName string, cmd []string) (
 	return resp, nil
 }
 
+// NetworkFlows round-trips the box network-audit verb to the spoke, returning the
+// flow metadata it recorded for the box.
+//
+// @arg ctx Context bounding the request.
+// @arg idOrName The box whose flows to fetch.
+// @return []sandbox.NetworkFlow The box's recorded flows (nil if none/unaudited).
+// @error error if the spoke is disconnected or the verb fails.
+//
+// @testcase TestRemoteSpokeNetworkFlows round-trips the network verb to a fake spoke.
+func (r *remoteSpoke) NetworkFlows(ctx context.Context, idOrName string) ([]sandbox.NetworkFlow, error) {
+	var resp networkResp
+	if err := r.call(ctx, methodNetwork, networkReq{IDOrName: idOrName}, &resp); err != nil {
+		return nil, err
+	}
+	return resp.Flows, nil
+}
+
 // DialBox opens a raw byte tunnel to a box's port on the spoke and returns it as a
 // net.Conn, implementing BoxDialer over the cluster transport. It is how the hub
 // reaches a box's TCP port on a remote spoke with full streaming, so the reverse

@@ -21,6 +21,7 @@ const (
 	PathPauseBox            = "/api/v1/pause-box"
 	PathResumeBox           = "/api/v1/resume-box"
 	PathBoxExec             = "/api/v1/box-exec"
+	PathBoxNetwork          = "/api/v1/box-network"
 	PathProxyEnabled        = "/api/v1/proxy-enabled"
 	PathCreateProxy         = "/api/v1/create-proxy"
 	PathDeleteProxy         = "/api/v1/delete-proxy"
@@ -116,6 +117,13 @@ type boxExecRequest struct {
 }
 type boxExecResponse struct {
 	Result sandbox.ExecResult `json:"result"`
+}
+
+type boxNetworkRequest struct {
+	BoxID string `json:"box_id"`
+}
+type boxNetworkResponse struct {
+	Flows []sandbox.NetworkFlow `json:"flows"`
 }
 
 type proxyEnabledResponse struct {

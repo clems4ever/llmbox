@@ -59,6 +59,20 @@ export interface ProxyInfo {
   description?: string;
 }
 
+/** NetworkFlow is one audited outbound connection a box made, built from the host
+ * conntrack table — metadata only (destination and byte counts), never payloads. */
+export interface NetworkFlow {
+  proto: string;
+  dst_ip: string;
+  dst_port?: number;
+  src_port?: number;
+  bytes_out: number;
+  bytes_in: number;
+  state?: string;
+  first_seen: number;
+  last_seen: number;
+}
+
 export interface SpokeEnrollment {
   name: string;
   token: string;
@@ -126,6 +140,15 @@ export class Api {
   async listProxies(): Promise<ProxyInfo[]> {
     const r = await this.call<{ proxies: ProxyInfo[] | null }>("/api/v1/list-proxies", {});
     return r.proxies ?? [];
+  }
+
+  /** boxNetwork fetches the audited outbound flow metadata for one box (its
+   * destinations and byte counts, never payloads). */
+  async boxNetwork(boxId: string): Promise<NetworkFlow[]> {
+    const r = await this.call<{ flows: NetworkFlow[] | null }>("/api/v1/box-network", {
+      box_id: boxId,
+    });
+    return r.flows ?? [];
   }
 
   async createSpoke(name: string, backend: string, ttl: string): Promise<SpokeEnrollment> {

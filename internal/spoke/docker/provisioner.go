@@ -43,6 +43,7 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/internal/spoke/boxapi"
+	"github.com/clems4ever/llmbox/internal/spoke/netaudit"
 )
 
 const (
@@ -121,6 +122,7 @@ const (
 // the Docker layer can be faked in tests; *client.Client satisfies it.
 type dockerAPI interface {
 	ContainerList(ctx context.Context, opts container.ListOptions) ([]container.Summary, error)
+	ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error)
 	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *ocispec.Platform, containerName string) (container.CreateResponse, error)
 	ContainerStart(ctx context.Context, containerID string, opts container.StartOptions) error
 	ContainerStop(ctx context.Context, containerID string, opts container.StopOptions) error
@@ -162,6 +164,15 @@ type Provisioner struct {
 	registryAuths map[string]registry.AuthConfig
 	log           *slog.Logger
 
+	// recorder audits each box's outbound flows from the host conntrack table,
+	// attributed by the box's IP on its private bridge network. netSource feeds it;
+	// the collector is started once in NewProvisioner and stopped by Close. Auditing
+	// Docker boxes needs the spoke to reach the host conntrack table (host netfilter
+	// + CAP_NET_ADMIN); where it cannot, the feed idles and the view stays empty.
+	recorder        *netaudit.Recorder
+	netSource       netaudit.Source
+	collectorCancel context.CancelFunc
+
 	// ports serves box-originated port-publishing requests toward the hub; nil
 	// disables the per-box box-port API socket entirely.
 	ports boxapi.PortService
@@ -197,15 +208,23 @@ func NewProvisioner(defaultImage, socketDir string, peers []string, ports boxapi
 	if socketDir == "" {
 		socketDir = DefaultSocketDir
 	}
-	return &Provisioner{
+	p := &Provisioner{
 		cli:          cli,
 		defaultImage: defaultImage,
 		socketDir:    socketDir,
 		peers:        peers,
 		ports:        ports,
+		recorder:     netaudit.NewRecorder(0),
+		netSource:    netaudit.NewConntrackSource(),
 		apiSrvs:      map[string]*boxapi.Server{},
 		log:          slog.Default(),
-	}, nil
+	}
+	// Start the conntrack flow feed for the provisioner's lifetime (stopped by
+	// Close). A missing conntrack binary or privilege makes it idle harmlessly.
+	cctx, cancel := context.WithCancel(context.Background())
+	p.collectorCancel = cancel
+	go func() { _ = p.netSource.Run(cctx, p.recorder.Record) }()
+	return p, nil
 }
 
 // logger returns the provisioner's logger, or slog.Default() when none was set.
@@ -279,6 +298,9 @@ func (p *Provisioner) SetNamespace(ns string) { p.namespace = ns }
 // @testcase TestCloseStopsBoxAPIListeners stops the box-port listeners on Close.
 func (p *Provisioner) Close() error {
 	p.stopAllBoxAPIs()
+	if p.collectorCancel != nil {
+		p.collectorCancel()
+	}
 	return p.cli.Close()
 }
 
@@ -531,6 +553,10 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 		cleanup()
 		return nil, err
 	}
+	// Attribute this box's egress flows to it by its IP on its private network, so
+	// the conntrack feed's flows land in this box's audit view. Best-effort: a box
+	// still runs if its IP cannot be read (auditing just has nothing to key on).
+	p.auditBoxNetwork(ctx, id, opts.BoxID)
 	// The container name encodes the auth phase (for reaping) and the generation
 	// token (for uniqueness) — never the container id, so nothing about the Docker
 	// handle leaks through the box's name.
@@ -759,6 +785,54 @@ func (p *Provisioner) setupBoxNetwork(ctx context.Context, id string) error {
 		return fmt.Errorf("detaching box from the default bridge: %w", err)
 	}
 	return nil
+}
+
+// auditBoxNetwork registers the box's IP on its private network with the flow
+// recorder, so conntrack events from that address are attributed to this box. It
+// is best-effort: an inspect failure or a missing address just means the box's
+// audit view stays empty, never a failed create.
+//
+// @arg ctx Context for the inspect call.
+// @arg containerID The box's Docker container id.
+// @arg boxID The box's caller-assigned id the flows are attributed to.
+//
+// @testcase TestProvisionRegistersBoxIP registers the container's box-network IP.
+func (p *Provisioner) auditBoxNetwork(ctx context.Context, containerID, boxID string) {
+	if p.recorder == nil || boxID == "" {
+		return
+	}
+	info, err := p.cli.ContainerInspect(ctx, containerID)
+	if err != nil {
+		p.logger().Warn("failed to inspect box for network audit", "box", boxID, "err", err)
+		return
+	}
+	if ip := boxNetworkIP(info, boxNetworkName(containerID)); ip != "" {
+		p.recorder.Register(boxID, ip)
+	}
+}
+
+// boxNetworkIP extracts the container's IPv4 address on its private box network
+// from an inspect response, falling back to any attached network's address. It
+// returns "" when none is set (e.g. the container is not yet on a network).
+//
+// @arg info The container inspect response.
+// @arg netName The box's private network name to prefer.
+// @return string The container's IP on that network, or any network, or "".
+//
+// @testcase TestBoxNetworkIPPrefersBoxNetwork picks the box network's address.
+func boxNetworkIP(info container.InspectResponse, netName string) string {
+	if info.NetworkSettings == nil {
+		return ""
+	}
+	if ep, ok := info.NetworkSettings.Networks[netName]; ok && ep != nil && ep.IPAddress != "" {
+		return ep.IPAddress
+	}
+	for _, ep := range info.NetworkSettings.Networks {
+		if ep != nil && ep.IPAddress != "" {
+			return ep.IPAddress
+		}
+	}
+	return ""
 }
 
 // removeBoxNetwork tears down a box's dedicated network, disconnecting the peers
@@ -1034,8 +1108,28 @@ func (i *dockerInstance) Destroy(ctx context.Context) error {
 	}
 	i.prov.removeBoxNetwork(ctx, id)
 	i.prov.stopBoxAPI(i.box.InstanceID)
+	if i.prov.recorder != nil && i.box.BoxID != "" {
+		i.prov.recorder.Unregister(i.box.BoxID)
+	}
 	if i.socketToken != "" {
 		_ = os.RemoveAll(filepath.Join(i.prov.socketDir, i.socketToken))
 	}
 	return nil
+}
+
+// NetworkFlows returns this box's audited outbound flow metadata from the
+// provisioner's recorder, satisfying the optional box.NetworkAuditor capability. A
+// box with no recorded traffic (or a spoke that cannot reach the host conntrack
+// table) yields no flows.
+//
+// @arg _ Context (unused; the lookup is in-memory).
+// @return []sandbox.NetworkFlow The box's flows, newest first (nil if none).
+// @error error is always nil.
+//
+// @testcase TestDockerNetworkFlows returns the recorded flows for a box.
+func (i *dockerInstance) NetworkFlows(_ context.Context) ([]sandbox.NetworkFlow, error) {
+	if i.prov == nil || i.prov.recorder == nil {
+		return nil, nil
+	}
+	return i.prov.recorder.Flows(i.box.BoxID), nil
 }

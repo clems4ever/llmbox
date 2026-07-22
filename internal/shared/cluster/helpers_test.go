@@ -74,6 +74,7 @@ type fakeManager struct {
 	createID   string
 	boxes      []sandbox.Box
 	execResult sandbox.ExecResult
+	flows      []sandbox.NetworkFlow
 	dialTarget string // address DialBox connects to (for proxy_http tests)
 	dialErr    error  // when set, DialBox returns it
 	err        error
@@ -83,6 +84,7 @@ type fakeManager struct {
 	lastDestroy string
 	lastPause   string
 	lastResume  string
+	lastNetwork string
 	lastExec    struct {
 		idOrName string
 		cmd      []string
@@ -157,6 +159,17 @@ func (f *fakeManager) Exec(_ context.Context, idOrName string, cmd []string) (sa
 		return sandbox.ExecResult{}, f.err
 	}
 	return f.execResult, nil
+}
+
+// NetworkFlows records the requested box and returns the configured flows/error.
+func (f *fakeManager) NetworkFlows(_ context.Context, idOrName string) ([]sandbox.NetworkFlow, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.lastNetwork = idOrName
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.flows, nil
 }
 
 // memStore is an in-memory cluster.Store for tests.

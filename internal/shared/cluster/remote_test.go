@@ -69,6 +69,27 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 	}
 }
 
+// TestRemoteSpokeNetworkFlows round-trips the network-audit verb through the
+// dispatch loop to a fake spoke and back.
+func TestRemoteSpokeNetworkFlows(t *testing.T) {
+	want := []sandbox.NetworkFlow{
+		{Proto: "tcp", DstIP: "140.82.121.4", DstPort: 443, BytesOut: 1420, BytesIn: 5300, State: "ESTABLISHED"},
+	}
+	fake := &fakeManager{flows: want}
+	rs := startSpoke(t, fake)
+
+	got, err := rs.NetworkFlows(context.Background(), "b1")
+	if err != nil {
+		t.Fatalf("NetworkFlows: %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("flows = %+v, want %+v", got, want)
+	}
+	if fake.lastNetwork != "b1" {
+		t.Errorf("spoke saw network request for %q, want b1", fake.lastNetwork)
+	}
+}
+
 // TestRemoteSpokeVerbError is a package test.
 func TestRemoteSpokeVerbError(t *testing.T) {
 	rs := startSpoke(t, &fakeManager{err: errors.New("boom")})

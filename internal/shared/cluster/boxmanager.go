@@ -26,4 +26,8 @@ type BoxManager interface {
 	Pause(ctx context.Context, idOrName string) error
 	Resume(ctx context.Context, idOrName string) error
 	Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error)
+	// NetworkFlows returns the audited outbound network flow metadata a box's spoke
+	// recorded for it (from the host conntrack table). A spoke that does not audit —
+	// or a box booted without egress — returns no flows rather than an error.
+	NetworkFlows(ctx context.Context, idOrName string) ([]sandbox.NetworkFlow, error)
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { boxId, createdAt, isBroken, isExpired, shortTime, stateTone } from "./format";
+import { boxId, clockTime, createdAt, formatBytes, isBroken, isExpired, shortTime, stateTone } from "./format";
 
 describe("shortTime", () => {
   it("trims an ISO timestamp to minutes and drops the T", () => {
@@ -70,5 +70,32 @@ describe("stateTone", () => {
   });
   it("does not throw on an undefined state", () => {
     expect(stateTone(undefined)).toBe("stopped");
+  });
+});
+
+describe("formatBytes", () => {
+  it("shows whole bytes without a decimal", () => {
+    expect(formatBytes(0)).toBe("0 B");
+    expect(formatBytes(512)).toBe("512 B");
+  });
+  it("scales to kB/MB/GB with one decimal (base 1000)", () => {
+    expect(formatBytes(1420)).toBe("1.4 kB");
+    expect(formatBytes(5300)).toBe("5.3 kB");
+    expect(formatBytes(2_500_000)).toBe("2.5 MB");
+    expect(formatBytes(3_000_000_000)).toBe("3.0 GB");
+  });
+  it("treats missing/negative counts as zero", () => {
+    expect(formatBytes(-5)).toBe("0 B");
+  });
+});
+
+describe("clockTime", () => {
+  it("renders a HH:MM:SS local clock", () => {
+    // 1_700_000_050 is a fixed instant; assert the shape rather than a zone.
+    expect(clockTime(1_700_000_050)).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+  });
+  it("returns empty for an unset timestamp", () => {
+    expect(clockTime(0)).toBe("");
+    expect(clockTime(undefined)).toBe("");
   });
 });
