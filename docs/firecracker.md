@@ -36,6 +36,67 @@ isolated.
   Docker backend it can be pinned to a namespace so two spokes sharing a host never
   see each other's boxes.
 
+## Security: every box is jailed
+
+llmbox never launches `firecracker` directly. Every microVM is started through the
+official **[jailer](https://github.com/firecracker-microvm/firecracker/blob/main/docs/jailer.md)**,
+which wraps the VMM in a defense-in-depth boundary around an untrusted guest:
+
+- **Per-VM chroot.** Each box gets its own chroot (`<chroot-base>/firecracker/<token>/root`).
+  The VMM only sees the kernel, its own writable rootfs, and the shared read-only
+  payload — hard-linked in — plus its own API/vsock sockets. One box cannot reach
+  another box's disk, sockets, or the shared asset cache through host paths.
+- **Unprivileged per-VM UID.** Each live box runs under a **unique UID** drawn from a
+  configurable range (default `100000–165535`); its chroot, rootfs, and sockets are
+  owned by that UID (mode `0700`/`0600`), so no other box's identity can read them.
+  The UID is persisted and freed only when the box is destroyed, so restart recovery
+  never reuses a UID while its box exists.
+- **Shared network group, not shared files.** All jailed VMMs run under one shared
+  **fc-net GID** (default `100000`) that owns the pooled TAP devices, so a jailed,
+  unprivileged Firecracker can open its assigned TAP **without `CAP_NET_ADMIN`**.
+  Filesystem isolation rides on the per-VM UID (files are owner-only), so sharing the
+  group leaks no box state and a TAP slot can be reassigned to a different box without
+  churning the interface.
+- **cgroup + device isolation.** The jailer places each VMM in its own cgroup and
+  builds its `/dev/{kvm,net/tun,urandom}` nodes inside the chroot. The VM's CPU/memory
+  envelope is bounded by the Firecracker machine config (`--box-cpus`, `--box-memory-mb`).
+
+**Jailing is mandatory — there is no flag to run unjailed.** If the prerequisites
+are missing the spoke **fails closed at startup** with an actionable error; it never
+falls back to a direct launch.
+
+### Jailer prerequisites
+
+- A **`jailer`** binary on `PATH`, version-matched to `firecracker`
+  (`scripts/firecracker/fetch-firecracker.sh` installs both from one release).
+- The spoke must run **as root** — the jailer must `chroot`, create device nodes,
+  `chown` staged files, and drop to the per-VM UID.
+- `/dev/kvm` present and usable.
+- The **chroot base** must be on the **same filesystem** as the state directory (so
+  the jailer can hard-link each box's rootfs into the chroot). The default
+  `<state-dir>/chroot` satisfies this automatically.
+
+### Jailer configuration
+
+All optional — the defaults above are safe. Tune the jail with:
+
+```
+--jailer <path>          # jailer binary; empty resolves "jailer" from PATH
+--firecracker <path>     # firecracker binary the jailer exec-s
+--chroot-base <dir>      # chroot base; empty uses <state-dir>/chroot
+--uid-min / --uid-max    # per-VM UID range; 0 uses the default
+--tap-group <gid>        # shared fc-net GID that owns the pooled TAPs
+--cgroup-version 1|2     # empty auto-detects
+```
+
+### Migration from a pre-jailer spoke
+
+Boxes created by an older, direct-launch spoke carry no chroot in their metadata.
+After upgrade they remain **discoverable and destroyable** at their old flat socket
+paths (`vm list`/`vm destroy` and rehydration still find them) until they drain;
+**every newly created box is jailed**. There is no in-place conversion — drain the
+old boxes and new ones come up jailed.
+
 ## Boxes survive a spoke restart
 
 The microVMs **outlive the spoke process**, exactly like Docker containers outlive
@@ -48,10 +109,11 @@ or the operator `vm destroy`/`destroy-all` commands below — never by shutdown.
 Making this hold takes a few deliberate choices, since a Firecracker VMM is a direct
 child of the spoke (Docker gets it for free — dockerd owns the containers):
 
-- The VMM runs on a background context in its own process group, so neither a
-  request/lifetime context cancel nor a terminal `Ctrl-C` (SIGINT to the group)
-  reaps it, and the SDK's default signal forwarding is disabled so the spoke's
-  shutdown signal is not relayed to it.
+- The VMM runs on a background context, and the jailer is told to **daemonize**
+  (`setsid`), detaching the VMM into its own session so neither a request/lifetime
+  context cancel nor a terminal `Ctrl-C` (SIGINT to the spoke's group) reaps it; the
+  SDK's default signal forwarding is disabled so the spoke's shutdown signal is not
+  relayed to it either.
 - `Close` (spoke shutdown) is **release-only**: it closes in-memory listeners but
   leaves every VM running and the egress TAP pool up (re-adopted idempotently on the
   next start).
@@ -118,13 +180,19 @@ these knobs are Firecracker-only.)
 
 ## Host requirements
 
-- Linux with KVM (`/dev/kvm` readable/writable by the running user).
-- The `firecracker` binary on `PATH` (see `scripts/firecracker/fetch-firecracker.sh`).
+- Linux with KVM (`/dev/kvm` present and usable).
+- **Run the spoke as root.** Every box is launched through the jailer, which must
+  `chroot`, create device nodes, and drop to a per-VM UID — see
+  [Security: every box is jailed](#security-every-box-is-jailed).
+- The `firecracker` **and** `jailer` binaries on `PATH`, version-matched (see
+  `scripts/firecracker/fetch-firecracker.sh`). Both are required — jailing is
+  mandatory.
 - A Firecracker-compatible guest kernel with `virtio-vsock`, `virtio-net`,
   `virtio-blk`, `ext4`, `devtmpfs`, and `devpts` built in. The Firecracker CI
   kernels have all of these.
-- `CAP_NET_ADMIN` (typically root) and `net.ipv4.ip_forward=1` **only** when egress
-  networking is enabled.
+- The chroot base on the same filesystem as the state directory (the default
+  `<state-dir>/chroot` satisfies this).
+- `net.ipv4.ip_forward=1` is set for you **only** when egress networking is enabled.
 
 ## Zero-build spoke (images resolved from the registry)
 

@@ -34,6 +34,24 @@ type boxMeta struct {
 	Created int64 `json:"created"`
 	// NetIndex is the per-box network slot, freed on Destroy.
 	NetIndex int `json:"net_index"`
+	// UID and GID are the unprivileged identity the box's Firecracker VMM runs
+	// under, allocated at provision time. UID is unique per live box (so one box's
+	// chroot, rootfs, and sockets — all mode 0700 — are unreadable by another);
+	// GID is the shared fc-net group that owns the pooled TAP devices, letting the
+	// jailed VMM open its TAP without CAP_NET_ADMIN. They are persisted so restart
+	// recovery frees the UID only once the box is gone and never reuses a live one.
+	UID int `json:"uid,omitempty"`
+	GID int `json:"gid,omitempty"`
+	// ChrootBase is the jailer chroot base directory the box was launched under.
+	// Together with ExecBase and Token it locates the box's host-visible runtime
+	// sockets inside the chroot (see runtimeDir). Empty marks a legacy box launched
+	// by invoking firecracker directly (pre-jailer), whose sockets live flat in its
+	// state directory; such boxes stay discoverable and destroyable until drained.
+	ChrootBase string `json:"chroot_base,omitempty"`
+	// ExecBase is the basename of the Firecracker binary the jailer exec'd; the
+	// jailer roots each VM at <ChrootBase>/<ExecBase>/<Token>/root. Persisted so
+	// recovery reconstructs the exact chroot path without a running provisioner.
+	ExecBase string `json:"exec_base,omitempty"`
 	// DiskBytes is the size the box's writable rootfs file was grown to at
 	// provision time (the resolved, clamped disk size). Persisted for the record
 	// and so a rehydrated box reports the size it was created with; the grown file
@@ -47,7 +65,9 @@ type boxMeta struct {
 // metaFileName is the per-box metadata file inside its state subdirectory.
 const metaFileName = "meta.json"
 
-// boxDir returns the state subdirectory for a box token.
+// boxDir returns the state subdirectory for a box token. It always holds the box's
+// metadata and per-box rootfs copy; for a jailed box the live sockets live in the
+// chroot (see runtimeDir), while a legacy direct box keeps them here too.
 //
 // @arg stateDir The provisioner's state root.
 // @arg token The box token.
@@ -55,6 +75,59 @@ const metaFileName = "meta.json"
 //
 // @testcase TestSaveLoadMeta round-trips metadata through a box directory.
 func boxDir(stateDir, token string) string { return filepath.Join(stateDir, token) }
+
+// runtimeDir returns the host directory that holds the box's live Firecracker
+// sockets. For a jailed box that is the jailer chroot root
+// (<ChrootBase>/<ExecBase>/<Token>/root), where the VMM — chrooted there — creates
+// its API and vsock sockets, visible to the host control plane at that path. For a
+// legacy direct box (no ChrootBase persisted) it is the flat state directory, as
+// before jailing, so such boxes stay reachable and destroyable until drained.
+//
+// @arg stateDir The provisioner's state root (used only for a legacy direct box).
+// @return string The directory holding the box's api/vsock sockets.
+//
+// @testcase TestRuntimeDirJailedAndLegacy resolves jailed and legacy socket dirs.
+func (m boxMeta) runtimeDir(stateDir string) string {
+	if m.ChrootBase == "" {
+		return boxDir(stateDir, m.Token)
+	}
+	return filepath.Join(m.ChrootBase, m.ExecBase, m.Token, "root")
+}
+
+// apiSockPath returns the host-visible path to the box's Firecracker API socket.
+//
+// @arg stateDir The provisioner's state root.
+// @return string The box's API Unix-socket path.
+//
+// @testcase TestRuntimeDirJailedAndLegacy resolves the api socket path.
+func (m boxMeta) apiSockPath(stateDir string) string {
+	return filepath.Join(m.runtimeDir(stateDir), "fc.sock")
+}
+
+// vsockUDSPath returns the host-visible path to the box's Firecracker vsock UDS,
+// through which the host reaches the guest's control and box-port channels.
+//
+// @arg stateDir The provisioner's state root.
+// @return string The box's vsock Unix-socket path.
+//
+// @testcase TestRuntimeDirJailedAndLegacy resolves the vsock socket path.
+func (m boxMeta) vsockUDSPath(stateDir string) string {
+	return filepath.Join(m.runtimeDir(stateDir), "vsock.sock")
+}
+
+// chrootInstanceDir returns the jailer chroot directory that must be removed when a
+// jailed box is destroyed (the parent of the chroot root). It is empty for a legacy
+// direct box, which has no chroot to clean.
+//
+// @return string The box's chroot instance directory, or "" for a legacy box.
+//
+// @testcase TestRuntimeDirJailedAndLegacy returns the chroot dir only for a jailed box.
+func (m boxMeta) chrootInstanceDir() string {
+	if m.ChrootBase == "" {
+		return ""
+	}
+	return filepath.Join(m.ChrootBase, m.ExecBase, m.Token)
+}
 
 // save writes m atomically into its box directory (creating the directory), so a
 // crash mid-write never leaves a half-written meta file that fails to parse.

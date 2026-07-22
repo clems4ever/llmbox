@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -61,7 +60,7 @@ func ListVMs(stateDir string) ([]VMStatus, error) {
 			Namespace: m.Namespace,
 			Phase:     m.Phase,
 			Paused:    m.Paused,
-			Running:   vmmAlive(filepath.Join(boxDir(stateDir, m.Token), "fc.sock")),
+			Running:   vmmAlive(m.apiSockPath(stateDir)),
 			NetIndex:  m.NetIndex,
 			Created:   m.Created,
 		})
@@ -149,15 +148,21 @@ func DestroyAllVMs(stateDir string) ([]VMStatus, error) {
 //
 // @testcase TestDestroyVM tears a box down through destroyBox.
 func destroyBox(stateDir string, m boxMeta) error {
-	dir := boxDir(stateDir, m.Token)
-	apiSock := filepath.Join(dir, "fc.sock")
+	apiSock := m.apiSockPath(stateDir)
 	if vmmAlive(apiSock) {
 		if err := haltVMM(apiSock); err != nil {
 			return fmt.Errorf("halting VMM for box %s: %w", m.Token, err)
 		}
 	}
-	if err := os.RemoveAll(dir); err != nil {
+	if err := os.RemoveAll(boxDir(stateDir, m.Token)); err != nil {
 		return fmt.Errorf("removing box %s state: %w", m.Token, err)
+	}
+	// Remove the jailer chroot too (empty for a legacy direct box), so destroying a
+	// jailed box leaks no chroot/socket state.
+	if chroot := m.chrootInstanceDir(); chroot != "" {
+		if err := os.RemoveAll(chroot); err != nil {
+			return fmt.Errorf("removing box %s chroot: %w", m.Token, err)
+		}
 	}
 	return nil
 }

@@ -114,6 +114,16 @@ type spokeOptions struct {
 	fcStateDir      string
 	fcDisableEgress bool
 	fcPoolSize      int
+	// Jailer knobs: every microVM is launched through the jailer (chrooted,
+	// unprivileged per-VM UID) — there is no unjailed mode. All optional; empty/zero
+	// keeps a safe default.
+	fcJailerBin      string
+	fcFirecrackerBin string
+	fcChrootBase     string
+	fcUIDMin         int
+	fcUIDMax         int
+	fcTapGroup       int
+	fcCgroupVersion  string
 	// box carries the per-box resource caps, socket dir, and namespace, reusing
 	// the config type so boxconfig.BoxLimits does the unit conversion.
 	box      boxconfig.BoxConfig
@@ -718,6 +728,17 @@ func addFirecrackerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.fcStateDir, "state-dir", "", "directory for per-box state; empty uses the backend default")
 	f.BoolVar(&o.fcDisableEgress, "disable-egress", false, "boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network")
 	f.IntVar(&o.fcPoolSize, "pool-size", 0, "number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default")
+	// Every microVM is launched through the jailer (chrooted, unprivileged per-VM
+	// UID). This is mandatory — there is no flag to run firecracker directly — so
+	// these only tune the jail. The spoke must run as root and a firecracker-matched
+	// jailer must be installed (scripts/firecracker/fetch-firecracker.sh).
+	f.StringVar(&o.fcJailerBin, "jailer", "", `path to the jailer binary; empty resolves "jailer" from PATH`)
+	f.StringVar(&o.fcFirecrackerBin, "firecracker", "", `path to the firecracker binary the jailer exec-s; empty resolves "firecracker" from PATH`)
+	f.StringVar(&o.fcChrootBase, "chroot-base", "", "jailer chroot base directory; empty uses <state-dir>/chroot (must share a filesystem with the state dir so the jailer can hard-link the rootfs)")
+	f.IntVar(&o.fcUIDMin, "uid-min", 0, "lowest unprivileged UID assigned to a per-VM jailer identity; 0 uses the default")
+	f.IntVar(&o.fcUIDMax, "uid-max", 0, "highest unprivileged UID assigned to a per-VM jailer identity; 0 uses the default")
+	f.IntVar(&o.fcTapGroup, "tap-group", 0, "GID that owns the pooled TAP devices and that every jailed VMM runs under, so a jailed Firecracker can open its TAP without CAP_NET_ADMIN; 0 uses the default")
+	f.StringVar(&o.fcCgroupVersion, "cgroup-version", "", `cgroup filesystem version the jailer uses ("1" or "2"); empty auto-detects`)
 }
 
 // runSpoke connects a spoke to the hub and serves boxes against the local
@@ -774,20 +795,27 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// attaches to it below, so box-port requests always ride the live link.
 	portCaller := cluster.NewHubCaller()
 	prov, err := backend.New(o.backend, backend.Options{
-		DefaultImage:     o.image,
-		SocketDir:        o.box.SocketDir,
-		Peers:            o.boxPeers,
-		Limits:           BoxLimits(o.box),
-		Namespace:        o.box.Namespace,
-		BoxPorts:         portCaller,
-		GPUs:             o.boxGPUs,
-		RegistryAuths:    boxconfig.RegistryAuths(regs),
-		KernelImagePath:  o.fcKernelImage,
-		RootfsImagePath:  o.fcRootfsImage,
-		PayloadImagePath: o.fcPayloadImage,
-		StateDir:         o.fcStateDir,
-		DisableEgress:    o.fcDisableEgress,
-		PoolSize:         o.fcPoolSize,
+		DefaultImage:      o.image,
+		SocketDir:         o.box.SocketDir,
+		Peers:             o.boxPeers,
+		Limits:            BoxLimits(o.box),
+		Namespace:         o.box.Namespace,
+		BoxPorts:          portCaller,
+		GPUs:              o.boxGPUs,
+		RegistryAuths:     boxconfig.RegistryAuths(regs),
+		KernelImagePath:   o.fcKernelImage,
+		RootfsImagePath:   o.fcRootfsImage,
+		PayloadImagePath:  o.fcPayloadImage,
+		StateDir:          o.fcStateDir,
+		DisableEgress:     o.fcDisableEgress,
+		PoolSize:          o.fcPoolSize,
+		JailerBinary:      o.fcJailerBin,
+		FirecrackerBinary: o.fcFirecrackerBin,
+		ChrootBase:        o.fcChrootBase,
+		UIDMin:            o.fcUIDMin,
+		UIDMax:            o.fcUIDMax,
+		TapGroupGID:       o.fcTapGroup,
+		CgroupVersion:     o.fcCgroupVersion,
 	})
 	if err != nil {
 		return err

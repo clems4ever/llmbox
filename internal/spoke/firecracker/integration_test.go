@@ -50,10 +50,33 @@ func fcArtifacts(t *testing.T) (string, string) {
 	if _, err := exec.LookPath(defaultFirecrackerBin); err != nil {
 		t.Skipf("firecracker binary not on PATH: %v", err)
 	}
+	// Every box is launched jailed now, so the live lifecycle also needs the jailer
+	// binary and root (the jailer must chroot, mknod, and drop privilege).
+	if _, err := exec.LookPath(defaultJailerBin); err != nil {
+		t.Skipf("jailer binary not on PATH (jailed launch is mandatory): %v", err)
+	}
+	if os.Geteuid() != 0 {
+		t.Skip("jailed Firecracker launch needs root; run the live tests as root")
+	}
 	if _, err := os.Stat("/dev/kvm"); err != nil {
 		t.Skipf("/dev/kvm not available: %v", err)
 	}
 	return kernel, rootfs
+}
+
+// jailForTest resolves the jailer prerequisites (firecracker/jailer to absolute
+// paths) on a live-test provisioner and skips the test if they are not met, so the
+// live tests exercise the real jailed launch path the same way production does.
+//
+// @arg t The live test to skip when the jailer prerequisites are not met.
+// @arg p The provisioner to prepare for a jailed boot.
+//
+// @testcase TestConformanceFirecracker prepares the provisioner for jailed boots.
+func jailForTest(t testing.TB, p *Provisioner) {
+	t.Helper()
+	if err := p.jailer.checkJailerPrereqs(p.netEnabled); err != nil {
+		t.Skipf("jailer prerequisites not met: %v", err)
+	}
 }
 
 // TestVMSurvivesRequestContextCancel is a regression test for boxes dying when the
@@ -77,6 +100,7 @@ func TestVMSurvivesRequestContextCancel(t *testing.T) {
 		t.Fatalf("NewProvisioner: %v", err)
 	}
 	p.SetNetworking(false) // control-only: no CAP_NET_ADMIN needed
+	jailForTest(t, p)
 	t.Cleanup(func() { closeAndDestroy(t, p) })
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -131,6 +155,7 @@ func TestConformanceFirecracker(t *testing.T) {
 			t.Fatalf("NewProvisioner: %v", err)
 		}
 		p.SetNetworking(networking)
+		jailForTest(t, p)
 		// Ensure every VM this subtest booted is torn down even if the contract
 		// leaves some alive.
 		t.Cleanup(func() { closeAndDestroy(t, p) })
@@ -161,6 +186,7 @@ func TestBoxAPIOverVsock(t *testing.T) {
 		t.Fatalf("NewProvisioner: %v", err)
 	}
 	p.SetNetworking(false) // control-only: vsock needs no egress
+	jailForTest(t, p)
 	t.Cleanup(func() { closeAndDestroy(t, p) })
 
 	inst, err := p.Provision(context.Background(), sandbox.CreateOptions{BoxID: "vsock-box"})
@@ -217,6 +243,7 @@ func TestBoxRunsAsUnprivilegedUserWithSudo(t *testing.T) {
 		t.Fatalf("NewProvisioner: %v", err)
 	}
 	p.SetNetworking(false) // control-only: vsock needs no egress
+	jailForTest(t, p)
 	p.SetPayloadImage(payload)
 	t.Cleanup(func() { closeAndDestroy(t, p) })
 
