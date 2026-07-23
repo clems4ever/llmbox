@@ -264,3 +264,66 @@ func mustSave(t *testing.T, st Store, g store.AllowlistGroup) {
 		t.Fatalf("SaveAllowlistGroup(%s): %v", g.ID, err)
 	}
 }
+
+// TestBoxNetworkPolicyFlattens checks the effective policy unions global and
+// assigned groups' domains, each with its group TTL, and dedupes across groups.
+func TestBoxNetworkPolicyFlattens(t *testing.T) {
+	s, _, st := newAdminServer(t)
+	mustSave(t, st, store.AllowlistGroup{ID: "core", Name: "core", IsGlobal: true, TTLSeconds: 30, Domains: []string{"api.anthropic.com"}})
+	mustSave(t, st, store.AllowlistGroup{ID: "gh", Name: "gh", TTLSeconds: 60, Domains: []string{"github.com", "api.anthropic.com"}})
+	mustSave(t, st, store.AllowlistGroup{ID: "pypi", Name: "pypi", TTLSeconds: 45, Domains: []string{"pypi.org"}})
+	if err := st.SetBoxGroups("web", []string{"gh"}); err != nil {
+		t.Fatalf("SetBoxGroups: %v", err)
+	}
+
+	policy, err := s.boxNetworkPolicy("web")
+	if err != nil {
+		t.Fatalf("boxNetworkPolicy: %v", err)
+	}
+	if !policy.Enabled {
+		t.Error("policy not enabled")
+	}
+	// core (global) + gh (assigned); pypi excluded. api.anthropic.com appears in
+	// both core and gh but only once, keeping the first group's TTL (core=30).
+	got := map[string]int{}
+	for _, r := range policy.Rules {
+		got[r.Pattern] = r.TTLSeconds
+	}
+	want := map[string]int{"api.anthropic.com": 30, "github.com": 60}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("rules = %v, want %v", got, want)
+	}
+}
+
+// TestSetBoxGroupsPushesPolicy checks assigning groups to a box pushes the box's
+// effective policy to the spoke that hosts it.
+func TestSetBoxGroupsPushesPolicy(t *testing.T) {
+	s, f, st := newAdminServer(t)
+	c := signIn(t, st, true, false)
+	mustSave(t, st, store.AllowlistGroup{ID: "gh", Name: "gh", TTLSeconds: 30, Domains: []string{"github.com"}})
+
+	// Create a box on the wired spoke so the hub has a record with its spoke.
+	if code := postAllowlist(t, s, c, "/api/v1/set-box-groups", map[string]any{"box_id": "irrelevant", "group_ids": []string{}}, nil); code != http.StatusOK {
+		t.Fatalf("warm set-box-groups = %d", code)
+	}
+	_ = f
+	// Register a box via the box-control API so store.ListBoxes returns it.
+	var created struct {
+		Session struct {
+			BoxID string `json:"BoxID"`
+		} `json:"session"`
+	}
+	if code := postAllowlist(t, s, c, "/api/v1/create-box", map[string]any{"opts": map[string]any{"BoxID": "web"}}, &created); code != http.StatusOK {
+		t.Fatalf("create-box = %d", code)
+	}
+
+	if code := postAllowlist(t, s, c, "/api/v1/set-box-groups", map[string]any{"box_id": "web", "group_ids": []string{"gh"}}, nil); code != http.StatusOK {
+		t.Fatalf("set-box-groups = %d", code)
+	}
+	if f.PolicyCalls == 0 || f.GotPolicyBoxID != "web" {
+		t.Fatalf("expected a policy push for web, got box=%q calls=%d", f.GotPolicyBoxID, f.PolicyCalls)
+	}
+	if len(f.GotPolicy.Rules) != 1 || f.GotPolicy.Rules[0].Pattern != "github.com" {
+		t.Errorf("pushed policy = %+v", f.GotPolicy)
+	}
+}

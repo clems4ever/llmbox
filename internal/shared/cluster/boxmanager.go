@@ -26,4 +26,11 @@ type BoxManager interface {
 	Pause(ctx context.Context, idOrName string) error
 	Resume(ctx context.Context, idOrName string) error
 	Exec(ctx context.Context, idOrName string, cmd []string) (sandbox.ExecResult, error)
+	// SetNetworkPolicy pushes a box's effective egress allowlist to the spoke so
+	// its network-isolation enforcement (llmbox-dnsd + firewall) reflects the
+	// hub's current allowlist configuration. It is a no-op on a spoke that does
+	// not run isolation. Applying a policy for an unknown box is not an error —
+	// the spoke keeps it and applies it when the box appears — so a policy push
+	// racing box creation is not lost.
+	SetNetworkPolicy(ctx context.Context, boxID string, policy sandbox.NetworkPolicy) error
 }

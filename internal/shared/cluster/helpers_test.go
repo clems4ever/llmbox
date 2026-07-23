@@ -87,6 +87,10 @@ type fakeManager struct {
 		idOrName string
 		cmd      []string
 	}
+	lastPolicy struct {
+		boxID  string
+		policy sandbox.NetworkPolicy
+	}
 }
 
 // DialBox is a test helper: it dials the configured target (or returns dialErr),
@@ -157,6 +161,14 @@ func (f *fakeManager) Exec(_ context.Context, idOrName string, cmd []string) (sa
 		return sandbox.ExecResult{}, f.err
 	}
 	return f.execResult, nil
+}
+
+func (f *fakeManager) SetNetworkPolicy(_ context.Context, boxID string, policy sandbox.NetworkPolicy) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.lastPolicy.boxID = boxID
+	f.lastPolicy.policy = policy
+	return f.err
 }
 
 // memStore is an in-memory cluster.Store for tests.

@@ -56,7 +56,26 @@ A bundle is `{"version":1,"groups":[{"name","description","domains","ttl_seconds
 On import, a name conflict is resolved by `mode`: `merge` (union the domains into
 the existing group, the default) or `replace`.
 
-## Enforcement (roadmap)
+## Enabling enforcement on a spoke
+
+Network isolation is a per-spoke opt-in. Run the spoke with:
+
+```bash
+llmbox-spoke docker --hub wss://<hub>/spoke/connect --token <token> \
+  --network-isolation \
+  --dns-listen 127.0.0.1:53 \
+  --dns-upstream 1.1.1.1:53      # point at a Pi-hole to forward through it
+```
+
+With `--network-isolation` set, the spoke runs `llmbox-dnsd` and applies the
+per-box allowlist the hub pushes (globally, on every group change, and when a
+box's own groups change). A spoke without the flag keeps open egress and ignores
+pushed policy. The hub computes each box's effective allowlist (`global ∪
+per-box`) and pushes it over the cluster transport as a `set_policy` verb; the
+resolver blocks a non-allowlisted lookup with NXDOMAIN and opens an allowed
+lookup's resolved IPs in the box's firewall for the group's TTL.
+
+## Enforcement internals & roadmap
 
 The configuration plane above is deliberately backend-agnostic so enforcement can
 be added per runner without changing the hub. The design:

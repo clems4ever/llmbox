@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/hub/store"
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
 
 // defaultAllowlistTTLSeconds is the resolved-IP pin window a group falls back to
@@ -150,6 +152,7 @@ func (s *Server) handleSaveAllowlistGroup(w http.ResponseWriter, r *http.Request
 		writeJSONError(w, http.StatusInternalServerError, "saving group: "+err.Error())
 		return
 	}
+	s.pushAllPolicies(r.Context())
 	counts, _ := s.groupBoxCounts()
 	writeAllowlistJSON(w, map[string]any{"group": groupView(g, counts[g.ID])})
 }
@@ -175,6 +178,7 @@ func (s *Server) handleDeleteAllowlistGroup(w http.ResponseWriter, r *http.Reque
 		writeJSONError(w, http.StatusInternalServerError, "deleting group: "+err.Error())
 		return
 	}
+	s.pushAllPolicies(r.Context())
 	writeAllowlistJSON(w, struct{}{})
 }
 
@@ -250,6 +254,7 @@ func (s *Server) handleSetBoxGroups(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusInternalServerError, "setting box groups: "+err.Error())
 		return
 	}
+	s.pushBoxPolicy(r.Context(), req.BoxID)
 	writeAllowlistJSON(w, struct{}{})
 }
 
@@ -371,7 +376,115 @@ func (s *Server) handleImportAllowlistGroups(w http.ResponseWriter, r *http.Requ
 		}
 		imported++
 	}
+	s.pushAllPolicies(r.Context())
 	writeAllowlistJSON(w, map[string]any{"imported": imported})
+}
+
+// boxNetworkPolicy computes a box's effective egress policy — every global
+// group's domains plus the box's own groups' domains, each carrying its group's
+// TTL — as the wire form pushed to the spoke. A domain appearing in more than one
+// group keeps the first (group-order) TTL. Enabled is always true: the hub always
+// hands the spoke the box's allowlist, and the spoke decides whether it enforces
+// (network isolation is a spoke opt-in).
+//
+// @arg boxID The box to compute the policy for.
+// @return sandbox.NetworkPolicy The box's effective policy.
+// @error error if reading the allowlist config fails.
+//
+// @testcase TestBoxNetworkPolicyFlattens flattens global + assigned groups with TTLs.
+func (s *Server) boxNetworkPolicy(boxID string) (sandbox.NetworkPolicy, error) {
+	groups, err := s.store.ListAllowlistGroups()
+	if err != nil {
+		return sandbox.NetworkPolicy{}, err
+	}
+	assigned, err := s.store.GetBoxGroups(boxID)
+	if err != nil {
+		return sandbox.NetworkPolicy{}, err
+	}
+	assignedSet := map[string]bool{}
+	for _, id := range assigned {
+		assignedSet[id] = true
+	}
+	seen := map[string]bool{}
+	var rules []sandbox.DomainRule
+	for _, g := range groups {
+		if !g.IsGlobal && !assignedSet[g.ID] {
+			continue
+		}
+		ttl := g.TTLSeconds
+		if ttl <= 0 {
+			ttl = defaultAllowlistTTLSeconds
+		}
+		for _, d := range g.Domains {
+			if seen[d] {
+				continue
+			}
+			seen[d] = true
+			rules = append(rules, sandbox.DomainRule{Pattern: d, TTLSeconds: ttl})
+		}
+	}
+	return sandbox.NetworkPolicy{Enabled: true, Rules: rules}, nil
+}
+
+// pushBoxPolicy computes and pushes one box's effective policy to the spoke that
+// hosts it. Best-effort: a spoke that is offline or does not run isolation is not
+// an error — the config is already persisted, and the policy is re-pushed on the
+// next change (and, once wired, on box create). A missing box (config set before
+// the box exists) is a no-op.
+//
+// @arg ctx Context for the push.
+// @arg boxID The box whose policy to push.
+func (s *Server) pushBoxPolicy(ctx context.Context, boxID string) {
+	boxes, err := s.store.ListBoxes()
+	if err != nil {
+		s.logger().Warn("listing boxes to push allowlist policy", "err", err)
+		return
+	}
+	for _, b := range boxes {
+		if b.BoxID == boxID {
+			s.pushBoxPolicyTo(ctx, boxID, b.Spoke)
+			return
+		}
+	}
+}
+
+// pushAllPolicies re-pushes every known box's policy, used after a change to a
+// global group (which affects every box). Best-effort per box.
+//
+// @arg ctx Context for the pushes.
+func (s *Server) pushAllPolicies(ctx context.Context) {
+	boxes, err := s.store.ListBoxes()
+	if err != nil {
+		s.logger().Warn("listing boxes to push allowlist policies", "err", err)
+		return
+	}
+	for _, b := range boxes {
+		if b.BoxID == "" {
+			continue
+		}
+		s.pushBoxPolicyTo(ctx, b.BoxID, b.Spoke)
+	}
+}
+
+// pushBoxPolicyTo computes boxID's policy and pushes it to the named spoke.
+//
+// @arg ctx Context for the push.
+// @arg boxID The box whose policy to push.
+// @arg spokeName The spoke hosting the box.
+func (s *Server) pushBoxPolicyTo(ctx context.Context, boxID, spokeName string) {
+	policy, err := s.boxNetworkPolicy(boxID)
+	if err != nil {
+		s.logger().Warn("computing box allowlist policy", "box", boxID, "err", err)
+		return
+	}
+	bm, err := s.spoke(spokeName)
+	if err != nil {
+		// Spoke offline or unknown; the policy is persisted and re-pushed later.
+		return
+	}
+	if err := bm.SetNetworkPolicy(ctx, boxID, policy); err != nil {
+		s.logger().Warn("pushing box allowlist policy", "box", boxID, "spoke", spokeName, "err", err)
+	}
 }
 
 // groupBoxCounts returns, per group id, how many boxes explicitly assign it.

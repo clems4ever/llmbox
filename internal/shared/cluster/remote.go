@@ -367,6 +367,19 @@ func (r *remoteSpoke) Exec(ctx context.Context, idOrName string, cmd []string) (
 	return resp, nil
 }
 
+// SetNetworkPolicy pushes a box's egress allowlist to the spoke over the cluster
+// transport.
+//
+// @arg ctx Context for the call.
+// @arg boxID The box the policy applies to.
+// @arg policy The box's effective network policy.
+// @error error if the call fails or the spoke returns an error.
+//
+// @testcase TestRemoteSpokeRoundTrip pushes a network policy through the remote spoke.
+func (r *remoteSpoke) SetNetworkPolicy(ctx context.Context, boxID string, policy sandbox.NetworkPolicy) error {
+	return r.call(ctx, methodSetPolicy, setPolicyReq{BoxID: boxID, Policy: policy}, nil)
+}
+
 // DialBox opens a raw byte tunnel to a box's port on the spoke and returns it as a
 // net.Conn, implementing BoxDialer over the cluster transport. It is how the hub
 // reaches a box's TCP port on a remote spoke with full streaming, so the reverse

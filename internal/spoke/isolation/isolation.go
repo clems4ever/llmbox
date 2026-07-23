@@ -20,6 +20,7 @@ import (
 
 	"github.com/miekg/dns"
 
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/dnsd"
 	"github.com/clems4ever/llmbox/internal/spoke/netfw"
 )
@@ -63,8 +64,9 @@ type Enforcer struct {
 	server  *dnsd.Server
 	dnsSrvs []*dns.Server
 
-	mu      sync.Mutex
-	started bool
+	mu       sync.Mutex
+	started  bool
+	guestIPs map[string]netip.Addr // boxID -> DNS client address, for Release
 }
 
 // New builds an Enforcer from cfg. Programmer is required.
@@ -94,8 +96,40 @@ func New(cfg Config) (*Enforcer, error) {
 	})
 	return &Enforcer{
 		cfg: cfg, policy: policy, boxes: boxes, pinner: pinner,
-		prog: cfg.Programmer, server: server,
+		prog: cfg.Programmer, server: server, guestIPs: map[string]netip.Addr{},
 	}, nil
+}
+
+// rulesFromPolicy converts a hub NetworkPolicy into dnsd rules. A disabled policy
+// yields no rules (the box is fully denied by the resolver, which is the safe
+// state until enforcement is turned off at the firewall level).
+//
+// @arg policy The hub-pushed policy.
+// @return []dnsd.Rule The matching resolver rules.
+func rulesFromPolicy(policy sandbox.NetworkPolicy) []dnsd.Rule {
+	if !policy.Enabled {
+		return nil
+	}
+	rules := make([]dnsd.Rule, 0, len(policy.Rules))
+	for _, r := range policy.Rules {
+		rules = append(rules, dnsd.Rule{Pattern: r.Pattern, TTL: time.Duration(r.TTLSeconds) * time.Second})
+	}
+	return rules
+}
+
+// SetNetworkPolicy applies a hub-pushed policy to a box's live allowlist without
+// re-baselining the firewall — the update path when an operator changes a box's
+// groups. The box keeps its firewall baseline and open pins; only which domains
+// the resolver will honour changes.
+//
+// @arg boxID The box.
+// @arg policy The box's effective policy.
+// @error error Always nil (kept for the applier interface).
+//
+// @testcase TestEnforcerSetNetworkPolicy updates a box's rules live.
+func (e *Enforcer) SetNetworkPolicy(boxID string, policy sandbox.NetworkPolicy) error {
+	e.policy.Set(boxID, rulesFromPolicy(policy))
+	return nil
 }
 
 // Start binds the resolver on UDP and TCP and launches the pin sweeper. It
@@ -186,20 +220,29 @@ func (e *Enforcer) Configure(boxID string, spec netfw.BoxSpec, guestIP netip.Add
 	}
 	e.boxes.Set(guestIP, boxID)
 	e.policy.Set(boxID, rules)
+	e.mu.Lock()
+	e.guestIPs[boxID] = guestIP
+	e.mu.Unlock()
 	return nil
 }
 
 // Release removes a box's isolation: tears down its firewall rules, forgets its
-// pins, and drops its policy and IP mapping. Idempotent.
+// pins, and drops its policy and IP mapping. Idempotent; safe to call for a box
+// that was never Configured (only its policy is dropped).
 //
 // @arg boxID The box.
-// @arg guestIP The box's DNS client address, to unmap.
 // @error error if the firewall teardown fails.
 //
 // @testcase TestEnforcerReleaseTearsDown releases a box and blocks its later queries.
-func (e *Enforcer) Release(boxID string, guestIP netip.Addr) error {
+func (e *Enforcer) Release(boxID string) error {
 	e.policy.Remove(boxID)
-	e.boxes.Remove(guestIP)
+	e.mu.Lock()
+	guestIP, hadIP := e.guestIPs[boxID]
+	delete(e.guestIPs, boxID)
+	e.mu.Unlock()
+	if hadIP {
+		e.boxes.Remove(guestIP)
+	}
 	e.pinner.Forget(boxID)
 	if err := e.prog.Teardown(boxID); err != nil {
 		return fmt.Errorf("isolation: teardown for %s: %w", boxID, err)

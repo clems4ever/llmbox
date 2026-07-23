@@ -147,6 +147,25 @@ type InjectFile struct {
 	GID     int
 }
 
+// DomainRule is one entry of a box's network allowlist: a domain pattern (an
+// exact host like "github.com" or a single leading wildcard like "*.github.com")
+// and how long, in seconds, a DNS-resolved IP for it stays open in the box's
+// firewall after a lookup.
+type DomainRule struct {
+	Pattern    string `json:"pattern"`
+	TTLSeconds int    `json:"ttl_seconds"`
+}
+
+// NetworkPolicy is a box's effective egress allowlist as the hub computes it and
+// pushes it to the spoke that hosts the box. Enabled reflects whether network
+// isolation applies to the box at all; when false the spoke leaves the box's
+// egress untouched (open). Rules is the flattened, deduplicated allowlist
+// (global groups ∪ the box's own groups) from the hub's allowlist configuration.
+type NetworkPolicy struct {
+	Enabled bool         `json:"enabled"`
+	Rules   []DomainRule `json:"rules,omitempty"`
+}
+
 // Limits caps the resources a single box may consume and the total number of
 // concurrent boxes a Manager will run. It bounds resource-exhaustion
 // (CPU/memory/PID fork-bombs, unbounded box counts) by a caller that can reach

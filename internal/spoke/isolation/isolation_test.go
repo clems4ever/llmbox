@@ -8,6 +8,7 @@ import (
 
 	"github.com/miekg/dns"
 
+	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/dnsd"
 	"github.com/clems4ever/llmbox/internal/spoke/netfw"
 )
@@ -119,15 +120,38 @@ func TestEnforcerReleaseTearsDown(t *testing.T) {
 	spec := netfw.BoxSpec{Source: netip.MustParsePrefix("127.0.0.1/32"), DNS: netip.MustParseAddr("127.0.0.1")}
 	_ = e.Configure("web", spec, guest, []dnsd.Rule{{Pattern: "github.com", TTL: time.Second}})
 
-	if err := e.Release("web", guest); err != nil {
+	if err := e.Release("web"); err != nil {
 		t.Fatalf("Release: %v", err)
 	}
+	_ = guest
 	if _, ok := prog.Spec("web"); ok {
 		t.Fatal("box firewall still present after Release")
 	}
 	// A query from the now-unmapped box source is refused.
 	if resp := ask(t, addr, "github.com"); resp.Rcode != dns.RcodeRefused {
 		t.Fatalf("post-release query rcode=%d, want REFUSED", resp.Rcode)
+	}
+}
+
+// TestEnforcerSetNetworkPolicy checks a live policy push changes which domains the
+// resolver honours for a box, without a re-baseline.
+func TestEnforcerSetNetworkPolicy(t *testing.T) {
+	e, _, guest := startEnforcer(t, fixedResolver{ip: "5.6.7.8"})
+	addr := waitAddr(t, e)
+	spec := netfw.BoxSpec{Source: netip.MustParsePrefix("127.0.0.1/32"), DNS: netip.MustParseAddr("127.0.0.1")}
+	_ = e.Configure("web", spec, guest, nil) // start fully denied
+
+	if resp := ask(t, addr, "github.com"); resp.Rcode != dns.RcodeNameError {
+		t.Fatalf("pre-policy rcode=%d, want NXDOMAIN", resp.Rcode)
+	}
+	// Push a policy that allows github.com.
+	if err := e.SetNetworkPolicy("web", sandbox.NetworkPolicy{
+		Enabled: true, Rules: []sandbox.DomainRule{{Pattern: "github.com", TTLSeconds: 30}},
+	}); err != nil {
+		t.Fatalf("SetNetworkPolicy: %v", err)
+	}
+	if resp := ask(t, addr, "github.com"); resp.Rcode != dns.RcodeSuccess {
+		t.Fatalf("post-policy rcode=%d, want success", resp.Rcode)
 	}
 }
 

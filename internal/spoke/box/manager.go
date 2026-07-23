@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"strings"
@@ -42,6 +43,22 @@ type Config struct {
 	// successful Create so the hub can publish them once it has registered the box.
 	// Nil publishes nothing.
 	PublishPorts []sandbox.PublishPort
+	// Isolation applies hub-pushed network policies to this spoke's enforcement
+	// (llmbox-dnsd + firewall). Nil disables network isolation: policy pushes are
+	// accepted and ignored, and boxes keep open egress. *isolation.Enforcer
+	// satisfies it.
+	Isolation PolicyApplier
+}
+
+// PolicyApplier applies a box's hub-pushed network policy to the spoke's egress
+// enforcement, and releases it when the box is destroyed. It is the seam between
+// the box manager and the isolation subsystem, so the manager need not import the
+// DNS/firewall machinery. Implementations must be safe for concurrent use.
+type PolicyApplier interface {
+	// SetNetworkPolicy applies (or updates) a box's effective allowlist.
+	SetNetworkPolicy(boxID string, policy sandbox.NetworkPolicy) error
+	// Release drops a box's isolation state when it is destroyed.
+	Release(boxID string) error
 }
 
 // CopyFile is one host file a spoke stages into every box (its --copy flag),
@@ -287,10 +304,36 @@ func (m *Manager) Destroy(ctx context.Context, idOrName string) error {
 	if err != nil {
 		return err
 	}
+	meta := inst.Meta()
 	if err := inst.Destroy(ctx); err != nil && !errors.Is(err, sandbox.ErrBoxNotFound) {
 		return err
 	}
+	// Drop the box's isolation state after it is gone. Best-effort: a teardown
+	// hiccup must not turn a successful destroy into a failure.
+	if m.cfg.Isolation != nil && meta.BoxID != "" {
+		if err := m.cfg.Isolation.Release(meta.BoxID); err != nil {
+			slog.Default().Warn("releasing box isolation", "box", meta.BoxID, "err", err)
+		}
+	}
 	return nil
+}
+
+// SetNetworkPolicy applies a hub-pushed egress allowlist to a box. When this spoke
+// does not run network isolation (no applier configured) it is accepted and
+// ignored, so a hub that pushes policy to a non-isolating spoke is not an error.
+//
+// @arg _ Context (unused; policy application is local and non-blocking).
+// @arg boxID The box the policy applies to.
+// @arg policy The box's effective network policy.
+// @error error if the applier rejects the policy.
+//
+// @testcase TestBoxManagerSetNetworkPolicy applies a policy through the configured applier.
+// @testcase TestBoxManagerSetNetworkPolicyNoApplier is a no-op without an applier.
+func (m *Manager) SetNetworkPolicy(_ context.Context, boxID string, policy sandbox.NetworkPolicy) error {
+	if m.cfg.Isolation == nil {
+		return nil
+	}
+	return m.cfg.Isolation.SetNetworkPolicy(boxID, policy)
 }
 
 // Pause stops a managed box's compute to save CPU/RAM while keeping its disk, so it

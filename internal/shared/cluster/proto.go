@@ -44,12 +44,13 @@ const (
 
 // Verb method names carried in a frameReq.
 const (
-	methodCreate  = "create"
-	methodList    = "list"
-	methodDestroy = "destroy"
-	methodPause   = "pause"
-	methodResume  = "resume"
-	methodExec    = "exec"
+	methodCreate    = "create"
+	methodList      = "list"
+	methodDestroy   = "destroy"
+	methodPause     = "pause"
+	methodResume    = "resume"
+	methodExec      = "exec"
+	methodSetPolicy = "set_policy"
 )
 
 // Verb method names carried in a frameSpokeReq (spoke→hub).
@@ -118,6 +119,11 @@ type resumeReq struct {
 type execReq struct {
 	IDOrName string   `json:"id_or_name"`
 	Cmd      []string `json:"cmd"`
+}
+
+type setPolicyReq struct {
+	BoxID  string                `json:"box_id"`
+	Policy sandbox.NetworkPolicy `json:"policy"`
 }
 
 // Box-port payloads (spoke→hub, carried in a frameSpokeReq). The BoxID is

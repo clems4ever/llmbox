@@ -197,6 +197,15 @@ func dispatch(ctx context.Context, mgr BoxManager, req frame) (json.RawMessage, 
 			return nil, err
 		}
 		return encodePayload(res)
+	case methodSetPolicy:
+		var in setPolicyReq
+		if err := decodePayload(req.Payload, &in); err != nil {
+			return nil, err
+		}
+		if err := mgr.SetNetworkPolicy(ctx, in.BoxID, in.Policy); err != nil {
+			return nil, err
+		}
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unknown method %q", req.Method)
 	}
