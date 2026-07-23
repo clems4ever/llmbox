@@ -34,6 +34,7 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/internal/spoke/box/backend"
+	"github.com/clems4ever/llmbox/internal/spoke/dnsd"
 	_ "github.com/clems4ever/llmbox/internal/spoke/docker" // registers the "docker" box backend
 	"github.com/clems4ever/llmbox/internal/spoke/firecracker"
 	"github.com/clems4ever/llmbox/internal/spoke/isolation"
@@ -177,11 +178,16 @@ func (o spokeOptions) buildIsolation(ctx context.Context, caller *cluster.HubCal
 	if err != nil {
 		return nil, fmt.Errorf("--dns-listen %q: %w", o.dnsListen, err)
 	}
+	// Accept a bare Pi-hole/resolver address for --dns-upstream (":53" default).
+	upstream, err := dnsd.NormalizeUpstream(o.dnsUpstream)
+	if err != nil {
+		return nil, fmt.Errorf("--dns-upstream: %w", err)
+	}
 	enf, err := isolation.New(isolation.Config{
 		ListenAddr: o.dnsListen,
 		DNSAddr:    dnsAddr.Addr(),
 		Programmer: netfw.NewNFTables(nil),
-		Upstream:   o.dnsUpstream,
+		Upstream:   upstream,
 		Audit:      newDNSAuditForwarder(ctx, caller),
 	})
 	if err != nil {
@@ -831,7 +837,7 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringArrayVar(&o.boxPeers, "box-peer", nil, "container name connected into every box's network so boxes can reach it (repeatable)")
 	f.BoolVar(&o.networkIsolation, "network-isolation", false, "deny-by-default egress for boxes on this spoke: run llmbox-dnsd and enforce the hub-configured per-box domain allowlist (off keeps open egress)")
 	f.StringVar(&o.dnsListen, "dns-listen", "127.0.0.1:53", "address llmbox-dnsd binds when --network-isolation is set (boxes are pointed at it)")
-	f.StringVar(&o.dnsUpstream, "dns-upstream", "1.1.1.1:53", "upstream resolver llmbox-dnsd forwards allowed queries to (host:port); point at a Pi-hole to forward through it")
+	f.StringVar(&o.dnsUpstream, "dns-upstream", "1.1.1.1:53", "upstream resolver llmbox-dnsd forwards allowed queries to; a bare host/IP defaults to :53. Point it at a Pi-hole (e.g. 10.0.0.53) to forward allowed lookups through it while llmbox still enforces the allowlist and pins the resolved IPs")
 	f.StringVar(&o.registry.host, "registry", "", `registry host to authenticate to when pulling box images, e.g. "ghcr.io" (empty pulls anonymously)`)
 	f.StringVar(&o.registry.username, "registry-username", "", "username for --registry")
 	f.StringVar(&o.registry.passwordFile, "registry-password-file", "", "file holding the password or token for --registry")
