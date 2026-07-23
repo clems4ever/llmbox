@@ -34,6 +34,7 @@ import (
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/internal/spoke/box/backend"
+	_ "github.com/clems4ever/llmbox/internal/spoke/cloudhypervisor" // registers the "cloud-hypervisor" box backend
 	"github.com/clems4ever/llmbox/internal/spoke/dnsd"
 	_ "github.com/clems4ever/llmbox/internal/spoke/docker" // registers the "docker" box backend
 	"github.com/clems4ever/llmbox/internal/spoke/firecracker"
@@ -112,9 +113,20 @@ type spokeOptions struct {
 	// at it. dnsUpstream is the resolver allowed queries are forwarded to.
 	dnsListen   string
 	dnsUpstream string
-	// backend is the box isolation backend this spoke runs ("docker" or
-	// "firecracker"); it is set from the chosen run subcommand, not a flag.
+	// backend is the box isolation backend this spoke runs ("docker",
+	// "firecracker", or "cloud-hypervisor"); it is set from the chosen run
+	// subcommand, not a flag.
 	backend string
+	// chKernelImage/chRootfsImage/chStateDir are the Cloud Hypervisor backend's guest
+	// kernel, default rootfs image, and state directory; unused for the others.
+	chKernelImage string
+	chRootfsImage string
+	chStateDir    string
+	// chGPUPassthrough lists host PCI addresses (e.g. "0000:65:00.0") of GPUs — or
+	// MIG slices — handed to every box by VFIO passthrough (Cloud Hypervisor only).
+	chGPUPassthrough []string
+	// chBinary is the cloud-hypervisor executable; empty resolves it from PATH.
+	chBinary string
 	// fcKernelImage/fcRootfsImage/fcStateDir are the Firecracker backend's guest
 	// kernel, default rootfs image, and state directory; unused for Docker.
 	fcKernelImage string
@@ -440,6 +452,7 @@ func NewRootCmd(name, version string) *cobra.Command {
 	fc.AddCommand(newFirecrackerVMCmd())
 	fc.AddCommand(newFirecrackerNetworkCmd())
 	root.AddCommand(fc)
+	root.AddCommand(newSpokeRunCmd("cloud-hypervisor", "Run a spoke that runs boxes as Cloud Hypervisor microVMs (supports GPU PCI passthrough)", addCloudHypervisorSpokeFlags))
 	return root
 }
 
@@ -882,6 +895,23 @@ func addFirecrackerSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.fcCgroupVersion, "cgroup-version", "", `cgroup filesystem version the jailer uses ("1" or "2"); empty auto-detects`)
 }
 
+// addCloudHypervisorSpokeFlags registers the flags specific to the Cloud Hypervisor
+// backend. Its headline flag is --gpu-passthrough, the reason this backend exists:
+// Cloud Hypervisor keeps the PCI bus Firecracker drops, so a real GPU (or a MIG
+// slice) can be handed to every box by VFIO.
+//
+// @arg f The flag set to register the flags on.
+// @arg o The options struct the flags bind into.
+//
+// @testcase TestNewRootCmd checks the cloud-hypervisor subcommand exposes its GPU-passthrough flag.
+func addCloudHypervisorSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
+	f.StringVar(&o.chKernelImage, "kernel", "", "host path to the guest kernel (vmlinux) every box boots")
+	f.StringVar(&o.chRootfsImage, "rootfs", "", "host path to the default guest rootfs every box boots")
+	f.StringVar(&o.chStateDir, "state-dir", "", "directory for per-box state; empty uses the backend default")
+	f.StringSliceVar(&o.chGPUPassthrough, "gpu-passthrough", nil, `host PCI address(es) of GPUs (or MIG slices) to hand every box by VFIO passthrough, e.g. "0000:65:00.0" (repeat or comma-separate for several); empty attaches none`)
+	f.StringVar(&o.chBinary, "cloud-hypervisor", "", `path to the cloud-hypervisor binary; empty resolves "cloud-hypervisor" from PATH`)
+}
+
 // runSpoke connects a spoke to the hub and serves boxes against the local
 // Docker daemon, reconnecting with exponential backoff until interrupted. On
 // first enrollment it uses the join token and saves the issued credential to
@@ -935,29 +965,40 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// port-publishing API against it, and every (re)connection to the hub
 	// attaches to it below, so box-port requests always ride the live link.
 	portCaller := cluster.NewHubCaller()
+	// The microVM kernel/rootfs/state fields are shared by both microVM backends but
+	// sourced from that backend's own flags (Firecracker's --kernel/--rootfs vs Cloud
+	// Hypervisor's), so pick the source for the backend this spoke runs. Only one
+	// backend runs per invocation (the subcommand pins o.backend), so this never mixes
+	// the two.
+	kernelImg, rootfsImg, stateDir := o.fcKernelImage, o.fcRootfsImage, o.fcStateDir
+	if o.backend == "cloud-hypervisor" {
+		kernelImg, rootfsImg, stateDir = o.chKernelImage, o.chRootfsImage, o.chStateDir
+	}
 	prov, err := backend.New(o.backend, backend.Options{
-		DefaultImage:      o.image,
-		SocketDir:         o.box.SocketDir,
-		Peers:             o.boxPeers,
-		Limits:            BoxLimits(o.box),
-		Namespace:         o.box.Namespace,
-		BoxPorts:          portCaller,
-		GPUs:              o.boxGPUs,
-		RegistryAuths:     boxconfig.RegistryAuths(regs),
-		KernelImagePath:   o.fcKernelImage,
-		RootfsImagePath:   o.fcRootfsImage,
-		PayloadImagePath:  o.fcPayloadImage,
-		StateDir:          o.fcStateDir,
-		DisableEgress:     o.fcDisableEgress,
-		EgressMode:        o.fcEgressMode,
-		PoolSize:          o.fcPoolSize,
-		JailerBinary:      o.fcJailerBin,
-		FirecrackerBinary: o.fcFirecrackerBin,
-		ChrootBase:        o.fcChrootBase,
-		UIDMin:            o.fcUIDMin,
-		UIDMax:            o.fcUIDMax,
-		TapGroupGID:       o.fcTapGroup,
-		CgroupVersion:     o.fcCgroupVersion,
+		DefaultImage:          o.image,
+		SocketDir:             o.box.SocketDir,
+		Peers:                 o.boxPeers,
+		Limits:                BoxLimits(o.box),
+		Namespace:             o.box.Namespace,
+		BoxPorts:              portCaller,
+		GPUs:                  o.boxGPUs,
+		RegistryAuths:         boxconfig.RegistryAuths(regs),
+		KernelImagePath:       kernelImg,
+		RootfsImagePath:       rootfsImg,
+		PayloadImagePath:      o.fcPayloadImage,
+		StateDir:              stateDir,
+		GPUPassthrough:        o.chGPUPassthrough,
+		CloudHypervisorBinary: o.chBinary,
+		DisableEgress:         o.fcDisableEgress,
+		EgressMode:            o.fcEgressMode,
+		PoolSize:              o.fcPoolSize,
+		JailerBinary:          o.fcJailerBin,
+		FirecrackerBinary:     o.fcFirecrackerBin,
+		ChrootBase:            o.fcChrootBase,
+		UIDMin:                o.fcUIDMin,
+		UIDMax:                o.fcUIDMax,
+		TapGroupGID:           o.fcTapGroup,
+		CgroupVersion:         o.fcCgroupVersion,
 	})
 	if err != nil {
 		return err

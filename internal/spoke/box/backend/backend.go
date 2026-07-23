@@ -7,8 +7,9 @@
 // Options is the neutral superset of every backend's construction inputs: common
 // fields (image, socket dir, peers, limits, namespace) plus backend-specific
 // fields each factory reads only if it applies (GPU/registry auth for Docker; the
-// kernel, rootfs, and state dir for Firecracker). A factory ignores the fields
-// that do not concern it.
+// kernel, rootfs, and state dir for Firecracker; the kernel, rootfs, and GPU PCI
+// passthrough for Cloud Hypervisor). A factory ignores the fields that do not
+// concern it.
 package backend
 
 import (
@@ -52,24 +53,36 @@ type Options struct {
 
 	// GPUs is a `docker run --gpus`-style spec attached to every box (Docker only).
 	GPUs string
+	// GPUPassthrough lists host PCI addresses (e.g. "0000:65:00.0") of GPUs — or MIG
+	// slices — to hand to every box by VFIO PCI passthrough (Cloud Hypervisor only).
+	// It is the microVM equivalent of the Docker-only GPUs spec: Docker and
+	// Firecracker ignore it (Firecracker has no PCI bus), while Cloud Hypervisor
+	// emits each address as a VFIO device in the guest's VmConfig. Empty attaches no
+	// GPU.
+	GPUPassthrough []string
 	// RegistryAuths holds image-pull credentials keyed by registry host (Docker
 	// only). registry.AuthConfig is a standalone OCI-registry credential type, not
 	// the Docker client, so depending on it here couples nothing to the daemon.
 	RegistryAuths map[string]registry.AuthConfig
 
 	// KernelImagePath is the guest kernel (vmlinux) a microVM backend boots
-	// (Firecracker only).
+	// (Firecracker and Cloud Hypervisor).
 	KernelImagePath string
 	// RootfsImagePath is the default guest root filesystem image a microVM backend
-	// boots when a create supplies no image (Firecracker only).
+	// boots when a create supplies no image (Firecracker and Cloud Hypervisor).
 	RootfsImagePath string
+	// CloudHypervisorBinary is the cloud-hypervisor executable the Cloud Hypervisor
+	// backend launches per box (Cloud Hypervisor only); empty resolves
+	// "cloud-hypervisor" from PATH.
+	CloudHypervisorBinary string
 	// PayloadImagePath is an optional read-only ext4 carrying the guest binary,
 	// attached to every box as a shared second drive so
 	// the guest can be updated without rebuilding the base rootfs (Firecracker only).
 	// Empty keeps the all-in-one rootfs with the guest baked in.
 	PayloadImagePath string
 	// StateDir is where a backend without a daemon registry persists per-box
-	// metadata so List/Find/reap survive a process restart (Firecracker only).
+	// metadata so List/Find/reap survive a process restart (Firecracker and Cloud
+	// Hypervisor).
 	StateDir string
 	// DisableEgress boots control-only boxes with no TAP/NAT egress interface
 	// (Firecracker only), removing the CAP_NET_ADMIN requirement at the cost of the
