@@ -81,6 +81,29 @@ func TestNetworkAllowlistInBrowser(t *testing.T) {
 	post("/api/v1/set-box-groups", map[string]any{"box_id": "web-scraper", "group_ids": []string{"python-pkgs"}})
 	post("/api/v1/set-box-groups", map[string]any{"box_id": "data-agent", "group_ids": []string{"observability"}})
 
+	// Seed DNS-audit rows directly in the store (enforcement is a runner feature;
+	// here we only need rows for the audit view to render).
+	now := time.Now()
+	audit := []struct {
+		box, domain, verdict string
+		hits                 int
+	}{
+		{"web-scraper", "registry.npmjs.org", "blocked", 14},
+		{"web-scraper", "github.com", "allowed", 6},
+		{"data-agent", "telemetry.example.net", "blocked", 3},
+		{"pr-reviewer", "api.anthropic.com", "allowed", 21},
+		{"data-agent", "s3.amazonaws.com", "allowed", 9},
+		{"web-scraper", "pypi.org", "allowed", 4},
+		{"pr-reviewer", "unknown-cdn.ru", "blocked", 1},
+	}
+	for i, a := range audit {
+		for h := 0; h < a.hits; h++ {
+			if err := st.RecordDNSLookup(a.box, a.domain, a.verdict, now.Add(time.Duration(i)*time.Second)); err != nil {
+				t.Fatalf("seed audit: %v", err)
+			}
+		}
+	}
+
 	b := newBrowser(t)
 	t.Cleanup(b.close)
 
@@ -117,6 +140,18 @@ func TestNetworkAllowlistInBrowser(t *testing.T) {
 	settle()
 	maybeShot(t, b, dir, "network-assignments.png")
 
+	// DNS audit tab + the add-to-group modal on a blocked domain.
+	b.waitFor(t, selenium.ByXPATH, `//button[.//text()[contains(., 'DNS audit')]]`).Click()
+	b.waitFor(t, selenium.ByXPATH, `//*[text()='registry.npmjs.org']`)
+	settle()
+	maybeShot(t, b, dir, "network-audit.png")
+	b.waitFor(t, selenium.ByXPATH, `(//button[.//text()[contains(., 'Add to group')]])[1]`).Click()
+	b.waitFor(t, selenium.ByXPATH, `//*[text()='Add domain to group']`)
+	settle()
+	maybeShot(t, b, dir, "network-audit-add.png")
+	reload()
+	openNetwork() // back to the Network view after the modal reload
+
 	// Group editor modal (settle so the open animation finishes and the overlay
 	// is fully opaque before capture). A page reload afterwards clears the modal,
 	// which is more robust than matching the close control.
@@ -146,6 +181,11 @@ func TestNetworkAllowlistInBrowser(t *testing.T) {
 	b.waitFor(t, selenium.ByXPATH, `//*[text()='Applied to all workspaces']`)
 	settle()
 	maybeShot(t, b, dir, "network-assignments-mobile.png")
+
+	b.waitFor(t, selenium.ByXPATH, `//button[.//text()[contains(., 'DNS audit')]]`).Click()
+	b.waitFor(t, selenium.ByXPATH, `//*[text()='registry.npmjs.org']`)
+	settle()
+	maybeShot(t, b, dir, "network-audit-mobile.png")
 }
 
 // settle waits for a modal open/tab-switch animation to finish before a capture,

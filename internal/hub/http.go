@@ -36,6 +36,7 @@ func (s *Server) APIHandler() http.Handler {
 	// gated by requireAPIAuth. Their specific patterns win over the /api/v1/
 	// subtree below.
 	s.registerAllowlistRoutes(mux)
+	s.registerDNSAuditRoutes(mux)
 	mux.Handle("/api/v1/", s.requireAPIAuth(api.NewHandler(s.boxBackend())))
 	if !s.ProxyEnabled() {
 		return mux

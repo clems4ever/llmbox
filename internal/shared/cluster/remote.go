@@ -175,6 +175,12 @@ func (r *remoteSpoke) dispatchSpokeRequest(ctx context.Context, f frame) (json.R
 			return nil, err
 		}
 		return encodePayload(listBoxPortsResp{Ports: ports})
+	case methodDNSAudit:
+		var in dnsAuditReq
+		if err := decodePayload(f.Payload, &in); err != nil {
+			return nil, err
+		}
+		return nil, r.ports.RecordDNSAudit(ctx, r.name, in.BoxID, in.Domain, in.Verdict, time.Unix(in.UnixSec, 0).UTC())
 	default:
 		return nil, fmt.Errorf("unknown method %q", f.Method)
 	}

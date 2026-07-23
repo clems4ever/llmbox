@@ -58,6 +58,7 @@ const (
 	methodOpenBoxPort  = "open_box_port"
 	methodCloseBoxPort = "close_box_port"
 	methodListBoxPorts = "list_box_ports"
+	methodDNSAudit     = "dns_audit"
 )
 
 // frame is the single envelope exchanged over a cluster connection. Payload is
@@ -159,6 +160,16 @@ type listBoxPortsReq struct {
 }
 type listBoxPortsResp struct {
 	Ports []BoxPortInfo `json:"ports"`
+}
+
+// dnsAuditReq reports one DNS lookup a box made, spoke→hub, for the audit trail.
+// BoxID is spoke-stamped from the originating box's identity, like the box-port
+// verbs, so a box cannot forge audit rows for another box.
+type dnsAuditReq struct {
+	BoxID   string `json:"box_id"`
+	Domain  string `json:"domain"`
+	Verdict string `json:"verdict"`
+	UnixSec int64  `json:"unix_sec"`
 }
 
 // streamOpenReq opens a raw byte tunnel to a box's port on the spoke, carried in

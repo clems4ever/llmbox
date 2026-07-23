@@ -12,7 +12,9 @@ import {
   Button,
   Card,
   Group,
+  Loader,
   Menu,
+  NativeSelect,
   SimpleGrid,
   Skeleton,
   Stack,
@@ -20,6 +22,7 @@ import {
   Table,
   Tabs,
   Text,
+  TextInput,
   Title,
   Tooltip,
 } from "@mantine/core";
@@ -29,6 +32,7 @@ import {
   IconDownload,
   IconEdit,
   IconPlus,
+  IconSearch,
   IconServer2,
   IconShieldLock,
   IconTrash,
@@ -36,7 +40,7 @@ import {
   IconWorld,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
-import type { Api, AllowlistGroup, BoxView } from "../api";
+import type { Api, AllowlistGroup, BoxView, DNSAuditEntry } from "../api";
 import { ApiError } from "../api";
 import type { DashboardData } from "../lib/data";
 import { errorMessage, perform } from "../lib/actions";
@@ -46,6 +50,7 @@ import { boxId } from "../lib/format";
 import { GroupEditorModal } from "./GroupEditorModal";
 import { ImportGroupsModal } from "./ImportGroupsModal";
 import { BoxGroupsModal } from "./BoxGroupsModal";
+import { AddToGroupModal } from "./AddToGroupModal";
 
 export interface NetworkViewProps {
   api: Api;
@@ -62,6 +67,7 @@ export function NetworkView({ api, data }: NetworkViewProps): JSX.Element {
   const [editing, setEditing] = useState<AllowlistGroup | "new" | null>(null);
   const [importing, setImporting] = useState(false);
   const [assignBox, setAssignBox] = useState<BoxView | null>(null);
+  const [addDomain, setAddDomain] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -123,6 +129,9 @@ export function NetworkView({ api, data }: NetworkViewProps): JSX.Element {
           <Tabs.Tab value="assignments" leftSection={<IconServer2 size={16} />}>
             Assignments
           </Tabs.Tab>
+          <Tabs.Tab value="audit" leftSection={<IconClock size={16} />}>
+            DNS audit
+          </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="groups" pt="lg">
@@ -157,6 +166,10 @@ export function NetworkView({ api, data }: NetworkViewProps): JSX.Element {
             onEditBox={(b) => setAssignBox(b)}
           />
         </Tabs.Panel>
+
+        <Tabs.Panel value="audit" pt="lg">
+          <DNSAuditPanel api={api} boxes={data?.boxes ?? null} onAllow={(d) => setAddDomain(d)} />
+        </Tabs.Panel>
       </Tabs>
 
       <GroupEditorModal
@@ -180,6 +193,142 @@ export function NetworkView({ api, data }: NetworkViewProps): JSX.Element {
         onClose={() => setAssignBox(null)}
         onSaved={reload}
       />
+      <AddToGroupModal
+        api={api}
+        domain={addDomain}
+        groups={groups ?? []}
+        opened={addDomain !== null}
+        onClose={() => setAddDomain(null)}
+        onDone={reload}
+      />
+    </Stack>
+  );
+}
+
+/** DNSAuditPanel lists the DNS lookups boxes made, filterable, with a one-click
+ * "Add to group" on a blocked domain. */
+function DNSAuditPanel({
+  api,
+  boxes,
+  onAllow,
+}: {
+  api: Api;
+  boxes: BoxView[] | null;
+  onAllow: (domain: string) => void;
+}): JSX.Element {
+  const [entries, setEntries] = useState<DNSAuditEntry[] | null>(null);
+  const [boxFilter, setBoxFilter] = useState("");
+  const [verdict, setVerdict] = useState("");
+  const [domain, setDomain] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setEntries(null);
+    void api
+      .listDNSAudit({ box_id: boxFilter || undefined, verdict: verdict || undefined, domain: domain || undefined })
+      .then((e) => {
+        if (!cancelled) setEntries(e);
+      })
+      .catch(() => {
+        if (!cancelled) setEntries([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, boxFilter, verdict, domain]);
+
+  const boxOptions = [
+    { value: "", label: "All workspaces" },
+    ...(boxes ?? []).map((b) => ({ value: boxId(b), label: boxId(b) })),
+  ];
+
+  return (
+    <Stack gap="md">
+      <Text c="dimmed" size="sm" maw={640}>
+        Every DNS lookup a workspace makes under isolation. Blocked lookups reveal what a workspace tried
+        to reach — allow it in one click.
+      </Text>
+      <Group gap="sm">
+        <TextInput
+          placeholder="Filter domain…"
+          leftSection={<IconSearch size={14} />}
+          value={domain}
+          onChange={(e) => setDomain(e.currentTarget.value)}
+        />
+        <NativeSelect data={boxOptions} value={boxFilter} onChange={(e) => setBoxFilter(e.currentTarget.value)} />
+        <NativeSelect
+          data={[
+            { value: "", label: "All verdicts" },
+            { value: "allowed", label: "allowed" },
+            { value: "blocked", label: "blocked" },
+          ]}
+          value={verdict}
+          onChange={(e) => setVerdict(e.currentTarget.value)}
+        />
+      </Group>
+      {entries === null ? (
+        <Group justify="center" p="xl">
+          <Loader size="sm" />
+        </Group>
+      ) : entries.length === 0 ? (
+        <Card withBorder radius="md" padding="xl">
+          <Stack align="center" gap="xs">
+            <IconClock size={26} />
+            <Text fw={600}>No DNS lookups recorded</Text>
+            <Text c="dimmed" size="sm" ta="center" maw={440}>
+              Lookups appear here once a workspace on an isolation-enabled runner starts resolving names.
+            </Text>
+          </Stack>
+        </Card>
+      ) : (
+        <Card withBorder radius="md" padding={0}>
+          <Table.ScrollContainer minWidth={620}>
+            <Table verticalSpacing="sm" horizontalSpacing="md">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Workspace</Table.Th>
+                  <Table.Th>Domain</Table.Th>
+                  <Table.Th>Verdict</Table.Th>
+                  <Table.Th ta="right">Hits</Table.Th>
+                  <Table.Th />
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {entries.map((e) => (
+                  <Table.Tr key={`${e.box_id}-${e.domain}-${e.verdict}`}>
+                    <Table.Td ff="monospace">{e.box_id}</Table.Td>
+                    <Table.Td ff="monospace">{e.domain}</Table.Td>
+                    <Table.Td>
+                      <Badge
+                        variant="light"
+                        color={e.verdict === "allowed" ? "teal" : e.verdict === "blocked" ? "red" : "yellow"}
+                        style={{ textTransform: "none" }}
+                      >
+                        {e.verdict}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td ta="right" c="dimmed">
+                      {e.hits}
+                    </Table.Td>
+                    <Table.Td ta="right">
+                      {e.verdict !== "allowed" && (
+                        <Button
+                          size="xs"
+                          variant="default"
+                          leftSection={<IconPlus size={14} />}
+                          onClick={() => onAllow(e.domain)}
+                        >
+                          Add to group
+                        </Button>
+                      )}
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        </Card>
+      )}
     </Stack>
   );
 }

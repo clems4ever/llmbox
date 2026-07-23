@@ -169,7 +169,7 @@ type registryFlags struct {
 // @error error if the resolver cannot bind its listen address.
 //
 // @testcase TestBuildIsolationDisabled returns nil when the flag is off.
-func (o spokeOptions) buildIsolation(ctx context.Context) (box.PolicyApplier, error) {
+func (o spokeOptions) buildIsolation(ctx context.Context, caller *cluster.HubCaller) (box.PolicyApplier, error) {
 	if !o.networkIsolation {
 		return nil, nil
 	}
@@ -182,6 +182,7 @@ func (o spokeOptions) buildIsolation(ctx context.Context) (box.PolicyApplier, er
 		DNSAddr:    dnsAddr.Addr(),
 		Programmer: netfw.NewNFTables(nil),
 		Upstream:   o.dnsUpstream,
+		Audit:      newDNSAuditForwarder(ctx, caller),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("building network isolation: %w", err)
@@ -960,7 +961,7 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 			log.Printf("closing box backend: %v", err)
 		}
 	}()
-	isolationApplier, err := o.buildIsolation(parent)
+	isolationApplier, err := o.buildIsolation(parent, portCaller)
 	if err != nil {
 		return err
 	}
