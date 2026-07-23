@@ -228,6 +228,58 @@ type SettingsStore interface {
 	GetSetting(key string) (string, bool, error)
 }
 
+// AllowlistGroup is a named set of egress domains a box may reach, plus how long
+// each DNS-resolved IP stays pinned in the box's firewall after a lookup
+// (TTLSeconds). IsGlobal marks a group applied to every box on an
+// isolation-enabled runner; non-global groups apply only to the boxes they are
+// assigned to. Domains support exact hosts and leading-wildcard patterns
+// (e.g. "*.github.com"). The group is the unit the UI creates, assigns, and
+// import/exports.
+type AllowlistGroup struct {
+	// ID is the group's stable slug identity (kebab-case of the name at creation).
+	ID string `json:"id"`
+	// Name is the human-facing unique label.
+	Name string `json:"name"`
+	// Description is the operator's note about what the group is for.
+	Description string `json:"description"`
+	// TTLSeconds is how long a DNS-resolved IP stays open after a lookup before it
+	// must be re-resolved; it bounds the window an IP reallocated to a rogue
+	// service could be reached. Zero means the store default is used at read time.
+	TTLSeconds int `json:"ttl_seconds"`
+	// IsGlobal applies the group to every box on an isolation-enabled runner.
+	IsGlobal bool `json:"is_global"`
+	// Domains are the exact/wildcard hosts the group permits. Always sorted.
+	Domains []string `json:"domains"`
+	// CreatedAt and UpdatedAt track the group's lifecycle for the UI.
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// AllowlistStore persists the network-isolation allowlist configuration: the
+// named domain groups, and which non-global groups are attached to which box.
+// It is hub-local control-plane state (no secrets); a spoke reads the computed
+// effective allowlist over the cluster transport, never this store directly. All
+// methods must be safe for concurrent use.
+type AllowlistStore interface {
+	// SaveAllowlistGroup writes (creating or replacing) one group and its domains,
+	// keyed by ID. It replaces the group's domain set wholesale.
+	SaveAllowlistGroup(g AllowlistGroup) error
+	// GetAllowlistGroup returns the group for an ID; the bool is false on a miss.
+	GetAllowlistGroup(id string) (AllowlistGroup, bool, error)
+	// ListAllowlistGroups returns every group with its domains, ordered by name.
+	ListAllowlistGroups() ([]AllowlistGroup, error)
+	// DeleteAllowlistGroup removes a group, its domains, and every box assignment
+	// referencing it; deleting a missing group is a no-op.
+	DeleteAllowlistGroup(id string) error
+	// SetBoxGroups replaces the set of non-global groups assigned to boxID.
+	// Passing an empty slice clears the box's assignments.
+	SetBoxGroups(boxID string, groupIDs []string) error
+	// GetBoxGroups returns the non-global group IDs assigned to boxID, sorted.
+	GetBoxGroups(boxID string) ([]string, error)
+	// ListBoxGroups returns every box-to-groups assignment, keyed by box ID.
+	ListBoxGroups() (map[string][]string, error)
+}
+
 // Store is the aggregate persistence contract the server depends on: the box
 // registry, the sign-in (identity) state, the cluster enrollment records, API
 // keys, and hub-wide settings, plus a Close that releases the backend. All
@@ -239,6 +291,7 @@ type Store interface {
 	ProxyStore
 	SettingsStore
 	APIKeyStore
+	AllowlistStore
 	cluster.Store
 	io.Closer
 }

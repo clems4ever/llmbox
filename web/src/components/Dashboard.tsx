@@ -17,7 +17,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconApps, IconLogout, IconRefresh, IconServer2 } from "@tabler/icons-react";
+import { IconApps, IconLogout, IconNetwork, IconRefresh, IconServer2 } from "@tabler/icons-react";
 import { Api, ApiError, type Me } from "../api";
 import { errorMessage } from "../lib/actions";
 import { redirectToSignIn } from "../lib/navigation";
@@ -28,9 +28,10 @@ import { Brand } from "./Brand";
 import { ThemeToggle } from "./ThemeToggle";
 import { WorkspacesView } from "./WorkspacesView";
 import { InfrastructureView } from "./InfrastructureView";
+import { NetworkView } from "./NetworkView";
 import { WorkspaceDetailsDrawer } from "./WorkspaceDetailsDrawer";
 
-export type View = "workspaces" | "infrastructure";
+export type View = "workspaces" | "infrastructure" | "network";
 
 export interface DashboardProps {
   api: Api;
@@ -133,6 +134,12 @@ export function Dashboard({ api, session }: DashboardProps): JSX.Element {
             rightSection={data ? <Badge size="sm" variant="light" circle>{data.spokes.length}</Badge> : null}
             onClick={() => go("infrastructure")}
           />
+          <NavLink
+            active={view === "network"}
+            label="Network"
+            leftSection={<IconNetwork size={18} />}
+            onClick={() => go("network")}
+          />
         </AppShell.Section>
         <AppShell.Section>
           <Divider mb="xs" />
@@ -172,6 +179,7 @@ export function Dashboard({ api, session }: DashboardProps): JSX.Element {
         {view === "infrastructure" && (
           <InfrastructureView api={api} data={data} refresh={refresh} />
         )}
+        {view === "network" && <NetworkView api={api} data={data} />}
       </AppShell.Main>
 
       <WorkspaceDetailsDrawer

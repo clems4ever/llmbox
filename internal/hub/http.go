@@ -32,6 +32,10 @@ func (s *Server) APIHandler() http.Handler {
 	// Logout is likewise cookie-based (plus the CSRF header) rather than gated by
 	// requireAPIAuth: any signed-in session may end itself, admin or not.
 	mux.HandleFunc("POST /api/v1/logout", s.handleLogout)
+	// Network-isolation allowlist config: hub-local groups + assignments, each
+	// gated by requireAPIAuth. Their specific patterns win over the /api/v1/
+	// subtree below.
+	s.registerAllowlistRoutes(mux)
 	mux.Handle("/api/v1/", s.requireAPIAuth(api.NewHandler(s.boxBackend())))
 	if !s.ProxyEnabled() {
 		return mux

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { CreateWorkspaceModal } from "./CreateWorkspaceModal";
-import { render, mockApi, spoke } from "../test/utils";
+import { render, mockApi, spoke, allowlistGroup } from "../test/utils";
 
 describe("CreateWorkspaceModal", () => {
   it("renders nothing when closed", () => {
@@ -51,6 +51,27 @@ describe("CreateWorkspaceModal", () => {
     await user.click(screen.getByRole("button", { name: "Create workspace" }));
 
     await waitFor(() => expect(api.createBox).toHaveBeenCalledWith("myws", "", "", 20 * 1024 * 1024 * 1024));
+  });
+
+  it("assigns the picked allowlist groups to the new workspace", async () => {
+    const api = mockApi({
+      createBox: vi.fn().mockResolvedValue({ box_id: "myws" }),
+      setBoxGroups: vi.fn().mockResolvedValue({}),
+      listAllowlistGroups: vi.fn().mockResolvedValue([
+        allowlistGroup({ id: "core-ai", name: "core-ai", is_global: true }),
+        allowlistGroup({ id: "github", name: "github", is_global: false }),
+      ]),
+    });
+    const { user } = render(
+      <CreateWorkspaceModal api={api} spokes={[]} opened onClose={vi.fn()} refresh={vi.fn().mockResolvedValue(undefined)} />,
+    );
+    await user.type(screen.getByPlaceholderText("refactor-auth"), "myws");
+    // The non-global "github" group is selectable; the global one is disabled.
+    await user.click(await screen.findByRole("checkbox", { name: "github" }));
+    await user.click(screen.getByRole("button", { name: "Create workspace" }));
+
+    await waitFor(() => expect(api.createBox).toHaveBeenCalledWith("myws", "", "", 0));
+    await waitFor(() => expect(api.setBoxGroups).toHaveBeenCalledWith("myws", ["github"]));
   });
 
   it("closes via Cancel", async () => {
