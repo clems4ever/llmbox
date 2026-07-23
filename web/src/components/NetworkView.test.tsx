@@ -45,3 +45,23 @@ describe("NetworkView", () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ id: "gh", is_global: true })));
   });
 });
+
+describe("NetworkView DNS audit", () => {
+  it("lists audit rows and opens add-to-group on a blocked domain", async () => {
+    const api = mockApi({
+      listAllowlistGroups: vi.fn().mockResolvedValue([allowlistGroup({ id: "gh", name: "gh" })]),
+      listDNSAudit: vi.fn().mockResolvedValue([
+        { box_id: "web", domain: "registry.npmjs.org", verdict: "blocked", hits: 14, last_seen: 1700000000 },
+        { box_id: "web", domain: "github.com", verdict: "allowed", hits: 6, last_seen: 1700000001 },
+      ]),
+    });
+    const { user } = render(<NetworkView api={api} data={dashboardData({ boxes: [box({ box_id: "web" })] })} />);
+    await user.click(await screen.findByRole("tab", { name: "DNS audit" }));
+    expect(await screen.findByText("registry.npmjs.org")).toBeInTheDocument();
+    // The blocked row has an Add to group button; the allowed one does not.
+    const buttons = await screen.findAllByRole("button", { name: "Add to group" });
+    expect(buttons).toHaveLength(1);
+    await user.click(buttons[0]);
+    expect(await screen.findByRole("dialog", { name: "Add domain to group" })).toBeInTheDocument();
+  });
+});

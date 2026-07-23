@@ -21,10 +21,12 @@ type fakePortService struct {
 	err   error
 
 	// recorded inputs
-	lastSpoke string
-	lastBoxID string
-	lastPort  int
-	lastDesc  string
+	lastSpoke   string
+	lastBoxID   string
+	lastPort    int
+	lastDesc    string
+	lastDomain  string
+	lastVerdict string
 }
 
 // OpenBoxPort is a test helper.
@@ -36,6 +38,14 @@ func (f *fakePortService) OpenBoxPort(_ context.Context, spokeName, boxID string
 		return BoxPortInfo{}, f.err
 	}
 	return f.info, nil
+}
+
+// RecordDNSAudit is a test helper.
+func (f *fakePortService) RecordDNSAudit(_ context.Context, spokeName, boxID, domain, verdict string, _ time.Time) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.lastSpoke, f.lastBoxID, f.lastDomain, f.lastVerdict = spokeName, boxID, domain, verdict
+	return f.err
 }
 
 // CloseBoxPort is a test helper.

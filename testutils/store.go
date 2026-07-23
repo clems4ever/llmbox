@@ -327,3 +327,31 @@ func (NoopStore) GetBoxGroups(_ string) ([]string, error) { return nil, nil }
 //
 // @testcase TestNoopStore checks every no-op method is inert.
 func (NoopStore) ListBoxGroups() (map[string][]string, error) { return nil, nil }
+
+// RecordDNSLookup discards the lookup.
+//
+// @arg _ The box id.
+// @arg _ The domain.
+// @arg _ The verdict.
+// @arg _ The timestamp.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) RecordDNSLookup(_, _, _ string, _ time.Time) error { return nil }
+
+// ListDNSAudit returns no rows.
+//
+// @arg _ The filter.
+// @return []store.DNSAuditEntry Always nil.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) ListDNSAudit(_ store.DNSAuditFilter) ([]store.DNSAuditEntry, error) { return nil, nil }
+
+// DeleteDNSAuditForBox does nothing.
+//
+// @arg _ The box id.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) DeleteDNSAuditForBox(_ string) error { return nil }

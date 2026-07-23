@@ -280,6 +280,40 @@ type AllowlistStore interface {
 	ListBoxGroups() (map[string][]string, error)
 }
 
+// DNSAuditEntry is one aggregated row of the DNS audit trail: a (box, domain,
+// verdict) triple with how many times it was seen and when. The hub aggregates
+// per triple rather than storing every lookup, so a chatty box does not grow the
+// table without bound while the UI can still show counts and recency.
+type DNSAuditEntry struct {
+	BoxID     string    `json:"box_id"`
+	Domain    string    `json:"domain"`
+	Verdict   string    `json:"verdict"`
+	Hits      int64     `json:"hits"`
+	FirstSeen time.Time `json:"first_seen"`
+	LastSeen  time.Time `json:"last_seen"`
+}
+
+// DNSAuditFilter narrows a DNS audit query. A zero field is "any"; Limit 0 uses
+// the store's default cap.
+type DNSAuditFilter struct {
+	BoxID   string
+	Verdict string
+	Domain  string
+	Limit   int
+}
+
+// DNSAuditStore persists the DNS lookups boxes make under network isolation, for
+// the audit view. All methods must be safe for concurrent use.
+type DNSAuditStore interface {
+	// RecordDNSLookup folds one lookup into the aggregate: it inserts a new
+	// (box, domain, verdict) row or bumps an existing row's hit count and last-seen.
+	RecordDNSLookup(boxID, domain, verdict string, at time.Time) error
+	// ListDNSAudit returns audit rows matching filter, most-recent first.
+	ListDNSAudit(filter DNSAuditFilter) ([]DNSAuditEntry, error)
+	// DeleteDNSAuditForBox drops a box's audit rows (called when it is destroyed).
+	DeleteDNSAuditForBox(boxID string) error
+}
+
 // Store is the aggregate persistence contract the server depends on: the box
 // registry, the sign-in (identity) state, the cluster enrollment records, API
 // keys, and hub-wide settings, plus a Close that releases the backend. All
@@ -292,6 +326,7 @@ type Store interface {
 	SettingsStore
 	APIKeyStore
 	AllowlistStore
+	DNSAuditStore
 	cluster.Store
 	io.Closer
 }

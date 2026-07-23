@@ -62,6 +62,8 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
     setBoxGroups: vi.fn().mockResolvedValue({}),
     exportAllowlistGroups: vi.fn().mockResolvedValue({ version: 1, groups: [] }),
     importAllowlistGroups: vi.fn().mockResolvedValue(0),
+    listDNSAudit: vi.fn().mockResolvedValue([]),
+    addDomainToGroup: vi.fn().mockResolvedValue({}),
   };
   return { ...base, ...overrides } as unknown as Api;
 }
