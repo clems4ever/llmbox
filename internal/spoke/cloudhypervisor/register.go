@@ -28,6 +28,19 @@ func init() {
 // @testcase TestNewBackendConfiguresProvisioner builds a Cloud Hypervisor backend and applies the options.
 // @testcase TestNewBackendRejectsBadGPUAddress errors when a GPU passthrough address is malformed.
 func newBackend(opts backend.Options) (backend.Provisioner, error) {
+	// Preflight: validate the host can actually run microVM boxes (cloud-hypervisor
+	// binary, /dev/kvm, CPU virtualization, readable kernel/rootfs, egress privileges/
+	// tools, IOMMU for GPU passthrough) before doing anything, so a misconfigured host
+	// fails fast at spoke startup with one actionable message instead of a confusing
+	// error on the first box create.
+	mode, err := resolveEgressMode(opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := realProbes().validate(preflightConfigFrom(opts, mode)); err != nil {
+		return nil, err
+	}
+
 	p, err := buildProvisioner(opts)
 	if err != nil {
 		return nil, err

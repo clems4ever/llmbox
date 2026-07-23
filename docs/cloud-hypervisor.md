@@ -55,6 +55,22 @@ llmbox-spoke cloud-hypervisor \
 | `--pool-size` | Number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default (16). |
 | `--tap-group` | GID that owns the pooled TAP devices; 0 uses the default. |
 
+## Startup preflight
+
+The `cloud-hypervisor` spoke runs a **preflight validator at startup** (before it
+serves) and fails fast, with a single message listing *every* unmet prerequisite, so a
+misconfigured host is caught up front rather than on the first box create. It checks:
+
+- the `cloud-hypervisor` binary is on `PATH` (or the `--cloud-hypervisor` path is
+  executable);
+- `/dev/kvm` exists and is open-able read+write by the spoke user;
+- the CPU exposes hardware virtualization (Intel `vmx` / AMD `svm`; skipped on arm64,
+  where `/dev/kvm` access is the gate);
+- the `--kernel` and `--rootfs` images are set and readable;
+- for `--egress-mode=managed`: the spoke is root and `ip`/`iptables` are present; for
+  `external`: `ip` is present;
+- when GPU passthrough is configured: an IOMMU is active (groups present).
+
 ## GPUs: full passthrough, MIG, and vGPU
 
 GPU devices are machine-local, so whatever you pass is attached to **every** box this
