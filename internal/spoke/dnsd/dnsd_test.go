@@ -237,3 +237,26 @@ func TestForwardResolverForwards(t *testing.T) {
 		t.Fatalf("answers = %d, want 1", len(resp.Answer))
 	}
 }
+
+// TestNormalizeUpstream checks the port defaulting and rejection of bad input.
+func TestNormalizeUpstream(t *testing.T) {
+	ok := map[string]string{
+		"1.1.1.1":                   "1.1.1.1:53",
+		"1.1.1.1:5353":              "1.1.1.1:5353",
+		"pihole.lan":                "pihole.lan:53",
+		"pihole.lan:5335":           "pihole.lan:5335",
+		"2606:4700:4700::1111":      "[2606:4700:4700::1111]:53",
+		"[2606:4700:4700::1111]:53": "[2606:4700:4700::1111]:53",
+	}
+	for in, want := range ok {
+		got, err := NormalizeUpstream(in)
+		if err != nil || got != want {
+			t.Errorf("NormalizeUpstream(%q) = (%q,%v), want %q", in, got, err, want)
+		}
+	}
+	for _, bad := range []string{"", "   ", "http://x", "a b"} {
+		if _, err := NormalizeUpstream(bad); err == nil {
+			t.Errorf("NormalizeUpstream(%q) accepted, want error", bad)
+		}
+	}
+}
