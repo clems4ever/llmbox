@@ -3,6 +3,7 @@ package hub
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/clems4ever/llmbox/internal/hub/store"
 	"github.com/clems4ever/llmbox/internal/shared/cluster"
@@ -130,4 +131,27 @@ func (s *Server) ListBoxPorts(ctx context.Context, spokeName, boxID string) ([]c
 		out = append(out, s.boxPortInfo(rec))
 	}
 	return out, nil
+}
+
+// RecordDNSAudit records one DNS lookup a box made, implementing the audit
+// ingestion half of cluster.BoxPortService. Like the box-port verbs it verifies
+// the box lives on the calling spoke before recording, so a spoke cannot write
+// audit rows for another spoke's box.
+//
+// @arg _ Context (unused; the write is hub-local).
+// @arg spokeName The authenticated name of the spoke connection the request arrived on.
+// @arg boxID The spoke-stamped box ID the lookup originated from.
+// @arg domain The queried domain.
+// @arg verdict The lookup verdict.
+// @arg at When the lookup happened.
+// @error error if the box is unknown or on another spoke, or the write fails.
+//
+// @testcase TestRecordDNSAuditStores records a lookup for a box on its own spoke.
+// @testcase TestRecordDNSAuditWrongSpoke rejects a box owned by a different spoke.
+func (s *Server) RecordDNSAudit(_ context.Context, spokeName, boxID, domain, verdict string, at time.Time) error {
+	sess, err := s.boxPortSession(spokeName, boxID)
+	if err != nil {
+		return err
+	}
+	return s.store.RecordDNSLookup(sess.BoxID, domain, verdict, at)
 }

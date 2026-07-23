@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 )
 
 // errNotConnected is returned by HubCaller calls made while the spoke has no
@@ -25,6 +26,11 @@ type BoxPortService interface {
 	CloseBoxPort(ctx context.Context, spokeName, boxID string, port int) error
 	// ListBoxPorts returns the box's published ports, and only that box's.
 	ListBoxPorts(ctx context.Context, spokeName, boxID string) ([]BoxPortInfo, error)
+	// RecordDNSAudit records one DNS lookup a box made under network isolation, for
+	// the audit trail. Like the box-port verbs it must verify the box lives on
+	// spokeName before recording, so a spoke cannot write audit rows for another's
+	// box. at is when the lookup happened.
+	RecordDNSAudit(ctx context.Context, spokeName, boxID, domain, verdict string, at time.Time) error
 }
 
 // HubCaller lets spoke-side components (the per-box port API) issue requests to
@@ -196,4 +202,20 @@ func (c *HubCaller) ListBoxPorts(ctx context.Context, boxID string) ([]BoxPortIn
 		return nil, err
 	}
 	return resp.Ports, nil
+}
+
+// RecordDNSAudit reports one DNS lookup a box made to the hub for the audit trail.
+//
+// @arg ctx Context for the call.
+// @arg boxID The spoke-stamped identity of the box the lookup came from.
+// @arg domain The queried domain.
+// @arg verdict The lookup verdict.
+// @arg at When the lookup happened.
+// @error error if the spoke is disconnected or the hub rejects the request.
+//
+// @testcase TestSpokeCallerRoundTrip records a dns lookup through the caller.
+func (c *HubCaller) RecordDNSAudit(ctx context.Context, boxID, domain, verdict string, at time.Time) error {
+	return c.call(ctx, methodDNSAudit, dnsAuditReq{
+		BoxID: boxID, Domain: domain, Verdict: verdict, UnixSec: at.Unix(),
+	}, nil)
 }

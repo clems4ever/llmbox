@@ -110,6 +110,15 @@ CREATE TABLE IF NOT EXISTS allowlist_box_groups (
 	group_id TEXT NOT NULL,
 	PRIMARY KEY (box_id, group_id)
 );
+CREATE TABLE IF NOT EXISTS dns_audit (
+	box_id     TEXT NOT NULL,
+	domain     TEXT NOT NULL,
+	verdict    TEXT NOT NULL,
+	hits       INTEGER NOT NULL,
+	first_seen TEXT NOT NULL,
+	last_seen  TEXT NOT NULL,
+	PRIMARY KEY (box_id, domain, verdict)
+);
 `
 
 // sqliteStore is a Store backed by a single SQLite database file via the pure-Go
