@@ -44,12 +44,13 @@ const (
 
 // Verb method names carried in a frameReq.
 const (
-	methodCreate  = "create"
-	methodList    = "list"
-	methodDestroy = "destroy"
-	methodPause   = "pause"
-	methodResume  = "resume"
-	methodExec    = "exec"
+	methodCreate    = "create"
+	methodList      = "list"
+	methodDestroy   = "destroy"
+	methodPause     = "pause"
+	methodResume    = "resume"
+	methodExec      = "exec"
+	methodSetPolicy = "set_policy"
 )
 
 // Verb method names carried in a frameSpokeReq (spoke→hub).
@@ -57,6 +58,7 @@ const (
 	methodOpenBoxPort  = "open_box_port"
 	methodCloseBoxPort = "close_box_port"
 	methodListBoxPorts = "list_box_ports"
+	methodDNSAudit     = "dns_audit"
 )
 
 // frame is the single envelope exchanged over a cluster connection. Payload is
@@ -120,6 +122,11 @@ type execReq struct {
 	Cmd      []string `json:"cmd"`
 }
 
+type setPolicyReq struct {
+	BoxID  string                `json:"box_id"`
+	Policy sandbox.NetworkPolicy `json:"policy"`
+}
+
 // Box-port payloads (spoke→hub, carried in a frameSpokeReq). The BoxID is
 // stamped by the SPOKE from its own persisted record of which box the request
 // arrived from — it is never taken from anything the box sent, which is what
@@ -153,6 +160,16 @@ type listBoxPortsReq struct {
 }
 type listBoxPortsResp struct {
 	Ports []BoxPortInfo `json:"ports"`
+}
+
+// dnsAuditReq reports one DNS lookup a box made, spoke→hub, for the audit trail.
+// BoxID is spoke-stamped from the originating box's identity, like the box-port
+// verbs, so a box cannot forge audit rows for another box.
+type dnsAuditReq struct {
+	BoxID   string `json:"box_id"`
+	Domain  string `json:"domain"`
+	Verdict string `json:"verdict"`
+	UnixSec int64  `json:"unix_sec"`
 }
 
 // streamOpenReq opens a raw byte tunnel to a box's port on the spoke, carried in

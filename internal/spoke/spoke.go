@@ -15,6 +15,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net/netip"
 	"os"
 	"os/signal"
 	"path"
@@ -35,6 +36,8 @@ import (
 	"github.com/clems4ever/llmbox/internal/spoke/box/backend"
 	_ "github.com/clems4ever/llmbox/internal/spoke/docker" // registers the "docker" box backend
 	"github.com/clems4ever/llmbox/internal/spoke/firecracker"
+	"github.com/clems4ever/llmbox/internal/spoke/isolation"
+	"github.com/clems4ever/llmbox/internal/spoke/netfw"
 )
 
 const (
@@ -100,6 +103,14 @@ type spokeOptions struct {
 	// repeatable): in-box ports the hub should expose as an HTTP proxy for every box
 	// this spoke creates. Parsed by parsePublishPorts.
 	publishPorts []string
+	// networkIsolation turns on deny-by-default egress for this spoke's boxes: the
+	// spoke runs llmbox-dnsd and applies the hub-pushed per-box allowlist. Off by
+	// default, so a spoke keeps open egress unless the operator opts in.
+	networkIsolation bool
+	// dnsListen is the address llmbox-dnsd binds ("host:port"); boxes are pointed
+	// at it. dnsUpstream is the resolver allowed queries are forwarded to.
+	dnsListen   string
+	dnsUpstream string
 	// backend is the box isolation backend this spoke runs ("docker" or
 	// "firecracker"); it is set from the chosen run subcommand, not a flag.
 	backend string
@@ -144,6 +155,43 @@ type registryFlags struct {
 	host         string
 	username     string
 	passwordFile string
+}
+
+// buildIsolation constructs and starts the network-isolation enforcer when
+// --network-isolation is set, returning it as the box manager's PolicyApplier so
+// hub-pushed allowlists are enforced. It returns nil (isolation off) otherwise,
+// which leaves box egress open. The enforcer runs llmbox-dnsd (bound to
+// --dns-listen, forwarding to --dns-upstream) and an nftables firewall; its
+// lifetime is bound to ctx.
+//
+// @arg ctx Cancels the running resolver/sweeper when the spoke stops.
+// @return box.PolicyApplier The enforcer, or nil when isolation is off.
+// @error error if the resolver cannot bind its listen address.
+//
+// @testcase TestBuildIsolationDisabled returns nil when the flag is off.
+func (o spokeOptions) buildIsolation(ctx context.Context, caller *cluster.HubCaller) (box.PolicyApplier, error) {
+	if !o.networkIsolation {
+		return nil, nil
+	}
+	dnsAddr, err := netip.ParseAddrPort(o.dnsListen)
+	if err != nil {
+		return nil, fmt.Errorf("--dns-listen %q: %w", o.dnsListen, err)
+	}
+	enf, err := isolation.New(isolation.Config{
+		ListenAddr: o.dnsListen,
+		DNSAddr:    dnsAddr.Addr(),
+		Programmer: netfw.NewNFTables(nil),
+		Upstream:   o.dnsUpstream,
+		Audit:      newDNSAuditForwarder(ctx, caller),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("building network isolation: %w", err)
+	}
+	if err := enf.Start(ctx); err != nil {
+		return nil, fmt.Errorf("starting network isolation: %w", err)
+	}
+	log.Printf("network isolation ON: llmbox-dnsd on %s, upstream %s", o.dnsListen, o.dnsUpstream)
+	return enf, nil
 }
 
 // registries resolves the registry flags into the config type boxconfig.RegistryAuths
@@ -781,6 +829,9 @@ func addCommonSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.Float64Var(&o.box.MaxDiskGB, "box-max-disk-gb", boxconfig.DefaultBoxMaxDiskGB, "hard ceiling on a per-create disk request in GiB (0 = no ceiling)")
 	f.StringVar(&o.box.SocketDir, "box-socket-dir", "", "host directory holding each box's control socket; empty uses the provisioner default")
 	f.StringArrayVar(&o.boxPeers, "box-peer", nil, "container name connected into every box's network so boxes can reach it (repeatable)")
+	f.BoolVar(&o.networkIsolation, "network-isolation", false, "deny-by-default egress for boxes on this spoke: run llmbox-dnsd and enforce the hub-configured per-box domain allowlist (off keeps open egress)")
+	f.StringVar(&o.dnsListen, "dns-listen", "127.0.0.1:53", "address llmbox-dnsd binds when --network-isolation is set (boxes are pointed at it)")
+	f.StringVar(&o.dnsUpstream, "dns-upstream", "1.1.1.1:53", "upstream resolver llmbox-dnsd forwards allowed queries to (host:port); point at a Pi-hole to forward through it")
 	f.StringVar(&o.registry.host, "registry", "", `registry host to authenticate to when pulling box images, e.g. "ghcr.io" (empty pulls anonymously)`)
 	f.StringVar(&o.registry.username, "registry-username", "", "username for --registry")
 	f.StringVar(&o.registry.passwordFile, "registry-password-file", "", "file holding the password or token for --registry")
@@ -910,12 +961,17 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 			log.Printf("closing box backend: %v", err)
 		}
 	}()
+	isolationApplier, err := o.buildIsolation(parent, portCaller)
+	if err != nil {
+		return err
+	}
 	mgr := box.NewManager(prov, box.Config{
 		MaxBoxes:          o.box.MaxBoxes,
 		InitScript:        initScript,
 		InitScriptTimeout: o.initScriptTimeout,
 		CopyFiles:         copyFiles,
 		PublishPorts:      publishPorts,
+		Isolation:         isolationApplier,
 	})
 
 	creds, err := loadSpokeCreds(statePath)

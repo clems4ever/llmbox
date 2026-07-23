@@ -632,3 +632,15 @@ func TestSpokeRegistriesFromFlags(t *testing.T) {
 		t.Error("registries(host, no password file) = nil error, want error")
 	}
 }
+
+// TestBuildIsolationDisabled checks isolation is off (nil applier) unless the
+// --network-isolation flag is set.
+func TestBuildIsolationDisabled(t *testing.T) {
+	applier, err := spokeOptions{}.buildIsolation(context.Background(), cluster.NewHubCaller())
+	if err != nil {
+		t.Fatalf("buildIsolation: %v", err)
+	}
+	if applier != nil {
+		t.Fatalf("buildIsolation returned a non-nil applier with isolation off")
+	}
+}

@@ -229,3 +229,60 @@ func TestManagerDestroyErrors(t *testing.T) {
 		t.Fatal("Destroy should surface an instance destroy error")
 	}
 }
+
+// fakeApplier records network-policy applications and releases, standing in for
+// the isolation subsystem.
+type fakeApplier struct {
+	lastBox    string
+	lastPolicy sandbox.NetworkPolicy
+	setCalls   int
+	released   []string
+}
+
+func (f *fakeApplier) SetNetworkPolicy(boxID string, policy sandbox.NetworkPolicy) error {
+	f.lastBox = boxID
+	f.lastPolicy = policy
+	f.setCalls++
+	return nil
+}
+
+func (f *fakeApplier) Release(boxID string) error {
+	f.released = append(f.released, boxID)
+	return nil
+}
+
+// TestBoxManagerSetNetworkPolicy checks a policy push is handed to the configured
+// applier, and that destroying a box releases its isolation state.
+func TestBoxManagerSetNetworkPolicy(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	applier := &fakeApplier{}
+	m := box.NewManager(conformance.NewFake(t), box.Config{Isolation: applier})
+
+	if _, err := m.Create(ctx, sandbox.CreateOptions{BoxID: "web"}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	policy := sandbox.NetworkPolicy{Enabled: true, Rules: []sandbox.DomainRule{{Pattern: "github.com", TTLSeconds: 30}}}
+	if err := m.SetNetworkPolicy(ctx, "web", policy); err != nil {
+		t.Fatalf("SetNetworkPolicy: %v", err)
+	}
+	if applier.setCalls != 1 || applier.lastBox != "web" || len(applier.lastPolicy.Rules) != 1 {
+		t.Fatalf("applier state = %+v", applier)
+	}
+
+	if err := m.Destroy(ctx, "web"); err != nil {
+		t.Fatalf("Destroy: %v", err)
+	}
+	if len(applier.released) != 1 || applier.released[0] != "web" {
+		t.Fatalf("released = %v, want [web]", applier.released)
+	}
+}
+
+// TestBoxManagerSetNetworkPolicyNoApplier checks a policy push is a silent no-op
+// when the spoke runs no isolation.
+func TestBoxManagerSetNetworkPolicyNoApplier(t *testing.T) {
+	m := box.NewManager(conformance.NewFake(t), box.Config{})
+	if err := m.SetNetworkPolicy(context.Background(), "web", sandbox.NetworkPolicy{Enabled: true}); err != nil {
+		t.Fatalf("SetNetworkPolicy without applier = %v, want nil", err)
+	}
+}

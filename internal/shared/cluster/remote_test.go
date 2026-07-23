@@ -67,6 +67,14 @@ func TestRemoteSpokeRoundTrip(t *testing.T) {
 	if !reflect.DeepEqual(fake.lastExec.cmd, []string{"/bin/sh", "-c", "echo hi"}) {
 		t.Errorf("spoke saw exec cmd %v", fake.lastExec.cmd)
 	}
+
+	policy := sandbox.NetworkPolicy{Enabled: true, Rules: []sandbox.DomainRule{{Pattern: "github.com", TTLSeconds: 30}}}
+	if err := rs.SetNetworkPolicy(ctx, "b1", policy); err != nil {
+		t.Fatalf("SetNetworkPolicy: %v", err)
+	}
+	if fake.lastPolicy.boxID != "b1" || !reflect.DeepEqual(fake.lastPolicy.policy, policy) {
+		t.Errorf("spoke saw policy box=%q %+v", fake.lastPolicy.boxID, fake.lastPolicy.policy)
+	}
 }
 
 // TestRemoteSpokeVerbError is a package test.

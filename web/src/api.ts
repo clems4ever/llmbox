@@ -114,6 +114,16 @@ export interface AllowlistBundle {
   }[];
 }
 
+/** DNSAuditEntry is one aggregated row of the DNS audit trail: a (box, domain,
+ * verdict) triple with how many times it was seen and the last time. */
+export interface DNSAuditEntry {
+  box_id: string;
+  domain: string;
+  verdict: string;
+  hits: number;
+  last_seen: number;
+}
+
 /** ApiError carries the server's error message plus the HTTP status, so the app
  * can distinguish an expired session (401) from an ordinary failure. */
 export class ApiError extends Error {
@@ -307,6 +317,31 @@ export class Api {
       mode,
     });
     return r.imported;
+  }
+
+  // ---- DNS audit ----
+
+  /** listDNSAudit returns the DNS lookups boxes made under network isolation,
+   * newest first, optionally filtered by box, verdict, or a domain substring. */
+  async listDNSAudit(
+    filter: { box_id?: string; verdict?: string; domain?: string } = {},
+  ): Promise<DNSAuditEntry[]> {
+    const r = await this.call<{ entries: DNSAuditEntry[] | null }>("/api/v1/list-dns-audit", filter);
+    return r.entries ?? [];
+  }
+
+  /** addDomainToGroup allows a domain (typically one just blocked in the audit
+   * view) by adding it to an existing group or creating a new one. */
+  async addDomainToGroup(
+    domain: string,
+    target: { groupId?: string; newGroupName?: string },
+  ): Promise<AllowlistGroup> {
+    const r = await this.call<{ group: AllowlistGroup }>("/api/v1/add-domain-to-group", {
+      domain,
+      group_id: target.groupId,
+      new_group_name: target.newGroupName,
+    });
+    return r.group;
   }
 }
 

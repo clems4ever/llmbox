@@ -45,6 +45,11 @@ type FakeMgr struct {
 	GotExecCmd []string
 
 	GotOpts sandbox.CreateOptions
+
+	GotPolicyBoxID string
+	GotPolicy      sandbox.NetworkPolicy
+	PolicyCalls    int
+	SetPolicyErr   error
 }
 
 // Create records the requested options and returns the canned result/error. On
@@ -165,6 +170,22 @@ func (f *FakeMgr) Exec(ctx context.Context, id string, cmd []string) (sandbox.Ex
 	f.GotExecCmd = cmd
 	f.mu.Unlock()
 	return f.ExecResult, f.ExecErr
+}
+
+// SetNetworkPolicy records the last network policy pushed to the fake spoke, so
+// tests can assert the hub pushed a box's effective allowlist.
+//
+// @arg _ Context (unused).
+// @arg boxID The box the policy is for.
+// @arg policy The pushed policy.
+// @error error the configured SetPolicyErr, if any.
+func (f *FakeMgr) SetNetworkPolicy(_ context.Context, boxID string, policy sandbox.NetworkPolicy) error {
+	f.mu.Lock()
+	f.GotPolicyBoxID = boxID
+	f.GotPolicy = policy
+	f.PolicyCalls++
+	f.mu.Unlock()
+	return f.SetPolicyErr
 }
 
 // FakeHub is a stand-in for the server's spoke hub: tests inject connected
