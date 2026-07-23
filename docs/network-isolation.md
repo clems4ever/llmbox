@@ -75,6 +75,25 @@ per-box`) and pushes it over the cluster transport as a `set_policy` verb; the
 resolver blocks a non-allowlisted lookup with NXDOMAIN and opens an allowed
 lookup's resolved IPs in the box's firewall for the group's TTL.
 
+### Forwarding through Pi-hole (or any resolver)
+
+`llmbox-dnsd` never resolves upstream itself — it forwards an *allowed* lookup to
+the resolver named by `--dns-upstream` and does the allowlist check, IP pinning,
+and audit around the answer. That upstream can be any DNS server, so pointing it
+at a [Pi-hole](https://pi-hole.net/) forwards allowed lookups through Pi-hole's
+own blocklists/logging while llmbox still enforces the per-box domain allowlist:
+
+```bash
+llmbox-spoke docker --hub … --token … \
+  --network-isolation \
+  --dns-upstream 10.0.0.53      # the Pi-hole's address; ":53" is the default
+```
+
+A bare host or IP defaults to port 53; give `host:port` for a non-standard port.
+Internally this is the `dnsd.Resolver` interface (`ForwardResolver` is the
+default) — the extension point for any richer forwarder later, without touching
+the enforcement flow.
+
 ## Enforcement internals & roadmap
 
 The configuration plane above is deliberately backend-agnostic so enforcement can

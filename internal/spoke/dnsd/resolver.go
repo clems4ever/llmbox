@@ -2,12 +2,64 @@ package dnsd
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/netip"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/miekg/dns"
 )
+
+// defaultDNSPort is appended to a bare upstream host/IP so an operator can name a
+// resolver (e.g. a Pi-hole) by address alone.
+const defaultDNSPort = "53"
+
+// NormalizeUpstream canonicalises an upstream resolver address into "host:port",
+// defaulting the port to 53 when the caller gives only a host or IP. It is how
+// forwarding to an external resolver like Pi-hole is configured from a simple
+// address: NormalizeUpstream("10.0.0.53") -> "10.0.0.53:53". An empty or
+// malformed value is an error so a bad --dns-upstream fails the spoke at startup
+// rather than silently dropping every allowed lookup.
+//
+// @arg raw The operator-supplied upstream ("host", "host:port", "ip", or "ip:port").
+// @return string The canonical "host:port".
+// @error error if raw is empty or not a valid host/address.
+//
+// @testcase TestNormalizeUpstream defaults the port and rejects empty/malformed input.
+func NormalizeUpstream(raw string) (string, error) {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "", fmt.Errorf("dns upstream is empty")
+	}
+	if strings.ContainsAny(s, "/ ") {
+		return "", fmt.Errorf("invalid dns upstream %q", raw)
+	}
+	// Already host:port (or ip:port)? Accept only a numeric port and non-empty host.
+	if host, port, err := net.SplitHostPort(s); err == nil {
+		if host == "" || !validPort(port) {
+			return "", fmt.Errorf("invalid dns upstream %q", raw)
+		}
+		return s, nil
+	}
+	// No port: a bare IPv6 literal must be bracketed before appending the default.
+	if ip, err := netip.ParseAddr(s); err == nil {
+		return net.JoinHostPort(ip.String(), defaultDNSPort), nil
+	}
+	// A bare hostname (e.g. "pihole.lan").
+	return net.JoinHostPort(s, defaultDNSPort), nil
+}
+
+// validPort reports whether p is a decimal port in 1..65535.
+//
+// @arg p The port string.
+// @return bool True when p is a valid port number.
+func validPort(p string) bool {
+	n, err := strconv.Atoi(p)
+	return err == nil && n >= 1 && n <= 65535
+}
 
 // ForwardResolver is the default Resolver: it forwards an allowed query to a
 // single upstream DNS server over UDP (falling back to TCP on a truncated reply).
