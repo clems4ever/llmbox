@@ -125,8 +125,17 @@ type spokeOptions struct {
 	// chGPUPassthrough lists host PCI addresses (e.g. "0000:65:00.0") of GPUs — or
 	// MIG slices — handed to every box by VFIO passthrough (Cloud Hypervisor only).
 	chGPUPassthrough []string
+	// chVGPUMdevs lists mediated devices (vGPU / MIG-backed vGPU) handed to every box
+	// by VFIO-mdev passthrough (Cloud Hypervisor only).
+	chVGPUMdevs []string
 	// chBinary is the cloud-hypervisor executable; empty resolves it from PATH.
 	chBinary string
+	// chEgressMode/chDisableEgress/chPoolSize/chTapGroup configure the Cloud
+	// Hypervisor backend's TAP/NAT egress pool, mirroring the Firecracker flags.
+	chEgressMode    string
+	chDisableEgress bool
+	chPoolSize      int
+	chTapGroup      int
 	// fcKernelImage/fcRootfsImage/fcStateDir are the Firecracker backend's guest
 	// kernel, default rootfs image, and state directory; unused for Docker.
 	fcKernelImage string
@@ -908,8 +917,13 @@ func addCloudHypervisorSpokeFlags(f *pflag.FlagSet, o *spokeOptions) {
 	f.StringVar(&o.chKernelImage, "kernel", "", "host path to the guest kernel (vmlinux) every box boots")
 	f.StringVar(&o.chRootfsImage, "rootfs", "", "host path to the default guest rootfs every box boots")
 	f.StringVar(&o.chStateDir, "state-dir", "", "directory for per-box state; empty uses the backend default")
-	f.StringSliceVar(&o.chGPUPassthrough, "gpu-passthrough", nil, `host PCI address(es) of GPUs (or MIG slices) to hand every box by VFIO passthrough, e.g. "0000:65:00.0" (repeat or comma-separate for several); empty attaches none`)
+	f.StringSliceVar(&o.chGPUPassthrough, "gpu-passthrough", nil, `host PCI address(es) of full GPUs to hand every box by VFIO passthrough, e.g. "0000:65:00.0" (repeat or comma-separate for several); empty attaches none`)
+	f.StringSliceVar(&o.chVGPUMdevs, "vgpu-mdev", nil, `mediated device(s) — vGPU or MIG-backed vGPU — to hand every box by VFIO-mdev passthrough, each an mdev UUID or an absolute /sys path (repeat or comma-separate); empty attaches none`)
 	f.StringVar(&o.chBinary, "cloud-hypervisor", "", `path to the cloud-hypervisor binary; empty resolves "cloud-hypervisor" from PATH`)
+	f.StringVar(&o.chEgressMode, "egress-mode", "", `who owns the host TAP/NAT egress plumbing: "managed" (default; the spoke provisions it, needs CAP_NET_ADMIN/root), "external" (attach to a pre-provisioned pool), or "disabled" (control-only, no egress)`)
+	f.BoolVar(&o.chDisableEgress, "disable-egress", false, "boot control-only boxes (no TAP/NAT egress), so the spoke needs no CAP_NET_ADMIN; boxes then have no outbound network (alias for --egress-mode=disabled)")
+	f.IntVar(&o.chPoolSize, "pool-size", 0, "number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default")
+	f.IntVar(&o.chTapGroup, "tap-group", 0, "GID that owns the pooled TAP devices; 0 uses the default")
 }
 
 // runSpoke connects a spoke to the hub and serves boxes against the local
@@ -971,8 +985,12 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 	// backend runs per invocation (the subcommand pins o.backend), so this never mixes
 	// the two.
 	kernelImg, rootfsImg, stateDir := o.fcKernelImage, o.fcRootfsImage, o.fcStateDir
+	// The egress fields are shared by both microVM backends but sourced from that
+	// backend's own flags; pick the source for the backend this spoke runs.
+	egressMode, disableEgress, poolSize, tapGroup := o.fcEgressMode, o.fcDisableEgress, o.fcPoolSize, o.fcTapGroup
 	if o.backend == "cloud-hypervisor" {
 		kernelImg, rootfsImg, stateDir = o.chKernelImage, o.chRootfsImage, o.chStateDir
+		egressMode, disableEgress, poolSize, tapGroup = o.chEgressMode, o.chDisableEgress, o.chPoolSize, o.chTapGroup
 	}
 	prov, err := backend.New(o.backend, backend.Options{
 		DefaultImage:          o.image,
@@ -988,16 +1006,17 @@ func runSpoke(parent context.Context, o spokeOptions) error {
 		PayloadImagePath:      o.fcPayloadImage,
 		StateDir:              stateDir,
 		GPUPassthrough:        o.chGPUPassthrough,
+		GPUMediatedDevices:    o.chVGPUMdevs,
 		CloudHypervisorBinary: o.chBinary,
-		DisableEgress:         o.fcDisableEgress,
-		EgressMode:            o.fcEgressMode,
-		PoolSize:              o.fcPoolSize,
+		DisableEgress:         disableEgress,
+		EgressMode:            egressMode,
+		PoolSize:              poolSize,
 		JailerBinary:          o.fcJailerBin,
 		FirecrackerBinary:     o.fcFirecrackerBin,
 		ChrootBase:            o.fcChrootBase,
 		UIDMin:                o.fcUIDMin,
 		UIDMax:                o.fcUIDMax,
-		TapGroupGID:           o.fcTapGroup,
+		TapGroupGID:           tapGroup,
 		CgroupVersion:         o.fcCgroupVersion,
 	})
 	if err != nil {

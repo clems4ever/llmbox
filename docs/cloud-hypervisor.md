@@ -47,12 +47,47 @@ llmbox-spoke cloud-hypervisor \
 | `--kernel` | Host path to the guest kernel (vmlinux) every box boots. |
 | `--rootfs` | Host path to the default guest rootfs every box boots. |
 | `--state-dir` | Directory for per-box state (rootfs copy, sockets, metadata); empty uses `/run/llmbox/cloud-hypervisor`. |
-| `--gpu-passthrough` | Host PCI address of a GPU (or MIG slice) to hand **every** box by VFIO, e.g. `0000:65:00.0`. Repeat or comma-separate for several. Malformed addresses fail the spoke at startup. Empty attaches none. |
+| `--gpu-passthrough` | Host PCI address of a **full GPU** to hand **every** box by VFIO, e.g. `0000:65:00.0`. Repeat or comma-separate for several. Malformed addresses fail the spoke at startup. Empty attaches none. |
+| `--vgpu-mdev` | Mediated device (**vGPU / MIG-backed vGPU**) to hand every box by VFIO-mdev, each an mdev UUID or an absolute `/sys` path. Repeat or comma-separate. Empty attaches none. |
 | `--cloud-hypervisor` | Path to the `cloud-hypervisor` binary; empty resolves it from `PATH`. |
+| `--egress-mode` | Who owns the host TAP/NAT egress plumbing: `managed` (default; the spoke provisions it, needs CAP_NET_ADMIN/root), `external` (attach to a pre-provisioned pool), or `disabled` (control-only, no egress). |
+| `--disable-egress` | Boot control-only boxes (no TAP/NAT egress); alias for `--egress-mode=disabled`. |
+| `--pool-size` | Number of egress TAP devices provisioned at startup (caps concurrent networked boxes); 0 uses the default (16). |
+| `--tap-group` | GID that owns the pooled TAP devices; 0 uses the default. |
 
-GPUs are machine-local, so `--gpu-passthrough` attaches the listed devices to every
-box this spoke runs. To pack several isolated workloads onto one physical GPU, slice
-it with **NVIDIA MIG** and pass one MIG instance per box.
+## GPUs: full passthrough, MIG, and vGPU
+
+GPU devices are machine-local, so whatever you pass is attached to **every** box this
+spoke runs. Three sharing models:
+
+- **Full GPU per box** — `--gpu-passthrough 0000:65:00.0`. One physical GPU → one box.
+- **MIG (hardware partitions, A100/H100/H200)** — partition the GPU into MIG instances
+  on the host, expose each as an NVIDIA vGPU mediated device, and pass one per box with
+  `--vgpu-mdev <mdev-uuid>`. This is the clean way to get Firecracker-style density
+  *with* hardware-isolated GPU slices.
+- **vGPU (time-sliced)** — `--vgpu-mdev <mdev-uuid>` for a non-MIG vGPU profile (carries
+  NVIDIA vGPU licensing).
+
+Both `--gpu-passthrough` and `--vgpu-mdev` become VFIO devices in the guest's
+`VmConfig`; the difference is only the sysfs path (`/sys/bus/pci/devices/<addr>/` vs
+`/sys/bus/mdev/devices/<uuid>`).
+
+## Egress networking
+
+By default (`--egress-mode=managed`) each box gets a TAP-backed egress NIC with NAT to
+the host uplink and inter-box isolation, so boxes reach the internet but not each
+other. This reuses the same shared microVM network layer
+(`internal/spoke/microvm/mvmnet`) as the Firecracker backend — same pooled-TAP design,
+same NAT/isolation rules, same static guest `ip=` configuration — but on its own
+`llmboxch` / `172.17.0.0/16` addressing so the two backends never collide on one host.
+
+- **`managed`** (default): the spoke provisions the TAP pool + NAT rules at startup
+  (needs CAP_NET_ADMIN / root).
+- **`external`**: an out-of-band provisioner owns the pool; the spoke only validates it
+  read-only and never mutates host networking.
+- **`disabled`** (`--disable-egress`): control-only boxes — loopback + the vsock control
+  channel only. Box ports are still reachable through the [HTTP proxy](proxy.md), which
+  is enough for GPU inference/compute boxes that need no outbound network.
 
 ## How it works
 
@@ -64,21 +99,24 @@ it with **NVIDIA MIG** and pass one MIG instance per box.
 - **Control channel.** The guest is reached over the same hybrid-vsock `CONNECT`
   handshake the Firecracker backend uses, so the **same guest rootfs boots on either
   VMM**.
-- **GPU.** Each `--gpu-passthrough` address becomes a VFIO device
-  (`/sys/bus/pci/devices/<addr>/`) in the box's `VmConfig`. The guest kernel command
-  line keeps PCI **on** (unlike Firecracker's `pci=off`) so the device is visible.
+- **GPU.** Each `--gpu-passthrough` address and `--vgpu-mdev` ref becomes a VFIO device
+  in the box's `VmConfig`. The guest kernel command line keeps PCI **on** (unlike
+  Firecracker's `pci=off`) so the device is visible.
+- **Egress.** A networked box gets a virtio-net device on a pooled host TAP with a
+  deterministic MAC and a static guest IP via the kernel `ip=` arg, backed by the
+  shared `mvmnet` NAT/isolation pool (see above).
 - **State.** Cloud Hypervisor has no daemon that remembers boxes, so the backend
   persists per-box metadata under the state dir and reloads it on startup, exactly
   like the Firecracker backend.
 
-## Status & limitations
+## Status & testing
 
-- **Phase 1 is control-only networking**: boxes have loopback + the vsock control
-  channel (and their ports are reachable through the [HTTP proxy](proxy.md)), which is
-  enough for GPU inference/compute boxes. Spoke-managed TAP/NAT egress is a follow-up
-  that will share the Firecracker backend's network pool.
 - The live boot path is validated by a KVM-gated conformance test
   (`LLMBOX_CH_KERNEL` / `LLMBOX_CH_ROOTFS`, `cloud-hypervisor` on `PATH`, `/dev/kvm`,
   root). In CI the whole provisioner lifecycle is covered against a fake launcher
   running a real guest — the same backend-neutral contract Docker and Firecracker
   pass — so behaviour is proven without a GPU host.
+- Managed-mode egress provisioning (TAP/NAT via `ip`/`iptables`) needs root and is
+  exercised by the shared `mvmnet` package's root-gated tests; the mode selection,
+  slot allocation, VM-config translation (GPU/mdev/net), and option plumbing are all
+  covered by unit tests that run unprivileged in CI.

@@ -45,6 +45,7 @@ func signIn(t *testing.T, st Store, admin, _ bool) *http.Cookie {
 // /admin as HTML referencing a hashed script, and that script under
 // /admin/assets/ with an immutable cache header.
 func TestAdminSPAServed(t *testing.T) {
+	skipIfWebUINotBuilt(t)
 	s, _, _ := newAdminServer(t)
 	h := s.APIHandler()
 
@@ -82,6 +83,7 @@ func TestAdminSPAServed(t *testing.T) {
 // admin UI is disabled: the proxy sign-in page is served from the same built app,
 // so its hashed bundle must resolve for a server with no admin allow-list.
 func TestAssetsServedWithoutAdmin(t *testing.T) {
+	skipIfWebUINotBuilt(t)
 	// Discover a hashed asset path from an admin-enabled server's shell; the bundle
 	// is embedded, so the same path resolves on any server built from it.
 	admin, _, _ := newAdminServer(t)

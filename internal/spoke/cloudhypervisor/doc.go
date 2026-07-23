@@ -18,7 +18,8 @@
 // same backend-neutral conformance contract Docker and Firecracker pass. The real
 // launcher (chlauncher.go) is covered by a KVM-gated integration test.
 //
-// Phase 1 is control-only networking (loopback + vsock, with the box's ports
-// reachable through the HTTP proxy over vsock); spoke-managed TAP/NAT egress is a
-// follow-up that will share the Firecracker backend's network pool.
+// Egress networking (managed/external/disabled TAP+NAT) reuses the shared
+// internal/spoke/microvm/mvmnet pool the Firecracker backend also uses, on Cloud
+// Hypervisor's own llmboxch / 172.17.0.0/16 addressing (see network.go); disabled
+// mode boots control-only boxes reachable over vsock and the HTTP proxy.
 package cloudhypervisor

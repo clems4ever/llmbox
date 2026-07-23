@@ -14,6 +14,7 @@ import (
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
+	"github.com/clems4ever/llmbox/internal/spoke/microvm/mvmnet"
 )
 
 const (
@@ -28,6 +29,13 @@ const (
 	// minMemSizeMib floors the derived memory so a tiny limit can't produce a VM too
 	// small to boot.
 	minMemSizeMib = 128
+
+	// defaultPoolSize is the number of egress TAP slots provisioned at startup when
+	// the spoke configures none; it caps concurrent networked boxes.
+	defaultPoolSize = 16
+	// defaultTapGroup owns the pooled TAP devices by default, matching the Firecracker
+	// backend's fc-net group so a shared host's operator manages one group.
+	defaultTapGroup = 100000
 )
 
 // Provisioner runs boxes as Cloud Hypervisor microVMs. It owns box identity,
@@ -41,14 +49,30 @@ type Provisioner struct {
 	stateDir      string
 	namespace     string
 	limits        sandbox.Limits
-	// gpus holds the host PCI addresses passed through to every box by VFIO; it is
-	// machine-local, so it is attached to every box this spoke runs.
+	// gpus holds the host PCI addresses passed through to every box by VFIO; mdevs
+	// holds mediated-device refs (vGPU / MIG-backed vGPU). Both are machine-local, so
+	// they are attached to every box this spoke runs.
 	gpus     []string
+	mdevs    []string
 	launcher launcher
 	log      *slog.Logger
 
+	// egress provisions and validates the shared TAP/NAT pool that gives boxes
+	// outbound connectivity; egressMode selects who owns it (managed/external/disabled)
+	// and poolSize/tapGroup size and own it. poolOnce guards one-time provisioning so
+	// the host interfaces are readied once at startup, not per box.
+	egress     mvmnet.Egress
+	egressMode egressMode
+	poolSize   int
+	tapGroup   int
+	poolOnce   sync.Once
+	poolErr    error
+
 	mu    sync.Mutex
 	boxes map[string]*chInstance
+	// used tracks the pooled network slots held by live boxes, so a slot is never
+	// assigned to two boxes and is freed on Destroy.
+	used map[int]bool
 }
 
 // NewProvisioner builds a Cloud Hypervisor provisioner. kernelImage and
@@ -74,12 +98,109 @@ func NewProvisioner(kernelImage, defaultRootfs, stateDir string) (*Provisioner, 
 		stateDir:      stateDir,
 		launcher:      newCHLauncher(""),
 		log:           slog.Default(),
+		egress:        mvmnet.NewHostEgress(chNet),
+		egressMode:    egressManaged,
+		poolSize:      defaultPoolSize,
+		tapGroup:      defaultTapGroup,
 		boxes:         map[string]*chInstance{},
+		used:          map[int]bool{},
 	}
 	if err := p.rehydrate(); err != nil {
 		return nil, err
 	}
 	return p, nil
+}
+
+// SetEgressMode selects who owns the host-side TAP/NAT egress plumbing: managed (the
+// spoke provisions it, needs CAP_NET_ADMIN/root), external (attach to a
+// pre-provisioned pool, spoke never mutates host networking), or disabled
+// (control-only, no egress NIC).
+//
+// @arg mode The egress mode.
+//
+// @testcase TestEnsureNetworkModes drives each mode through EnsureNetwork.
+func (p *Provisioner) SetEgressMode(mode egressMode) { p.egressMode = mode }
+
+// SetPoolSize sets the number of egress TAP slots provisioned at startup, capping
+// concurrent networked boxes; 0 keeps the default.
+//
+// @arg n The pool size.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the pool size through the factory.
+func (p *Provisioner) SetPoolSize(n int) {
+	if n > 0 {
+		p.poolSize = n
+	}
+}
+
+// SetTapGroup sets the GID that owns the pooled TAP devices; 0 keeps the default.
+//
+// @arg gid The owning GID.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies the tap group through the factory.
+func (p *Provisioner) SetTapGroup(gid int) {
+	if gid > 0 {
+		p.tapGroup = gid
+	}
+}
+
+// SetEgress overrides the egress implementation, for tests that inject a fake instead
+// of touching the host network stack.
+//
+// @arg e The egress implementation.
+//
+// @testcase TestEnsureNetworkModes injects a fake egress through this setter.
+func (p *Provisioner) SetEgress(e mvmnet.Egress) { p.egress = e }
+
+// guestNetEnabled reports whether boxes get an egress NIC (every mode except
+// disabled).
+//
+// @return bool True when boxes get a TAP-backed egress interface.
+//
+// @testcase TestEnsureNetworkModes checks disabled mode gives no egress.
+func (p *Provisioner) guestNetEnabled() bool { return p.egressMode != egressDisabled }
+
+// EnsureNetwork readies the egress TAP pool once, so the host interfaces exist before
+// any box is created. It is a no-op when egress is disabled, provisions the pool in
+// managed mode (needs CAP_NET_ADMIN), and only validates a pre-provisioned pool in
+// external mode (never mutating host networking). Safe to call repeatedly.
+//
+// @arg ctx Context for the pool provisioning/validation.
+// @error error if the pool cannot be provisioned (managed) or is incomplete (external).
+//
+// @testcase TestEnsureNetworkModes provisions, validates, or skips per mode.
+func (p *Provisioner) EnsureNetwork(ctx context.Context) error {
+	switch p.egressMode {
+	case egressDisabled:
+		return nil
+	case egressExternal:
+		p.poolOnce.Do(func() { p.poolErr = p.egress.ValidatePool(ctx, p.poolSize) })
+	default: // managed
+		p.poolOnce.Do(func() {
+			if he, ok := p.egress.(*mvmnet.HostEgress); ok {
+				he.SetTapGroup(p.tapGroup)
+			}
+			p.poolErr = p.egress.EnsurePool(ctx, p.poolSize)
+		})
+	}
+	return p.poolErr
+}
+
+// allocIndexLocked reserves a free pooled network slot, returning false when the pool
+// is exhausted. The caller must hold p.mu.
+//
+// @return int The reserved slot.
+// @return bool False when no slot is free.
+//
+// @testcase TestConformanceCloudHypervisorFake allocates slots for networked boxes.
+func (p *Provisioner) allocIndexLocked() (int, bool) {
+	for i := 0; i < p.poolSize; i++ {
+		if !p.used[i] {
+			p.used[i] = true
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 // SetPerBoxLimits sets the per-box resource caps the provisioner derives vCPU/memory/
@@ -104,6 +225,14 @@ func (p *Provisioner) SetNamespace(ns string) { p.namespace = ns }
 //
 // @testcase TestNewBackendConfiguresProvisioner applies GPU passthrough through the factory.
 func (p *Provisioner) SetGPUs(addrs []string) { p.gpus = addrs }
+
+// SetMDEVs sets the mediated-device refs (vGPU / MIG-backed vGPU) passed through to
+// every box.
+//
+// @arg mdevs The mdev UUIDs or /sys paths.
+//
+// @testcase TestNewBackendConfiguresProvisioner applies mdev passthrough through the factory.
+func (p *Provisioner) SetMDEVs(mdevs []string) { p.mdevs = mdevs }
 
 // SetCHBinary points the provisioner at a specific cloud-hypervisor executable;
 // empty resolves it from PATH.
@@ -135,6 +264,11 @@ func (p *Provisioner) rehydrate() error {
 		}
 		p.mu.Lock()
 		p.boxes[m.Token] = inst
+		// Re-reserve the box's pooled network slot so a fresh box never reuses a live
+		// box's TAP/IP.
+		if m.Egress {
+			p.used[m.NetIndex] = true
+		}
 		p.mu.Unlock()
 	}
 	return nil
@@ -164,15 +298,42 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 	meta := boxMeta{
 		Token: token, BoxID: opts.BoxID, Description: opts.Description,
 		Image: p.defaultRootfs, Phase: "pending", Created: time.Now().Unix(),
-		DiskBytes: p.diskBytesFor(opts.DiskBytes), GPUs: p.gpus, Namespace: p.namespace,
+		DiskBytes: p.diskBytesFor(opts.DiskBytes), GPUs: p.gpus, MDEVs: p.mdevs, Namespace: p.namespace,
 	}
+
+	// Give the box an egress NIC unless egress is disabled: ready the shared TAP pool
+	// (once) and reserve a slot, whose TAP/IP the box keeps for its lifetime. A
+	// control-only box (disabled) skips all of this.
+	if p.guestNetEnabled() {
+		if err := p.EnsureNetwork(ctx); err != nil {
+			return nil, fmt.Errorf("provisioning egress network: %w", err)
+		}
+		p.mu.Lock()
+		index, ok := p.allocIndexLocked()
+		p.mu.Unlock()
+		if !ok {
+			return nil, fmt.Errorf("no free box slot (max %d concurrent networked microVM boxes)", p.poolSize)
+		}
+		meta.Egress = true
+		meta.NetIndex = index
+	}
+	freeSlot := func() {
+		if meta.Egress {
+			p.mu.Lock()
+			delete(p.used, meta.NetIndex)
+			p.mu.Unlock()
+		}
+	}
+
 	handle, err := p.launcher.Launch(ctx, p.specFor(meta))
 	if err != nil {
+		freeSlot()
 		_ = os.RemoveAll(boxDir(p.stateDir, token))
 		return nil, err
 	}
 	if err := meta.save(p.stateDir); err != nil {
 		_ = handle.Stop()
+		freeSlot()
 		_ = os.RemoveAll(boxDir(p.stateDir, token))
 		return nil, fmt.Errorf("saving box meta: %w", err)
 	}
@@ -191,7 +352,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts sandbox.CreateOptions)
 //
 // @testcase TestConformanceCloudHypervisor launches boxes from specs built here.
 func (p *Provisioner) specFor(meta boxMeta) vmSpec {
-	return vmSpec{
+	spec := vmSpec{
 		Token:       meta.Token,
 		BoxDir:      boxDir(p.stateDir, meta.Token),
 		Kernel:      p.kernelImage,
@@ -202,7 +363,18 @@ func (p *Provisioner) specFor(meta boxMeta) vmSpec {
 		VCPUs:       p.vcpuCount(),
 		MemoryBytes: p.memSizeMib() * (1 << 20),
 		GPUs:        meta.GPUs,
+		MDEVs:       meta.MDEVs,
 	}
+	// A networked box gets a virtio-net device on its pooled TAP with a deterministic
+	// MAC, and its guest IP set statically via the kernel ip= arg — the same scheme the
+	// Firecracker backend uses, so the same guest rootfs configures either.
+	if meta.Egress {
+		n := chNet.NetFor(meta.NetIndex)
+		spec.TapName = n.TapName
+		spec.MAC = mvmnet.MACForIndex(meta.NetIndex)
+		spec.IPArg = n.KernelIPArg()
+	}
+	return spec
 }
 
 // List returns a handle to every managed box.
@@ -459,6 +631,10 @@ func (i *chInstance) Destroy(ctx context.Context) error {
 	p.mu.Lock()
 	_, present := p.boxes[i.meta.Token]
 	delete(p.boxes, i.meta.Token)
+	// Free the box's pooled network slot for reuse (the pooled TAP itself stays up).
+	if i.meta.Egress {
+		delete(p.used, i.meta.NetIndex)
+	}
 	p.mu.Unlock()
 
 	i.stopCompute()

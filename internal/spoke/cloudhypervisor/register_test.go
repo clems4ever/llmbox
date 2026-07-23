@@ -18,6 +18,10 @@ func TestNewBackendConfiguresProvisioner(t *testing.T) {
 		Limits:                sandbox.Limits{MemoryBytes: 1 << 30, NanoCPUs: 2e9, DiskBytes: 2 << 30},
 		Namespace:             "ns1",
 		GPUPassthrough:        []string{"0000:65:00.0"},
+		GPUMediatedDevices:    []string{"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"},
+		EgressMode:            "external",
+		PoolSize:              32,
+		TapGroupGID:           4242,
 		CloudHypervisorBinary: "/opt/cloud-hypervisor",
 	})
 	if err != nil {
@@ -31,6 +35,12 @@ func TestNewBackendConfiguresProvisioner(t *testing.T) {
 	}
 	if len(p.gpus) != 1 || p.gpus[0] != "0000:65:00.0" {
 		t.Fatalf("GPU passthrough not applied: %v", p.gpus)
+	}
+	if len(p.mdevs) != 1 || p.mdevs[0] != "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" {
+		t.Fatalf("vGPU mdev passthrough not applied: %v", p.mdevs)
+	}
+	if p.egressMode != egressExternal || p.poolSize != 32 || p.tapGroup != 4242 {
+		t.Fatalf("egress options not applied: mode=%v pool=%d tap=%d", p.egressMode, p.poolSize, p.tapGroup)
 	}
 	l, ok := p.launcher.(*chLauncher)
 	if !ok || l.chBinary != "/opt/cloud-hypervisor" {

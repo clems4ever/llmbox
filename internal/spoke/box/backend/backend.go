@@ -53,13 +53,18 @@ type Options struct {
 
 	// GPUs is a `docker run --gpus`-style spec attached to every box (Docker only).
 	GPUs string
-	// GPUPassthrough lists host PCI addresses (e.g. "0000:65:00.0") of GPUs — or MIG
-	// slices — to hand to every box by VFIO PCI passthrough (Cloud Hypervisor only).
-	// It is the microVM equivalent of the Docker-only GPUs spec: Docker and
-	// Firecracker ignore it (Firecracker has no PCI bus), while Cloud Hypervisor
-	// emits each address as a VFIO device in the guest's VmConfig. Empty attaches no
-	// GPU.
+	// GPUPassthrough lists host PCI addresses (e.g. "0000:65:00.0") of full GPUs to
+	// hand to every box by VFIO PCI passthrough (Cloud Hypervisor only). It is the
+	// microVM equivalent of the Docker-only GPUs spec: Docker and Firecracker ignore
+	// it (Firecracker has no PCI bus), while Cloud Hypervisor emits each address as a
+	// VFIO device in the guest's VmConfig. Empty attaches no GPU.
 	GPUPassthrough []string
+	// GPUMediatedDevices lists mediated devices (vGPU / MIG-backed vGPU) to hand to
+	// every box by VFIO-mdev passthrough (Cloud Hypervisor only), each an mdev UUID or
+	// an absolute /sys mdev path. This is how one physical GPU is shared across
+	// several boxes: NVIDIA vGPU (optionally MIG-backed) exposes each slice as an
+	// mdev. Empty attaches none.
+	GPUMediatedDevices []string
 	// RegistryAuths holds image-pull credentials keyed by registry host (Docker
 	// only). registry.AuthConfig is a standalone OCI-registry credential type, not
 	// the Docker client, so depending on it here couples nothing to the daemon.

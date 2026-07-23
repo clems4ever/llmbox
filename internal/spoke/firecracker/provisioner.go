@@ -157,7 +157,7 @@ func NewProvisioner(kernelImage, defaultRootfs, stateDir string, ports boxapi.Po
 		defaultRootfs:  defaultRootfs,
 		stateDir:       stateDir,
 		firecrackerBin: defaultFirecrackerBin,
-		egress:         &hostEgress{},
+		egress:         newHostEgress("", 0),
 		log:            slog.Default(),
 		egressMode:     egressManaged,
 		poolSize:       defaultPoolSize,
@@ -338,7 +338,7 @@ func (p *Provisioner) EnsureNetwork(ctx context.Context) error {
 			// Own the pooled TAPs by the shared fc-net group so each jailed, unprivileged
 			// VMM can attach to its assigned TAP without CAP_NET_ADMIN.
 			if he, ok := p.egress.(*hostEgress); ok {
-				he.tapGroup = p.jailer.gid
+				he.SetTapGroup(p.jailer.gid)
 			}
 			p.poolErr = p.egress.EnsurePool(ctx, p.poolSize)
 		})
@@ -595,7 +595,7 @@ func (p *Provisioner) bootMachine(ctx context.Context, meta boxMeta) (machine, *
 	// /init at its real init (systemd, or the guest directly).
 	kernelArgs := "console=ttyS0 reboot=k panic=1 pci=off net.ifnames=0 init=/init"
 	if p.guestNetEnabled() {
-		kernelArgs += " " + n.kernelIPArg()
+		kernelArgs += " " + n.KernelIPArg()
 	}
 
 	// The root drive is a per-box writable copy of the rootfs. When a payload image

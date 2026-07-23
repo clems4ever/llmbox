@@ -84,6 +84,47 @@ func TestBuildVMConfigGPUPassthrough(t *testing.T) {
 	}
 }
 
+// TestValidateMediatedDevice accepts mdev UUIDs and absolute /sys paths and rejects
+// anything else, since a bad ref must fail the spoke at startup.
+func TestValidateMediatedDevice(t *testing.T) {
+	good := []string{"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "/sys/bus/mdev/devices/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"}
+	for _, s := range good {
+		if !validateMediatedDevice(s) {
+			t.Errorf("validateMediatedDevice(%q) = false, want true", s)
+		}
+	}
+	bad := []string{"", "not-a-uuid", "0000:65:00.0", "/etc/passwd", "aaaaaaaa-bbbb-cccc-dddd"}
+	for _, s := range bad {
+		if validateMediatedDevice(s) {
+			t.Errorf("validateMediatedDevice(%q) = true, want false", s)
+		}
+	}
+}
+
+// TestBuildVMConfigMediatedDevices checks vGPU/MIG mdev refs become VFIO devices
+// pointing at their sysfs mdev path (UUID resolved under the mdev bus; absolute /sys
+// path used as-is), and that they coexist with full-GPU passthrough devices.
+func TestBuildVMConfigMediatedDevices(t *testing.T) {
+	cfg := buildVMConfig(vmConfigParams{
+		Kernel: "/k", Rootfs: "/r", VsockUDS: "/v", VCPUs: 1,
+		GPUs:  []string{"0000:65:00.0"},
+		MDEVs: []string{"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "/sys/devices/custom/mdev0"},
+	})
+	if len(cfg.Devices) != 3 {
+		t.Fatalf("want 3 VFIO devices (1 GPU + 2 mdev), got %d: %+v", len(cfg.Devices), cfg.Devices)
+	}
+	want := []string{
+		"/sys/bus/pci/devices/0000:65:00.0/",
+		"/sys/bus/mdev/devices/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+		"/sys/devices/custom/mdev0",
+	}
+	for i, d := range cfg.Devices {
+		if d.Path != want[i] {
+			t.Errorf("device[%d].Path = %q, want %q", i, d.Path, want[i])
+		}
+	}
+}
+
 // TestBuildVMConfigNoGPUsOmitsDevices checks the devices key is omitted entirely when
 // no GPU is requested, so a plain box's config carries no empty passthrough array.
 func TestBuildVMConfigNoGPUsOmitsDevices(t *testing.T) {

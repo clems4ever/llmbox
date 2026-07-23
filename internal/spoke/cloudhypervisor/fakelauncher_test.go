@@ -128,6 +128,10 @@ func newFakeProvisioner(t testing.TB) *Provisioner {
 		t.Fatalf("NewProvisioner: %v", err)
 	}
 	p.launcher = &fakeLauncher{}
+	// The conformance contract only needs the control channel (vsock), so run the fake
+	// boxes control-only: that keeps the whole lifecycle exercised in CI without the
+	// root/CAP_NET_ADMIN a managed TAP pool would require.
+	p.SetEgressMode(egressDisabled)
 	t.Cleanup(func() {
 		boxes, _ := p.List(context.Background())
 		for _, b := range boxes {

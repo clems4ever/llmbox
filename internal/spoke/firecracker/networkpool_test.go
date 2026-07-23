@@ -94,20 +94,5 @@ func TestSetupNetworkPoolProvisionsAsRoot(t *testing.T) {
 	}
 }
 
-// TestLinkFlagsUp checks the administrative UP flag is read from the ip-link flag
-// block, and that operational carrier state does not fool it: a provisioned TAP with
-// no VMM attached (admin UP but `state DOWN`) must read as up, while an
-// administratively down link must not.
-func TestLinkFlagsUp(t *testing.T) {
-	up := "3: llmboxfc0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc fq_codel state DOWN mode DEFAULT group default qlen 1000"
-	if !linkFlagsUp(up) {
-		t.Fatalf("linkFlagsUp(admin-up, carrier-down) = false, want true")
-	}
-	down := "3: llmboxfc0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000"
-	if linkFlagsUp(down) {
-		t.Fatalf("linkFlagsUp(admin-down) = true, want false")
-	}
-	if linkFlagsUp("garbage with no flag block") {
-		t.Fatalf("linkFlagsUp(no flag block) = true, want false")
-	}
-}
+// The ip-link UP-flag parsing is covered by internal/spoke/microvm/mvmnet
+// (TestLinkFlagsUp), the shared package this backend's egress now lives in.

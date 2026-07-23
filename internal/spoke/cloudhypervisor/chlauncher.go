@@ -128,6 +128,10 @@ func (l *chLauncher) Launch(ctx context.Context, spec vmSpec) (vmHandle, error) 
 		VCPUs:       spec.VCPUs,
 		MemoryBytes: spec.MemoryBytes,
 		GPUs:        spec.GPUs,
+		MDEVs:       spec.MDEVs,
+		TapName:     spec.TapName,
+		MAC:         spec.MAC,
+		IPArg:       spec.IPArg,
 	})
 	client := newAPIClient(spec.APISock)
 	if err := client.createVM(ctx, cfg); err != nil {

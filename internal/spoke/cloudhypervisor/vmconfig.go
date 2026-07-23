@@ -3,6 +3,7 @@ package cloudhypervisor
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 // defaultKernelCmdline is the guest kernel command line every box boots with. It
@@ -45,6 +46,36 @@ func pciDeviceSysfsPath(addr string) string {
 	return fmt.Sprintf("/sys/bus/pci/devices/%s/", addr)
 }
 
+// mdevUUIDRE matches an mediated-device UUID (vGPU / MIG-backed vGPU instance).
+var mdevUUIDRE = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+// validateMediatedDevice reports whether s is a usable mdev reference: an mdev UUID or
+// an absolute /sys path to one. Validated at option-parse time so a typo fails the
+// spoke at startup.
+//
+// @arg s The candidate mdev UUID or /sys path.
+// @return bool True when s is a well-formed mdev UUID or an absolute sys path.
+//
+// @testcase TestValidateMediatedDevice accepts UUIDs and sys paths, rejects junk.
+func validateMediatedDevice(s string) bool {
+	return mdevUUIDRE.MatchString(s) || strings.HasPrefix(s, "/sys/")
+}
+
+// mdevSysfsPath returns the sysfs path Cloud Hypervisor passes an mdev through by: an
+// absolute /sys path is used as-is, otherwise a UUID resolves under the standard mdev
+// bus directory.
+//
+// @arg s The mdev UUID or absolute /sys path.
+// @return string The sysfs device path for the VFIO-mdev device.
+//
+// @testcase TestBuildVMConfigMediatedDevices maps mdev refs to sysfs device paths.
+func mdevSysfsPath(s string) string {
+	if strings.HasPrefix(s, "/") {
+		return s
+	}
+	return "/sys/bus/mdev/devices/" + s
+}
+
 // vmConfig is the subset of Cloud Hypervisor's VmConfig REST schema the backend
 // sets. It is marshalled to JSON and PUT to the VMM's /api/v1/vm.create endpoint.
 type vmConfig struct {
@@ -55,9 +86,20 @@ type vmConfig struct {
 	Vsock   vmVsock   `json:"vsock"`
 	Serial  vmConsole `json:"serial"`
 	Console vmConsole `json:"console"`
+	// Net carries the box's egress virtio-net device(s), attached to a pre-created
+	// host TAP. Omitted for a control-only box (no egress).
+	Net []vmNet `json:"net,omitempty"`
 	// Devices carries VFIO PCI passthrough entries — this is how a GPU reaches the
 	// guest. Omitted when the box has none.
 	Devices []vmDevice `json:"devices,omitempty"`
+}
+
+// vmNet is a virtio-net device attached to a pre-created host TAP. The guest's IP is
+// configured statically by the kernel ip= arg (see vmConfigParams.IPArg), so only the
+// TAP name and the guest NIC MAC are set here.
+type vmNet struct {
+	Tap string `json:"tap"`
+	Mac string `json:"mac"`
 }
 
 // vmCPUs sets the boot and maximum vCPU counts.
@@ -119,6 +161,16 @@ type vmConfigParams struct {
 	MemoryBytes int64
 	// GPUs holds the PCI addresses to pass through by VFIO; each becomes a device.
 	GPUs []string
+	// MDEVs holds mediated-device refs (vGPU / MIG-backed vGPU) to pass through by
+	// VFIO-mdev; each becomes a device pointing at its sysfs mdev path.
+	MDEVs []string
+	// TapName, when non-empty, attaches an egress virtio-net device on that
+	// pre-created host TAP; MAC is the guest NIC address and IPArg is the kernel ip=
+	// argument that statically configures the guest eth0. Empty TapName leaves the box
+	// control-only (loopback + vsock).
+	TapName string
+	MAC     string
+	IPArg   string
 }
 
 // buildVMConfig translates neutral box parameters into a Cloud Hypervisor VmConfig,
@@ -133,11 +185,17 @@ type vmConfigParams struct {
 //
 // @testcase TestBuildVMConfigBasics wires the kernel, disk, vsock, and sizing.
 // @testcase TestBuildVMConfigGPUPassthrough emits one VFIO device per GPU address.
+// @testcase TestBuildVMConfigMediatedDevices emits one VFIO-mdev device per vGPU/MIG slice.
 // @testcase TestBuildVMConfigNoGPUsOmitsDevices leaves devices unset when no GPU is requested.
 func buildVMConfig(p vmConfigParams) vmConfig {
 	cmdline := p.Cmdline
 	if cmdline == "" {
 		cmdline = defaultKernelCmdline
+	}
+	// A box with an egress NIC gets its guest IP statically from the kernel ip= arg,
+	// exactly like the Firecracker backend, so the guest needs no DHCP.
+	if p.TapName != "" && p.IPArg != "" {
+		cmdline += " " + p.IPArg
 	}
 	cfg := vmConfig{
 		CPUs:    vmCPUs{BootVCPUs: p.VCPUs, MaxVCPUs: p.VCPUs},
@@ -149,8 +207,14 @@ func buildVMConfig(p vmConfigParams) vmConfig {
 		Serial:  vmConsole{Mode: "Tty"},
 		Console: vmConsole{Mode: "Off"},
 	}
+	if p.TapName != "" {
+		cfg.Net = []vmNet{{Tap: p.TapName, Mac: p.MAC}}
+	}
 	for _, addr := range p.GPUs {
 		cfg.Devices = append(cfg.Devices, vmDevice{Path: pciDeviceSysfsPath(addr)})
+	}
+	for _, m := range p.MDEVs {
+		cfg.Devices = append(cfg.Devices, vmDevice{Path: mdevSysfsPath(m)})
 	}
 	return cfg
 }

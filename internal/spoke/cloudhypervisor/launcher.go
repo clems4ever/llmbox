@@ -32,6 +32,14 @@ type vmSpec struct {
 	MemoryBytes int64
 	// GPUs holds the PCI addresses to pass through to the box by VFIO.
 	GPUs []string
+	// MDEVs holds mediated-device refs (vGPU / MIG-backed vGPU) to pass through.
+	MDEVs []string
+	// TapName/MAC/IPArg, when TapName is set, give the box a TAP-backed egress NIC:
+	// the pre-created host TAP name, the guest NIC MAC, and the kernel ip= argument
+	// that statically configures the guest eth0. Empty TapName is a control-only box.
+	TapName string
+	MAC     string
+	IPArg   string
 }
 
 // vmHandle is a live handle to one running box VMM. It is deliberately tiny: once a

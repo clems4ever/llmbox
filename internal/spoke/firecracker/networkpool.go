@@ -64,7 +64,7 @@ func SetupNetworkPool(ctx context.Context, out io.Writer, cfg PoolConfig) error 
 		return fmt.Errorf("setting up the firecracker egress pool needs root / CAP_NET_ADMIN " +
 			"(it runs sysctl, ip, and iptables); re-run as root")
 	}
-	e := &hostEgress{uplink: cfg.Uplink, tapGroup: cfg.TapGroupGID}
+	e := newHostEgress(cfg.Uplink, cfg.TapGroupGID)
 	if err := e.EnsurePool(ctx, cfg.Size); err != nil {
 		return fmt.Errorf("provisioning firecracker egress pool: %w", err)
 	}
@@ -91,7 +91,7 @@ func TeardownNetworkPool(ctx context.Context, out io.Writer, cfg PoolConfig) err
 	if os.Geteuid() != 0 {
 		return fmt.Errorf("tearing down the firecracker egress pool needs root / CAP_NET_ADMIN; re-run as root")
 	}
-	e := &hostEgress{uplink: cfg.Uplink}
+	e := newHostEgress(cfg.Uplink, 0)
 	if err := e.TeardownPool(ctx, cfg.Size); err != nil {
 		return err
 	}

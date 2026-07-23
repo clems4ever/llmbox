@@ -38,6 +38,14 @@ type boxMeta struct {
 	// GPUs holds the host PCI addresses passed through to the box by VFIO, persisted
 	// so a rehydrated box reports (and a resume re-attaches) the same devices.
 	GPUs []string `json:"gpus,omitempty"`
+	// MDEVs holds the mediated-device refs (vGPU / MIG-backed vGPU) passed through to
+	// the box, persisted so a rehydrated/resumed box re-attaches the same slices.
+	MDEVs []string `json:"mdevs,omitempty"`
+	// Egress is true when the box has a TAP-backed egress NIC; NetIndex is its pooled
+	// network slot, persisted so a rehydrated box keeps the same TAP/IP and the slot
+	// is freed only when the box is destroyed.
+	Egress   bool `json:"egress,omitempty"`
+	NetIndex int  `json:"net_index,omitempty"`
 	// Namespace scopes the box to a provisioner namespace, mirroring the other
 	// backends so two spokes sharing a host never see each other's boxes.
 	Namespace string `json:"namespace,omitempty"`
