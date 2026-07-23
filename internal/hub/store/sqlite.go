@@ -91,6 +91,25 @@ CREATE TABLE IF NOT EXISTS api_keys (
 	created_at  TEXT NOT NULL,
 	expires_at  TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS allowlist_groups (
+	id          TEXT PRIMARY KEY,
+	name        TEXT NOT NULL UNIQUE,
+	description TEXT NOT NULL,
+	ttl_seconds INTEGER NOT NULL,
+	is_global   INTEGER NOT NULL,
+	created_at  TEXT NOT NULL,
+	updated_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS allowlist_group_domains (
+	group_id TEXT NOT NULL,
+	domain   TEXT NOT NULL,
+	PRIMARY KEY (group_id, domain)
+);
+CREATE TABLE IF NOT EXISTS allowlist_box_groups (
+	box_id   TEXT NOT NULL,
+	group_id TEXT NOT NULL,
+	PRIMARY KEY (box_id, group_id)
+);
 `
 
 // sqliteStore is a Store backed by a single SQLite database file via the pure-Go

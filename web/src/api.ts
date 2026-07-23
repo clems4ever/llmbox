@@ -65,6 +65,55 @@ export interface SpokeEnrollment {
   command: string;
 }
 
+/** AllowlistGroup is a named set of egress domains a workspace may reach, plus
+ * how long each DNS-resolved IP stays pinned (ttl_seconds). is_global marks a
+ * group applied to every workspace; box_count is how many workspaces explicitly
+ * assign it. */
+export interface AllowlistGroup {
+  id: string;
+  name: string;
+  description: string;
+  ttl_seconds: number;
+  is_global: boolean;
+  domains: string[];
+  box_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** AllowlistGroupInput is the create/update payload for a group; an empty id
+ * creates a group (its id is derived from the name server-side). */
+export interface AllowlistGroupInput {
+  id?: string;
+  name: string;
+  description: string;
+  ttl_seconds: number;
+  is_global: boolean;
+  domains: string[];
+}
+
+/** BoxAllowlist is a workspace's effective network reach: its explicitly-assigned
+ * group ids, the names of every contributing group (global included), and the
+ * flattened effective domain set. */
+export interface BoxAllowlist {
+  box_id: string;
+  group_ids: string[];
+  effective_groups: string[];
+  effective_domains: string[];
+}
+
+/** AllowlistBundle is the portable export/import form of a set of groups. */
+export interface AllowlistBundle {
+  version: number;
+  groups: {
+    name: string;
+    description?: string;
+    domains: string[];
+    ttl_seconds?: number;
+    is_global?: boolean;
+  }[];
+}
+
 /** ApiError carries the server's error message plus the HTTP status, so the app
  * can distinguish an expired session (401) from an ordinary failure. */
 export class ApiError extends Error {
@@ -211,6 +260,53 @@ export class Api {
    * sign-in page. */
   logout(): Promise<unknown> {
     return this.call("/api/v1/logout", {});
+  }
+
+  // ---- Network isolation: allowlist groups & assignments ----
+
+  async listAllowlistGroups(): Promise<AllowlistGroup[]> {
+    const r = await this.call<{ groups: AllowlistGroup[] | null }>(
+      "/api/v1/list-allowlist-groups",
+      {},
+    );
+    return r.groups ?? [];
+  }
+
+  /** saveAllowlistGroup creates (empty id) or updates (id set) one group. */
+  async saveAllowlistGroup(input: AllowlistGroupInput): Promise<AllowlistGroup> {
+    const r = await this.call<{ group: AllowlistGroup }>("/api/v1/save-allowlist-group", input);
+    return r.group;
+  }
+
+  deleteAllowlistGroup(id: string): Promise<unknown> {
+    return this.call("/api/v1/delete-allowlist-group", { id });
+  }
+
+  /** getBoxAllowlist returns a workspace's assigned groups plus its flattened
+   * effective allowlist (global groups ∪ assigned groups). */
+  getBoxAllowlist(boxId: string): Promise<BoxAllowlist> {
+    return this.call<BoxAllowlist>("/api/v1/get-box-allowlist", { box_id: boxId });
+  }
+
+  /** setBoxGroups replaces the non-global groups assigned to a workspace. */
+  setBoxGroups(boxId: string, groupIds: string[]): Promise<unknown> {
+    return this.call("/api/v1/set-box-groups", { box_id: boxId, group_ids: groupIds });
+  }
+
+  /** exportAllowlistGroups returns a portable bundle of every group (or only the
+   * ids given). */
+  exportAllowlistGroups(ids?: string[]): Promise<AllowlistBundle> {
+    return this.call<AllowlistBundle>("/api/v1/export-allowlist-groups", ids ? { ids } : {});
+  }
+
+  /** importAllowlistGroups adds a bundle's groups; mode "merge" (default) unions
+   * domains into a same-named group, "replace" overwrites it. */
+  async importAllowlistGroups(bundle: AllowlistBundle, mode: "merge" | "replace"): Promise<number> {
+    const r = await this.call<{ imported: number }>("/api/v1/import-allowlist-groups", {
+      bundle,
+      mode,
+    });
+    return r.imported;
   }
 }
 

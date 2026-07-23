@@ -265,3 +265,65 @@ func (NoopStore) ListAPIKeys() ([]store.APIKeyInfo, error) { return nil, nil }
 //
 // @testcase TestNoopStore checks every no-op method is inert.
 func (NoopStore) DeleteAPIKey(_ string) error { return nil }
+
+// SaveAllowlistGroup discards the group.
+//
+// @arg _ The group to (not) persist.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) SaveAllowlistGroup(_ store.AllowlistGroup) error { return nil }
+
+// GetAllowlistGroup finds nothing.
+//
+// @arg _ The group ID.
+// @return store.AllowlistGroup The zero group.
+// @return bool Always false.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) GetAllowlistGroup(_ string) (store.AllowlistGroup, bool, error) {
+	return store.AllowlistGroup{}, false, nil
+}
+
+// ListAllowlistGroups returns no groups.
+//
+// @return []store.AllowlistGroup Always nil.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) ListAllowlistGroups() ([]store.AllowlistGroup, error) { return nil, nil }
+
+// DeleteAllowlistGroup does nothing.
+//
+// @arg _ The group ID.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) DeleteAllowlistGroup(_ string) error { return nil }
+
+// SetBoxGroups does nothing.
+//
+// @arg _ The box ID.
+// @arg _ The group IDs to (not) assign.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) SetBoxGroups(_ string, _ []string) error { return nil }
+
+// GetBoxGroups returns no groups.
+//
+// @arg _ The box ID.
+// @return []string Always nil.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) GetBoxGroups(_ string) ([]string, error) { return nil, nil }
+
+// ListBoxGroups returns no assignments.
+//
+// @return map[string][]string Always nil.
+// @error error Always nil.
+//
+// @testcase TestNoopStore checks every no-op method is inert.
+func (NoopStore) ListBoxGroups() (map[string][]string, error) { return nil, nil }

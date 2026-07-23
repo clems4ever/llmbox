@@ -79,6 +79,7 @@ mint a key and drive the API.
 | [Running & configuration](docs/configuration.md) | Running the server, driving the box-control API, and the YAML config reference. |
 | [Authentication](docs/authentication.md) | Admin OIDC sign-in gating the admin UI and the per-box HTTP proxies, plus API keys and the single-tenant trust model. |
 | [Box lifecycle hooks](docs/hooks.md) | Injecting per-box secrets/files via `box.create`/`box.destroy` hooks, plus box networking and isolation. |
+| [Network isolation](docs/network-isolation.md) | Deny-by-default egress with domain allowlist groups, assigned globally or per box, managed from the UI/API. |
 | [Firecracker backend](docs/firecracker.md) | Running each box as a Firecracker microVM instead of a Docker container: vsock control, TAP/NAT egress, and building a guest rootfs. |
 | [Operations](docs/operations.md) | State persistence, pausing boxes, and orphan cleanup. |
 | [Development](docs/development.md) | Building, CI, and the unit / integration / end-to-end test suites. |

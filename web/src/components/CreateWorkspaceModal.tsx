@@ -2,17 +2,21 @@
 // workspace on the chosen runner, refreshes the dashboard so the new workspace
 // appears, and closes. A workspace comes up running once its init script
 // succeeds; there is nothing more to do here.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Badge,
   Button,
+  Checkbox,
   Group,
+  Input,
   Modal,
   NativeSelect,
   NumberInput,
   Stack,
+  Text,
   TextInput,
 } from "@mantine/core";
-import type { Api, SpokeStatus } from "../api";
+import type { AllowlistGroup, Api, SpokeStatus } from "../api";
 import { perform } from "../lib/actions";
 
 /** GiB is the bytes-per-gibibyte factor used to turn the operator-friendly GiB
@@ -56,12 +60,34 @@ export function CreateWorkspaceModal({
   const [spoke, setSpoke] = useState<string>("");
   const [diskGiB, setDiskGiB] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
+  const [groups, setGroups] = useState<AllowlistGroup[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+
+  // Load the allowlist groups when the modal opens so the operator can pick which
+  // extra (non-global) groups the new workspace should reach. Global groups apply
+  // automatically and are shown for context.
+  useEffect(() => {
+    if (!opened) return;
+    let cancelled = false;
+    void api
+      .listAllowlistGroups()
+      .then((gs) => {
+        if (!cancelled) setGroups(gs);
+      })
+      .catch(() => {
+        // The picker is optional; a failure just hides it rather than blocking creation.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [opened, api]);
 
   const reset = () => {
     setId("");
     setDescription("");
     setSpoke("");
     setDiskGiB("");
+    setSelectedGroups([]);
   };
 
   const close = () => {
@@ -78,13 +104,24 @@ export function CreateWorkspaceModal({
     setSubmitting(true);
     const boxId = id.trim();
     const diskBytes = typeof diskGiB === "number" && diskGiB > 0 ? Math.round(diskGiB * GiB) : 0;
-    const ok = await perform(() => api.createBox(boxId, description.trim(), spoke, diskBytes), {
-      success: `created workspace ${boxId}`,
-      onDone: refresh,
-    });
+    const ok = await perform(
+      async () => {
+        await api.createBox(boxId, description.trim(), spoke, diskBytes);
+        // Attach the chosen non-global groups once the workspace exists. Global
+        // groups already apply, so only the selected extras are recorded.
+        if (selectedGroups.length > 0) await api.setBoxGroups(boxId, selectedGroups);
+      },
+      {
+        success: `created workspace ${boxId}`,
+        onDone: refresh,
+      },
+    );
     setSubmitting(false);
     if (ok) close();
   };
+
+  const optionalGroups = groups.filter((g) => !g.is_global);
+  const globalGroups = groups.filter((g) => g.is_global);
 
   return (
     <Modal opened={opened} onClose={close} title="New workspace" centered>
@@ -130,6 +167,42 @@ export function CreateWorkspaceModal({
             value={diskGiB}
             onChange={(v) => setDiskGiB(typeof v === "number" ? v : "")}
           />
+          {groups.length > 0 && (
+            <Input.Wrapper
+              label="Allowlist groups"
+              description="Global groups always apply. Pick any extra groups this workspace should reach — you can change them later."
+            >
+              <Stack gap={6} mt={6}>
+                {globalGroups.map((g) => (
+                  <Checkbox
+                    key={g.id}
+                    checked
+                    disabled
+                    label={
+                      <Group gap={6}>
+                        <Text span>{g.name}</Text>
+                        <Badge size="xs" variant="light">
+                          global
+                        </Badge>
+                      </Group>
+                    }
+                  />
+                ))}
+                {optionalGroups.map((g) => (
+                  <Checkbox
+                    key={g.id}
+                    checked={selectedGroups.includes(g.id)}
+                    onChange={(e) => {
+                      const on = e.currentTarget.checked;
+                      setSelectedGroups((cur) => (on ? [...cur, g.id] : cur.filter((x) => x !== g.id)));
+                    }}
+                    label={g.name}
+                    description={g.description || `${g.domains.length} domains`}
+                  />
+                ))}
+              </Stack>
+            </Input.Wrapper>
+          )}
           <Group justify="flex-end" mt="xs">
             <Button variant="subtle" onClick={close}>
               Cancel

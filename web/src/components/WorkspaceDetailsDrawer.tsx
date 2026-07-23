@@ -3,10 +3,11 @@
 // the box's metadata and, when the hub has the proxy feature enabled, the list
 // of proxies fronting this box with controls to add and remove them. It renders
 // as a right-hand drawer driven by the selected box (null = closed).
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActionIcon,
   Anchor,
+  Badge,
   Box,
   Button,
   Code,
@@ -16,6 +17,7 @@ import {
   Group,
   Paper,
   SimpleGrid,
+  Skeleton,
   Stack,
   Table,
   Text,
@@ -23,12 +25,13 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import { IconCheck, IconCopy, IconPlus, IconTrash } from "@tabler/icons-react";
-import type { Api, BoxView, ProxyInfo } from "../api";
+import { IconCheck, IconCopy, IconEdit, IconPlus, IconShieldLock, IconTrash } from "@tabler/icons-react";
+import type { AllowlistGroup, Api, BoxAllowlist, BoxView, ProxyInfo } from "../api";
 import { boxId, createdAt } from "../lib/format";
 import { perform } from "../lib/actions";
 import { confirmDestroy } from "../lib/confirm";
 import { StatusBadge } from "./StatusBadge";
+import { BoxGroupsModal } from "./BoxGroupsModal";
 
 export interface WorkspaceDetailsDrawerProps {
   api: Api;
@@ -71,6 +74,8 @@ export function WorkspaceDetailsDrawer({
         <Stack gap="lg">
           <Metadata box={box} />
           <Divider />
+          <NetworkSection api={api} box={box} />
+          <Divider />
           {proxyEnabled ? (
             <ProxiesSection api={api} boxId={id} proxies={proxies} refresh={refresh} />
           ) : (
@@ -97,6 +102,92 @@ function Metadata({ box }: { box: BoxView }): JSX.Element {
         <Field label="Created" value={createdAt(box.created) || "—"} />
       </SimpleGrid>
       {box.phase === "broken" && <InitScriptFailure output={box.last_error} />}
+    </Stack>
+  );
+}
+
+/** NetworkSection shows this workspace's effective allowlist — the groups it may
+ * reach (global groups plus its own) and the flattened domain set — with a button
+ * to edit its per-workspace group assignment. It loads its own data so the drawer
+ * stays independent of the dashboard payload. */
+function NetworkSection({ api, box }: { api: Api; box: BoxView }): JSX.Element {
+  const id = boxId(box);
+  const [allowlist, setAllowlist] = useState<BoxAllowlist | null>(null);
+  const [groups, setGroups] = useState<AllowlistGroup[]>([]);
+  const [editing, setEditing] = useState(false);
+
+  const reload = useCallback(async () => {
+    const [al, gs] = await Promise.all([api.getBoxAllowlist(id), api.listAllowlistGroups()]);
+    setAllowlist(al);
+    setGroups(gs);
+  }, [api, id]);
+
+  useEffect(() => {
+    void reload().catch(() => {
+      // Network isolation may not be configured; leave the section in its empty state.
+    });
+  }, [reload]);
+
+  const domains = allowlist?.effective_domains ?? [];
+  const shown = domains.slice(0, 8);
+  return (
+    <Stack gap="sm">
+      <Group justify="space-between">
+        <Group gap="xs">
+          <IconShieldLock size={16} />
+          <Text fw={640}>Network</Text>
+        </Group>
+        <Button
+          size="xs"
+          variant="default"
+          leftSection={<IconEdit size={14} />}
+          onClick={() => setEditing(true)}
+          disabled={groups.length === 0}
+        >
+          Edit groups
+        </Button>
+      </Group>
+      {allowlist === null ? (
+        <Skeleton height={48} radius="md" />
+      ) : (
+        <>
+          <Text c="dimmed" size="xs">
+            Egress deny-by-default. Reaches {domains.length} domain{domains.length === 1 ? "" : "s"} across{" "}
+            {allowlist.effective_groups.length} group{allowlist.effective_groups.length === 1 ? "" : "s"}.
+          </Text>
+          {allowlist.effective_groups.length > 0 && (
+            <Group gap={6}>
+              {allowlist.effective_groups.map((n) => (
+                <Badge key={n} variant="light" style={{ textTransform: "none" }}>
+                  {n}
+                </Badge>
+              ))}
+            </Group>
+          )}
+          {shown.length > 0 && (
+            <Group gap={6}>
+              {shown.map((d) => (
+                <Badge key={d} variant="default" ff="monospace" style={{ textTransform: "none" }}>
+                  {d}
+                </Badge>
+              ))}
+              {domains.length > shown.length && (
+                <Badge variant="transparent" c="dimmed">
+                  +{domains.length - shown.length} more
+                </Badge>
+              )}
+            </Group>
+          )}
+        </>
+      )}
+      <BoxGroupsModal
+        api={api}
+        box={editing ? box : null}
+        groups={groups}
+        opened={editing}
+        onClose={() => setEditing(false)}
+        onSaved={reload}
+      />
     </Stack>
   );
 }

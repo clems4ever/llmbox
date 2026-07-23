@@ -10,7 +10,7 @@ import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import { vi } from "vitest";
 import { theme } from "../theme";
-import type { Api, BoxView, JoinTokenInfo, ProxyInfo, SpokeStatus } from "../api";
+import type { AllowlistGroup, Api, BoxView, JoinTokenInfo, ProxyInfo, SpokeStatus } from "../api";
 import type { DashboardData } from "../lib/data";
 
 /** render wraps a component in the app's provider stack, so specs exercise it
@@ -53,8 +53,33 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
     createProxy: vi.fn().mockResolvedValue({ box_id: "box-1", port: 8000, url: "https://p", slug: "s" }),
     deleteProxy: vi.fn().mockResolvedValue({}),
     logout: vi.fn().mockResolvedValue({}),
+    listAllowlistGroups: vi.fn().mockResolvedValue([]),
+    saveAllowlistGroup: vi.fn().mockResolvedValue({}),
+    deleteAllowlistGroup: vi.fn().mockResolvedValue({}),
+    getBoxAllowlist: vi
+      .fn()
+      .mockResolvedValue({ box_id: "box-1", group_ids: [], effective_groups: [], effective_domains: [] }),
+    setBoxGroups: vi.fn().mockResolvedValue({}),
+    exportAllowlistGroups: vi.fn().mockResolvedValue({ version: 1, groups: [] }),
+    importAllowlistGroups: vi.fn().mockResolvedValue(0),
   };
   return { ...base, ...overrides } as unknown as Api;
+}
+
+/** allowlistGroup builds an AllowlistGroup with defaults, overridable per field. */
+export function allowlistGroup(overrides: Partial<AllowlistGroup> = {}): AllowlistGroup {
+  return {
+    id: "core-ai",
+    name: "core-ai",
+    description: "LLM provider APIs",
+    ttl_seconds: 30,
+    is_global: false,
+    domains: ["api.anthropic.com", "api.openai.com"],
+    box_count: 0,
+    created_at: "2026-01-02T03:04:05Z",
+    updated_at: "2026-01-02T03:04:05Z",
+    ...overrides,
+  };
 }
 
 /** box builds a BoxView with sensible defaults, overridable per field. */
