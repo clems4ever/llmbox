@@ -92,7 +92,7 @@ optional:
 | `public_url`   | `http://localhost:8080`   | External base URL used to build sign-in redirect links. **Set this in production.** |
 | `state_file`   | `llmbox-sessions.db`      | SQLite file persisting the box registry, API keys, login sessions, and cluster records across restarts (see [State persistence](operations.md#state-persistence)). |
 | `hooks`        | (empty)                   | List of [box lifecycle hook](hooks.md) executables. |
-| `auth`         | (disabled)                | Admin OIDC sign-in gating the admin UI and the per-box HTTP proxies (see [Authentication](authentication.md)). |
+| `auth`         | (disabled)                | Admin sign-in (Google and/or GitHub) gating the admin UI and the per-box HTTP proxies (see [Authentication](authentication.md)). |
 | `proxy`        | (disabled)                | Expose box HTTP ports at `<slug>.<base_domain>` (see [Proxying box HTTP ports](proxy.md)). |
 | `tls`          | (disabled)                | Serve HTTPS directly (`cert_file`/`key_file`) instead of behind a TLS-terminating proxy. |
 

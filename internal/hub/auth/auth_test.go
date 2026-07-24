@@ -48,7 +48,39 @@ func googleTestProvider(t *testing.T, claims idClaims, verr error) *provider {
 			RedirectURL:  "https://boxes.example.com/auth/google/callback",
 			Scopes:       []string{"openid", "email"},
 		},
-		verifier: fakeVerifier{claims: claims, err: verr},
+		resolver: oidcResolver{v: fakeVerifier{claims: claims, err: verr}},
+	}
+}
+
+// githubTestProvider builds a GitHub-shaped provider whose token endpoint and
+// REST API are served by a local test server: the token endpoint returns an
+// access token, and GET /user/emails returns emailsJSON. GitHub, unlike Google,
+// returns no ID token, so the callback reads the identity from the API.
+func githubTestProvider(t *testing.T, emailsJSON string) *provider {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/login/oauth/access_token", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"access_token":"gho_test","token_type":"bearer","scope":"user:email"}`)
+	})
+	mux.HandleFunc("/user/emails", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, emailsJSON)
+	})
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+	oauthCfg := &oauth2.Config{
+		ClientID:     "cid",
+		ClientSecret: "sec",
+		Endpoint:     oauth2.Endpoint{AuthURL: ts.URL + "/login/oauth/authorize", TokenURL: ts.URL + "/login/oauth/access_token"},
+		RedirectURL:  "https://boxes.example.com/auth/github/callback",
+		Scopes:       []string{"user:email"},
+	}
+	return &provider{
+		name:     "github",
+		label:    "GitHub",
+		oauth2:   oauthCfg,
+		resolver: githubResolver{oauth2: oauthCfg, apiBase: ts.URL},
 	}
 }
 
@@ -190,6 +222,83 @@ func TestProviderCallbackRejectsUnauthorized(t *testing.T) {
 	}
 	if len(rec.Result().Cookies()) != 0 {
 		t.Error("unauthorized identity should get no cookie")
+	}
+}
+
+// TestGitHubProviderCallbackActivates checks a GitHub sign-in whose primary
+// verified email is on the admin allow-list gets a login session and is
+// redirected back to the return target — proving the API-based identity path.
+func TestGitHubProviderCallbackActivates(t *testing.T) {
+	emails := `[{"email":"secondary@corp.com","primary":false,"verified":true},
+	            {"email":"alice@corp.com","primary":true,"verified":true}]`
+	_, h, st := newTestAuth(t, githubTestProvider(t, emails), "alice@corp.com")
+
+	if err := st.PutOIDCFlow(store.HashToken("STATE"), store.OIDCFlow{Provider: "github", ReturnTo: "/admin", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/github/callback?state=STATE&code=CODE", nil))
+
+	if rec.Code != http.StatusFound {
+		t.Fatalf("status = %d, want 302 (body %q)", rec.Code, rec.Body.String())
+	}
+	if loc := rec.Header().Get("Location"); loc != "/admin" {
+		t.Errorf("Location = %q, want /admin", loc)
+	}
+	var cookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == LoginCookie {
+			cookie = c
+		}
+	}
+	if cookie == nil {
+		t.Fatal("no login cookie set")
+	}
+	ls, ok, err := st.GetIdentitySession(store.HashToken(cookie.Value))
+	if err != nil || !ok {
+		t.Fatalf("login session not stored: ok=%v err=%v", ok, err)
+	}
+	if ls.Email != "alice@corp.com" || ls.Provider != "github" {
+		t.Errorf("session = %+v, want alice@corp.com via github", ls)
+	}
+}
+
+// TestGitHubResolveRejectsUnverifiedEmail checks an unverified GitHub primary
+// email is treated as unverified, so it cannot match the admin allow-list even
+// when the address itself is listed (403, no cookie).
+func TestGitHubResolveRejectsUnverifiedEmail(t *testing.T) {
+	emails := `[{"email":"alice@corp.com","primary":true,"verified":false}]`
+	_, h, st := newTestAuth(t, githubTestProvider(t, emails), "alice@corp.com")
+
+	if err := st.PutOIDCFlow(store.HashToken("STATE"), store.OIDCFlow{Provider: "github", ReturnTo: "/admin", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/github/callback?state=STATE&code=CODE", nil))
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403 (body %q)", rec.Code, rec.Body.String())
+	}
+	if len(rec.Result().Cookies()) != 0 {
+		t.Error("unverified identity should get no cookie")
+	}
+}
+
+// TestGitHubResolveNoPrimaryEmail checks an account exposing no primary email
+// fails the sign-in (502) rather than signing anyone in.
+func TestGitHubResolveNoPrimaryEmail(t *testing.T) {
+	emails := `[{"email":"alice@corp.com","primary":false,"verified":true}]`
+	_, h, st := newTestAuth(t, githubTestProvider(t, emails), "alice@corp.com")
+
+	if err := st.PutOIDCFlow(store.HashToken("STATE"), store.OIDCFlow{Provider: "github", ReturnTo: "/admin", Nonce: "N", PKCEVerifier: "V", ExpiresAt: time.Now().Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/github/callback?state=STATE&code=CODE", nil))
+
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, want 502 (body %q)", rec.Code, rec.Body.String())
 	}
 }
 

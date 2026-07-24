@@ -4,13 +4,14 @@ llmbox has two authentication surfaces:
 
 - **API authentication** for the box-control API (`/api/v1/*`) — API keys or an
   admin login session.
-- **Admin OIDC sign-in** for humans — a single sign-in provider that gates both
-  the **admin dashboard** and the per-box [HTTP proxies](proxy.md).
+- **Admin sign-in** for humans — one or more sign-in providers (Google and/or
+  GitHub) that gate both the **admin dashboard** and the per-box
+  [HTTP proxies](proxy.md).
 
-## Admin sign-in (OIDC)
+## Admin sign-in (Google / GitHub)
 
-Enable a sign-in provider under `auth`. A visitor authenticates over a channel
-that **never** touches the chatbot (OIDC, browser ↔ provider ↔ llmbox), and is
+Enable one or more sign-in providers under `auth`. A visitor authenticates over a
+channel that **never** touches the chatbot (browser ↔ provider ↔ llmbox), and is
 authorized **only** if their verified email is in the **admin allow-list**
 (`auth.admin.emails`). There is no per-provider domain/email allow-list — the
 admin list is the single source of authorization.
@@ -25,15 +26,26 @@ auth:
     enabled: true
     client_id: "xxxxxxxx.apps.googleusercontent.com"
     client_secret_file: "/etc/llmbox/google-client-secret"  # secret read from file, never inlined
+  github:
+    enabled: true
+    client_id: "Iv1.xxxxxxxxxxxxxxxx"
+    client_secret_file: "/etc/llmbox/github-client-secret"  # secret read from file, never inlined
 ```
 
-A signed-in admin can reach the admin dashboard and any box proxy; an
-unauthenticated visitor sees only the sign-in page.
+Each enabled provider renders its own button on the sign-in page; enable just one
+or offer both. A signed-in admin can reach the admin dashboard and any box proxy;
+an unauthenticated visitor sees only the sign-in page.
 
 Setup notes:
-- In the Google Cloud console, create an **OAuth 2.0 Client ID** (type *Web
-  application*) and register the redirect URI `{public_url}/auth/google/callback`
-  (the `redirect_url` field defaults to this).
+- **Google** (OIDC): in the Google Cloud console, create an **OAuth 2.0 Client
+  ID** (type *Web application*) and register the redirect URI
+  `{public_url}/auth/google/callback` (the `redirect_url` field defaults to this).
+- **GitHub** (OAuth2): register an **OAuth App** under *Settings → Developer
+  settings → OAuth Apps* with **Authorization callback URL**
+  `{public_url}/auth/github/callback` (the `redirect_url` field defaults to this).
+  GitHub is not an OIDC provider, so after sign-in llmbox reads the account's
+  **primary verified email** from the GitHub API (the `user:email` scope) and
+  matches it against `auth.admin.emails`; an unverified email is never authorized.
 - The client secret is **read from a file** (`client_secret_file`); it is never
   written in the YAML. Mount it read-only.
 - Login sessions are persisted server-side (in the `state_file` SQLite DB) so they
