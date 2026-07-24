@@ -94,10 +94,43 @@ describe("WorkspacesView", () => {
     expect(await screen.findByText("resumed workspace alpha")).toBeInTheDocument();
   });
 
-  it("offers neither Pause nor Resume for an unreachable workspace", () => {
+  it("shows Start (not Pause) for a stopped workspace and resumes it", async () => {
+    const api = mockApi();
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    // A stopped box (dead VMM, e.g. after a host reboot) reports "stopped". Use a
+    // distinct id so its success toast doesn't collide with the paused case's.
+    const data = dashboardData({ boxes: [box({ box_id: "gamma", state: "stopped" })] });
+    const { user } = render(
+      <WorkspacesView api={api} data={data} refresh={refresh} onSelect={vi.fn()} />,
+    );
+    expect(screen.queryByRole("button", { name: "Pause gamma" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Start gamma" }));
+    await waitFor(() => expect(api.resumeBox).toHaveBeenCalledWith("gamma"));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(await screen.findByText("resumed workspace gamma")).toBeInTheDocument();
+  });
+
+  it("shows Start for an exited (docker) workspace too", () => {
+    // Docker reports a stopped box as "exited"; it maps to the same stopped tone.
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "exited" })] });
+    render(<WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Start alpha" })).toBeInTheDocument();
+  });
+
+  it("offers neither Pause nor Resume/Start for an unreachable workspace", () => {
     const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "unreachable" })] });
     render(<WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "Pause alpha" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Resume alpha" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start alpha" })).toBeNull();
+  });
+
+  it("offers no Start button for a terminated workspace", () => {
+    // Terminated is a tombstone — the box is gone from its spoke, so resume-box
+    // would fail; the UI must not offer to start it.
+    const data = dashboardData({ boxes: [box({ box_id: "alpha", state: "terminated" })] });
+    render(<WorkspacesView api={mockApi()} data={data} refresh={vi.fn()} onSelect={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Start alpha" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Resume alpha" })).toBeNull();
   });
 });
