@@ -118,6 +118,7 @@ type TLSConfig struct {
 type AuthConfig struct {
 	SessionTTL Duration     `yaml:"session_ttl"`
 	Google     GoogleConfig `yaml:"google"`
+	GitHub     GitHubConfig `yaml:"github"`
 	Admin      AdminConfig  `yaml:"admin"`
 	// CookieDomain, when set, is the Domain attribute placed on the login-session
 	// cookie so one sign-in is shared across sub-domains: a bare parent domain
@@ -139,6 +140,22 @@ type AdminConfig struct {
 // GoogleConfig configures Sign in with Google (OIDC). Only identities on the
 // admin allow-list (auth.admin.emails) are authorized after signing in.
 type GoogleConfig struct {
+	Enabled          bool   `yaml:"enabled"`
+	ClientID         string `yaml:"client_id"`
+	ClientSecretFile string `yaml:"client_secret_file"`
+	RedirectURL      string `yaml:"redirect_url"`
+
+	// ClientSecret is read from ClientSecretFile at load time; it is never set in
+	// the YAML itself (secrets live in files, not in the config document).
+	ClientSecret string `yaml:"-"`
+}
+
+// GitHubConfig configures Sign in with GitHub (OAuth2). Unlike Google, GitHub is
+// not an OpenID Connect provider and returns no ID token, so after the code
+// exchange llmbox reads the signed-in user's primary verified email from the
+// GitHub API. Only identities on the admin allow-list (auth.admin.emails) are
+// authorized after signing in.
+type GitHubConfig struct {
 	Enabled          bool   `yaml:"enabled"`
 	ClientID         string `yaml:"client_id"`
 	ClientSecretFile string `yaml:"client_secret_file"`
@@ -249,6 +266,13 @@ func (c *Config) resolveSecrets() error {
 		}
 		c.Auth.Google.ClientSecret = secret
 	}
+	if c.Auth.GitHub.Enabled {
+		secret, err := secretFromFile(c.Auth.GitHub.ClientSecretFile)
+		if err != nil {
+			return fmt.Errorf("auth.github.client_secret_file: %w", err)
+		}
+		c.Auth.GitHub.ClientSecret = secret
+	}
 	return nil
 }
 
@@ -298,6 +322,14 @@ func (c *Config) validate() error {
 		}
 		if g.ClientSecret == "" {
 			return errors.New("auth.google.enabled requires a non-empty client_secret_file")
+		}
+	}
+	if g := c.Auth.GitHub; g.Enabled {
+		if g.ClientID == "" {
+			return errors.New("auth.github.enabled requires client_id")
+		}
+		if g.ClientSecret == "" {
+			return errors.New("auth.github.enabled requires a non-empty client_secret_file")
 		}
 	}
 	if c.Proxy.BaseDomain != "" {
@@ -392,5 +424,8 @@ func (c *Config) applyDefaults() {
 	// Default each enabled provider's redirect URL from the public URL.
 	if c.Auth.Google.Enabled && c.Auth.Google.RedirectURL == "" {
 		c.Auth.Google.RedirectURL = strings.TrimRight(c.PublicURL, "/") + "/auth/google/callback"
+	}
+	if c.Auth.GitHub.Enabled && c.Auth.GitHub.RedirectURL == "" {
+		c.Auth.GitHub.RedirectURL = strings.TrimRight(c.PublicURL, "/") + "/auth/github/callback"
 	}
 }

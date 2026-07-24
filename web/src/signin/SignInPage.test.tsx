@@ -31,6 +31,26 @@ describe("SignInPage", () => {
     );
   });
 
+  it("renders a button per configured provider", async () => {
+    stubState({
+      signed_in: false,
+      return_to: "/dash",
+      providers: [
+        { label: "Google", login_path: "/auth/google/login?return=%2Fdash" },
+        { label: "GitHub", login_path: "/auth/github/login?return=%2Fdash" },
+      ],
+    });
+    render(<SignInPage />);
+    expect(await screen.findByRole("link", { name: "Sign in with Google" })).toHaveAttribute(
+      "href",
+      "/auth/google/login?return=%2Fdash",
+    );
+    expect(screen.getByRole("link", { name: "Sign in with GitHub" })).toHaveAttribute(
+      "href",
+      "/auth/github/login?return=%2Fdash",
+    );
+  });
+
   it("shows the no-destination notice when the return target is unsafe", async () => {
     stubState({ signed_in: false });
     render(<SignInPage />);

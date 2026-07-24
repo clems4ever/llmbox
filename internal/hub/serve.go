@@ -57,14 +57,15 @@ func Serve(parent context.Context, cfg *config.Config, name, version string) err
 		}
 	}()
 
-	// Admin/proxy auth (OIDC). Returns nil when no provider is configured, which
-	// leaves the admin UI and the per-box proxies unauthenticated.
+	// Admin/proxy auth (Google OIDC and/or GitHub OAuth2). Returns nil when no
+	// provider is configured, which leaves the admin UI and the per-box proxies
+	// unauthenticated.
 	authr, err := auth.New(parent, cfg.Auth)
 	if err != nil {
 		return err
 	}
 	if authr == nil {
-		log.Print("auth is DISABLED: the admin UI and per-box proxies require no sign-in; configure auth.google and auth.admin.emails to require it")
+		log.Print("auth is DISABLED: the admin UI and per-box proxies require no sign-in; configure auth.google or auth.github (plus auth.admin.emails) to require it")
 	}
 
 	// Cancel background work on signal (or when the parent context fires).

@@ -13,8 +13,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -36,7 +38,7 @@ const LoginCookie = "llmbox_login"
 // callback before its stored state expires.
 const flowTTL = 10 * time.Minute
 
-// idClaims are the identity claims llmbox needs from a verified ID token.
+// idClaims are the identity claims llmbox needs to authorize a sign-in.
 type idClaims struct {
 	Email         string
 	EmailVerified bool
@@ -50,12 +52,21 @@ type idTokenVerifier interface {
 	verify(ctx context.Context, rawIDToken, nonce string) (idClaims, error)
 }
 
-// provider is one configured sign-in option (e.g. Google).
+// identityResolver turns a completed OAuth2 token exchange into the identity
+// claims llmbox authorizes on. Google (OIDC) verifies the ID token carried in
+// the token response; GitHub, which is not an OIDC provider and returns no ID
+// token, calls the GitHub API with the access token to read the user's primary
+// verified email. Tests inject a fake so the HTTP flow runs without a provider.
+type identityResolver interface {
+	resolve(ctx context.Context, tok *oauth2.Token, nonce string) (idClaims, error)
+}
+
+// provider is one configured sign-in option (e.g. Google or GitHub).
 type provider struct {
 	name     string // URL segment and config key, e.g. "google"
 	label    string // human label for the sign-in button, e.g. "Google"
 	oauth2   *oauth2.Config
-	verifier idTokenVerifier
+	resolver identityResolver
 }
 
 // Authenticator gates the admin UI and the per-box HTTP proxies behind provider
@@ -123,15 +134,46 @@ func New(ctx context.Context, cfg config.AuthConfig) (*Authenticator, error) {
 				RedirectURL:  cfg.Google.RedirectURL,
 				Scopes:       []string{oidc.ScopeOpenID, "email"},
 			},
-			verifier: oidcVerifier{oidcProvider.Verifier(&oidc.Config{ClientID: cfg.Google.ClientID})},
+			resolver: oidcResolver{v: oidcVerifier{oidcProvider.Verifier(&oidc.Config{ClientID: cfg.Google.ClientID})}},
 		}
 		a.order = append(a.order, "google")
+	}
+	if cfg.GitHub.Enabled {
+		oauthCfg := &oauth2.Config{
+			ClientID:     cfg.GitHub.ClientID,
+			ClientSecret: cfg.GitHub.ClientSecret,
+			Endpoint:     githubEndpoint,
+			RedirectURL:  cfg.GitHub.RedirectURL,
+			// user:email is the least-privilege scope that lets the callback read the
+			// account's verified emails, which GitHub does not put in an ID token (it
+			// is not an OIDC provider).
+			Scopes: []string{"user:email"},
+		}
+		a.providers["github"] = &provider{
+			name:     "github",
+			label:    "GitHub",
+			oauth2:   oauthCfg,
+			resolver: githubResolver{oauth2: oauthCfg, apiBase: githubAPIBase},
+		}
+		a.order = append(a.order, "github")
 	}
 	if len(a.providers) == 0 {
 		return nil, nil
 	}
 	return a, nil
 }
+
+// githubEndpoint is GitHub's OAuth2 authorize/token endpoint. It is defined here
+// rather than pulled from golang.org/x/oauth2/github to keep the dependency
+// surface to the one oauth2 package the rest of the auth flow already uses.
+var githubEndpoint = oauth2.Endpoint{
+	AuthURL:  "https://github.com/login/oauth/authorize",
+	TokenURL: "https://github.com/login/oauth/access_token",
+}
+
+// githubAPIBase is the GitHub REST API root the callback reads the signed-in
+// user's emails from. It is a var so tests can point it at a local server.
+var githubAPIBase = "https://api.github.com"
 
 // NewTestAuthenticator builds an admin-enabled Authenticator for tests, with a
 // single "google" sign-in button (for stable button order) and the given emails
@@ -313,6 +355,27 @@ func (a *Authenticator) SafeReturnURL(to string) string {
 	return ""
 }
 
+// oidcResolver resolves an identity from an OIDC token response by verifying the
+// ID token it carries (and its nonce). It is the Google sign-in path.
+type oidcResolver struct{ v idTokenVerifier }
+
+// resolve extracts the ID token from the token response and verifies it.
+//
+// @arg ctx Context for the verification (JWKS fetch).
+// @arg tok The token response from the code exchange (must carry an id_token).
+// @arg nonce The nonce that must match the one issued at login start.
+// @return idClaims The email, verification flag, and hosted domain.
+// @error error if the response has no id_token or verification fails.
+//
+// @testcase TestProviderCallbackActivates resolves a Google identity via a fake verifier.
+func (o oidcResolver) resolve(ctx context.Context, tok *oauth2.Token, nonce string) (idClaims, error) {
+	rawID, ok := tok.Extra("id_token").(string)
+	if !ok || rawID == "" {
+		return idClaims{}, errors.New("no id_token in token response")
+	}
+	return o.v.verify(ctx, rawID, nonce)
+}
+
 // oidcVerifier adapts *oidc.IDTokenVerifier to idTokenVerifier, checking the
 // nonce and extracting the claims llmbox cares about.
 type oidcVerifier struct{ v *oidc.IDTokenVerifier }
@@ -343,6 +406,60 @@ func (o oidcVerifier) verify(ctx context.Context, rawIDToken, nonce string) (idC
 		return idClaims{}, err
 	}
 	return idClaims{Email: c.Email, EmailVerified: c.EmailVerified, HostedDomain: c.HD}, nil
+}
+
+// githubResolver resolves an identity from a GitHub OAuth2 token. GitHub is not
+// an OIDC provider, so there is no ID token to verify (and no nonce): the state
+// parameter checked in HandleCallback provides the CSRF protection. Instead it
+// calls the GitHub API with the access token to read the account's primary,
+// verified email.
+type githubResolver struct {
+	oauth2  *oauth2.Config
+	apiBase string // GitHub REST API root, e.g. "https://api.github.com"
+}
+
+// resolve reads the signed-in user's primary verified email from GitHub's
+// /user/emails endpoint. The nonce is ignored — GitHub OAuth carries none. It
+// reports the email as verified only when GitHub marks it verified, so an
+// unverified GitHub email can never match the admin allow-list.
+//
+// @arg ctx Context for the API call.
+// @arg tok The access token from the code exchange, used to call the API.
+// @return idClaims The primary email and its GitHub verification flag.
+// @error error if the API call fails or the account exposes no primary email.
+//
+// @testcase TestGitHubProviderCallbackActivates signs in a GitHub identity via a fake API.
+// @testcase TestGitHubResolveRejectsUnverifiedEmail treats an unverified primary email as unverified.
+func (g githubResolver) resolve(ctx context.Context, tok *oauth2.Token, _ string) (idClaims, error) {
+	client := g.oauth2.Client(ctx, tok)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(g.apiBase, "/")+"/user/emails", nil)
+	if err != nil {
+		return idClaims{}, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return idClaims{}, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return idClaims{}, fmt.Errorf("github /user/emails returned %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+	var emails []struct {
+		Email    string `json:"email"`
+		Primary  bool   `json:"primary"`
+		Verified bool   `json:"verified"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&emails); err != nil {
+		return idClaims{}, fmt.Errorf("decoding github emails: %w", err)
+	}
+	for _, e := range emails {
+		if e.Primary {
+			return idClaims{Email: e.Email, EmailVerified: e.Verified}, nil
+		}
+	}
+	return idClaims{}, errors.New("github account exposes no primary email (grant the user:email scope)")
 }
 
 // HandleLogin begins an OIDC handshake: it persists fresh state (PKCE verifier +
@@ -427,18 +544,13 @@ func (a *Authenticator) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	tok, err := p.oauth2.Exchange(r.Context(), q.Get("code"), oauth2.VerifierOption(flow.PKCEVerifier))
 	if err != nil {
-		a.logger().Warn("oidc code exchange failed", "provider", p.name, "err", err)
+		a.logger().Warn("oauth code exchange failed", "provider", p.name, "err", err)
 		http.Error(w, "sign-in failed", http.StatusBadGateway)
 		return
 	}
-	rawID, ok := tok.Extra("id_token").(string)
-	if !ok || rawID == "" {
-		http.Error(w, "sign-in failed: no id_token", http.StatusBadGateway)
-		return
-	}
-	claims, err := p.verifier.verify(r.Context(), rawID, flow.Nonce)
+	claims, err := p.resolver.resolve(r.Context(), tok, flow.Nonce)
 	if err != nil {
-		a.logger().Warn("oidc id token verification failed", "provider", p.name, "err", err)
+		a.logger().Warn("resolving signed-in identity failed", "provider", p.name, "err", err)
 		http.Error(w, "sign-in failed", http.StatusBadGateway)
 		return
 	}

@@ -105,6 +105,18 @@ state_file: "llmbox-sessions.db"
 #     # URI {public_url}/auth/google/callback in the Google Cloud console.
 #     client_secret_file: "/etc/llmbox/google-client-secret"
 #     # redirect_url defaults to {public_url}/auth/google/callback
+#   # Sign in with GitHub (OAuth2). Enable it on its own or alongside google;
+#   # each enabled provider gets its own button on the sign-in page. GitHub is
+#   # not an OIDC provider, so after sign-in llmbox reads the account's primary
+#   # verified email from the GitHub API and matches it against the allow-list.
+#   github:
+#     enabled: true
+#     client_id: "Iv1.xxxxxxxxxxxxxxxx"
+#     # Register a GitHub OAuth App (Settings > Developer settings > OAuth Apps)
+#     # with Authorization callback URL {public_url}/auth/github/callback. The
+#     # secret is read from this file, never inlined here.
+#     client_secret_file: "/etc/llmbox/github-client-secret"
+#     # redirect_url defaults to {public_url}/auth/github/callback
 #   # Identities allowed into the admin web UI (/admin) to manage spokes and
 #   # boxes. Only these identities are authorized after signing in. Empty disables /admin.
 #   admin:

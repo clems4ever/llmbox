@@ -211,6 +211,63 @@ auth:
 	}
 }
 
+// TestLoadGitHubAuth checks an enabled GitHub provider loads, resolves its secret
+// from the referenced file, and defaults its redirect URL from the public URL.
+func TestLoadGitHubAuth(t *testing.T) {
+	dir := t.TempDir()
+	secret := writeFile(t, dir, "secret", "topsecret\n")
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+public_url: "https://boxes.example.com"
+auth:
+  github:
+    enabled: true
+    client_id: "Iv1.cid"
+    client_secret_file: "`+secret+`"
+`)
+	c, err := Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	g := c.Auth.GitHub
+	if g.ClientSecret != "topsecret" {
+		t.Errorf("ClientSecret = %q, want topsecret (trimmed from file)", g.ClientSecret)
+	}
+	if g.RedirectURL != "https://boxes.example.com/auth/github/callback" {
+		t.Errorf("RedirectURL = %q, want defaulted callback", g.RedirectURL)
+	}
+}
+
+// TestLoadGitHubMissingSecretFile checks an unreadable client secret file errors.
+func TestLoadGitHubMissingSecretFile(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+auth:
+  github:
+    enabled: true
+    client_id: "Iv1.cid"
+    client_secret_file: "`+filepath.Join(dir, "nope")+`"
+`)
+	if _, err := Load(cfgPath); err == nil {
+		t.Error("Load with missing secret file = nil, want error")
+	}
+}
+
+// TestLoadGitHubMissingClientID checks an enabled GitHub provider without a
+// client_id is rejected at load time.
+func TestLoadGitHubMissingClientID(t *testing.T) {
+	dir := t.TempDir()
+	secret := writeFile(t, dir, "secret", "topsecret\n")
+	cfgPath := writeFile(t, dir, "llmbox.yaml", `
+auth:
+  github:
+    enabled: true
+    client_secret_file: "`+secret+`"
+`)
+	if _, err := Load(cfgPath); err == nil {
+		t.Error("Load with no github client_id = nil, want error")
+	}
+}
+
 // TestLoadTLS checks an enabled TLS block parses its cert and key file paths.
 func TestLoadTLS(t *testing.T) {
 	c, err := Load(write(t, `
