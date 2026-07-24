@@ -15,6 +15,7 @@ import {
   Divider,
   Drawer,
   Group,
+  Loader,
   Paper,
   SimpleGrid,
   Skeleton,
@@ -284,6 +285,7 @@ function ProxiesSection({ api, boxId, proxies, refresh }: ProxiesSectionProps): 
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Port</Table.Th>
+                <Table.Th>Status</Table.Th>
                 <Table.Th>URL</Table.Th>
                 <Table.Th />
               </Table.Tr>
@@ -292,6 +294,9 @@ function ProxiesSection({ api, boxId, proxies, refresh }: ProxiesSectionProps): 
               {proxies.map((p) => (
                 <Table.Tr key={p.port} data-proxy-row={`${p.box_id}:${p.port}`}>
                   <Table.Td className="mono-wrap">{p.port}</Table.Td>
+                  <Table.Td>
+                    <ProxyStatusBadge api={api} boxId={p.box_id} port={p.port} />
+                  </Table.Td>
                   <Table.Td>
                     <Group gap={6} wrap="nowrap">
                       <Anchor href={p.url} target="_blank" rel="noopener" className="mono-wrap" size="sm">
@@ -331,6 +336,91 @@ function ProxiesSection({ api, boxId, proxies, refresh }: ProxiesSectionProps): 
 
       <AddProxyForm api={api} boxId={boxId} refresh={refresh} />
     </Stack>
+  );
+}
+
+// proxyPingInterval is how often an open drawer re-probes each proxy so the
+// status badge tracks a box coming up or going down without a manual refresh.
+const proxyPingInterval = 15_000;
+
+type PingState =
+  | { kind: "loading" }
+  | { kind: "up"; code: number; latencyMs?: number }
+  | { kind: "down"; reason: string };
+
+/** ProxyStatusBadge probes one proxy's box port and renders its health as a
+ * coloured pill: teal "up" when the port answers, red "down" when it does not,
+ * grey "checking" while a probe is in flight. It probes on mount, re-probes on a
+ * regular interval while the drawer is open, and re-probes immediately when the
+ * badge is clicked.
+ *
+ * @arg props The api client and the proxy's box ID and port.
+ * @return JSX.Element The status badge.
+ */
+function ProxyStatusBadge({
+  api,
+  boxId,
+  port,
+}: {
+  api: Api;
+  boxId: string;
+  port: number;
+}): JSX.Element {
+  const [state, setState] = useState<PingState>({ kind: "loading" });
+
+  const check = useCallback(async () => {
+    setState({ kind: "loading" });
+    try {
+      const r = await api.pingProxy(boxId, port);
+      setState(
+        r.ok
+          ? { kind: "up", code: r.status ?? 0, latencyMs: r.latency_ms }
+          : { kind: "down", reason: r.error || "not reachable" },
+      );
+    } catch (e) {
+      setState({ kind: "down", reason: e instanceof Error ? e.message : "check failed" });
+    }
+  }, [api, boxId, port]);
+
+  useEffect(() => {
+    void check();
+    const id = window.setInterval(() => void check(), proxyPingInterval);
+    return () => window.clearInterval(id);
+  }, [check]);
+
+  if (state.kind === "loading") {
+    return (
+      <Badge
+        color="gray"
+        variant="light"
+        radius="sm"
+        data-proxy-status="checking"
+        leftSection={<Loader size={10} color="gray" />}
+      >
+        checking
+      </Badge>
+    );
+  }
+
+  const tone = state.kind === "up" ? "teal" : "red";
+  const label =
+    state.kind === "up"
+      ? `Serving — HTTP ${state.code}${state.latencyMs != null ? ` · ${state.latencyMs} ms` : ""}`
+      : state.reason;
+  return (
+    <Tooltip label={label} multiline w={260}>
+      <Badge
+        color={tone}
+        variant="light"
+        radius="sm"
+        data-proxy-status={state.kind}
+        aria-label={`Proxy status ${state.kind}; click to re-check`}
+        style={{ cursor: "pointer" }}
+        onClick={() => void check()}
+      >
+        {state.kind}
+      </Badge>
+    </Tooltip>
   );
 }
 

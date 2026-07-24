@@ -45,6 +45,8 @@ type FakeBackend struct {
 	Proxies           []api.ProxyInfo
 	ListProxiesErr    error
 	DeleteProxyErr    error
+	PingProxyResult   api.ProxyPing
+	PingProxyErr      error
 
 	// Recorded inputs.
 	GotCreate         sandbox.CreateOptions
@@ -67,6 +69,8 @@ type FakeBackend struct {
 	GotDeleteBoxID    string
 	GotDeletePort     int
 	GotListBoxID      string
+	GotPingBoxID      string
+	GotPingPort       int
 }
 
 // CreateBox records the options into GotCreate and returns the canned session/error.
@@ -323,4 +327,21 @@ func (f *FakeBackend) ListProxies(ctx context.Context, boxID string) ([]api.Prox
 	f.GotListBoxID = boxID
 	f.mu.Unlock()
 	return f.Proxies, f.ListProxiesErr
+}
+
+// PingProxy records the box ID and port and returns the canned ping/error.
+//
+// @arg ctx Context (unused by the fake).
+// @arg boxID The box ID, recorded into GotPingBoxID.
+// @arg port The port, recorded into GotPingPort.
+// @return api.ProxyPing The canned PingProxyResult.
+// @error error The canned PingProxyErr, if any.
+//
+// @testcase TestFakeBackend checks each method records its inputs and returns the canned results.
+func (f *FakeBackend) PingProxy(ctx context.Context, boxID string, port int) (api.ProxyPing, error) {
+	f.mu.Lock()
+	f.GotPingBoxID = boxID
+	f.GotPingPort = port
+	f.mu.Unlock()
+	return f.PingProxyResult, f.PingProxyErr
 }

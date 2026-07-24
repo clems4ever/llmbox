@@ -25,6 +25,7 @@ const (
 	PathCreateProxy         = "/api/v1/create-proxy"
 	PathDeleteProxy         = "/api/v1/delete-proxy"
 	PathListProxies         = "/api/v1/list-proxies"
+	PathPingProxy           = "/api/v1/ping-proxy"
 )
 
 // errorResponse is the body of every non-2xx API response; the client turns its
@@ -141,4 +142,12 @@ type listProxiesRequest struct {
 }
 type listProxiesResponse struct {
 	Proxies []ProxyInfo `json:"proxies"`
+}
+
+type pingProxyRequest struct {
+	BoxID string `json:"box_id"`
+	Port  int    `json:"port"`
+}
+type pingProxyResponse struct {
+	Ping ProxyPing `json:"ping"`
 }

@@ -33,6 +33,7 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 		ProxyOn:           true,
 		CreateProxyResult: api.ProxyInfo{BoxID: "web", Port: 8000, URL: "https://slug.example.com", Slug: "slug", Description: "app"},
 		Proxies:           []api.ProxyInfo{{BoxID: "b1", Port: 8000}},
+		PingProxyResult:   api.ProxyPing{OK: true, Status: 200, LatencyMs: 12},
 	}
 	ts := httptest.NewServer(api.NewHandler(fb))
 	defer ts.Close()
@@ -129,6 +130,11 @@ func TestBackendAPIRoundTrip(t *testing.T) {
 	proxies, err := c.ListProxies(ctx, "b1")
 	if err != nil || len(proxies) != 1 || fb.GotListBoxID != "b1" {
 		t.Fatalf("ListProxies = %v err=%v box=%q", proxies, err, fb.GotListBoxID)
+	}
+
+	ping, err := c.PingProxy(ctx, "web", 8000)
+	if err != nil || !ping.OK || ping.Status != 200 || fb.GotPingBoxID != "web" || fb.GotPingPort != 8000 {
+		t.Fatalf("PingProxy = %+v err=%v box=%q port=%d", ping, err, fb.GotPingBoxID, fb.GotPingPort)
 	}
 }
 

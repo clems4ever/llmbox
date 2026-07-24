@@ -341,3 +341,18 @@ func (c *Client) ListProxies(ctx context.Context, boxID string) ([]ProxyInfo, er
 	r, err := post[listProxiesRequest, listProxiesResponse](ctx, c, PathListProxies, listProxiesRequest{BoxID: boxID})
 	return r.Proxies, err
 }
+
+// PingProxy probes a proxy's box port on the upstream server and reports whether
+// it is serving.
+//
+// @arg ctx Context for the request.
+// @arg boxID The box ID of the proxy to probe.
+// @arg port The port of the proxy to probe.
+// @return ProxyPing Whether the box port answered, the status code, latency, and any error.
+// @error error if the probe request itself could not be made.
+//
+// @testcase TestBackendAPIRoundTrip pings a proxy through the client.
+func (c *Client) PingProxy(ctx context.Context, boxID string, port int) (ProxyPing, error) {
+	r, err := post[pingProxyRequest, pingProxyResponse](ctx, c, PathPingProxy, pingProxyRequest{BoxID: boxID, Port: port})
+	return r.Ping, err
+}

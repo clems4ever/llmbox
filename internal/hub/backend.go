@@ -346,6 +346,20 @@ func (b apiBackend) ListProxies(_ context.Context, boxID string) ([]api.ProxyInf
 	return out, nil
 }
 
+// PingProxy probes a proxy's box port and reports whether it is serving, so the
+// UI can show a live per-proxy status badge.
+//
+// @arg ctx Context bounding the probe.
+// @arg boxID The box ID of the proxy to probe.
+// @arg port The port of the proxy to probe.
+// @return api.ProxyPing Whether the port answered, the status code, latency, and any failure reason.
+// @error error only when the proxy record could not be read.
+//
+// @testcase TestBackendPingProxy pings a proxy through the backend.
+func (b apiBackend) PingProxy(ctx context.Context, boxID string, port int) (api.ProxyPing, error) {
+	return b.s.pingProxy(ctx, boxID, port)
+}
+
 // proxyInfo flattens a stored proxy record into the api.ProxyInfo the
 // tools surface, resolving the public URL from the slug and carrying the
 // optional description through.

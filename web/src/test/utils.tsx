@@ -52,6 +52,7 @@ export function mockApi(overrides: Partial<Record<keyof Api, unknown>> = {}): Ap
     resumeBox: vi.fn().mockResolvedValue({}),
     createProxy: vi.fn().mockResolvedValue({ box_id: "box-1", port: 8000, url: "https://p", slug: "s" }),
     deleteProxy: vi.fn().mockResolvedValue({}),
+    pingProxy: vi.fn().mockResolvedValue({ ok: true, status: 200, latency_ms: 7 }),
     logout: vi.fn().mockResolvedValue({}),
     listAllowlistGroups: vi.fn().mockResolvedValue([]),
     saveAllowlistGroup: vi.fn().mockResolvedValue({}),
