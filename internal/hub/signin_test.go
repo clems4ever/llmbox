@@ -99,6 +99,7 @@ func signInStateJSON(t *testing.T, s *Server, rawQuery string) (int, map[string]
 // and its state lists a provider button whose login link carries the return
 // target.
 func TestSignInPageRendersButtons(t *testing.T) {
+	skipIfWebUINotBuilt(t)
 	s, _ := signInServer(t)
 
 	// The page itself is the static shell from the built web app.

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -644,60 +643,18 @@ func TestNetFor(t *testing.T) {
 
 // TestKernelIPArg checks the ip= boot argument renders from the addressing.
 func TestKernelIPArg(t *testing.T) {
-	got := netFor(5).kernelIPArg()
+	got := netFor(5).KernelIPArg()
 	want := "ip=172.16.5.2::172.16.5.1:255.255.255.252::eth0:off"
 	if got != want {
 		t.Fatalf("kernelIPArg = %q, want %q", got, want)
 	}
 }
 
-// TestInsertVerb checks the iptables verb is spliced after an optional table prefix.
-func TestInsertVerb(t *testing.T) {
-	got := insertVerb([]string{"iptables", "FORWARD", "-j", "ACCEPT"}, 1, "-C")
-	if strings.Join(got, " ") != "iptables -C FORWARD -j ACCEPT" {
-		t.Fatalf("insertVerb (no table) = %q", got)
-	}
-	rule := []string{"-t", "nat", "POSTROUTING", "-j", "MASQUERADE"}
-	got = insertVerb(append([]string{"iptables"}, rule...), delInsertAt(rule), "-D")
-	if strings.Join(got, " ") != "iptables -t nat -D POSTROUTING -j MASQUERADE" {
-		t.Fatalf("insertVerb (table) = %q", got)
-	}
-}
-
-// TestRunReportsFailure checks run surfaces a command's output on failure.
-func TestRunReportsFailure(t *testing.T) {
-	err := run(context.Background(), "sh", "-c", "echo boom >&2; exit 3")
-	if err == nil || !strings.Contains(err.Error(), "boom") {
-		t.Fatalf("run err = %v, want it to include boom", err)
-	}
-}
-
-// TestHostEgressPoolSkipsWithoutRoot exercises the real pool provisioning only when
-// ip/iptables exist and the test runs as root; otherwise it is skipped. It uses a
-// tiny pool and tears it down so it leaves no devices behind.
-func TestHostEgressPoolSkipsWithoutRoot(t *testing.T) {
-	if os.Geteuid() != 0 {
-		t.Skip("real egress pool needs root (CAP_NET_ADMIN)")
-	}
-	if _, err := exec.LookPath("iptables"); err != nil {
-		t.Skip("iptables not available")
-	}
-	if _, err := exec.LookPath("ip"); err != nil {
-		t.Skip("ip not available")
-	}
-	e := &hostEgress{}
-	const size = 2
-	if err := e.EnsurePool(context.Background(), size); err != nil {
-		t.Fatalf("EnsurePool: %v", err)
-	}
-	// Idempotent: a second call must not error or duplicate rules.
-	if err := e.EnsurePool(context.Background(), size); err != nil {
-		t.Fatalf("EnsurePool (second): %v", err)
-	}
-	if err := e.TeardownPool(context.Background(), size); err != nil {
-		t.Fatalf("TeardownPool: %v", err)
-	}
-}
+// The iptables verb-splicing, run(), and the real host-egress pool
+// provisioning/validation are covered by internal/spoke/microvm/mvmnet, the shared
+// package this backend's egress now lives in (see network.go). netFor/kernelIPArg/
+// parseEgressMode are still exercised above through Firecracker's own wrappers so the
+// backend's 172.16 / llmboxfc addressing stays pinned.
 
 // TestSaveLoadMeta round-trips box metadata through the state dir and maps it to a
 // box view.
@@ -756,11 +713,7 @@ func TestParseEgressMode(t *testing.T) {
 			t.Fatalf("parseEgressMode(%q) = %v, %v; want %v", in, got, err, want)
 		}
 	}
-	for m, name := range egressModeNames {
-		if m.String() != name {
-			t.Fatalf("egressMode(%d).String() = %q, want %q", m, m.String(), name)
-		}
-	}
+	// The mode<->name String() round-trip is covered by mvmnet.TestParseEgressMode.
 	if _, err := parseEgressMode("nope"); err == nil {
 		t.Fatalf("parseEgressMode(nope) = nil error, want an error")
 	}
@@ -818,16 +771,6 @@ func TestEnsureNetworkManagedProvisions(t *testing.T) {
 	}
 }
 
-// TestHostEgressValidatePoolMissing checks ValidatePool reports absent TAP devices.
-// It needs no privilege: `ip link show <absent>` fails for a missing device without
-// root, so the missing-device path is exercised on any host that has ip(8).
-func TestHostEgressValidatePoolMissing(t *testing.T) {
-	if _, err := exec.LookPath("ip"); err != nil {
-		t.Skip("ip not available")
-	}
-	e := &hostEgress{}
-	err := e.ValidatePool(context.Background(), 2)
-	if err == nil || !strings.Contains(err.Error(), "llmboxfc0") {
-		t.Fatalf("ValidatePool with no pool = %v, want it to name the missing TAP(s)", err)
-	}
-}
+// The host-egress ValidatePool missing-device path is covered by
+// internal/spoke/microvm/mvmnet (TestHostEgressValidatePool), the shared package this
+// backend's egress now lives in.

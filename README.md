@@ -10,8 +10,9 @@ and expose them over HTTP — or manage boxes from the admin web UI. llmbox is p
 box infrastructure: it provides the sandbox lifecycle
 (create/destroy/pause/resume/exec/dial) plus an HTTP proxy for a box's ports.
 
-Each box is a container (or [Firecracker microVM](docs/firecracker.md)) on its
-own isolated network. **The box's workload is installed and started by the
+Each box is a container (or a [Firecracker](docs/firecracker.md) /
+[Cloud Hypervisor](docs/cloud-hypervisor.md) microVM — the latter for GPU
+passthrough) on its own isolated network. **The box's workload is installed and started by the
 spoke's init script** (`--init-script`), not by llmbox — llmbox only provides the
 sandbox and, optionally, exposes the box's ports to a browser via the
 [proxy](docs/proxy.md) (`--publish-port` or the box-control API). See
@@ -81,6 +82,7 @@ mint a key and drive the API.
 | [Box lifecycle hooks](docs/hooks.md) | Injecting per-box secrets/files via `box.create`/`box.destroy` hooks, plus box networking and isolation. |
 | [Network isolation](docs/network-isolation.md) | Deny-by-default egress with domain allowlist groups, assigned globally or per box, managed from the UI/API. |
 | [Firecracker backend](docs/firecracker.md) | Running each box as a Firecracker microVM instead of a Docker container: vsock control, TAP/NAT egress, and building a guest rootfs. |
+| [Cloud Hypervisor backend](docs/cloud-hypervisor.md) | Running each box as a Cloud Hypervisor microVM to get **GPU PCI passthrough** (a real GPU or MIG slice in a microVM-isolated box), which Firecracker's no-PCI design cannot do. |
 | [Operations](docs/operations.md) | State persistence, pausing boxes, and orphan cleanup. |
 | [Development](docs/development.md) | Building, CI, and the unit / integration / end-to-end test suites. |
 
