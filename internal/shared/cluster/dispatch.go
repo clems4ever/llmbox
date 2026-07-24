@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 )
@@ -84,12 +85,7 @@ func handleStreamOpen(ctx context.Context, tr transport, mgr BoxManager, req fra
 		closeErr(err.Error())
 		return
 	}
-	dialer, ok := mgr.(BoxDialer)
-	if !ok {
-		closeErr("this spoke does not support proxying")
-		return
-	}
-	conn, err := dialer.DialBox(ctx, in.BoxID, in.Port)
+	conn, err := openStreamTarget(ctx, mgr, in)
 	if err != nil {
 		closeErr(err.Error())
 		return
@@ -97,6 +93,35 @@ func handleStreamOpen(ctx context.Context, tr transport, mgr BoxManager, req fra
 	ss := newServerStream(req.ID, tr, conn, streams.del)
 	streams.add(req.ID, ss)
 	ss.start()
+}
+
+// openStreamTarget resolves a stream-open request to a live box connection: an
+// interactive PTY when in.PTY is set, otherwise a dial to in.Port. Each capability
+// is an optional interface on the manager (BoxPTYer / BoxDialer), so a spoke that
+// cannot service the request is refused with a clear error rather than a panic.
+//
+// @arg ctx Context bounding the open.
+// @arg mgr The local box manager.
+// @arg in The decoded stream-open request.
+// @return net.Conn The connection tunnelled to the box (a PTY or a port).
+// @error error if the spoke lacks the capability or the box cannot be reached.
+//
+// @testcase TestStreamTunnelRoundTrip opens a port tunnel through here.
+// @testcase TestStreamPTYRoundTrip opens a PTY tunnel through here.
+// @testcase TestStreamOpenUnsupportedSpoke refuses a port tunnel on a spoke that cannot dial.
+func openStreamTarget(ctx context.Context, mgr BoxManager, in streamOpenReq) (net.Conn, error) {
+	if in.PTY {
+		ptyer, ok := mgr.(BoxPTYer)
+		if !ok {
+			return nil, fmt.Errorf("this spoke does not support terminals")
+		}
+		return ptyer.OpenPTY(ctx, in.BoxID, in.PTYCmd, in.PTYCols, in.PTYRows)
+	}
+	dialer, ok := mgr.(BoxDialer)
+	if !ok {
+		return nil, fmt.Errorf("this spoke does not support proxying")
+	}
+	return dialer.DialBox(ctx, in.BoxID, in.Port)
 }
 
 // handleRequest executes one verb and sends its response.

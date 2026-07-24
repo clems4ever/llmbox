@@ -217,6 +217,57 @@ func TestStreamOpenUnsupportedSpoke(t *testing.T) {
 	}
 }
 
+// TestStreamPTYRoundTrip checks the PTY variant of the streaming tunnel end to
+// end: a hub-side remoteSpoke opens a PTY tunnel over the in-memory pipe, the
+// spoke resolves it to the fake manager's OpenPTY (recording the request), and
+// bytes round-trip both ways through the returned connection.
+func TestStreamPTYRoundTrip(t *testing.T) {
+	fm := &fakeManager{ptyTarget: echoListener(t)}
+	rs := startSpoke(t, fm)
+
+	conn, err := rs.OpenPTY(context.Background(), "term-box", []string{"/bin/sh"}, 120, 40)
+	if err != nil {
+		t.Fatalf("OpenPTY: %v", err)
+	}
+	defer conn.Close()
+
+	msg := []byte("pty bytes streamed over the cluster tunnel")
+	if _, err := conn.Write(msg); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	got := make([]byte, len(msg))
+	if _, err := io.ReadFull(conn, got); err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if string(got) != string(msg) {
+		t.Errorf("echo = %q, want %q", got, msg)
+	}
+
+	// The spoke must have resolved the open to OpenPTY with the request's fields.
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+	if fm.lastPTY.idOrName != "term-box" || fm.lastPTY.cols != 120 || fm.lastPTY.rows != 40 {
+		t.Errorf("recorded PTY = %+v, want box term-box 120x40", fm.lastPTY)
+	}
+	if len(fm.lastPTY.cmd) != 1 || fm.lastPTY.cmd[0] != "/bin/sh" {
+		t.Errorf("recorded PTY cmd = %v, want [/bin/sh]", fm.lastPTY.cmd)
+	}
+}
+
+// TestStreamPTYUnsupportedSpoke checks that opening a PTY tunnel to a spoke whose
+// manager cannot open terminals fails on the first read (the open is optimistic).
+func TestStreamPTYUnsupportedSpoke(t *testing.T) {
+	rs := startSpoke(t, bareManager{})
+	conn, err := rs.OpenPTY(context.Background(), "b", nil, 0, 0)
+	if err != nil {
+		t.Fatalf("OpenPTY open should be optimistic: %v", err)
+	}
+	defer conn.Close()
+	if _, err := conn.Read(make([]byte, 8)); err == nil {
+		t.Fatal("expected a read error for a spoke that cannot open terminals")
+	}
+}
+
 // TestStreamOpenDialError checks that a box dial failure on the spoke surfaces on
 // the first read of the tunnel conn.
 func TestStreamOpenDialError(t *testing.T) {

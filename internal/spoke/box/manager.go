@@ -388,6 +388,29 @@ func (m *Manager) Exec(ctx context.Context, idOrName string, cmd []string) (sand
 	return m.client(inst).Exec(ctx, cmd)
 }
 
+// OpenPTY opens an interactive pseudo-terminal inside a managed box and returns
+// the connection tunnelled to it. Like DialBox it resolves through Find first, so
+// it can only ever reach a box this manager created; the guest runs the shell as
+// the unprivileged box user. It is the reachability primitive the hub's in-browser
+// terminal builds on.
+//
+// @arg ctx Context bounding the open handshake (not the session's lifetime).
+// @arg idOrName The ID or name identifying the box.
+// @arg cmd The command to run under the PTY, or nil/empty for a login shell.
+// @arg cols The initial terminal width in columns (0 for the guest default).
+// @arg rows The initial terminal height in rows (0 for the guest default).
+// @return net.Conn A connection tunnelled to the box PTY; the caller must close it.
+// @error error if no managed box matches or the PTY cannot be started.
+//
+// @testcase TestBoxManagerOpenPTY runs a shell inside a box through OpenPTY.
+func (m *Manager) OpenPTY(ctx context.Context, idOrName string, cmd []string, cols, rows uint16) (net.Conn, error) {
+	inst, err := m.prov.Find(ctx, idOrName)
+	if err != nil {
+		return nil, err
+	}
+	return m.client(inst).OpenPTY(ctx, cmd, cols, rows)
+}
+
 // DialBox opens a connection to a TCP port inside a managed box, by asking the
 // box's guest to splice the control channel to localhost:port. It is the box
 // reachability primitive the proxy layer builds on; it resolves through Find

@@ -254,6 +254,12 @@ func (a *Guest) handleConn(ctx context.Context, conn net.Conn) {
 			a.handlePutFile(conn, r.Data)
 			return
 		}
+		if r.Verb == verbPTY {
+			// Like Dial, the PTY verb turns the connection into a raw byte tunnel after
+			// its response, so it is terminal and bypasses the framed dispatch loop.
+			a.handlePTY(conn, r.Data)
+			return
+		}
 		data, err := a.dispatch(ctx, r)
 		if err != nil {
 			_ = writeFrame(conn, resp{Err: err.Error()})

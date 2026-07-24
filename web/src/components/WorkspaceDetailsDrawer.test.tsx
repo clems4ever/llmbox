@@ -29,6 +29,31 @@ describe("WorkspaceDetailsDrawer", () => {
     expect(screen.getByText("img:1")).toBeInTheDocument();
   });
 
+  it("offers an Open terminal action for a running box", () => {
+    renderDrawer({ box: box({ box_id: "alpha", state: "running" }) });
+    expect(screen.getByTestId("open-terminal")).toBeEnabled();
+  });
+
+  it("renders without crashing when the allowlist has null groups", async () => {
+    // The API marshals an empty group set as null; the drawer must tolerate it.
+    const api = mockApi({
+      getBoxAllowlist: vi.fn().mockResolvedValue({
+        box_id: "alpha",
+        group_ids: null,
+        effective_groups: null,
+        effective_domains: null,
+      }),
+    });
+    renderDrawer({ api, box: box({ box_id: "alpha", state: "running" }) });
+    await waitFor(() => expect(screen.getByText(/Egress deny-by-default/i)).toBeInTheDocument());
+    expect(screen.getByTestId("open-terminal")).toBeInTheDocument();
+  });
+
+  it("disables the terminal for a terminated box", () => {
+    renderDrawer({ box: box({ box_id: "alpha", state: "terminated" }) });
+    expect(screen.getByTestId("open-terminal")).toBeDisabled();
+  });
+
   it("shows a note when the proxy feature is disabled", () => {
     renderDrawer({ proxyEnabled: false });
     expect(screen.getByText(/reverse proxy is not enabled/i)).toBeInTheDocument();

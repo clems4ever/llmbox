@@ -26,6 +26,7 @@ const (
 	verbExec    = "exec"
 	verbDial    = "dial"
 	verbPutFile = "putfile"
+	verbPTY     = "pty"
 )
 
 // maxFrame bounds a single control frame so a malformed length prefix cannot make
@@ -88,6 +89,19 @@ type execReq struct {
 // connection to.
 type dialReq struct {
 	Port int `json:"port"`
+}
+
+// ptyReq opens an interactive pseudo-terminal inside the box. Cmd is the program
+// (and args) to run under the PTY; when empty the guest picks a login shell.
+// Cols/Rows are the initial terminal size (0 falls back to a default). Like Dial,
+// the guest replies with one response frame (open or error) and then the
+// connection becomes a raw byte tunnel to the PTY: box→host carries the PTY's raw
+// output, while host→box carries pty-control frames (see the ptyMsg* protocol in
+// pty.go) so keystrokes and window resizes can share the one connection.
+type ptyReq struct {
+	Cmd  []string `json:"cmd,omitempty"`
+	Cols uint16   `json:"cols,omitempty"`
+	Rows uint16   `json:"rows,omitempty"`
 }
 
 // putFileReq is the header of a PutFile: it names the absolute in-box path to

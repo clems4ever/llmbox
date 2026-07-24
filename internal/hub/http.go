@@ -32,6 +32,12 @@ func (s *Server) APIHandler() http.Handler {
 	// Logout is likewise cookie-based (plus the CSRF header) rather than gated by
 	// requireAPIAuth: any signed-in session may end itself, admin or not.
 	mux.HandleFunc("POST /api/v1/logout", s.handleLogout)
+	// The in-browser terminal is a WebSocket, so it cannot carry the CSRF header
+	// requireAPIAuth demands, nor a bearer key from a native browser socket. It
+	// therefore does its own auth (admin cookie or API key) and relies on the
+	// same-origin WebSocket handshake for CSRF, mirroring the reverse proxy. Its
+	// specific pattern wins over the /api/v1/ subtree below.
+	mux.HandleFunc("GET /api/v1/boxes/{id}/terminal", s.handleTerminal)
 	// Network-isolation allowlist config: hub-local groups + assignments, each
 	// gated by requireAPIAuth. Their specific patterns win over the /api/v1/
 	// subtree below.

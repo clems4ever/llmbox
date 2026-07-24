@@ -180,6 +180,15 @@ type dnsAuditReq struct {
 type streamOpenReq struct {
 	BoxID string `json:"box_id"`
 	Port  int    `json:"port"`
+	// PTY, when true, opens an interactive pseudo-terminal inside the box instead
+	// of dialling Port: the spoke starts a shell (or PTYCmd) attached to a PTY and
+	// tunnels it over the same stream frames. Cmd/Cols/Rows carry the command and
+	// initial terminal size. This reuses the streaming tunnel — so an in-browser
+	// terminal reaches a box on a remote spoke exactly as the reverse proxy does.
+	PTY     bool     `json:"pty,omitempty"`
+	PTYCmd  []string `json:"pty_cmd,omitempty"`
+	PTYCols uint16   `json:"pty_cols,omitempty"`
+	PTYRows uint16   `json:"pty_rows,omitempty"`
 }
 
 // encodePayload marshals v into a frame payload. It panics only on a programmer
