@@ -72,6 +72,30 @@ describe("WorkspaceDetailsDrawer", () => {
     expect(screen.getByText("No proxies for this workspace yet.")).toBeInTheDocument();
   });
 
+  it("pings each proxy and shows an up badge when it serves", async () => {
+    const api = mockApi({ pingProxy: vi.fn().mockResolvedValue({ ok: true, status: 200, latency_ms: 5 }) });
+    renderDrawer({ api, proxies: [proxy({ box_id: "alpha", port: 8080 })] });
+    await waitFor(() => expect(api.pingProxy).toHaveBeenCalledWith("alpha", 8080));
+    expect(await screen.findByText("up")).toBeInTheDocument();
+  });
+
+  it("shows a down badge when the proxy port does not answer", async () => {
+    const api = mockApi({
+      pingProxy: vi.fn().mockResolvedValue({ ok: false, error: "the box is not reachable on this port" }),
+    });
+    renderDrawer({ api, proxies: [proxy({ box_id: "alpha", port: 8080 })] });
+    expect(await screen.findByText("down")).toBeInTheDocument();
+  });
+
+  it("re-checks a proxy when its status badge is clicked", async () => {
+    const api = mockApi({ pingProxy: vi.fn().mockResolvedValue({ ok: true, status: 200 }) });
+    const { user } = renderDrawer({ api, proxies: [proxy({ box_id: "alpha", port: 8080 })] });
+    const badge = await screen.findByText("up");
+    (api.pingProxy as ReturnType<typeof vi.fn>).mockClear();
+    await user.click(badge);
+    await waitFor(() => expect(api.pingProxy).toHaveBeenCalledWith("alpha", 8080));
+  });
+
   it("adds a proxy", async () => {
     const api = mockApi();
     const refresh = vi.fn().mockResolvedValue(undefined);

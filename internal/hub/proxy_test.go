@@ -720,3 +720,119 @@ func TestBackendProxies(t *testing.T) {
 		t.Errorf("proxy survived delete: %+v", rest)
 	}
 }
+
+// TestPingProxyReportsServing checks a proxy whose box port answers an HTTP
+// request is reported OK with the box's status code, and that the box is dialed
+// by its box ID.
+func TestPingProxyReportsServing(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTeapot)
+	}))
+	defer upstream.Close()
+
+	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}, target: upstream.Listener.Addr().String()}
+	s, _ := newProxyServer(t, mgr, nil)
+	registerBox(t, s, "web-box", "")
+	if _, err := s.createProxy("web-box", 8000, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	ping, err := s.pingProxy(context.Background(), "web-box", 8000)
+	if err != nil {
+		t.Fatalf("pingProxy: %v", err)
+	}
+	if !ping.OK {
+		t.Errorf("ping OK = false (%q), want true", ping.Error)
+	}
+	if ping.Status != http.StatusTeapot {
+		t.Errorf("ping status = %d, want %d", ping.Status, http.StatusTeapot)
+	}
+	if mgr.gotBoxID != "web-box" {
+		t.Errorf("DialBox dialed %q, want box ID web-box", mgr.gotBoxID)
+	}
+}
+
+// TestPingProxyDownWhenNoServer checks a proxy whose box port refuses the
+// connection is reported not-OK (with a reason), not surfaced as an error.
+func TestPingProxyDownWhenNoServer(t *testing.T) {
+	// A listener closed right away yields an address nothing serves, so the dial
+	// is refused.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dead := ln.Addr().String()
+	_ = ln.Close()
+
+	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}, target: dead}
+	s, _ := newProxyServer(t, mgr, nil)
+	registerBox(t, s, "web-box", "")
+	if _, err := s.createProxy("web-box", 8000, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	ping, err := s.pingProxy(context.Background(), "web-box", 8000)
+	if err != nil {
+		t.Fatalf("pingProxy: %v", err)
+	}
+	if ping.OK {
+		t.Errorf("ping OK = true, want false for a down box")
+	}
+	if ping.Error == "" {
+		t.Errorf("ping Error empty, want a reason for a down box")
+	}
+}
+
+// TestPingProxyUnknownProxy checks pinging a box/port with no proxy is reported
+// not-OK with a reason, not an error.
+func TestPingProxyUnknownProxy(t *testing.T) {
+	s, _ := newProxyServer(t, &dialMgr{FakeMgr: &testutils.FakeMgr{}}, nil)
+	ping, err := s.pingProxy(context.Background(), "nope", 9999)
+	if err != nil {
+		t.Fatalf("pingProxy: %v", err)
+	}
+	if ping.OK || ping.Error == "" {
+		t.Errorf("ping = %+v, want not-OK with a reason", ping)
+	}
+}
+
+// TestPingProxyUnsupportedSpoke checks a proxy on a spoke that cannot dial boxes
+// is reported not-OK rather than erroring.
+func TestPingProxyUnsupportedSpoke(t *testing.T) {
+	s, _ := newProxyServer(t, &testutils.FakeMgr{CreateID: "abcdef0123456789"}, nil) // plain FakeMgr: not a boxDialer
+	registerBox(t, s, "web-box", "")
+	if _, err := s.createProxy("web-box", 8000, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	ping, err := s.pingProxy(context.Background(), "web-box", 8000)
+	if err != nil {
+		t.Fatalf("pingProxy: %v", err)
+	}
+	if ping.OK {
+		t.Errorf("ping OK = true, want false for a spoke that cannot dial boxes")
+	}
+}
+
+// TestBackendPingProxy checks the box-control backend surfaces a proxy probe
+// through the adapter the API handler calls.
+func TestBackendPingProxy(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+
+	mgr := &dialMgr{FakeMgr: &testutils.FakeMgr{CreateID: "abcdef0123456789"}, target: upstream.Listener.Addr().String()}
+	s, _ := newProxyServer(t, mgr, nil)
+	registerBox(t, s, "web-box", "")
+	b := s.boxBackend()
+	if _, err := b.CreateProxy(context.Background(), "web-box", 8000, ""); err != nil {
+		t.Fatalf("CreateProxy: %v", err)
+	}
+	ping, err := b.PingProxy(context.Background(), "web-box", 8000)
+	if err != nil {
+		t.Fatalf("PingProxy: %v", err)
+	}
+	if !ping.OK || ping.Status != http.StatusOK {
+		t.Errorf("ping = %+v, want OK with status 200", ping)
+	}
+}

@@ -59,6 +59,17 @@ export interface ProxyInfo {
   description?: string;
 }
 
+/** ProxyPing is the result of probing a proxy's box port: whether the box
+ * answered an HTTP request (ok), the status code it returned, how long the
+ * probe took, and — when it failed — a short reason. The UI renders it as a
+ * per-proxy health badge. */
+export interface ProxyPing {
+  ok: boolean;
+  status?: number;
+  latency_ms?: number;
+  error?: string;
+}
+
 export interface SpokeEnrollment {
   name: string;
   token: string;
@@ -263,6 +274,16 @@ export class Api {
 
   deleteProxy(boxId: string, port: number): Promise<unknown> {
     return this.call("/api/v1/delete-proxy", { box_id: boxId, port });
+  }
+
+  /** pingProxy probes a proxy's box port and reports whether it is serving, so
+   * the UI can show a live status badge. */
+  async pingProxy(boxId: string, port: number): Promise<ProxyPing> {
+    const r = await this.call<{ ping: ProxyPing }>("/api/v1/ping-proxy", {
+      box_id: boxId,
+      port,
+    });
+    return r.ping;
   }
 
   /** logout ends the browser's login session on the hub: the server deletes the

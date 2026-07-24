@@ -96,6 +96,10 @@ func NewHandler(b Backend) http.Handler {
 		proxies, err := b.ListProxies(ctx, req.BoxID)
 		return listProxiesResponse{Proxies: proxies}, err
 	}))
+	mux.Handle("POST "+PathPingProxy, jsonHandler(func(ctx context.Context, req pingProxyRequest) (pingProxyResponse, error) {
+		ping, err := b.PingProxy(ctx, req.BoxID, req.Port)
+		return pingProxyResponse{Ping: ping}, err
+	}))
 
 	return mux
 }

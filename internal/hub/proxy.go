@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/clems4ever/llmbox/internal/hub/store"
+	"github.com/clems4ever/llmbox/internal/shared/api"
 )
 
 // boxDialer is the box-reachability capability the proxy needs from a spoke's box
@@ -254,6 +255,72 @@ func (s *Server) listProxies(boxID string) ([]store.ProxyRecord, error) {
 		}
 	}
 	return out, nil
+}
+
+// proxyPingTimeout bounds a single proxy health probe so an unresponsive box
+// port fails fast rather than hanging the caller's status badge.
+const proxyPingTimeout = 5 * time.Second
+
+// pingProxy probes the box port behind a box/port proxy and reports whether it
+// is actually serving. It resolves the proxy record, then — over the same box
+// dialer handleProxy forwards through — issues a lightweight HTTP GET for "/":
+// any HTTP response, even an error status, means something is listening, so OK
+// is true. OK is false (with a short reason) when the proxy is unknown, its
+// spoke is unavailable or cannot dial boxes, or the port never answers; a box
+// that is simply down is a normal ProxyPing result, not an error. A non-nil
+// error means the probe could not be attempted at all (the proxy list could not
+// be read).
+//
+// @arg ctx Context bounding the probe (also cancelled if the caller disconnects).
+// @arg boxID The box ID of the proxy to probe.
+// @arg port The port of the proxy to probe.
+// @return api.ProxyPing Whether the port answered, the status code, latency, and any failure reason.
+// @error error only when the proxy record could not be read.
+//
+// @testcase TestPingProxyReportsServing reports OK with the box's status when the port answers.
+// @testcase TestPingProxyDownWhenNoServer reports not-OK when the box port does not answer.
+// @testcase TestPingProxyUnknownProxy reports not-OK for a box/port with no proxy.
+// @testcase TestPingProxyUnsupportedSpoke reports not-OK when the spoke cannot dial boxes.
+func (s *Server) pingProxy(ctx context.Context, boxID string, port int) (api.ProxyPing, error) {
+	rec, err := s.findProxy(boxID, port)
+	if err != nil {
+		return api.ProxyPing{}, err
+	}
+	if rec == nil {
+		return api.ProxyPing{Error: fmt.Sprintf("no proxy for box %q port %d", boxID, port)}, nil
+	}
+	mgr, err := s.spoke(rec.Spoke)
+	if err != nil {
+		return api.ProxyPing{Error: "the box's spoke is not available"}, nil
+	}
+	transport, ok := s.boxTransport(mgr, *rec)
+	if !ok {
+		return api.ProxyPing{Error: "this box's spoke does not support proxying"}, nil
+	}
+	// A one-off probe: close its idle box tunnel once done rather than pooling it.
+	if t, ok := transport.(*http.Transport); ok {
+		defer t.CloseIdleConnections()
+	}
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   proxyPingTimeout,
+		// The box answered even when it redirects — count that as up instead of
+		// chasing the Location (which would just re-dial the same box).
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+	target := "http://" + net.JoinHostPort(rec.BoxID, strconv.Itoa(rec.Port)) + "/"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		return api.ProxyPing{Error: err.Error()}, nil
+	}
+	start := time.Now()
+	resp, err := client.Do(req)
+	latency := time.Since(start).Milliseconds()
+	if err != nil {
+		return api.ProxyPing{LatencyMs: latency, Error: "the box is not reachable on this port"}, nil
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return api.ProxyPing{OK: true, Status: resp.StatusCode, LatencyMs: latency}, nil
 }
 
 // deleteProxy disables the proxy for a box and port, returning the slug removed.

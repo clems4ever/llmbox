@@ -61,4 +61,7 @@ func TestFakeBackend(t *testing.T) {
 	if _, _ = f.ListProxies(ctx, "b1"); f.GotListBoxID != "b1" {
 		t.Errorf("ListProxies filter = %q", f.GotListBoxID)
 	}
+	if _, _ = f.PingProxy(ctx, "web", 8000); f.GotPingBoxID != "web" || f.GotPingPort != 8000 {
+		t.Errorf("PingProxy recorded %q/%d", f.GotPingBoxID, f.GotPingPort)
+	}
 }

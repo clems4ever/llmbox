@@ -37,6 +37,23 @@ type ProxyInfo struct {
 	Description string `json:"description,omitempty" jsonschema:"the optional human-readable note supplied when the proxy was created"`
 }
 
+// ProxyPing is the result of probing a proxy's box port: whether the box
+// answered an HTTP request, the status code it returned, how long the probe
+// took, and — when the probe failed — a short reason. It is what the UI turns
+// into a per-proxy health badge.
+type ProxyPing struct {
+	// OK is true when the box's port answered the HTTP probe (any status code),
+	// meaning something is actually serving there.
+	OK bool `json:"ok" jsonschema:"true when the box's port answered the HTTP probe"`
+	// Status is the HTTP status code the box returned, or 0 when no HTTP response
+	// was received (a dial/connection failure).
+	Status int `json:"status,omitempty" jsonschema:"the HTTP status code the box returned, or 0 when no response was received"`
+	// LatencyMs is how long the probe took, in milliseconds.
+	LatencyMs int64 `json:"latency_ms,omitempty" jsonschema:"how long the probe took, in milliseconds"`
+	// Error is a short human-readable reason the probe failed, or "" on success.
+	Error string `json:"error,omitempty" jsonschema:"a short reason the probe failed, empty on success"`
+}
+
 // SpokeStatus describes one enrolled cluster spoke and its health: whether it
 // currently holds a live hub connection, and whether it is the default spoke that
 // unqualified box creates run on.
@@ -129,4 +146,7 @@ type Backend interface {
 	DeleteProxy(ctx context.Context, boxID string, port int) error
 	// ListProxies returns the enabled proxies, optionally filtered to one box.
 	ListProxies(ctx context.Context, boxID string) ([]ProxyInfo, error)
+	// PingProxy probes a proxy's box port over the spoke and reports whether it is
+	// serving (an HTTP response was received), so the UI can show a live status.
+	PingProxy(ctx context.Context, boxID string, port int) (ProxyPing, error)
 }
