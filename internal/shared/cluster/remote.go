@@ -403,7 +403,41 @@ func (r *remoteSpoke) SetNetworkPolicy(ctx context.Context, boxID string, policy
 // @testcase TestStreamTunnelRoundTrip round-trips bytes through a dialed tunnel.
 // @testcase TestStreamTunnelDisconnect fails a live tunnel when the connection drops.
 func (r *remoteSpoke) DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error) {
-	payload, err := encodePayload(streamOpenReq{BoxID: idOrName, Port: port})
+	return r.openStream(ctx, streamOpenReq{BoxID: idOrName, Port: port})
+}
+
+// OpenPTY opens an interactive pseudo-terminal inside a box on the spoke and
+// returns it as a raw byte tunnel over the cluster transport, implementing
+// BoxPTYer. It reuses the streaming tunnel DialBox uses, so the hub's in-browser
+// terminal reaches a box on a remote spoke with full bidirectional streaming. Like
+// DialBox the tunnel is opened optimistically: a PTY that cannot start surfaces as
+// a frameStreamClose on the first read of the returned conn.
+//
+// @arg ctx Context bounding the open handshake (not the tunnel's lifetime).
+// @arg idOrName The box whose PTY to open.
+// @arg cmd The command to run under the PTY, or nil/empty for a login shell.
+// @arg cols The initial terminal width in columns (0 for the spoke default).
+// @arg rows The initial terminal height in rows (0 for the spoke default).
+// @return net.Conn The tunnel connection; the caller must close it.
+// @error error if the spoke is disconnected or the open frame cannot be sent.
+//
+// @testcase TestStreamPTYRoundTrip round-trips a PTY session through a remote spoke.
+func (r *remoteSpoke) OpenPTY(ctx context.Context, idOrName string, cmd []string, cols, rows uint16) (net.Conn, error) {
+	return r.openStream(ctx, streamOpenReq{BoxID: idOrName, PTY: true, PTYCmd: cmd, PTYCols: cols, PTYRows: rows})
+}
+
+// openStream registers a client stream and sends a frameStreamOpen carrying req,
+// returning the tunnel connection. It is the shared machinery behind DialBox (a
+// port tunnel) and OpenPTY (a terminal tunnel).
+//
+// @arg ctx Context bounding the open handshake.
+// @arg req The stream-open request (a port dial or a PTY open).
+// @return net.Conn The tunnel connection; the caller must close it.
+// @error error if the spoke is disconnected or the open frame cannot be sent.
+//
+// @testcase TestStreamTunnelRoundTrip round-trips bytes through a stream opened here.
+func (r *remoteSpoke) openStream(ctx context.Context, req streamOpenReq) (net.Conn, error) {
+	payload, err := encodePayload(req)
 	if err != nil {
 		return nil, err
 	}

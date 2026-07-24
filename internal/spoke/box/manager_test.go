@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/clems4ever/llmbox/internal/guest"
 	"github.com/clems4ever/llmbox/internal/shared/sandbox"
 	"github.com/clems4ever/llmbox/internal/spoke/box"
 	"github.com/clems4ever/llmbox/internal/spoke/box/conformance"
@@ -71,6 +73,43 @@ func TestBoxManagerDialBox(t *testing.T) {
 	}
 	if string(buf) != "ping" {
 		t.Fatalf("echo = %q, want ping", buf)
+	}
+}
+
+// TestBoxManagerOpenPTY checks OpenPTY starts an interactive shell inside a box
+// through the guest and round-trips a typed command's output. It uses the
+// in-process Fake, where the shell runs in the test process.
+func TestBoxManagerOpenPTY(t *testing.T) {
+	m := box.NewManager(conformance.NewFake(t), box.Config{})
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	created, err := m.Create(ctx, sandbox.CreateOptions{})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	conn, err := m.OpenPTY(ctx, created.InstanceID, []string{"/bin/sh"}, 80, 24)
+	if err != nil {
+		t.Fatalf("OpenPTY: %v", err)
+	}
+	defer conn.Close()
+
+	if _, err := conn.Write(guest.EncodePTYInput([]byte("echo MANAGER_PTY_OK\n"))); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	var buf []byte
+	tmp := make([]byte, 4096)
+	for !strings.Contains(string(buf), "MANAGER_PTY_OK") {
+		_ = conn.SetReadDeadline(deadline)
+		n, err := conn.Read(tmp)
+		buf = append(buf, tmp[:n]...)
+		if err != nil {
+			t.Fatalf("read: %v (got %q)", err, buf)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out; got %q", buf)
+		}
 	}
 }
 

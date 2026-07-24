@@ -13,3 +13,51 @@
 .empty-hint {
   color: var(--mantine-color-dimmed);
 }
+
+/* In-browser terminal (TerminalModal). xterm renders its own scrollbar in the
+ * viewport; the default is a chunky, bright bar that clashes with the dark
+ * surface. Restyle it to a thin, translucent bar and only show it when there is
+ * scrollback, so a terminal that fits its box shows no bar at all. */
+.llmbox-terminal-host .xterm .xterm-viewport {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 239, 233, 0.28) transparent;
+}
+.llmbox-terminal-host .xterm .xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+.llmbox-terminal-host .xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+.llmbox-terminal-host .xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: rgba(245, 239, 233, 0.28);
+  border-radius: 4px;
+}
+.llmbox-terminal-host .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 239, 233, 0.45);
+}
+
+/* Terminal header status light: a subtle pulse while the socket is connecting,
+ * so the "connecting" state reads as live rather than a static dot. Respects
+ * reduced-motion preferences. */
+.llmbox-term-status {
+  display: inline-block;
+  flex: none;
+}
+@keyframes llmbox-term-status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.llmbox-term-status--pulsing {
+  animation: llmbox-term-status-pulse 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .llmbox-term-status--pulsing {
+    animation: none;
+  }
+}

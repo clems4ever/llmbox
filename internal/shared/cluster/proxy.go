@@ -15,3 +15,13 @@ import (
 type BoxDialer interface {
 	DialBox(ctx context.Context, idOrName string, port int) (net.Conn, error)
 }
+
+// BoxPTYer is the box-reachability capability the spoke-side stream tunnel needs
+// to service an interactive terminal: open a pseudo-terminal inside a box and
+// return it as a raw byte tunnel. The in-process *box.Manager implements it. Like
+// BoxDialer it is kept off BoxManager so the box-verb RPC allowlist is unchanged
+// and it resolves through the box layer's managed-only check, so a terminal can
+// only ever reach a box the spoke created.
+type BoxPTYer interface {
+	OpenPTY(ctx context.Context, idOrName string, cmd []string, cols, rows uint16) (net.Conn, error)
+}

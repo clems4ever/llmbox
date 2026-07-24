@@ -76,6 +76,8 @@ type fakeManager struct {
 	execResult sandbox.ExecResult
 	dialTarget string // address DialBox connects to (for proxy_http tests)
 	dialErr    error  // when set, DialBox returns it
+	ptyTarget  string // address OpenPTY connects to (stands in for the box PTY)
+	ptyErr     error  // when set, OpenPTY returns it
 	err        error
 
 	// recorded inputs
@@ -91,6 +93,29 @@ type fakeManager struct {
 		boxID  string
 		policy sandbox.NetworkPolicy
 	}
+	lastPTY struct {
+		idOrName   string
+		cmd        []string
+		cols, rows uint16
+	}
+}
+
+// OpenPTY is a test helper: it records the request and dials the configured target
+// (or returns ptyErr), so the fake manager can satisfy BoxPTYer for terminal
+// stream-dispatch tests.
+func (f *fakeManager) OpenPTY(ctx context.Context, idOrName string, cmd []string, cols, rows uint16) (net.Conn, error) {
+	f.mu.Lock()
+	f.lastPTY.idOrName = idOrName
+	f.lastPTY.cmd = cmd
+	f.lastPTY.cols = cols
+	f.lastPTY.rows = rows
+	target, perr := f.ptyTarget, f.ptyErr
+	f.mu.Unlock()
+	if perr != nil {
+		return nil, perr
+	}
+	var d net.Dialer
+	return d.DialContext(ctx, "tcp", target)
 }
 
 // DialBox is a test helper: it dials the configured target (or returns dialErr),

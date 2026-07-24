@@ -25,13 +25,22 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import { IconCheck, IconCopy, IconEdit, IconPlus, IconShieldLock, IconTrash } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconCopy,
+  IconEdit,
+  IconPlus,
+  IconShieldLock,
+  IconTerminal2,
+  IconTrash,
+} from "@tabler/icons-react";
 import type { AllowlistGroup, Api, BoxAllowlist, BoxView, ProxyInfo } from "../api";
 import { boxId, createdAt } from "../lib/format";
 import { perform } from "../lib/actions";
 import { confirmDestroy } from "../lib/confirm";
 import { StatusBadge } from "./StatusBadge";
 import { BoxGroupsModal } from "./BoxGroupsModal";
+import { TerminalModal } from "./TerminalModal";
 
 export interface WorkspaceDetailsDrawerProps {
   api: Api;
@@ -56,6 +65,10 @@ export function WorkspaceDetailsDrawer({
   onClose,
 }: WorkspaceDetailsDrawerProps): JSX.Element {
   const id = box ? boxId(box) : "";
+  const [terminalOpen, setTerminalOpen] = useState(false);
+  // A terminal needs a live box on a reachable spoke; a terminated or unreachable
+  // box has no shell to attach to.
+  const canOpenTerminal = box !== null && box.state !== "terminated" && box.state !== "unreachable";
   return (
     <Drawer
       opened={box !== null}
@@ -72,6 +85,18 @@ export function WorkspaceDetailsDrawer({
     >
       {box && (
         <Stack gap="lg">
+          <Group>
+            <Button
+              leftSection={<IconTerminal2 size={16} />}
+              variant="light"
+              onClick={() => setTerminalOpen(true)}
+              disabled={!canOpenTerminal}
+              data-testid="open-terminal"
+            >
+              Open terminal
+            </Button>
+          </Group>
+          <TerminalModal box={box} opened={terminalOpen} onClose={() => setTerminalOpen(false)} />
           <Metadata box={box} />
           <Divider />
           <NetworkSection api={api} box={box} />
@@ -129,6 +154,10 @@ function NetworkSection({ api, box }: { api: Api; box: BoxView }): JSX.Element {
   }, [reload]);
 
   const domains = allowlist?.effective_domains ?? [];
+  // The API marshals an empty group set as null (a nil Go slice), so coalesce it
+  // to an array before reading .length / .map — otherwise opening a box with no
+  // allowlist groups would crash the drawer.
+  const effectiveGroups = allowlist?.effective_groups ?? [];
   const shown = domains.slice(0, 8);
   return (
     <Stack gap="sm">
@@ -153,11 +182,11 @@ function NetworkSection({ api, box }: { api: Api; box: BoxView }): JSX.Element {
         <>
           <Text c="dimmed" size="xs">
             Egress deny-by-default. Reaches {domains.length} domain{domains.length === 1 ? "" : "s"} across{" "}
-            {allowlist.effective_groups.length} group{allowlist.effective_groups.length === 1 ? "" : "s"}.
+            {effectiveGroups.length} group{effectiveGroups.length === 1 ? "" : "s"}.
           </Text>
-          {allowlist.effective_groups.length > 0 && (
+          {effectiveGroups.length > 0 && (
             <Group gap={6}>
-              {allowlist.effective_groups.map((n) => (
+              {effectiveGroups.map((n) => (
                 <Badge key={n} variant="light" style={{ textTransform: "none" }}>
                   {n}
                 </Badge>

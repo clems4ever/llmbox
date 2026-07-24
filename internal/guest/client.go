@@ -153,6 +153,69 @@ func (c *Client) PutFile(ctx context.Context, path string, mode, size int64, r i
 	return nil
 }
 
+// OpenPTY opens an interactive pseudo-terminal inside the box and returns the
+// connection as a raw byte tunnel to it. The guest launches cmd (or a login
+// shell when cmd is empty) attached to a PTY sized cols×rows, running as the box
+// user. On the returned connection the box→host direction carries the PTY's raw
+// output, while the host→box direction carries pty-control frames (build them
+// with EncodePTYInput/EncodePTYResize). The caller owns the connection and must
+// close it to end the session.
+//
+// @arg ctx Context for dialing the guest (not the session's lifetime).
+// @arg cmd The command to run under the PTY, or nil/empty for a login shell.
+// @arg cols The initial terminal width in columns (0 for the guest default).
+// @arg rows The initial terminal height in rows (0 for the guest default).
+// @return net.Conn A connection tunnelled to the box PTY.
+// @error error if dialing the guest fails or the guest cannot start the PTY.
+//
+// @testcase TestClientOpenPTY runs a shell inside the box and round-trips through the tunnel.
+func (c *Client) OpenPTY(ctx context.Context, cmd []string, cols, rows uint16) (net.Conn, error) {
+	conn, err := c.Dial(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("connecting to box guest: %w", err)
+	}
+	data, _ := json.Marshal(ptyReq{Cmd: cmd, Cols: cols, Rows: rows})
+	if err := writeFrame(conn, req{Verb: verbPTY, Data: data}); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("sending pty: %w", err)
+	}
+	// The guest sends one response frame (open or error) before the raw tunnel.
+	if dl, ok := ctx.Deadline(); ok {
+		_ = conn.SetDeadline(dl)
+	}
+	var r resp
+	if err := readFrame(conn, &r); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("reading pty response: %w", err)
+	}
+	if r.Err != "" {
+		conn.Close()
+		return nil, errors.New(r.Err)
+	}
+	// Clear the handshake deadline so the interactive session is not time-bounded.
+	_ = conn.SetDeadline(time.Time{})
+	return conn, nil
+}
+
+// EncodePTYInput frames terminal input (keystrokes) as a host→box pty-control
+// data message for the tunnel OpenPTY returns.
+//
+// @arg b The raw input bytes.
+// @return []byte The framed data message.
+//
+// @testcase TestClientOpenPTY sends keystrokes framed by EncodePTYInput.
+func EncodePTYInput(b []byte) []byte { return encodePTYControl(ptyMsgData, b) }
+
+// EncodePTYResize frames a window-size change as a host→box pty-control resize
+// message for the tunnel OpenPTY returns.
+//
+// @arg cols The new terminal width in columns.
+// @arg rows The new terminal height in rows.
+// @return []byte The framed resize message.
+//
+// @testcase TestClientOpenPTY resizes the PTY with EncodePTYResize.
+func EncodePTYResize(cols, rows uint16) []byte { return encodePTYResize(cols, rows) }
+
 // DialPort opens a connection to a TCP port inside the box and returns it as a
 // raw byte pipe (the guest splices it to localhost:port). The caller owns the
 // returned connection and must close it.
