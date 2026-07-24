@@ -121,6 +121,19 @@ describe("TerminalModal", () => {
     expect(Array.from(termState.writes[0] as Uint8Array)).toEqual([0x6f, 0x6b]);
   });
 
+  it("shows the connection state as a header status light", async () => {
+    // The Modal header renders in a portal, so query the whole document.
+    await open();
+    await waitFor(() => expect(MockWebSocket.instances.length).toBe(1));
+    // Before the socket opens, the light reflects the connecting state.
+    expect(document.querySelector(`[data-terminal-state="connecting"]`)).not.toBeNull();
+    const ws = MockWebSocket.instances[0];
+    act(() => ws.onopen?.());
+    expect(document.querySelector(`[data-terminal-state="connected"]`)).not.toBeNull();
+    act(() => ws.onclose?.());
+    expect(document.querySelector(`[data-terminal-state="closed"]`)).not.toBeNull();
+  });
+
   it("closes the socket and disposes the terminal on unmount", async () => {
     const { unmount } = await open();
     await waitFor(() => expect(MockWebSocket.instances.length).toBe(1));

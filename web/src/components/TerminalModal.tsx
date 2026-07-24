@@ -5,7 +5,7 @@
 // remote PTY tracks the visible geometry — including when the modal goes
 // full-screen on phones and tablets.
 import { useEffect, useRef, useState } from "react";
-import { Badge, Group, Modal, Text } from "@mantine/core";
+import { Box, Group, Modal, Text, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconTerminal2 } from "@tabler/icons-react";
 import { Terminal } from "@xterm/xterm";
@@ -23,7 +23,7 @@ export interface TerminalModalProps {
   onClose: () => void;
 }
 
-/** ConnState is the terminal's connection lifecycle, surfaced as a status badge. */
+/** ConnState is the terminal's connection lifecycle, shown as a status light. */
 type ConnState = "connecting" | "connected" | "closed";
 
 /** terminalBackground is the terminal surface colour; the host padding uses it too
@@ -40,7 +40,8 @@ const fullScreenQuery = "(max-width: 1200px)";
 
 /** TerminalModal renders a live shell into the selected box. It is a centered,
  * roomy dialog on the desktop and a full-screen surface on phones/tablets, where a
- * windowed terminal would be unusably small.
+ * windowed terminal would be unusably small. The connection state shows as a small
+ * status light in the header.
  *
  * @arg props The box to open a terminal into, and the modal open/close controls.
  * @return JSX.Element The terminal modal.
@@ -48,6 +49,7 @@ const fullScreenQuery = "(max-width: 1200px)";
 export function TerminalModal({ box, opened, onClose }: TerminalModalProps): JSX.Element {
   const id = box ? boxIdOf(box) : "";
   const fullScreen = useMediaQuery(fullScreenQuery) ?? false;
+  const [state, setState] = useState<ConnState>("connecting");
   return (
     <Modal
       opened={opened && box !== null}
@@ -55,18 +57,29 @@ export function TerminalModal({ box, opened, onClose }: TerminalModalProps): JSX
       fullScreen={fullScreen}
       size="80rem"
       padding="md"
-      // In full-screen the body must fill the viewport below the header so the
-      // terminal can stretch to the whole screen; otherwise it sizes to content.
-      styles={fullScreen ? { body: { height: "calc(100dvh - 3.5rem)" } } : undefined}
+      // The body owns the terminal's height and must never scroll — the terminal
+      // has its own viewport scrollbar, and an outer one is just noise. In
+      // full-screen the content is a flex column so the body fills the viewport
+      // below the header; the body clips overflow in both modes.
+      styles={
+        fullScreen
+          ? {
+              inner: { overflow: "hidden" },
+              content: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" },
+              body: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" },
+            }
+          : { body: { overflow: "hidden" } }
+      }
       title={
-        <Group gap="xs">
+        <Group gap="xs" wrap="nowrap">
           <IconTerminal2 size={18} />
           <Text fw={600}>Terminal</Text>
+          <StatusLight state={state} />
           <Text c="dimmed" className="mono-wrap">{id}</Text>
         </Group>
       }
     >
-      {opened && box && <TerminalView boxId={id} fullScreen={fullScreen} />}
+      {opened && box && <TerminalView boxId={id} fullScreen={fullScreen} onState={setState} />}
     </Modal>
   );
 }
@@ -75,19 +88,28 @@ export function TerminalModal({ box, opened, onClose }: TerminalModalProps): JSX
  * is a child so the terminal is created fresh each time the modal opens (and torn
  * down on close), keeping no stale socket or buffer between sessions. It fills the
  * available height and refits on any container or viewport change, so the terminal
- * always matches the screen — full-screen on mobile/tablet included.
+ * always matches the screen — full-screen on mobile/tablet included. It reports its
+ * connection state to the parent, which renders it as the header status light.
  *
- * @arg props The box id to connect to and whether the modal is full-screen.
- * @return JSX.Element The terminal host element and a status line.
+ * @arg props The box id, whether the modal is full-screen, and a state callback.
+ * @return JSX.Element The terminal host element.
  */
-function TerminalView({ boxId, fullScreen }: { boxId: string; fullScreen: boolean }): JSX.Element {
+function TerminalView({
+  boxId,
+  fullScreen,
+  onState,
+}: {
+  boxId: string;
+  fullScreen: boolean;
+  onState: (s: ConnState) => void;
+}): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<ConnState>("connecting");
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     let disposed = false;
+    onState("connecting");
 
     const term = new Terminal({
       cursorBlink: true,
@@ -120,7 +142,7 @@ function TerminalView({ boxId, fullScreen }: { boxId: string; fullScreen: boolea
     const encoder = new TextEncoder();
 
     ws.onopen = () => {
-      setState("connected");
+      onState("connected");
       // The URL already carried the fitted size, but send one more resize so a
       // late layout settle (fonts, scrollbar) still reaches the PTY.
       ws.send(encodePTYResize(term.cols, term.rows));
@@ -134,10 +156,10 @@ function TerminalView({ boxId, fullScreen }: { boxId: string; fullScreen: boolea
       }
     };
     ws.onclose = () => {
-      setState("closed");
+      onState("closed");
       term.write("\r\n\x1b[38;5;244m[connection closed]\x1b[0m\r\n");
     };
-    ws.onerror = () => setState("closed");
+    ws.onerror = () => onState("closed");
 
     const dataSub = term.onData((d: string) => {
       if (ws.readyState === WebSocket.OPEN) ws.send(encodePTYInput(encoder.encode(d)));
@@ -163,20 +185,21 @@ function TerminalView({ boxId, fullScreen }: { boxId: string; fullScreen: boolea
       ws.close();
       term.dispose();
     };
-  }, [boxId]);
+  }, [boxId, onState]);
 
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        minHeight: 0,
         height: fullScreen ? "100%" : "60vh",
       }}
     >
       <div
         ref={hostRef}
         data-testid="terminal-host"
+        className="llmbox-terminal-host"
         style={{
           flex: 1,
           minHeight: 0,
@@ -186,24 +209,39 @@ function TerminalView({ boxId, fullScreen }: { boxId: string; fullScreen: boolea
           overflow: "hidden",
         }}
       />
-      <Group justify="flex-end">
-        <StatusBadgeFor state={state} />
-      </Group>
     </div>
   );
 }
 
-/** StatusBadgeFor renders the terminal's connection state. */
-function StatusBadgeFor({ state }: { state: ConnState }): JSX.Element {
+/** StatusLight is the small connection indicator in the header: a coloured dot
+ * with a soft glow (amber pulsing while connecting, green when live, grey once
+ * closed) and a tooltip naming the state — an integrated alternative to a badge.
+ *
+ * @arg props The current connection state.
+ * @return JSX.Element The status dot.
+ */
+function StatusLight({ state }: { state: ConnState }): JSX.Element {
   const map: Record<ConnState, { color: string; label: string }> = {
-    connecting: { color: "yellow", label: "connecting…" },
-    connected: { color: "green", label: "connected" },
-    closed: { color: "gray", label: "disconnected" },
+    connecting: { color: "var(--mantine-color-yellow-5)", label: "Connecting…" },
+    connected: { color: "var(--mantine-color-teal-5)", label: "Connected" },
+    closed: { color: "var(--mantine-color-gray-5)", label: "Disconnected" },
   };
   const { color, label } = map[state];
   return (
-    <Badge color={color} variant="light" data-terminal-state={state}>
-      {label}
-    </Badge>
+    <Tooltip label={label} withArrow>
+      <Box
+        role="status"
+        aria-label={label}
+        data-terminal-state={state}
+        className={state === "connecting" ? "llmbox-term-status llmbox-term-status--pulsing" : "llmbox-term-status"}
+        style={{
+          width: 9,
+          height: 9,
+          borderRadius: "50%",
+          background: color,
+          boxShadow: `0 0 0 3px color-mix(in srgb, ${color} 28%, transparent)`,
+        }}
+      />
+    </Tooltip>
   );
 }
