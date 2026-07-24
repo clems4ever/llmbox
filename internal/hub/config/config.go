@@ -28,6 +28,10 @@ const (
 	DefaultPublicURL = "http://localhost:8080"
 	DefaultStateFile = "llmbox-sessions.db"
 
+	// DefaultConfigFile is the config file the server (and the hub-side
+	// apikey/token CLIs) reads when --config is not given.
+	DefaultConfigFile = "llmbox.yaml"
+
 	// DefaultSessionTTL is how long an admin login session stays valid when
 	// auth.session_ttl is unset.
 	DefaultSessionTTL = time.Hour
@@ -248,6 +252,63 @@ func LoadConfig(path string, explicit bool) (*Config, error) {
 		}
 	}
 	return Load(path)
+}
+
+// ResolveStateFile decides which state file a hub-side CLI command (apikey
+// add/list/delete, token create/list/revoke) should operate on, and writes a
+// one-line notice to w so the operator can see it. Every such command reads and
+// writes the hub's SQLite store directly, so if it silently targets a different
+// file than the running hub reads, freshly minted keys/tokens are rejected as
+// "invalid or expired" — a failure that is very hard to spot because the key
+// appears to exist in the store the CLI just wrote. Making the chosen path
+// visible is the whole point of this helper.
+//
+// Precedence, most explicit first:
+//  1. --state-file was set: use it verbatim (the operator named the store).
+//  2. --config was set, or the default config file is present on disk: use the
+//     config's state_file, resolved exactly as the running server resolves it, so
+//     the command lands in the same store the hub reads.
+//  3. neither: fall back to the built-in default and warn loudly, showing how to
+//     point the command at the hub's real store.
+//
+// @arg w The writer the notice/warning is written to (typically stderr).
+// @arg stateFile The --state-file flag value (its default is DefaultStateFile).
+// @arg stateFileChanged Whether --state-file was set on the command line.
+// @arg configPath The --config flag value (its default is DefaultConfigFile).
+// @arg configChanged Whether --config was set on the command line.
+// @return string The state file the command should open.
+// @error error if a named config file is present but cannot be loaded.
+//
+// @testcase TestResolveStateFileExplicitStateFile uses --state-file verbatim.
+// @testcase TestResolveStateFileFromExplicitConfig reads state_file from an explicit --config.
+// @testcase TestResolveStateFileFromDefaultConfig reads state_file from a present default config.
+// @testcase TestResolveStateFileDefaultWarns warns when neither is set and the default config is absent.
+// @testcase TestResolveStateFileConfigLoadError propagates a load error for a bad config.
+func ResolveStateFile(w io.Writer, stateFile string, stateFileChanged bool, configPath string, configChanged bool) (string, error) {
+	if stateFileChanged {
+		fmt.Fprintf(w, "using state file %q\n", stateFile)
+		return stateFile, nil
+	}
+	// Consult the hub config when it was named explicitly, or when its default
+	// file happens to sit next to the command, so the CLI lands in the same store
+	// the server would.
+	_, statErr := os.Stat(configPath)
+	if configChanged || statErr == nil {
+		cfg, err := Load(configPath)
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(w, "using state file %q (from config %q)\n", cfg.StateFile, configPath)
+		return cfg.StateFile, nil
+	}
+	// No override at all: the built-in default. This is exactly the mismatch that
+	// silently breaks recovery flows (mint a key via `docker exec`, hub reads a
+	// customized state_file, key rejected), so warn and show the fix.
+	fmt.Fprintf(w, "warning: using the default state file %q.\n"+
+		"If the hub runs with a customized state_file (e.g. --config /etc/llmbox/llmbox.yaml),\n"+
+		"pass the same path with --state-file, or point this command at the hub's config with --config.\n",
+		DefaultStateFile)
+	return stateFile, nil
 }
 
 // resolveSecrets reads every file-referenced secret into its in-memory field, so

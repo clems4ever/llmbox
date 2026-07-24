@@ -40,9 +40,10 @@ func NewCmd() *cobra.Command {
 	}
 
 	var (
-		addStateFile string
-		addName      string
-		addTTL       time.Duration
+		addStateFile  string
+		addConfigPath string
+		addName       string
+		addTTL        time.Duration
 	)
 	addCmd := &cobra.Command{
 		Use:           "add",
@@ -54,15 +55,23 @@ func NewCmd() *cobra.Command {
 			if addName == "" {
 				return errors.New("--name is required (a label identifying what the key is for)")
 			}
-			return addAPIKey(cmd.OutOrStdout(), addStateFile, addName, addTTL)
+			stateFile, err := resolveStateFile(cmd, addStateFile, addConfigPath)
+			if err != nil {
+				return err
+			}
+			return addAPIKey(cmd.OutOrStdout(), stateFile, addName, addTTL)
 		},
 	}
 	addCmd.Flags().StringVar(&addStateFile, "state-file", config.DefaultStateFile, "the hub's state file the key is written to (must match the running hub's state_file)")
+	addCmd.Flags().StringVar(&addConfigPath, "config", config.DefaultConfigFile, "the hub's config file to read state_file from (instead of --state-file)")
 	addCmd.Flags().StringVar(&addName, "name", "", "label identifying what the key is for (e.g. ci, prod)")
 	addCmd.Flags().DurationVar(&addTTL, "ttl", defaultAPIKeyTTL, "how long the key stays valid")
 	apikeyCmd.AddCommand(addCmd)
 
-	var listStateFile string
+	var (
+		listStateFile  string
+		listConfigPath string
+	)
 	listCmd := &cobra.Command{
 		Use:           "list",
 		Short:         "List API keys",
@@ -70,16 +79,22 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: false,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return listAPIKeys(cmd.OutOrStdout(), listStateFile, time.Now())
+			stateFile, err := resolveStateFile(cmd, listStateFile, listConfigPath)
+			if err != nil {
+				return err
+			}
+			return listAPIKeys(cmd.OutOrStdout(), stateFile, time.Now())
 		},
 	}
 	listCmd.Flags().StringVar(&listStateFile, "state-file", config.DefaultStateFile, "the hub's state file to read keys from")
+	listCmd.Flags().StringVar(&listConfigPath, "config", config.DefaultConfigFile, "the hub's config file to read state_file from (instead of --state-file)")
 	apikeyCmd.AddCommand(listCmd)
 
 	var (
-		deleteStateFile string
-		deleteID        string
-		deleteName      string
+		deleteStateFile  string
+		deleteConfigPath string
+		deleteID         string
+		deleteName       string
 	)
 	deleteCmd := &cobra.Command{
 		Use:           "delete",
@@ -91,15 +106,38 @@ func NewCmd() *cobra.Command {
 			if deleteID == "" && deleteName == "" {
 				return errors.New("one of --id or --name is required")
 			}
-			return deleteAPIKeys(cmd.OutOrStdout(), deleteStateFile, deleteID, deleteName)
+			stateFile, err := resolveStateFile(cmd, deleteStateFile, deleteConfigPath)
+			if err != nil {
+				return err
+			}
+			return deleteAPIKeys(cmd.OutOrStdout(), stateFile, deleteID, deleteName)
 		},
 	}
 	deleteCmd.Flags().StringVar(&deleteStateFile, "state-file", config.DefaultStateFile, "the hub's state file to delete keys from")
+	deleteCmd.Flags().StringVar(&deleteConfigPath, "config", config.DefaultConfigFile, "the hub's config file to read state_file from (instead of --state-file)")
 	deleteCmd.Flags().StringVar(&deleteID, "id", "", "delete the single key whose ID has this prefix")
 	deleteCmd.Flags().StringVar(&deleteName, "name", "", "delete every key with this name")
 	apikeyCmd.AddCommand(deleteCmd)
 
 	return apikeyCmd
+}
+
+// resolveStateFile picks the state file the subcommand operates on from its
+// --state-file/--config flags, printing to stderr which store it chose (and
+// warning when it falls back to the built-in default). It centralizes the flag
+// plumbing so every apikey subcommand surfaces the same notice.
+//
+// @arg cmd The running subcommand (source of the flag-changed state and stderr).
+// @arg stateFile The --state-file flag value.
+// @arg configPath The --config flag value.
+// @return string The resolved state file to open.
+// @error error if a named config file cannot be loaded.
+//
+// @testcase TestResolveStateFilePrefersStateFile uses an explicit --state-file and prints it.
+// @testcase TestResolveStateFileWarnsOnDefault warns when neither flag is set.
+func resolveStateFile(cmd *cobra.Command, stateFile, configPath string) (string, error) {
+	return config.ResolveStateFile(cmd.ErrOrStderr(), stateFile,
+		cmd.Flags().Changed("state-file"), configPath, cmd.Flags().Changed("config"))
 }
 
 // addAPIKey opens the hub's store, mints a new API key, and prints the secret
@@ -126,7 +164,13 @@ func addAPIKey(out io.Writer, stateFile, name string, ttl time.Duration) error {
 	// Show the state file the key landed in: a key is only honored by a hub
 	// reading this exact same store, so a mismatch here (e.g. the wrong
 	// --state-file) is the usual cause of "invalid API key".
-	fmt.Fprintf(out, "API key %q (valid %s):\n\n  %s\n\nWritten to state file: %s\n(the running hub must use this same state_file, or it will reject the key)\n\nPass it as a bearer token, e.g.:\n\n  curl -H \"Authorization: Bearer %s\" ...\n", name, ttl, secret, stateFile, secret)
+	//
+	// The secret is printed exactly once (on its own line), so a capture like
+	// `grep -oE 'lbx_[0-9a-f]{64}'` yields a single value; the curl example uses a
+	// $LLMBOX_API_KEY placeholder rather than repeating the secret, which would
+	// otherwise produce a two-line grep result with an embedded newline that the
+	// server rejects as a malformed header.
+	fmt.Fprintf(out, "API key %q (valid %s):\n\n  %s\n\nWritten to state file: %s\n(the running hub must use this same state_file, or it will reject the key)\n\nPass it as a bearer token, e.g.:\n\n  curl -H \"Authorization: Bearer $LLMBOX_API_KEY\" ...\n", name, ttl, secret, stateFile)
 	return nil
 }
 

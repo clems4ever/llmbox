@@ -44,9 +44,10 @@ func NewCmd() *cobra.Command {
 	}
 
 	var (
-		stateFile string
-		spokeName string
-		ttl       time.Duration
+		stateFile  string
+		configPath string
+		spokeName  string
+		ttl        time.Duration
 	)
 	createCmd := &cobra.Command{
 		Use:           "create",
@@ -58,15 +59,23 @@ func NewCmd() *cobra.Command {
 			if spokeName == "" {
 				return errors.New("--name is required (the spoke name baked into the token)")
 			}
-			return createJoinToken(cmd.OutOrStdout(), stateFile, spokeName, ttl)
+			sf, err := resolveStateFile(cmd, stateFile, configPath)
+			if err != nil {
+				return err
+			}
+			return createJoinToken(cmd.OutOrStdout(), sf, spokeName, ttl)
 		},
 	}
 	createCmd.Flags().StringVar(&stateFile, "state-file", config.DefaultStateFile, "the hub's state file the token is written to (must match the running hub's state_file)")
+	createCmd.Flags().StringVar(&configPath, "config", config.DefaultConfigFile, "the hub's config file to read state_file from (instead of --state-file)")
 	createCmd.Flags().StringVar(&spokeName, "name", "", "name of the spoke this token enrolls")
 	createCmd.Flags().DurationVar(&ttl, "ttl", defaultJoinTokenTTL, "how long the token stays valid")
 	tokenCmd.AddCommand(createCmd)
 
-	var listStateFile string
+	var (
+		listStateFile  string
+		listConfigPath string
+	)
 	listCmd := &cobra.Command{
 		Use:           "list",
 		Short:         "List outstanding spoke join tokens",
@@ -74,16 +83,22 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: false,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return listJoinTokens(cmd.OutOrStdout(), listStateFile, time.Now())
+			sf, err := resolveStateFile(cmd, listStateFile, listConfigPath)
+			if err != nil {
+				return err
+			}
+			return listJoinTokens(cmd.OutOrStdout(), sf, time.Now())
 		},
 	}
 	listCmd.Flags().StringVar(&listStateFile, "state-file", config.DefaultStateFile, "the hub's state file to read tokens from")
+	listCmd.Flags().StringVar(&listConfigPath, "config", config.DefaultConfigFile, "the hub's config file to read state_file from (instead of --state-file)")
 	tokenCmd.AddCommand(listCmd)
 
 	var (
-		revokeStateFile string
-		revokeID        string
-		revokeName      string
+		revokeStateFile  string
+		revokeConfigPath string
+		revokeID         string
+		revokeName       string
 	)
 	revokeCmd := &cobra.Command{
 		Use:           "revoke",
@@ -95,15 +110,38 @@ func NewCmd() *cobra.Command {
 			if revokeID == "" && revokeName == "" {
 				return errors.New("one of --id or --name is required")
 			}
-			return revokeJoinTokens(cmd.OutOrStdout(), revokeStateFile, revokeID, revokeName)
+			sf, err := resolveStateFile(cmd, revokeStateFile, revokeConfigPath)
+			if err != nil {
+				return err
+			}
+			return revokeJoinTokens(cmd.OutOrStdout(), sf, revokeID, revokeName)
 		},
 	}
 	revokeCmd.Flags().StringVar(&revokeStateFile, "state-file", config.DefaultStateFile, "the hub's state file to revoke tokens from")
+	revokeCmd.Flags().StringVar(&revokeConfigPath, "config", config.DefaultConfigFile, "the hub's config file to read state_file from (instead of --state-file)")
 	revokeCmd.Flags().StringVar(&revokeID, "id", "", "revoke the single token whose ID has this prefix")
 	revokeCmd.Flags().StringVar(&revokeName, "name", "", "revoke every token issued for this spoke name")
 	tokenCmd.AddCommand(revokeCmd)
 
 	return tokenCmd
+}
+
+// resolveStateFile picks the state file the subcommand operates on from its
+// --state-file/--config flags, printing to stderr which store it chose (and
+// warning when it falls back to the built-in default). It centralizes the flag
+// plumbing so every token subcommand surfaces the same notice.
+//
+// @arg cmd The running subcommand (source of the flag-changed state and stderr).
+// @arg stateFile The --state-file flag value.
+// @arg configPath The --config flag value.
+// @return string The resolved state file to open.
+// @error error if a named config file cannot be loaded.
+//
+// @testcase TestResolveStateFilePrefersStateFile uses an explicit --state-file and prints it.
+// @testcase TestResolveStateFileWarnsOnDefault warns when neither flag is set.
+func resolveStateFile(cmd *cobra.Command, stateFile, configPath string) (string, error) {
+	return config.ResolveStateFile(cmd.ErrOrStderr(), stateFile,
+		cmd.Flags().Changed("state-file"), configPath, cmd.Flags().Changed("config"))
 }
 
 // createJoinToken opens the hub's store, mints a one-time join token for the

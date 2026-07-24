@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -394,5 +396,99 @@ func TestLoadConfigReadsFile(t *testing.T) {
 	}
 	if cfg.HTTPAddr != ":9090" {
 		t.Errorf("HTTPAddr = %q, want :9090", cfg.HTTPAddr)
+	}
+}
+
+// TestResolveStateFileExplicitStateFile checks an explicit --state-file is used
+// verbatim and reported, without consulting any config.
+func TestResolveStateFileExplicitStateFile(t *testing.T) {
+	var w bytes.Buffer
+	got, err := ResolveStateFile(&w, "/var/lib/llmbox/sessions.db", true, DefaultConfigFile, false)
+	if err != nil {
+		t.Fatalf("ResolveStateFile = %v", err)
+	}
+	if got != "/var/lib/llmbox/sessions.db" {
+		t.Errorf("state file = %q, want the explicit path", got)
+	}
+	if !strings.Contains(w.String(), "/var/lib/llmbox/sessions.db") {
+		t.Errorf("notice %q does not mention the chosen state file", w.String())
+	}
+	if strings.Contains(w.String(), "warning") {
+		t.Errorf("explicit state file warned: %q", w.String())
+	}
+}
+
+// TestResolveStateFileFromExplicitConfig checks an explicit --config supplies the
+// state file even when --state-file was left at its default.
+func TestResolveStateFileFromExplicitConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "hub.yaml")
+	if err := os.WriteFile(path, []byte("state_file: /srv/hub/sessions.db\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	got, err := ResolveStateFile(&w, DefaultStateFile, false, path, true)
+	if err != nil {
+		t.Fatalf("ResolveStateFile = %v", err)
+	}
+	if got != "/srv/hub/sessions.db" {
+		t.Errorf("state file = %q, want the config's state_file", got)
+	}
+	if !strings.Contains(w.String(), "/srv/hub/sessions.db") || !strings.Contains(w.String(), path) {
+		t.Errorf("notice %q should mention the state file and the config it came from", w.String())
+	}
+}
+
+// TestResolveStateFileFromDefaultConfig checks a default config file present on
+// disk is consulted even when neither flag was set explicitly.
+func TestResolveStateFileFromDefaultConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, DefaultConfigFile)
+	if err := os.WriteFile(path, []byte("state_file: /srv/hub/sessions.db\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	got, err := ResolveStateFile(&w, DefaultStateFile, false, path, false)
+	if err != nil {
+		t.Fatalf("ResolveStateFile = %v", err)
+	}
+	if got != "/srv/hub/sessions.db" {
+		t.Errorf("state file = %q, want the default config's state_file", got)
+	}
+}
+
+// TestResolveStateFileDefaultWarns checks that with neither flag set and no
+// default config on disk, the built-in default is used and a warning naming it
+// (and how to override) is emitted.
+func TestResolveStateFileDefaultWarns(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "does-not-exist.yaml")
+	var w bytes.Buffer
+	got, err := ResolveStateFile(&w, DefaultStateFile, false, missing, false)
+	if err != nil {
+		t.Fatalf("ResolveStateFile = %v", err)
+	}
+	if got != DefaultStateFile {
+		t.Errorf("state file = %q, want the default %q", got, DefaultStateFile)
+	}
+	notice := w.String()
+	if !strings.Contains(notice, "warning") || !strings.Contains(notice, DefaultStateFile) {
+		t.Errorf("notice %q should warn and name the default state file", notice)
+	}
+	for _, want := range []string{"--state-file", "--config"} {
+		if !strings.Contains(notice, want) {
+			t.Errorf("notice %q should point at %s", notice, want)
+		}
+	}
+}
+
+// TestResolveStateFileConfigLoadError checks a load error for a present but bad
+// config is propagated rather than silently falling back.
+func TestResolveStateFileConfigLoadError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "bad.yaml")
+	if err := os.WriteFile(path, []byte("state_file: [not, a, string]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	if _, err := ResolveStateFile(&w, DefaultStateFile, false, path, true); err == nil {
+		t.Error("ResolveStateFile with a bad config = nil, want error")
 	}
 }

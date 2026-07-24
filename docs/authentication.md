@@ -68,6 +68,15 @@ serves scripts, other services, and the admin web app:
   `apikey list` / `apikey delete --id <prefix>|--name <label>`. The key is shown
   once and passed as a bearer token (`Authorization: Bearer lbx_...`); only its
   SHA-256 is stored, and every key expires.
+
+  > **Mint into the store the hub actually reads.** These subcommands (and the
+  > `token` subcommands) operate directly on the hub's `state_file`. If the hub
+  > was started with a customized `state_file` (e.g. via `--config`) but you run
+  > `apikey add` without pointing at it, the key lands in the default
+  > `llmbox-sessions.db` and the hub rejects it as `invalid or expired API key`.
+  > Each subcommand prints the store it used to stderr and warns when it falls
+  > back to the default; pass the hub's config with `--config <file>` (it reads
+  > `state_file` from it) or name the store directly with `--state-file <path>`.
 - **Admin sessions** (the web app): a signed-in administrator's login cookie
   plus the session's CSRF token echoed in the `X-CSRF-Token` header. The app
   bootstraps this from `GET /api/v1/me`.
