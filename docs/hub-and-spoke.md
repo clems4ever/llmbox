@@ -98,9 +98,13 @@ Token and credential records live in the hub's SQLite state file
 
 ## CLI / config
 
-- `llmbox-server token create --name <name> [--ttl 1h] [--state-file …]` —
+- `llmbox-server token create --name <name> [--ttl 1h] [--state-file … | --config …]` —
   hub-side; prints the token once. Writes to the hub's state file (default
-  `llmbox-sessions.db`; point `--state-file` at the running hub's `state_file`).
+  `llmbox-sessions.db`). If the hub runs with a customized `state_file`, point the
+  command at the same store or the enrollment is rejected: pass `--config <file>`
+  to read `state_file` from the hub's config, or `--state-file <path>` directly.
+  The command prints the store it used to stderr and warns when it falls back to
+  the default.
 - `llmbox-spoke docker --hub wss://hub/spoke/connect --token <join-token>` — runs
   a spoke on the Docker backend; `llmbox-spoke firecracker …` runs the
   [Firecracker](firecracker.md) backend. The credential issued at first

@@ -97,7 +97,7 @@ func newRootCmd() *cobra.Command {
 			return hub.Serve(cmd.Context(), cfg, name, version)
 		},
 	}
-	rootCmd.Flags().StringVarP(&configPath, "config", "c", "llmbox.yaml", "path to the YAML configuration file")
+	rootCmd.Flags().StringVarP(&configPath, "config", "c", config.DefaultConfigFile, "path to the YAML configuration file")
 
 	versionCmd := &cobra.Command{
 		Use:   "version",

@@ -26,7 +26,8 @@ func subcmd(t *testing.T, cmd *cobra.Command, use string) *cobra.Command {
 }
 
 // TestNewCmd checks the token command wires its create/list/revoke subcommands,
-// and that create reads --state-file (the hub's state file), not --config.
+// and that every subcommand exposes both --state-file and --config so the store
+// can be named directly or resolved from the hub's config.
 func TestNewCmd(t *testing.T) {
 	cmd := NewCmd()
 	if cmd.Use != "token" {
@@ -37,13 +38,24 @@ func TestNewCmd(t *testing.T) {
 	}
 
 	create := subcmd(t, cmd, "create")
-	for _, f := range []string{"name", "ttl", "state-file"} {
+	for _, f := range []string{"name", "ttl", "state-file", "config"} {
 		if create.Flags().Lookup(f) == nil {
 			t.Errorf("token create missing --%s flag", f)
 		}
 	}
-	if create.Flags().Lookup("config") != nil {
-		t.Error("token create should not have a --config flag")
+
+	list := subcmd(t, cmd, "list")
+	for _, f := range []string{"state-file", "config"} {
+		if list.Flags().Lookup(f) == nil {
+			t.Errorf("token list missing --%s flag", f)
+		}
+	}
+
+	revoke := subcmd(t, cmd, "revoke")
+	for _, f := range []string{"id", "name", "state-file", "config"} {
+		if revoke.Flags().Lookup(f) == nil {
+			t.Errorf("token revoke missing --%s flag", f)
+		}
 	}
 }
 

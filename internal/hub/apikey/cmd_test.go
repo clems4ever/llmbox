@@ -2,6 +2,7 @@ package apikey
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -25,7 +26,8 @@ func subcmd(t *testing.T, cmd *cobra.Command, use string) *cobra.Command {
 }
 
 // TestNewCmd checks the apikey command wires its add/list/delete subcommands,
-// and that add reads --state-file (the hub's state file), not --config.
+// and that every subcommand exposes both --state-file and --config so the store
+// can be named directly or resolved from the hub's config.
 func TestNewCmd(t *testing.T) {
 	cmd := NewCmd()
 	if cmd.Use != "apikey" {
@@ -36,19 +38,23 @@ func TestNewCmd(t *testing.T) {
 	}
 
 	add := subcmd(t, cmd, "add")
-	for _, f := range []string{"name", "ttl", "state-file"} {
+	for _, f := range []string{"name", "ttl", "state-file", "config"} {
 		if add.Flags().Lookup(f) == nil {
 			t.Errorf("apikey add missing --%s flag", f)
 		}
 	}
-	if add.Flags().Lookup("config") != nil {
-		t.Error("apikey add should not have a --config flag")
-	}
 
 	del := subcmd(t, cmd, "delete")
-	for _, f := range []string{"id", "name", "state-file"} {
+	for _, f := range []string{"id", "name", "state-file", "config"} {
 		if del.Flags().Lookup(f) == nil {
 			t.Errorf("apikey delete missing --%s flag", f)
+		}
+	}
+
+	list := subcmd(t, cmd, "list")
+	for _, f := range []string{"state-file", "config"} {
+		if list.Flags().Lookup(f) == nil {
+			t.Errorf("apikey list missing --%s flag", f)
 		}
 	}
 }
@@ -71,6 +77,12 @@ func TestAddAPIKeyCmdPrintsKey(t *testing.T) {
 	}
 	if !strings.Contains(s, "Authorization: Bearer") {
 		t.Errorf("output missing usage hint: %q", s)
+	}
+	// The secret must be printed exactly once: a second copy in the curl example
+	// makes `grep -oE 'lbx_...'` capture a two-line value with an embedded newline
+	// that the server then rejects as a malformed header.
+	if n := strings.Count(s, "lbx_"); n != 1 {
+		t.Errorf("secret printed %d times, want exactly once: %q", n, s)
 	}
 
 	// The key really landed (hashed) in the state file.
@@ -215,5 +227,73 @@ func TestDeleteAPIKeyNoMatch(t *testing.T) {
 	seedKey(t, stateFile, "ci")
 	if err := deleteAPIKeys(&bytes.Buffer{}, stateFile, "", "nope"); err == nil {
 		t.Error("delete with no match = nil, want error")
+	}
+}
+
+// TestAddAPIKeyResolvesConfigStateFile checks the wired-up `apikey add --config`
+// mints the key into the state_file named by the hub's config (not the built-in
+// default) and reports that path on stderr — the fix for keys landing in the
+// wrong store when the hub customized state_file.
+func TestAddAPIKeyResolvesConfigStateFile(t *testing.T) {
+	dir := t.TempDir()
+	stateFile := filepath.Join(dir, "hub-sessions.db")
+	cfgPath := filepath.Join(dir, "llmbox.yaml")
+	if err := os.WriteFile(cfgPath, []byte("state_file: "+stateFile+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := NewCmd()
+	var out, errb bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&errb)
+	cmd.SetArgs([]string{"add", "--name", "recovery", "--config", cfgPath})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("apikey add --config: %v", err)
+	}
+
+	// The notice on stderr names the resolved store; no default warning fires.
+	if !strings.Contains(errb.String(), stateFile) {
+		t.Errorf("stderr %q should name the config's state file", errb.String())
+	}
+	if strings.Contains(errb.String(), "warning") {
+		t.Errorf("stderr warned despite a resolved config: %q", errb.String())
+	}
+
+	// The key really landed in the config's state file, not the default.
+	st, err := storepkg.Open(stateFile)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() { _ = st.Close() }()
+	keys, err := st.ListAPIKeys()
+	if err != nil || len(keys) != 1 || keys[0].Name != "recovery" {
+		t.Fatalf("stored keys = %v (%v), want one named recovery", keys, err)
+	}
+}
+
+// TestAddAPIKeyWarnsOnDefaultStateFile checks that with neither --state-file nor
+// --config given (and no config on disk), the command warns it is using the
+// built-in default and shows how to override it. It runs from a temp dir so the
+// relative default store and the absent default config both resolve there rather
+// than in the repo tree.
+func TestAddAPIKeyWarnsOnDefaultStateFile(t *testing.T) {
+	t.Chdir(t.TempDir())
+
+	cmd := NewCmd()
+	var out, errb bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&errb)
+	cmd.SetArgs([]string{"add", "--name", "recovery"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("apikey add: %v", err)
+	}
+	notice := errb.String()
+	if !strings.Contains(notice, "warning") {
+		t.Errorf("stderr %q should warn about the default state file", notice)
+	}
+	for _, want := range []string{"--state-file", "--config"} {
+		if !strings.Contains(notice, want) {
+			t.Errorf("stderr %q should point at %s", notice, want)
+		}
 	}
 }
