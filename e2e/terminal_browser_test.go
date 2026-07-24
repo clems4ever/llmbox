@@ -107,11 +107,23 @@ func TestAdminTerminalInBrowser(t *testing.T) {
 		t.Fatalf("resolving screenshot dir: %v", err)
 	}
 	if shotDir != "" {
-		if err := b.wd.ResizeWindow("", 1440, 900); err != nil {
-			t.Logf("resizing for screenshot (continuing): %v", err)
+		// Desktop (centered dialog), then tablet and mobile (full-screen): resizing
+		// the window flips the modal to full-screen and the terminal refits, so each
+		// capture shows the terminal adapted to that screen size.
+		for _, shot := range []struct {
+			name          string
+			width, height int
+		}{
+			{"terminal.png", 1440, 900},
+			{"terminal-tablet.png", 834, 1112},
+			{"terminal-mobile.png", 390, 844},
+		} {
+			if err := b.wd.ResizeWindow("", shot.width, shot.height); err != nil {
+				t.Logf("resizing for screenshot (continuing): %v", err)
+			}
+			time.Sleep(600 * time.Millisecond) // let the terminal reflow before capture
+			b.saveScreenshot(t, shotDir, shot.name)
 		}
-		time.Sleep(400 * time.Millisecond) // let the terminal reflow before capture
-		b.saveScreenshot(t, shotDir, "terminal.png")
 	}
 }
 
