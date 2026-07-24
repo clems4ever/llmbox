@@ -158,8 +158,12 @@ interface RowProps {
 }
 
 /** WorkspacePauseAction renders the per-box pause/resume control: a Resume button
- * for a paused box, a Pause button for a running one, and nothing for a box in
- * any other state (unreachable, terminated) where neither applies. */
+ * for a paused box, a Start button for a stopped one (a box whose VMM died — e.g.
+ * after a host reboot or a spoke/hub upgrade — so recovery doesn't require the
+ * CLI), a Pause button for a running one, and nothing for a box in any other
+ * state (unreachable, terminated) where none applies. Resume and Start both go
+ * through the same resume-box endpoint, which boots the box from its persisted
+ * disk; the label differs only so the affordance matches the box's state. */
 function WorkspacePauseAction({
   box,
   onPause,
@@ -170,14 +174,18 @@ function WorkspacePauseAction({
   onResume: (b: BoxView) => void;
 }): JSX.Element | null {
   const id = boxId(box);
-  if (stateTone(box.state) === "paused") {
+  const tone = stateTone(box.state);
+  if (tone === "paused" || tone === "stopped") {
+    // A paused box is "resumed"; a stopped one is "started" — same endpoint,
+    // different word so the button reads right for the state it's offered on.
+    const verb = tone === "paused" ? "Resume" : "Start";
     return (
-      <Tooltip label="Resume workspace">
+      <Tooltip label={`${verb} workspace`}>
         <ActionIcon
           variant="subtle"
           color="teal"
           data-box-resume={id}
-          aria-label={`Resume ${id}`}
+          aria-label={`${verb} ${id}`}
           onClick={() => onResume(box)}
         >
           <IconPlayerPlay size={16} />
