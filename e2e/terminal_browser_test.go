@@ -63,9 +63,7 @@ func TestAdminTerminalInBrowser(t *testing.T) {
 
 	// Open the box's details drawer, then the terminal.
 	row := b.waitFor(t, selenium.ByCSSSelector, `[data-box-row='demo']`)
-	if err := row.Click(); err != nil {
-		t.Fatalf("clicking box row: %v", err)
-	}
+	clickWhenReady(t, row, "box row")
 	openBtn := b.waitFor(t, selenium.ByCSSSelector, `[data-testid='open-terminal']`)
 
 	// Capture the details drawer with the new "Open terminal" action for the docs.
@@ -81,15 +79,18 @@ func TestAdminTerminalInBrowser(t *testing.T) {
 		b.saveScreenshot(t, drawerShotDir, "workspace-drawer.png")
 	}
 
-	if err := openBtn.Click(); err != nil {
-		t.Fatalf("clicking Open terminal: %v", err)
-	}
+	clickWhenReady(t, openBtn, "Open terminal")
 
 	// Wait for the socket to connect, then type a command with a unique marker and
 	// assert its output streams back into the terminal.
 	b.waitFor(t, selenium.ByCSSSelector, `[data-terminal-state='connected']`)
 	textarea := b.waitFor(t, selenium.ByCSSSelector, `.xterm-helper-textarea`)
-	if err := textarea.Click(); err != nil {
+	// Focus xterm's hidden input via JS rather than a click: the terminal canvas
+	// overlays the helper textarea, so it is not pointer-interactable (a click
+	// errors "element not interactable"), but it is keyboard-interactable, so
+	// SendKeys delivers the keystrokes once it is focused.
+	if _, err := b.wd.ExecuteScript(
+		`document.querySelector('.xterm-helper-textarea').focus();`, nil); err != nil {
 		t.Fatalf("focusing terminal: %v", err)
 	}
 	const marker = "llmbox-terminal-demo-42"
@@ -159,6 +160,26 @@ func createBox(t *testing.T, baseURL string, cookie *http.Cookie, boxID string) 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("create-box status = %s, want 200", resp.Status)
+	}
+}
+
+// clickWhenReady clicks el, retrying until it succeeds or a short deadline
+// passes. A drawer or modal that is still animating in reports its controls as
+// "not interactable"; retrying rides out the transition rather than racing it.
+//
+// @arg t The test, failed when the element never becomes clickable.
+// @arg el The element to click.
+// @arg desc A human label for the element, used in the failure message.
+func clickWhenReady(t *testing.T, el selenium.WebElement, desc string) {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		if err := el.Click(); err == nil {
+			return
+		} else if time.Now().After(deadline) {
+			t.Fatalf("clicking %s: never became interactable: %v", desc, err)
+		}
+		time.Sleep(150 * time.Millisecond)
 	}
 }
 
